@@ -16,6 +16,7 @@ import { evlog } from "evlog/elysia";
 
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
+    // oxlint-disable-next-line promise/prefer-await-to-callbacks
     onError((error) => {
       console.error(error);
     }),
@@ -23,6 +24,7 @@ const rpcHandler = new RPCHandler(appRouter, {
 });
 const apiHandler = new OpenAPIHandler(appRouter, {
   interceptors: [
+    // oxlint-disable-next-line promise/prefer-await-to-callbacks
     onError((error) => {
       console.error(error);
     }),
@@ -57,7 +59,7 @@ new Elysia()
       origin: env.CORS_ORIGIN,
     }),
   )
-  .all("/api/auth/*", async (context) => {
+  .all("/api/auth/*", (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {
       return auth.handler(request);

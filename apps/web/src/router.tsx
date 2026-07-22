@@ -5,7 +5,7 @@ import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
 import { createQueryClient, orpc } from "./utils/orpc";
 
-export const getRouter = () => {
+export function getRouter() {
   const queryClient = createQueryClient();
 
   const router = createTanStackRouter({
@@ -23,7 +23,7 @@ export const getRouter = () => {
   });
 
   return router;
-};
+}
 
 declare module "@tanstack/react-router" {
   interface Register {

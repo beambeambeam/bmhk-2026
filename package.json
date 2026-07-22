@@ -26,8 +26,8 @@
       "@orpc/client": "^1.14.6",
       "@types/react": "^19.2.17",
       "@types/react-dom": "^19.2.3",
-      "vite": "npm:@voidzero-dev/vite-plus-core@0.2.2",
-      "vite-plus": "0.2.2",
+      "vite": "npm:@voidzero-dev/vite-plus-core@0.2.5",
+      "vite-plus": "0.2.5",
       "vitest": "4.1.9"
     }
   },

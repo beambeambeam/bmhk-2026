@@ -101,6 +101,8 @@ bmhk-2026/
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
+- `bun run test`: Run unit tests once
+- `bun run test:watch`: Run unit tests in watch mode
 - `bun run db:push`: Push schema changes to database
 - `bun run db:generate`: Generate database client/types
 - `bun run db:migrate`: Run database migrations
@@ -110,3 +112,7 @@ bmhk-2026/
 - `bun run format`: Run Vite+ formatting
 - `bun run staged`: Run Vite+ checks against staged files
 - `bun run hooks:setup`: Install Vite+ native Git hooks with `vp config`
+
+## Tests
+
+Place unit tests inside `__test__` directories. Vite+ discovers `*.test.ts`, `*.test.tsx`, `*.spec.ts`, and `*.spec.tsx` files there.

@@ -19,6 +19,7 @@
         "ultracite": "7.9.4",
         "vite": "catalog:",
         "vite-plus": "catalog:",
+        "vitest": "catalog:",
       },
     },
     "apps/server": {
@@ -183,6 +184,7 @@
   },
   "overrides": {
     "vite": "catalog:",
+    "vitest": "catalog:",
   },
   "catalog": {
     "@orpc/client": "^1.14.6",
@@ -205,6 +207,7 @@
     "typescript": "^6",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.2",
     "vite-plus": "0.2.2",
+    "vitest": "4.1.9",
     "zod": "^4.4.3",
   },
   "packages": {

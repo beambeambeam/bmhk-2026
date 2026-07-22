@@ -50,4 +50,12 @@ export default defineConfig({
   staged: {
     "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
   },
+  test: {
+    environment: "node",
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.vinxi/**", "**/.tanstack/**"],
+    include: [
+      "apps/**/__test__/**/*.{test,spec}.{ts,tsx}",
+      "packages/**/__test__/**/*.{test,spec}.{ts,tsx}",
+    ],
+  },
 });

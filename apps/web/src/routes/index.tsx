@@ -24,7 +24,7 @@ const TITLE_TEXT = `
  `;
 
 function HomeComponent() {
-  const healthCheck = useQuery(orpc.healthCheck.queryOptions());
+  const healthCheck = useQuery(orpc.health.check.queryOptions());
   let healthStatus = "Checking...";
 
   if (!healthCheck.isLoading) {

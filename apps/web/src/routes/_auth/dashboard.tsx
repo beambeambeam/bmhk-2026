@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_auth/dashboard")({
 function RouteComponent() {
   const { session } = Route.useRouteContext();
 
-  const privateData = useQuery(orpc.privateData.queryOptions());
+  const privateData = useQuery(orpc.privateData.get.queryOptions());
 
   return (
     <div>

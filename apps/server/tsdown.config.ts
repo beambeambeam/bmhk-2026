@@ -5,7 +5,7 @@ export default defineConfig({
   deps: {
     alwaysBundle: [/@bmhk-2026\/.*/u],
   },
-  entry: "./src/index.ts",
+  entry: "./src/main.ts",
   format: "esm",
   outDir: "./dist",
 });

@@ -84,10 +84,18 @@ bmhk-2026/
 │   ├── web/         # Frontend application (React + TanStack Start)
 │   └── server/      # Backend API (Elysia, ORPC)
 ├── packages/
-│   ├── api/         # API layer / business logic
+│   ├── api/         # Framework-neutral API features and oRPC procedures
 │   ├── auth/        # Authentication configuration & logic
 │   └── db/          # Database schema & queries
 ```
+
+### API/server boundaries
+
+`packages/api` owns feature routers, procedure policies, schemas, and application logic. Keep it framework-neutral and inject external capabilities through dependency ports.
+
+`apps/server` owns Elysia composition, HTTP routes, authentication adapters, CORS, observability, and startup. Use `src/app.ts` for composition and keep `src/main.ts` limited to dependency wiring and `.listen()`.
+
+Add new API work under `packages/api/src/features/<feature>/`. Add server adapters under `apps/server/src/modules` or cross-cutting infrastructure under `apps/server/src/infrastructure`.
 
 ## Available Scripts
 

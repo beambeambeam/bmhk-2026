@@ -3,7 +3,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsdown",
+    "build": "vp pack",
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
@@ -28,7 +28,6 @@
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
     "@types/bun": "catalog:",
-    "tsdown": "^0.22.3",
     "typescript": "catalog:"
   }
 }

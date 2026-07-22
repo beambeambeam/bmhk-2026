@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import UserMenu from "./user-menu";
+import UserMenu from "@/features/auth/user-menu";
 
 export default function Header() {
   const links = [

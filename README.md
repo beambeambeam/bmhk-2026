@@ -74,7 +74,9 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 ## Git Hooks and Formatting
 
-- Optional native Vite+ hooks: `bun run hooks:setup`
+- Install native Vite+ hooks: `bun run hooks:setup`
+- Commit messages must use Conventional Commits, for example `feat: add login`
+- Check commit range: `bun run commitlint --from HEAD~1 --to HEAD`
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
 

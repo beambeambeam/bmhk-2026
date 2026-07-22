@@ -40,6 +40,7 @@
     "lint": "vp lint",
     "format": "vp fmt",
     "staged": "vp staged",
+    "commitlint": "commitlint",
     "hooks:setup": "vp config",
     "dev:web": "vp run --filter web dev",
     "dev:server": "vp run --filter server dev",
@@ -59,6 +60,8 @@
   },
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
     "@types/bun": "catalog:",
     "rolldown": "1.1.4",
     "typescript": "catalog:",

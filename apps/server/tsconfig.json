@@ -1,0 +1,11 @@
+{
+  "extends": "@bmhk-2026/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "jsx": "react-jsx"
+  }
+}

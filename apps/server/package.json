@@ -1,34 +1,28 @@
 {
   "name": "server",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "src/main.ts",
   "scripts": {
-    "build": "tsdown",
+    "build": "vp pack src/main.ts --out-dir ./dist --format esm --clean",
     "check-types": "tsc -b",
-    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
-    "dev": "bun run --hot src/index.ts",
-    "start": "bun run dist/index.mjs"
+    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/main.ts --outfile server",
+    "dev": "bun run --hot src/main.ts",
+    "start": "bun run dist/main.mjs"
   },
   "dependencies": {
     "@bmhk-2026/api": "workspace:*",
     "@bmhk-2026/auth": "workspace:*",
-    "@bmhk-2026/db": "workspace:*",
     "@bmhk-2026/env": "workspace:*",
     "@elysiajs/cors": "^1.4.2",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "@sinclair/typebox": "^0.34.49",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "elysia": "catalog:",
-    "evlog": "catalog:",
-    "zod": "catalog:"
+    "evlog": "catalog:"
   },
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
     "@types/bun": "catalog:",
-    "tsdown": "^0.22.3",
     "typescript": "catalog:"
   }
 }

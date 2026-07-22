@@ -7,7 +7,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **TypeScript** - For type safety and improved developer experience
 - **TanStack Start** - SSR framework with TanStack Router
 - **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
+- **App-local UI** - shadcn/ui primitives live in `apps/web`
 - **Elysia** - Type-safe, high-performance framework
 - **oRPC** - End-to-end type-safe APIs with OpenAPI integration
 - **Bun** - Runtime environment
@@ -44,38 +44,35 @@ Then, run the development server:
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application. The API is running at [http://localhost:3000](http://localhost:3000).
 
 ## UI Customization
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+App-specific shadcn/ui primitives and styles live under `apps/web`.
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+- Change design tokens and global styles in `apps/web/src/index.css`
+- Update primitives in `apps/web/src/components/*`
+- Adjust shadcn aliases or style config in `apps/web/components.json`
 
-### Add more shared components
+### Add more components
 
-Run this from the project root to add more primitives to the shared UI package:
+Run this from the project root to add primitives to the web app:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+npx shadcn@latest add accordion dialog popover sheet table -c apps/web
 ```
 
-Import shared components like this:
+Import components like this:
 
 ```tsx
-import { Button } from "@bmhk-2026/ui/components/button";
+import { Button } from "@/components/button";
 ```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
 
 ## Git Hooks and Formatting
 
-- Optional native Vite+ hooks: `bun run hooks:setup`
+- Install native Vite+ hooks: `bun run hooks:setup`
+- Commit messages must use Conventional Commits, for example `feat: add login`
+- Check commit range: `bun run commitlint --from HEAD~1 --to HEAD`
 - Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
 - Run checks: `bun run check`
 
@@ -87,11 +84,18 @@ bmhk-2026/
 │   ├── web/         # Frontend application (React + TanStack Start)
 │   └── server/      # Backend API (Elysia, ORPC)
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── api/         # API layer / business logic
+│   ├── api/         # Framework-neutral API features and oRPC procedures
 │   ├── auth/        # Authentication configuration & logic
 │   └── db/          # Database schema & queries
 ```
+
+### API/server boundaries
+
+`packages/api` owns feature routers, procedure policies, schemas, and application logic. Keep it framework-neutral and inject external capabilities through dependency ports.
+
+`apps/server` owns Elysia composition, HTTP routes, authentication adapters, CORS, observability, and startup. Use `src/app.ts` for composition and keep `src/main.ts` limited to dependency wiring and `.listen()`.
+
+Add new API work under `packages/api/src/features/<feature>/`. Add server adapters under `apps/server/src/modules` or cross-cutting infrastructure under `apps/server/src/infrastructure`.
 
 ## Available Scripts
 
@@ -100,6 +104,8 @@ bmhk-2026/
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
+- `bun run test`: Run unit tests once
+- `bun run test:watch`: Run unit tests in watch mode
 - `bun run db:push`: Push schema changes to database
 - `bun run db:generate`: Generate database client/types
 - `bun run db:migrate`: Run database migrations
@@ -109,3 +115,7 @@ bmhk-2026/
 - `bun run format`: Run Vite+ formatting
 - `bun run staged`: Run Vite+ checks against staged files
 - `bun run hooks:setup`: Install Vite+ native Git hooks with `vp config`
+
+## Tests
+
+Place unit tests inside `__test__` directories. Vite+ discovers `*.test.ts`, `*.test.tsx`, `*.spec.ts`, and `*.spec.tsx` files there.

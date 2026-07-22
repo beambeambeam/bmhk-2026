@@ -4,26 +4,17 @@
   "exports": {
     ".": {
       "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "check-types": "tsc -b"
+  },
   "dependencies": {
-    "@bmhk-2026/auth": "workspace:*",
-    "@bmhk-2026/db": "workspace:*",
-    "@bmhk-2026/env": "workspace:*",
-    "@orpc/client": "catalog:",
-    "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
-    "@orpc/zod": "catalog:",
-    "dotenv": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
-    "elysia": "catalog:",
     "typescript": "catalog:"
   }
 }

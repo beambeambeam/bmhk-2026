@@ -1,9 +1,11 @@
-import { defineConfig } from "tsdown";
+import { defineConfig } from "vite-plus/pack";
 
 export default defineConfig({
-  entry: "./src/index.ts",
+  clean: true,
+  deps: {
+    alwaysBundle: [/@bmhk-2026\/.*/u],
+  },
+  entry: "./src/main.ts",
   format: "esm",
   outDir: "./dist",
-  clean: true,
-  noExternal: [/@bmhk-2026\/.*/],
 });

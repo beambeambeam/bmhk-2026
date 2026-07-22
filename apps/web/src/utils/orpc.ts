@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 export function createQueryClient() {
   return new QueryClient({
+    defaultOptions: { queries: { staleTime: 60 * 1000 } },
     queryCache: new QueryCache({
       onError: (error, query) => {
         toast.error(`Error: ${error.message}`, {
@@ -21,7 +22,6 @@ export function createQueryClient() {
         });
       },
     }),
-    defaultOptions: { queries: { staleTime: 60 * 1000 } },
   });
 }
 
@@ -53,18 +53,16 @@ function getServerUrl(url: string) {
   return `http://localhost:3000${normalized}`;
 }
 const link = new RPCLink({
-  url: `${getServerUrl(env.VITE_SERVER_URL)}/rpc`,
   fetch(url, options) {
     return fetch(url, {
       ...options,
       credentials: "include",
     });
   },
+  url: `${getServerUrl(env.VITE_SERVER_URL)}/rpc`,
 });
 
-const getORPCClient = () => {
-  return createORPCClient(link) as RouterClient<AppRouter>;
-};
+const getORPCClient = () => createORPCClient(link) as RouterClient<AppRouter>;
 
 export const client: RouterClient<AppRouter> = getORPCClient();
 

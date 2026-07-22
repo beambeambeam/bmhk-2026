@@ -1,36 +1,51 @@
+import ultraciteOxfmt from "ultracite/oxfmt";
+import ultraciteCore from "ultracite/oxlint/core";
+import ultraciteReact from "ultracite/oxlint/react";
+import ultraciteTanstack from "ultracite/oxlint/tanstack";
+import ultraciteVitest from "ultracite/oxlint/vitest";
+
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  lint: {
+  fmt: {
+    extends: [ultraciteOxfmt],
     ignorePatterns: [
       "node_modules/**",
       "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "apps/server/dist/**",
-      "packages/db/dist/**",
+      "**/dist/**",
+      "**/.vinxi/**",
+      "**/.tanstack/**",
+      "**/src/routeTree.gen.ts",
+      "packages/db/src/schema/auth.ts",
+      "packages/db/src/migrations",
+    ],
+  },
+  lint: {
+    extends: [ultraciteCore, ultraciteReact, ultraciteTanstack, ultraciteVitest],
+    ignorePatterns: [
+      ...(ultraciteCore.ignorePatterns ?? []),
+      "node_modules/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.vinxi/**",
+      "**/.tanstack/**",
+      "**/src/routeTree.gen.ts",
+      "packages/db/src/schema/auth.ts",
+      "packages/db/src/migrations",
     ],
     options: {
       typeAware: false,
       typeCheck: false,
     },
-  },
-  fmt: {
-    ignorePatterns: [
-      "node_modules/**",
-      "**/node_modules/**",
-      "apps/web/dist/**",
-      "apps/web/.vinxi/**",
-      "apps/web/.tanstack/**",
-      "apps/web/src/routeTree.gen.ts",
-      "apps/server/dist/**",
-      "packages/db/dist/**",
-    ],
-    singleQuote: false,
-    semi: true,
-    sortPackageJson: true,
+    rules: {
+      "func-style": ["error", "declaration"],
+      "no-use-before-define": [
+        "error",
+        {
+          functions: false,
+        },
+      ],
+    },
   },
   staged: {
     "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",

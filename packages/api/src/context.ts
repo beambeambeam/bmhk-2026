@@ -1,9 +1,9 @@
 import { auth } from "@bmhk-2026/auth";
 import type { Context as ElysiaContext } from "elysia";
 
-export type CreateContextOptions = {
+export interface CreateContextOptions {
   context: ElysiaContext;
-};
+}
 
 export async function createContext({ context }: CreateContextOptions) {
   const session = await auth.api.getSession({

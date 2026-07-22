@@ -33,7 +33,8 @@
     "dev": "vp run -r dev",
     "build": "vp run -r build",
     "check-types": "vp run -r check-types",
-    "check": "oxlint && oxfmt --write",
+    "check": "vp check",
+    "fix": "vp check --fix",
     "lint": "vp lint",
     "format": "vp fmt",
     "staged": "vp staged",
@@ -57,10 +58,11 @@
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
     "@types/bun": "catalog:",
-    "oxfmt": "^0.57.0",
-    "oxlint": "^1.72.0",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
     "rolldown": "1.1.4",
     "typescript": "catalog:",
+    "ultracite": "7.9.4",
     "vite-plus": "0.2.2"
   },
   "overrides": {

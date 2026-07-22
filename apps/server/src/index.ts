@@ -10,7 +10,8 @@ import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Elysia } from "elysia";
 import { initLogger } from "evlog";
-import { createAuthMiddleware, type BetterAuthInstance } from "evlog/better-auth";
+import { createAuthMiddleware } from "evlog/better-auth";
+import type { BetterAuthInstance } from "evlog/better-auth";
 import { evlog } from "evlog/elysia";
 
 const rpcHandler = new RPCHandler(appRouter, {
@@ -21,14 +22,14 @@ const rpcHandler = new RPCHandler(appRouter, {
   ],
 });
 const apiHandler = new OpenAPIHandler(appRouter, {
-  plugins: [
-    new OpenAPIReferencePlugin({
-      schemaConverters: [new ZodToJsonSchemaConverter()],
-    }),
-  ],
   interceptors: [
     onError((error) => {
       console.error(error);
+    }),
+  ],
+  plugins: [
+    new OpenAPIReferencePlugin({
+      schemaConverters: [new ZodToJsonSchemaConverter()],
     }),
   ],
 });
@@ -50,10 +51,10 @@ new Elysia()
   })
   .use(
     cors({
-      origin: env.CORS_ORIGIN,
-      methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
+      methods: ["GET", "POST", "OPTIONS"],
+      origin: env.CORS_ORIGIN,
     }),
   )
   .all("/api/auth/*", async (context) => {
@@ -67,8 +68,8 @@ new Elysia()
     "/rpc*",
     async (context) => {
       const { response } = await rpcHandler.handle(context.request, {
-        prefix: "/rpc",
         context: await createContext({ context }),
+        prefix: "/rpc",
       });
       return response ?? new Response("Not Found", { status: 404 });
     },
@@ -80,8 +81,8 @@ new Elysia()
     "/api-reference*",
     async (context) => {
       const { response } = await apiHandler.handle(context.request, {
-        prefix: "/api-reference",
         context: await createContext({ context }),
+        prefix: "/api-reference",
       });
       return response ?? new Response("Not Found", { status: 404 });
     },

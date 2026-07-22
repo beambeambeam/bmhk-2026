@@ -1,4 +1,4 @@
-import { Button } from "@bmhk-2026/ui/components/button";
+import { Button } from "@/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,8 +7,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@bmhk-2026/ui/components/dropdown-menu";
-import { Skeleton } from "@bmhk-2026/ui/components/skeleton";
+} from "@/components/dropdown-menu";
+import { Skeleton } from "@/components/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";

@@ -20,8 +20,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@bmhk-2026/ui/*": ["../../packages/ui/src/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

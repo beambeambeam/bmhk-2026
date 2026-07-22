@@ -7,7 +7,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **TypeScript** - For type safety and improved developer experience
 - **TanStack Start** - SSR framework with TanStack Router
 - **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
+- **App-local UI** - shadcn/ui primitives live in `apps/web`
 - **Elysia** - Type-safe, high-performance framework
 - **oRPC** - End-to-end type-safe APIs with OpenAPI integration
 - **Bun** - Runtime environment
@@ -48,29 +48,25 @@ Open [http://localhost:3001](http://localhost:3001) in your browser to see the w
 
 ## UI Customization
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+App-specific shadcn/ui primitives and styles live under `apps/web`.
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+- Change design tokens and global styles in `apps/web/src/index.css`
+- Update primitives in `apps/web/src/components/*`
+- Adjust shadcn aliases or style config in `apps/web/components.json`
 
-### Add more shared components
+### Add more components
 
-Run this from the project root to add more primitives to the shared UI package:
+Run this from the project root to add primitives to the web app:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+npx shadcn@latest add accordion dialog popover sheet table -c apps/web
 ```
 
-Import shared components like this:
+Import components like this:
 
 ```tsx
-import { Button } from "@bmhk-2026/ui/components/button";
+import { Button } from "@/components/button";
 ```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
 
 ## Git Hooks and Formatting
 
@@ -88,7 +84,6 @@ bmhk-2026/
 │   ├── web/         # Frontend application (React + TanStack Start)
 │   └── server/      # Backend API (Elysia, ORPC)
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
 │   ├── api/         # API layer / business logic
 │   ├── auth/        # Authentication configuration & logic
 │   └── db/          # Database schema & queries

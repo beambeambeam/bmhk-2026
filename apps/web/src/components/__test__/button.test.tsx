@@ -3,7 +3,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { Button } from "@bmhk-2026/ui/components/button";
+import { Button } from "../button";
 
 describe("button component", () => {
   it("renders label and handles clicks", () => {

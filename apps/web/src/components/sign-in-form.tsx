@@ -1,6 +1,6 @@
-import { Button } from "@bmhk-2026/ui/components/button";
-import { Input } from "@bmhk-2026/ui/components/input";
-import { Label } from "@bmhk-2026/ui/components/label";
+import { Button } from "@/components/button";
+import { Input } from "@/components/input";
+import { Label } from "@/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";

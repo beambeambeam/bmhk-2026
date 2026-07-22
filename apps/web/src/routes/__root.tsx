@@ -1,4 +1,4 @@
-import { Toaster } from "@bmhk-2026/ui/components/sonner";
+import { Toaster } from "@/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";

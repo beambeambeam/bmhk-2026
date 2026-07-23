@@ -26,7 +26,7 @@ export function createAuth() {
     },
     plugins: [],
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: [env.CORS_ORIGIN],
+    trustedOrigins: env.CORS_ORIGIN,
   });
 }
 

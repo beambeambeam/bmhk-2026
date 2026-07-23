@@ -25,7 +25,7 @@ function createTestApp() {
     app: createApp({
       apiRouter,
       auth,
-      corsOrigin: "http://localhost:3001",
+      corsOrigins: ["http://localhost:3001", "http://localhost:3002"],
     }),
     auth,
   };
@@ -78,19 +78,38 @@ describe("server app", () => {
     expect(auth.handler).not.toHaveBeenCalled();
   });
 
-  it("applies configured CORS origin", async () => {
+  it.each(["http://localhost:3001", "http://localhost:3002"])(
+    "applies configured CORS origin %s",
+    async (origin) => {
+      const { app } = createTestApp();
+
+      const response = await app.handle(
+        new Request("http://localhost/", {
+          headers: {
+            "access-control-request-method": "GET",
+            origin,
+          },
+          method: "OPTIONS",
+        }),
+      );
+
+      expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+    },
+  );
+
+  it("does not apply CORS headers to unconfigured origins", async () => {
     const { app } = createTestApp();
 
     const response = await app.handle(
       new Request("http://localhost/", {
         headers: {
           "access-control-request-method": "GET",
-          origin: "http://localhost:3001",
+          origin: "http://localhost:3003",
         },
         method: "OPTIONS",
       }),
     );
 
-    expect(response.headers.get("access-control-allow-origin")).toBe("http://localhost:3001");
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 });

@@ -81,7 +81,8 @@ import { Button } from "@/components/button";
 ```
 bmhk-2026/
 ├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
+│   ├── web/         # Public frontend application (React + TanStack Start)
+│   ├── staff/       # Staff frontend application (React + TanStack Start)
 │   └── server/      # Backend API (Elysia, ORPC)
 ├── packages/
 │   ├── api/         # Framework-neutral API features and oRPC procedures
@@ -102,6 +103,7 @@ Add new API work under `packages/api/src/features/<feature>/`. Add server adapte
 - `bun run dev`: Start all applications in development mode
 - `bun run build`: Build all applications
 - `bun run dev:web`: Start only the web application
+- `bun run dev:staff`: Start only the staff application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
 - `bun run test`: Run unit tests once

@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@bmhk-2026/client/auth-client";
 
 export const Route = createFileRoute("/_auth")({
   beforeLoad: async () => {

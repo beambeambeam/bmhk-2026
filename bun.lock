@@ -45,18 +45,13 @@
       "name": "staff",
       "dependencies": {
         "@base-ui/react": "^1.6.0",
-        "@bmhk-2026/api": "workspace:*",
-        "@bmhk-2026/env": "workspace:*",
-        "@orpc/client": "catalog:",
-        "@orpc/server": "catalog:",
-        "@orpc/tanstack-query": "^1.14.6",
+        "@bmhk-2026/client": "workspace:*",
         "@tailwindcss/vite": "^4.3.2",
         "@tanstack/react-form": "^1.33.0",
         "@tanstack/react-query": "^5.101.2",
         "@tanstack/react-router": "^1.170.17",
         "@tanstack/react-router-ssr-query": "^1.167.1",
         "@tanstack/react-start": "^1.168.27",
-        "better-auth": "catalog:",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "dotenv": "catalog:",
@@ -93,18 +88,13 @@
       "name": "web",
       "dependencies": {
         "@base-ui/react": "^1.6.0",
-        "@bmhk-2026/api": "workspace:*",
-        "@bmhk-2026/env": "workspace:*",
-        "@orpc/client": "catalog:",
-        "@orpc/server": "catalog:",
-        "@orpc/tanstack-query": "^1.14.6",
+        "@bmhk-2026/client": "workspace:*",
         "@tailwindcss/vite": "^4.3.2",
         "@tanstack/react-form": "^1.33.0",
         "@tanstack/react-query": "^5.101.2",
         "@tanstack/react-router": "^1.170.17",
         "@tanstack/react-router-ssr-query": "^1.167.1",
         "@tanstack/react-start": "^1.168.27",
-        "better-auth": "catalog:",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "dotenv": "catalog:",
@@ -160,6 +150,26 @@
       "devDependencies": {
         "@bmhk-2026/config": "workspace:*",
         "typescript": "catalog:",
+      },
+    },
+    "packages/client": {
+      "name": "@bmhk-2026/client",
+      "dependencies": {
+        "@bmhk-2026/api": "workspace:*",
+        "@bmhk-2026/env": "workspace:*",
+        "@orpc/client": "catalog:",
+        "@orpc/tanstack-query": "^1.14.6",
+        "@tanstack/react-query": "^5.101.2",
+        "better-auth": "catalog:",
+        "sonner": "catalog:",
+      },
+      "devDependencies": {
+        "@bmhk-2026/config": "workspace:*",
+        "@types/react": "catalog:",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "react": "catalog:",
       },
     },
     "packages/config": {
@@ -319,6 +329,8 @@
     "@bmhk-2026/api": ["@bmhk-2026/api@workspace:packages/api"],
 
     "@bmhk-2026/auth": ["@bmhk-2026/auth@workspace:packages/auth"],
+
+    "@bmhk-2026/client": ["@bmhk-2026/client@workspace:packages/client"],
 
     "@bmhk-2026/config": ["@bmhk-2026/config@workspace:packages/config"],
 

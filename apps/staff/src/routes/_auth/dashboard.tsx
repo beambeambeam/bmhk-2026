@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { orpc } from "@/utils/orpc";
+import { orpc } from "@bmhk-2026/client/orpc";
 
 export const Route = createFileRoute("/_auth/dashboard")({
   component: RouteComponent,

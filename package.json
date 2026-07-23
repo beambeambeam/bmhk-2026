@@ -68,6 +68,7 @@
     "@commitlint/config-conventional": "^21.2.0",
     "@types/bun": "catalog:",
     "rolldown": "1.1.4",
+    "skills": "^1.5.20",
     "typescript": "catalog:",
     "ultracite": "7.9.4",
     "vite": "catalog:",

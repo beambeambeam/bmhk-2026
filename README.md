@@ -1,123 +1,73 @@
-# bmhk-2026
+# Bangmod Hackathon 2026 Monorepo
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Elysia, ORPC, and more.
+A monorepo for Bangmod Hackathon 2026, containing the website, server, and supporting services, built with TanStack Start, Elysia, and other modern tools.
 
-## Features
+## Getting started
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **App-local UI** - shadcn/ui primitives live in `apps/web`
-- **Elysia** - Type-safe, high-performance framework
-- **oRPC** - End-to-end type-safe APIs with OpenAPI integration
-- **Bun** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Vite+** - Unified Vite toolchain, workspace task runner, linting, and formatting
+1. Install dependencies:
 
-## Getting Started
+   ```bash
+   bun install
+   ```
 
-First, install the dependencies:
+2. Configure environment files.
 
-```bash
-bun install
-```
+   Create `apps/server/.env`:
 
-## Database Setup
+   ```bash
+   cp apps/server/.env.example apps/server/.env
+   ```
 
-This project uses PostgreSQL with Drizzle ORM.
+   Set `BETTER_AUTH_SECRET` to a random value with at least 32 characters. For local PostgreSQL, use:
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
+   ```dotenv
+   BETTER_AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters-long
+   BETTER_AUTH_URL=http://localhost:3000
+   CORS_ORIGIN=http://localhost:3001,http://localhost:3002
+   DATABASE_URL=postgresql://postgres:password@localhost:5432/bmhk-2026
+   NODE_ENV=development
+   PORT=3000
+   ```
 
-3. Apply the schema to your database:
+   Generate a secret with:
 
-```bash
-bun run db:push
-```
+   ```bash
+   openssl rand -base64 32
+   ```
 
-Then, run the development server:
+   Create `apps/web/.env` and `apps/staff/.env` with:
 
-```bash
-bun run dev
-```
+   ```dotenv
+   VITE_SERVER_URL=http://localhost:3000
+   ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application. The API is running at [http://localhost:3000](http://localhost:3000).
+3. Start PostgreSQL and apply the database schema:
 
-## UI Customization
+   ```bash
+   bun run db:start
+   bun run db:push
+   ```
 
-App-specific shadcn/ui primitives and styles live under `apps/web`.
+4. Start all applications:
 
-- Change design tokens and global styles in `apps/web/src/index.css`
-- Update primitives in `apps/web/src/components/*`
-- Adjust shadcn aliases or style config in `apps/web/components.json`
+   ```bash
+   bun run dev
+   ```
 
-### Add more components
+   Open:
 
-Run this from the project root to add primitives to the web app:
+   - Website: http://localhost:3001
+   - Staff app: http://localhost:3002
+   - API: http://localhost:3000
 
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c apps/web
-```
+   Run one app only with `bun run dev:web`, `bun run dev:staff`, or `bun run dev:server`.
 
-Import components like this:
+5. Run checks before committing:
 
-```tsx
-import { Button } from "@/components/button";
-```
+   ```bash
+   bun run check
+   bun run test
+   bun run build
+   ```
 
-## Git Hooks and Formatting
-
-- Install native Vite+ hooks: `bun run hooks:setup`
-- Commit messages must use Conventional Commits, for example `feat: add login`
-- Check commit range: `bun run commitlint --from HEAD~1 --to HEAD`
-- Docs: [Vite+ commit hooks](https://viteplus.dev/guide/commit-hooks)
-- Run checks: `bun run check`
-
-## Project Structure
-
-```
-bmhk-2026/
-├── apps/
-│   ├── web/         # Public frontend application (React + TanStack Start)
-│   ├── staff/       # Staff frontend application (React + TanStack Start)
-│   └── server/      # Backend API (Elysia, ORPC)
-├── packages/
-│   ├── api/         # Framework-neutral API features and oRPC procedures
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
-```
-
-### API/server boundaries
-
-`packages/api` owns feature routers, procedure policies, schemas, and application logic. Keep it framework-neutral and inject external capabilities through dependency ports.
-
-`apps/server` owns Elysia composition, HTTP routes, authentication adapters, CORS, observability, and startup. Use `src/app.ts` for composition and keep `src/main.ts` limited to dependency wiring and `.listen()`.
-
-Add new API work under `packages/api/src/features/<feature>/`. Add server adapters under `apps/server/src/modules` or cross-cutting infrastructure under `apps/server/src/infrastructure`.
-
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:staff`: Start only the staff application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run test`: Run unit tests once
-- `bun run test:watch`: Run unit tests in watch mode
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Vite+ format/lint checks and workspace TypeScript checks
-- `bun run lint`: Run Vite+ lint checks
-- `bun run format`: Run Vite+ formatting
-- `bun run staged`: Run Vite+ checks against staged files
-- `bun run hooks:setup`: Install Vite+ native Git hooks with `vp config`
-
-## Tests
-
-Place unit tests inside `__test__` directories. Vite+ discovers `*.test.ts`, `*.test.tsx`, `*.spec.ts`, and `*.spec.tsx` files there.
+Stop PostgreSQL with `bun run db:stop`. Keep `.env` files private and never commit secrets.

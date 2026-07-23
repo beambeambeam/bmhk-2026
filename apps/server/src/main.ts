@@ -14,7 +14,7 @@ const apiRouter = createAppRouter({
 const app = createApp({
   apiRouter,
   auth,
-  corsOrigin: env.CORS_ORIGIN,
+  corsOrigins: env.CORS_ORIGIN,
 });
 
 app.listen(env.PORT, ({ hostname, port }) => {

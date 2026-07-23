@@ -1,0 +1,8 @@
+{
+  "extends": "@bmhk-2026/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": ["bun", "react"]
+  },
+  "include": ["src/**/*.ts"]
+}

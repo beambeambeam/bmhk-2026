@@ -46,6 +46,7 @@
     "commitlint": "commitlint",
     "hooks:setup": "vp config",
     "dev:web": "vp run --filter web dev",
+    "dev:staff": "vp run --filter staff dev",
     "dev:server": "vp run --filter server dev",
     "db:push": "vp run --filter @bmhk-2026/db db:push",
     "db:studio": "vp run --filter @bmhk-2026/db db:studio",

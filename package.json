@@ -55,7 +55,8 @@
     "db:start": "vp run --filter @bmhk-2026/db db:start",
     "db:watch": "vp run --filter @bmhk-2026/db db:watch",
     "db:stop": "vp run --filter @bmhk-2026/db db:stop",
-    "db:down": "vp run --filter @bmhk-2026/db db:down"
+    "db:down": "vp run --filter @bmhk-2026/db db:down",
+    "skill:update": "skills update -p"
   },
   "dependencies": {
     "@bmhk-2026/env": "workspace:*",
@@ -68,6 +69,7 @@
     "@commitlint/config-conventional": "^21.2.0",
     "@types/bun": "catalog:",
     "rolldown": "1.1.4",
+    "skills": "^1.5.20",
     "typescript": "catalog:",
     "ultracite": "7.9.4",
     "vite": "catalog:",

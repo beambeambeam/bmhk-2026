@@ -55,7 +55,8 @@
     "db:start": "vp run --filter @bmhk-2026/db db:start",
     "db:watch": "vp run --filter @bmhk-2026/db db:watch",
     "db:stop": "vp run --filter @bmhk-2026/db db:stop",
-    "db:down": "vp run --filter @bmhk-2026/db db:down"
+    "db:down": "vp run --filter @bmhk-2026/db db:down",
+    "skill:update": "skills update -p"
   },
   "dependencies": {
     "@bmhk-2026/env": "workspace:*",

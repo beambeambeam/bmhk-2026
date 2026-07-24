@@ -11,7 +11,15 @@ function serializeError(error: unknown) {
     return { message: "Unknown API error" };
   }
 
-  const details = error as Record<string, unknown>;
+  const details: {
+    code?: unknown;
+    message?: unknown;
+    status?: unknown;
+  } = {
+    code: "code" in error ? error.code : undefined,
+    message: "message" in error ? error.message : undefined,
+    status: "status" in error ? error.status : undefined,
+  };
 
   return {
     code: typeof details.code === "string" ? details.code : undefined,

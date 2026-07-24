@@ -19,7 +19,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
       throw new ORPCError("UNAUTHORIZED");
     }
 
-    return next({
+    return await next({
       context: {
         session,
       },

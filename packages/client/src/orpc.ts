@@ -25,8 +25,8 @@ export function createQueryClient() {
 
 export const queryClient = createQueryClient();
 
-function fetchWithCredentials(url: string | URL | Request, options?: RequestInit) {
-  return fetch(url, {
+async function fetchWithCredentials(url: string | URL | Request, options?: RequestInit) {
+  return await fetch(url, {
     ...options,
     credentials: "include",
   });

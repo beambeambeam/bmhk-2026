@@ -5,9 +5,9 @@ export interface AuthHandler {
 }
 
 export function createAuthModule(auth: AuthHandler) {
-  return new Elysia({ name: "auth" }).all("/api/auth/*", ({ request, status }) => {
+  return new Elysia({ name: "auth" }).all("/api/auth/*", async ({ request, status }) => {
     if (request.method === "GET" || request.method === "POST") {
-      return auth.handler(request);
+      return await auth.handler(request);
     }
 
     return status(405);

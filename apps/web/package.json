@@ -6,6 +6,7 @@
     "build": "vp build",
     "serve": "vp preview",
     "dev": "vp dev",
+    "generate": "tsr generate",
     "check-types": "tsr generate && tsc --noEmit"
   },
   "dependencies": {

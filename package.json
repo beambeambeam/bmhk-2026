@@ -38,7 +38,7 @@
     "check-types": "vp run -r check-types",
     "test": "vp test run",
     "test:watch": "vp test watch",
-    "check": "vp check",
+    "check": "vp run -r generate && vp check",
     "fix": "vp check --fix",
     "lint": "vp lint",
     "format": "vp fmt",

@@ -1,6 +1,6 @@
 import type { AppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
-import type { BetterAuthInstance } from "evlog/better-auth";
+import type { EvlogElysiaOptions } from "evlog/elysia";
 import { Elysia } from "elysia";
 import type { AnyElysia } from "elysia";
 
@@ -13,11 +13,17 @@ export interface CreateAppOptions {
   apiRouter: AppRouter;
   auth: typeof auth;
   corsOrigins: string[];
+  observability?: EvlogElysiaOptions;
 }
 
-export function createApp({ apiRouter, auth, corsOrigins }: CreateAppOptions): AnyElysia {
+export function createApp({
+  apiRouter,
+  auth,
+  corsOrigins,
+  observability,
+}: CreateAppOptions): AnyElysia {
   return new Elysia({ name: "bmhk-2026-server" })
-    .use(createObservabilityPlugin(auth as BetterAuthInstance))
+    .use(createObservabilityPlugin(observability))
     .use(createCorsPlugin(corsOrigins))
     .use(createAuthModule(auth))
     .use(createApiModule(apiRouter))

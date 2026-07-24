@@ -1,68 +1,179 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApiSession } from "../core/auth";
+import type { ApiContext, ApiSession, AuthReader } from "../index";
 import { createAppRouter } from "../index";
+import { createProcedures } from "../core/procedure";
 
-type GetSession = (options: { headers: Headers }) => Promise<ApiSession | null>;
-
-function createRouter(getSession: GetSession = async () => await Promise.resolve(null)) {
-  const getSessionMock = vi.fn<GetSession>(getSession);
+function createTestLogger() {
+  const audit = Object.assign(vi.fn<(...args: never[]) => void>(), {
+    deny: vi.fn<(...args: never[]) => void>(),
+  });
 
   return {
-    getSession: getSessionMock,
-    router: createAppRouter({ auth: { getSession: getSessionMock } }),
+    audit,
+    emit: vi.fn<() => null>(() => null),
+    error: vi.fn<(...args: never[]) => void>(),
+    getContext: vi.fn<() => Record<string, unknown>>(() => ({})),
+    info: vi.fn<(...args: never[]) => void>(),
+    set: vi.fn<(...args: never[]) => void>(),
+    setLevel: vi.fn<(...args: never[]) => void>(),
+    warn: vi.fn<(...args: never[]) => void>(),
+  };
+}
+
+function createContext() {
+  const log = createTestLogger();
+
+  return {
+    context: {
+      headers: new Headers(),
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      log: log as unknown as ApiContext["log"],
+    } satisfies ApiContext,
+    log,
+  };
+}
+
+const testSession = {
+  user: {
+    email: "user@example.com",
+    emailVerified: true,
+    id: "user-1",
+    image: null,
+    name: "Test User",
+  },
+} satisfies ApiSession;
+
+function createAuthReader(
+  getSession: AuthReader["getSession"] = async () => await Promise.resolve(null),
+) {
+  return {
+    auth: {
+      getSession: vi.fn<AuthReader["getSession"]>(getSession),
+    } satisfies AuthReader,
   };
 }
 
 describe("API router", () => {
-  it("keeps public procedures independent from authentication", async () => {
-    const { getSession, router } = createRouter();
+  it("adds the operation to public procedures without resolving auth", async () => {
+    const { auth } = createAuthReader();
+    const router = createAppRouter({ auth });
+    const { context, log } = createContext();
 
     await expect(
       call(router.health.check, undefined, {
-        context: { headers: new Headers() },
+        context,
+        path: ["health", "check"],
       }),
     ).resolves.toBe("OK");
-    expect(getSession).not.toHaveBeenCalled();
+    expect(log.set).toHaveBeenCalledWith({ operation: "health.check" });
+    expect(log.emit).not.toHaveBeenCalled();
+    expect(auth.getSession).not.toHaveBeenCalled();
   });
 
-  it("rejects protected procedures without a session", async () => {
-    const headers = new Headers({ "x-request-id": "request-1" });
-    const getSession = vi.fn<GetSession>(async () => await Promise.resolve(null));
-    const { router } = createRouter(getSession);
+  it("returns a structured error for anonymous protected access", async () => {
+    const { auth } = createAuthReader();
+    const router = createAppRouter({ auth });
+    const { context, log } = createContext();
 
     await expect(
       call(router.privateData.get, undefined, {
-        context: { headers },
+        context,
+        path: ["privateData", "get"],
       }),
-    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    expect(getSession).toHaveBeenCalledWith({ headers });
+    ).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      data: {
+        fix: "Sign in and try again",
+        why: "No authenticated session is available for this request",
+      },
+      message: "Authentication required",
+      status: 401,
+    });
+    expect(log.set).toHaveBeenCalledWith({ operation: "privateData.get" });
+    expect(log.error).toHaveBeenCalledOnce();
+    expect(log.emit).not.toHaveBeenCalled();
   });
 
-  it("passes authenticated users to protected procedures", async () => {
-    const user = {
-      email: "user@example.com",
-      emailVerified: true,
-      id: "user-1",
-      image: null,
-      name: "Test User",
-    };
-    const getSession = vi.fn<GetSession>(async () => await Promise.resolve({ user }));
-    const { router } = createRouter(getSession);
+  it("returns a structured error when authentication is unavailable", async () => {
+    const cause = new Error("database offline");
+    const { auth } = createAuthReader(() => {
+      throw cause;
+    });
+    const router = createAppRouter({ auth });
+    const { context, log } = createContext();
 
     await expect(
       call(router.privateData.get, undefined, {
-        context: { headers: new Headers() },
+        context,
+        path: ["privateData", "get"],
+      }),
+    ).rejects.toMatchObject({
+      code: "AUTH_SESSION_UNAVAILABLE",
+      data: {
+        fix: "Try again shortly",
+        why: "The server could not verify the current session",
+      },
+      message: "Authentication temporarily unavailable",
+      status: 503,
+    });
+    expect(log.error).toHaveBeenCalledOnce();
+    expect(log.emit).not.toHaveBeenCalled();
+  });
+
+  it("adds masked identity and passes the session to protected procedures", async () => {
+    const { auth } = createAuthReader(async () => await Promise.resolve(testSession));
+    const router = createAppRouter({ auth });
+    const { context, log } = createContext();
+
+    await expect(
+      call(router.privateData.get, undefined, {
+        context,
+        path: ["privateData", "get"],
       }),
     ).resolves.toStrictEqual({
       message: "This is private",
-      user,
+      user: testSession.user,
     });
+    expect(log.set).toHaveBeenCalledWith({
+      user: {
+        email: "u***@example.com",
+        id: "user-1",
+      },
+      userId: "user-1",
+    });
+    expect(log.emit).not.toHaveBeenCalled();
+  });
+
+  it("allows procedures to add grouped business context", async () => {
+    const { auth } = createAuthReader();
+    const { publicProcedure } = createProcedures({ auth });
+    const procedure = publicProcedure.handler(({ context }) => {
+      context.log.set({
+        booking: {
+          id: "booking-1",
+          status: "confirmed",
+        },
+      });
+
+      return "OK";
+    });
+    const { context, log } = createContext();
+
+    await expect(call(procedure, undefined, { context })).resolves.toBe("OK");
+    expect(log.set).toHaveBeenCalledWith({
+      booking: {
+        id: "booking-1",
+        status: "confirmed",
+      },
+    });
+    expect(log.emit).not.toHaveBeenCalled();
   });
 
   it("exposes feature-grouped procedures", () => {
-    const { router } = createRouter();
+    const { auth } = createAuthReader();
+    const router = createAppRouter({ auth });
 
     expect(router).toHaveProperty("health.check");
     expect(router).toHaveProperty("privateData.get");

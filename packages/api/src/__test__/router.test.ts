@@ -6,7 +6,7 @@ import { createAppRouter } from "../index";
 
 type GetSession = (options: { headers: Headers }) => Promise<ApiSession | null>;
 
-function createRouter(getSession: GetSession = () => Promise.resolve(null)) {
+function createRouter(getSession: GetSession = async () => await Promise.resolve(null)) {
   const getSessionMock = vi.fn<GetSession>(getSession);
 
   return {
@@ -29,7 +29,7 @@ describe("API router", () => {
 
   it("rejects protected procedures without a session", async () => {
     const headers = new Headers({ "x-request-id": "request-1" });
-    const getSession = vi.fn<GetSession>(() => Promise.resolve(null));
+    const getSession = vi.fn<GetSession>(async () => await Promise.resolve(null));
     const { router } = createRouter(getSession);
 
     await expect(
@@ -48,7 +48,7 @@ describe("API router", () => {
       image: null,
       name: "Test User",
     };
-    const getSession = vi.fn<GetSession>(() => Promise.resolve({ user }));
+    const getSession = vi.fn<GetSession>(async () => await Promise.resolve({ user }));
     const { router } = createRouter(getSession);
 
     await expect(

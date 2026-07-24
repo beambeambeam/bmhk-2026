@@ -1,7 +1,9 @@
+/// <reference types="vite/client" />
+
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
-const runtimeEnv = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
+const runtimeEnv = import.meta.env;
 
 export const env = createEnv({
   client: {
@@ -10,5 +12,5 @@ export const env = createEnv({
   clientPrefix: "VITE_",
   emptyStringAsUndefined: true,
   runtimeEnv,
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: process.env.SKIP_ENV_VALIDATION === "true",
 });

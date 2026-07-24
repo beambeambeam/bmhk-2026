@@ -34,7 +34,7 @@ export default defineConfig({
       "packages/db/src/migrations",
     ],
     options: {
-      typeAware: false,
+      typeAware: true,
       typeCheck: false,
     },
     rules: {

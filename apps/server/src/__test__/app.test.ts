@@ -5,11 +5,15 @@ import { createAppRouter } from "@bmhk-2026/api";
 import { createApp } from "../app";
 
 function createTestAuth() {
+  // Test double intentionally implements only auth methods exercised by app tests.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   return {
     api: {
-      getSession: vi.fn<() => Promise<null>>(() => Promise.resolve(null)),
+      getSession: vi.fn<() => Promise<null>>(async () => await Promise.resolve(null)),
     },
-    handler: vi.fn<() => Promise<Response>>(() => Promise.resolve(new Response("auth"))),
+    handler: vi.fn<() => Promise<Response>>(
+      async () => await Promise.resolve(new Response("auth")),
+    ),
   } as unknown as typeof auth;
 }
 
@@ -17,7 +21,7 @@ function createTestApp() {
   const auth = createTestAuth();
   const apiRouter = createAppRouter({
     auth: {
-      getSession: () => Promise.resolve(null),
+      getSession: async () => await Promise.resolve(null),
     },
   });
 

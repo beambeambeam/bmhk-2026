@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "review-logging-patterns": {
+      "source": "evlog.dev",
+      "sourceType": "well-known",
+      "computedHash": "16e0e91b358067492201f82c113269bc42936a02d1150bece06b106d1601b458"
+    },
     "shadcn": {
       "source": "shadcn/ui",
       "sourceType": "github",

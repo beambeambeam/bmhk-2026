@@ -1,6 +1,7 @@
 import { createAppRouter } from "@bmhk-2026/api";
 import { auth } from "@bmhk-2026/auth";
 import { env } from "@bmhk-2026/env/server";
+import { log } from "evlog";
 
 import { createApp } from "./app";
 import { initializeObservability } from "./infrastructure/observability";
@@ -18,5 +19,9 @@ const app = createApp({
 });
 
 app.listen(env.PORT, ({ hostname, port }) => {
-  console.info(`Server is running on http://${hostname}:${port}`);
+  log.info({
+    event: "server.started",
+    hostname,
+    port,
+  });
 });

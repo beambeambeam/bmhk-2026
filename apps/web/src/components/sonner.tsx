@@ -1,14 +1,14 @@
+import { useTheme } from "next-themes";
+import { Toaster as Sonner } from "sonner";
+import type { ToasterProps } from "sonner";
+import type { CSSProperties } from "react";
 import {
   CircleCheckIcon,
   InfoIcon,
-  Loader2Icon,
-  OctagonXIcon,
   TriangleAlertIcon,
+  OctagonXIcon,
+  Loader2Icon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
-import type { CSSProperties } from "react";
-import { Toaster as Sonner } from "sonner";
-import type { ToasterProps } from "sonner";
 
 function Toaster({ ...props }: ToasterProps) {
   const { theme } = useTheme();

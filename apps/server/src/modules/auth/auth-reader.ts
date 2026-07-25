@@ -12,11 +12,13 @@ export function createAuthReader(authInstance: typeof auth): AuthReader {
 
       return {
         user: {
+          displayUsername: session.user.displayUsername ?? null,
           email: session.user.email,
           emailVerified: session.user.emailVerified,
           id: session.user.id,
           image: session.user.image ?? null,
           name: session.user.name,
+          username: session.user.username ?? null,
         },
       };
     },

@@ -37,11 +37,13 @@ function createContext() {
 
 const testSession = {
   user: {
+    displayUsername: "TestUser",
     email: "user@example.com",
     emailVerified: true,
     id: "user-1",
     image: null,
     name: "Test User",
+    username: "testuser",
   },
 } satisfies ApiSession;
 

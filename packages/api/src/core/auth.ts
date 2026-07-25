@@ -1,9 +1,11 @@
 export interface ApiUser {
+  displayUsername: string | null;
   id: string;
   name: string;
   email: string;
   emailVerified: boolean;
   image: string | null;
+  username: string | null;
 }
 
 export interface ApiSession {

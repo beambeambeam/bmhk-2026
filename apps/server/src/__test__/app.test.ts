@@ -12,11 +12,13 @@ let storeSequence = 0;
 
 const testSession = {
   user: {
+    displayUsername: "TestUser",
     email: "user@example.com",
     emailVerified: true,
     id: "user-1",
     image: null,
     name: "Test User",
+    username: "testuser",
   },
 } satisfies ApiSession;
 
@@ -159,7 +161,16 @@ describe("server app", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect({ body: responseBody, status: response.status }).toStrictEqual({
+      body: {
+        json: {
+          message: "This is private",
+          user: testSession.user,
+        },
+      },
+      status: 200,
+    });
     const [event] = await testApp.events();
     expect(event).toMatchObject({
       operation: "privateData.get",

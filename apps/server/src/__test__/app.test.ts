@@ -11,13 +11,18 @@ import { createAuthReader } from "../modules/auth/auth-reader";
 let storeSequence = 0;
 
 const testSession = {
+  impersonatedBy: "admin-1",
   user: {
+    banExpires: "2026-01-01T00:00:00.000Z",
+    banReason: null,
+    banned: false,
     displayUsername: "TestUser",
     email: "user@example.com",
     emailVerified: true,
     id: "user-1",
     image: null,
     name: "Test User",
+    role: "admin",
     username: "testuser",
   },
 } satisfies ApiSession;
@@ -181,7 +186,11 @@ describe("server app", () => {
       userId: "user-1",
     });
     expect(JSON.stringify(event)).not.toContain("user@example.com");
-    expect(event).not.toHaveProperty("auth");
+    expect(event).toMatchObject({
+      auth: {
+        role: "admin",
+      },
+    });
     expect(testApp.getSession).toHaveBeenCalledOnce();
   });
 

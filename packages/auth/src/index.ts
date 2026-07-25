@@ -4,7 +4,7 @@ import { env } from "@bmhk-2026/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username, admin as adminPlugin } from "better-auth/plugins";
-import { ac, admin, user, staff, registrationStaff } from "./permission";
+import { ac, roles } from "./permission";
 
 export function createAuth() {
   const db = createDb();
@@ -31,12 +31,7 @@ export function createAuth() {
       adminPlugin({
         ac,
         defaultRole: "user",
-        roles: {
-          admin,
-          registrationStaff,
-          staff,
-          user,
-        },
+        roles,
       }),
     ],
     secret: env.BETTER_AUTH_SECRET,

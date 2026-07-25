@@ -2,7 +2,7 @@ import { os } from "@orpc/server";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
-import type { ApiRole, ApiSession, AuthReader, PermissionRequirement } from "./auth";
+import type { ApiSession, AuthReader } from "./auth";
 import type { ApiContext } from "./context";
 
 export interface ProcedureDependencies {
@@ -49,11 +49,11 @@ export function createProcedures(dependencies: ProcedureDependencies) {
       });
     }
 
-    const authContext: { impersonatedBy?: string; role: ApiRole } = {
-      role: session.user.role,
+    const authContext: { impersonatedBy?: string; role: string } = {
+      role: session.user.role ?? "user",
     };
-    if (session.impersonatedBy !== null) {
-      authContext.impersonatedBy = session.impersonatedBy;
+    if (typeof session.session.impersonatedBy === "string") {
+      authContext.impersonatedBy = session.session.impersonatedBy;
     }
 
     context.log.set({
@@ -72,63 +72,11 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     });
   });
 
-  const authenticatedProcedure = base.use(evlog()).use(requireAuth);
-
-  function permissionProcedure(requirement: PermissionRequirement) {
-    const requirePermission = os
-      .$context<AuthenticatedContext>()
-      .middleware(async ({ context, next }) => {
-        let allowed: boolean;
-
-        try {
-          allowed = await dependencies.auth.hasPermission({
-            permissions: requirement,
-            role: context.session.user.role,
-            userId: context.session.user.id,
-          });
-        } catch (error) {
-          throw createError({
-            cause: toError(error),
-            code: "AUTHORIZATION_UNAVAILABLE",
-            fix: "Try again shortly",
-            message: "Authorization temporarily unavailable",
-            status: 503,
-            why: "Permission could not be verified",
-          });
-        }
-
-        if (!allowed) {
-          context.log.set({
-            authorization: {
-              decision: "deny",
-              permissions: requirement,
-            },
-          });
-          throw createError({
-            code: "FORBIDDEN",
-            fix: "Request access from an administrator",
-            message: "Permission required",
-            status: 403,
-            why: "Authenticated user lacks required permission",
-          });
-        }
-
-        return await next();
-      });
-
-    return authenticatedProcedure.use(requirePermission);
-  }
-
   return {
-    permissionProcedure,
-    protectedProcedure: authenticatedProcedure,
+    protectedProcedure: base.use(evlog()).use(requireAuth),
     publicProcedure: base.use(evlog()),
   };
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
-export type PermissionProcedure = ReturnType<
-  ReturnType<typeof createProcedures>["permissionProcedure"]
->;
-export type AuthenticatedContext = ApiContext & { session: ApiSession };

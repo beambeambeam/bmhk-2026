@@ -1,12 +1,12 @@
 import { createAccessControl } from "better-auth/plugins/access";
 import { defaultStatements, adminAc, userAc } from "better-auth/plugins/admin/access";
 
-const statement = {
+const permissionStatement = {
   ...defaultStatements,
   staff: ["access", "registration_access"],
 } as const;
 
-const ac = createAccessControl(statement);
+const ac = createAccessControl(permissionStatement);
 
 const admin = ac.newRole({
   staff: ["access", "registration_access"],
@@ -27,4 +27,13 @@ const user = ac.newRole({
   ...userAc.statements,
 });
 
-export { ac, admin, staff, registrationStaff, user };
+const roles = {
+  admin,
+  registrationStaff,
+  staff,
+  user,
+} as const;
+
+export type AuthRole = keyof typeof roles;
+
+export { ac, admin, permissionStatement, registrationStaff, roles, staff, user };

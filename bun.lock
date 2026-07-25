@@ -127,6 +127,7 @@
     "packages/api": {
       "name": "@bmhk-2026/api",
       "dependencies": {
+        "@bmhk-2026/auth": "workspace:*",
         "@orpc/server": "catalog:",
         "evlog": "catalog:",
         "zod": "catalog:",

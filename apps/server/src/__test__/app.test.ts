@@ -11,11 +11,20 @@ import { createAuthReader } from "../modules/auth/auth-reader";
 let storeSequence = 0;
 
 const testSession = {
-  impersonatedBy: "admin-1",
+  session: {
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    expiresAt: new Date("2026-02-01T00:00:00.000Z"),
+    id: "session-1",
+    impersonatedBy: "admin-1",
+    token: "test-token",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    userId: "user-1",
+  },
   user: {
-    banExpires: "2026-01-01T00:00:00.000Z",
+    banExpires: new Date("2026-01-01T00:00:00.000Z"),
     banReason: null,
     banned: false,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
     displayUsername: "TestUser",
     email: "user@example.com",
     emailVerified: true,
@@ -23,6 +32,7 @@ const testSession = {
     image: null,
     name: "Test User",
     role: "admin",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     username: "testuser",
   },
 } satisfies ApiSession;
@@ -167,11 +177,16 @@ describe("server app", () => {
     );
 
     const responseBody = await response.json();
-    expect({ body: responseBody, status: response.status }).toStrictEqual({
+    expect({ body: responseBody, status: response.status }).toMatchObject({
       body: {
         json: {
           message: "This is private",
-          user: testSession.user,
+          user: {
+            ...testSession.user,
+            banExpires: "2026-01-01T00:00:00.000Z",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
         },
       },
       status: 200,

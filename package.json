@@ -15,6 +15,7 @@
       "@orpc/server": "^1.14.6",
       "@orpc/openapi": "^1.14.6",
       "@orpc/zod": "^1.14.6",
+      "auth": "1.6.23",
       "better-auth": "1.6.23",
       "evlog": "^2.22.0",
       "lucide-react": "^1.23.0",

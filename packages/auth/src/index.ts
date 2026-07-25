@@ -30,6 +30,7 @@ export function createAuth() {
       username(),
       adminPlugin({
         ac,
+        defaultRole: "user",
         roles: {
           admin,
           registrationStaff,

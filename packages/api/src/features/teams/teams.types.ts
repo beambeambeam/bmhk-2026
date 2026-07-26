@@ -1,23 +1,18 @@
-import type { teams } from "@bmhk-2026/db/schema/teams";
+import type { z } from "zod";
 
-export type Team = typeof teams.$inferSelect;
+import type {
+  createTeamSchema,
+  teamListPaginationSchema,
+  teamListResultSchema,
+  teamSchema,
+  updateTeamDataSchema,
+} from "./teams.schemas";
+
+export type Team = z.output<typeof teamSchema>;
 export type TeamAward = Team["award"];
-type TeamInsertRow = typeof teams.$inferInsert;
 
-export type CreateTeamData = Pick<TeamInsertRow, "award" | "memberCount" | "name" | "school">;
-export type UpdateTeamData = Partial<CreateTeamData>;
+export type CreateTeamData = z.output<typeof createTeamSchema>;
+export type UpdateTeamData = z.output<typeof updateTeamDataSchema>;
 
-export interface TeamListPagination {
-  currentPage: number;
-  limit: number;
-  nextOffset: number | null;
-  offset: number;
-  previousOffset: number | null;
-  total: number;
-  totalPages: number;
-}
-
-export interface TeamListResult {
-  data: Team[];
-  pagination: TeamListPagination;
-}
+export type TeamListPagination = z.output<typeof teamListPaginationSchema>;
+export type TeamListResult = z.output<typeof teamListResultSchema>;

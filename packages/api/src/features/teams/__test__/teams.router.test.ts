@@ -230,6 +230,26 @@ describe("teams router", () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
 
+  it("rejects unknown create fields", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        {
+          name: "Team",
+          school: "School",
+          // @ts-expect-error -- verifies strict runtime rejection of unknown fields
+          unknown: true,
+        },
+        { context, path: ["teams", "create"] },
+      ),
+    ).rejects.toBeInstanceOf(Error);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       expected: {
@@ -316,6 +336,26 @@ describe("teams router", () => {
     });
   });
 
+  it("rejects malformed list output", async () => {
+    const list = vi.fn<TeamRepository["list"]>(
+      async () =>
+        await Promise.resolve({
+          data: [{ ...testTeam, id: "not-a-uuid" }],
+          total: 1,
+        }),
+    );
+    const repository = createTeamRepository({ list });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.list, {}, { context, path: ["teams", "list"] }),
+    ).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Output validation failed",
+    });
+  });
+
   it("gets an owned team", async () => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
@@ -325,6 +365,48 @@ describe("teams router", () => {
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
     ).resolves.toStrictEqual(testTeam);
     expect(repository.findById).toHaveBeenCalledWith(USER_ID, TEAM_ID);
+  });
+
+  it("rejects an invalid team ID before getting", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: "not-a-uuid" }, { context, path: ["teams", "get"] }),
+    ).rejects.toBeInstanceOf(Error);
+    expect(repository.findById).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed team output", async () => {
+    const findById = vi.fn<TeamRepository["findById"]>(
+      async () => await Promise.resolve({ ...testTeam, id: "not-a-uuid" }),
+    );
+    const repository = createTeamRepository({ findById });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).rejects.toMatchObject({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Output validation failed",
+    });
+  });
+
+  it("rejects an invalid team ID before updating", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.update,
+        { data: { name: "Team" }, id: "not-a-uuid" },
+        { context, path: ["teams", "update"] },
+      ),
+    ).rejects.toBeInstanceOf(Error);
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
   it.each(["missing", "foreign-owned"])(
@@ -355,7 +437,7 @@ describe("teams router", () => {
       call(
         router.teams.update,
         {
-          data: { memberCount: 12, name: "Updated Team" },
+          data: { memberCount: 12, name: " Updated Team " },
           id: TEAM_ID,
         },
         { context, path: ["teams", "update"] },
@@ -412,6 +494,40 @@ describe("teams router", () => {
     expect(repository.update).not.toHaveBeenCalled();
   });
 
+  it("rejects immutable database fields in updates", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.update,
+        {
+          data: {
+            // @ts-expect-error -- verifies strict runtime rejection of immutable fields
+            createdAt: new Date(),
+          },
+          id: TEAM_ID,
+        },
+        { context, path: ["teams", "update"] },
+      ),
+    ).rejects.toBeInstanceOf(Error);
+    await expect(
+      call(
+        router.teams.update,
+        {
+          data: {
+            // @ts-expect-error -- verifies strict runtime rejection of immutable fields
+            index: 2,
+          },
+          id: TEAM_ID,
+        },
+        { context, path: ["teams", "update"] },
+      ),
+    ).rejects.toBeInstanceOf(Error);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
   it("returns not found when an owned team cannot be updated", async () => {
     const repository = createTeamRepository({
       update: vi.fn<TeamRepository["update"]>(async () => await Promise.resolve(null)),
@@ -440,6 +556,17 @@ describe("teams router", () => {
       call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
     ).resolves.toStrictEqual({ id: TEAM_ID });
     expect(repository.delete).toHaveBeenCalledWith(USER_ID, TEAM_ID);
+  });
+
+  it("rejects an invalid team ID before deleting", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.delete, { id: "not-a-uuid" }, { context, path: ["teams", "delete"] }),
+    ).rejects.toBeInstanceOf(Error);
+    expect(repository.delete).not.toHaveBeenCalled();
   });
 
   it("returns not found when an owned team cannot be deleted", async () => {

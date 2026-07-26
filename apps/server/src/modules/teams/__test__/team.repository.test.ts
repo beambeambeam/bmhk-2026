@@ -1,9 +1,14 @@
 import type { CreateTeamData, Team } from "@bmhk-2026/api";
+import type { db as database } from "@bmhk-2026/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { createTeamRepository } from "../team.repository";
 
-vi.mock(import("@bmhk-2026/db"), () => ({ db: {} }));
+vi.mock(import("@bmhk-2026/db"), () => ({
+  // Test mock only needs satisfy import-time default dependency.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  db: {} as typeof database,
+}));
 
 const USER_ID = "user-1";
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";

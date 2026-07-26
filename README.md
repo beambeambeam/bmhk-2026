@@ -48,6 +48,18 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    bun run db:push
    ```
 
+   Seed local authentication accounts when needed:
+
+   ```bash
+   bun db:seed:dev
+   ```
+
+   `bun db:seed:root` seeds only `admin-bmhk-2026@kmutt.ac.th`. The development
+   seed also creates local admin, registration staff, staff, and five member
+   accounts. Each run generates new passwords, updates existing fixture users,
+   and revokes their sessions. Credentials are printed once; treat terminal
+   output as sensitive. Seed commands never truncate or delete unrelated data.
+
 4. Start all applications:
 
    ```bash

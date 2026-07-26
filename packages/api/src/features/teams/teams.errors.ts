@@ -1,5 +1,15 @@
 import { createError } from "evlog";
 
+export function createTeamAlreadyExistsError() {
+  return createError({
+    code: "TEAM_ALREADY_EXISTS",
+    fix: "Use the existing team or delete it before creating another",
+    message: "User already owns a team",
+    status: 409,
+    why: "Each user may own only one team",
+  });
+}
+
 export function createTeamNotFoundError() {
   return createError({
     code: "TEAM_NOT_FOUND",

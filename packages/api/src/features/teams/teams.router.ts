@@ -1,5 +1,5 @@
 import type { ProtectedProcedure } from "../../core/procedure";
-import { createTeamNotFoundError } from "./teams.errors";
+import { createTeamAlreadyExistsError, createTeamNotFoundError } from "./teams.errors";
 import { createTeamListPagination } from "./teams.pagination";
 import type { TeamRepository } from "./teams.repository";
 import {
@@ -25,6 +25,11 @@ export function createTeamsRouter(
       .input(createTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
+        const existingTeam = await repository.findByUserId(context.session.user.id);
+        if (existingTeam) {
+          throw createTeamAlreadyExistsError();
+        }
+
         const team = await repository.create(context.session.user.id, input);
         context.log.set({ team: { id: team.id } });
         return team;

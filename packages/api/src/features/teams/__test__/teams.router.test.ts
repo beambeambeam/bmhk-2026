@@ -97,6 +97,9 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
     findById:
       overrides.findById ??
       vi.fn<TeamRepository["findById"]>(async () => await Promise.resolve(testTeam)),
+    findByUserId:
+      overrides.findByUserId ??
+      vi.fn<TeamRepository["findByUserId"]>(async () => await Promise.resolve(null)),
     list:
       overrides.list ??
       vi.fn<TeamRepository["list"]>(
@@ -161,6 +164,57 @@ describe("teams router", () => {
       school: "Test School",
     });
     expect(log.set).toHaveBeenCalledWith({ team: { id: TEAM_ID } });
+  });
+
+  it("rejects creating a second team for the same user", async () => {
+    const findByUserId = vi.fn<TeamRepository["findByUserId"]>(
+      async () => await Promise.resolve(testTeam),
+    );
+    const repository = createTeamRepository({ findByUserId });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Team Two", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).rejects.toMatchObject({
+      code: "TEAM_ALREADY_EXISTS",
+      message: "User already owns a team",
+      status: 409,
+    });
+    expect(findByUserId).toHaveBeenCalledWith(USER_ID);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("allows creating a team after deleting the existing team", async () => {
+    let existingTeam: Team | null = testTeam;
+    const repository = createTeamRepository({
+      create: vi.fn<TeamRepository["create"]>(async () => await Promise.resolve(testTeam)),
+      delete: vi.fn<TeamRepository["delete"]>(async () => {
+        existingTeam = null;
+        return await Promise.resolve(true);
+      }),
+      findByUserId: vi.fn<TeamRepository["findByUserId"]>(
+        async () => await Promise.resolve(existingTeam),
+      ),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
+    ).resolves.toStrictEqual({ id: TEAM_ID });
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Replacement Team", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).resolves.toStrictEqual(testTeam);
+    expect(repository.create).toHaveBeenCalledOnce();
   });
 
   it.each(teamAwardValues)("accepts the %s award when creating a team", async (award) => {

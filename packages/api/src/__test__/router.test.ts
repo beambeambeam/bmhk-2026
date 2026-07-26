@@ -77,6 +77,7 @@ function createTeamRepository(): TeamRepository {
     create: vi.fn<TeamRepository["create"]>(),
     delete: vi.fn<TeamRepository["delete"]>(),
     findById: vi.fn<TeamRepository["findById"]>(),
+    findByUserId: vi.fn<TeamRepository["findByUserId"]>(),
     list: vi.fn<TeamRepository["list"]>(),
     update: vi.fn<TeamRepository["update"]>(),
   };

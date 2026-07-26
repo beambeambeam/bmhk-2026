@@ -1,11 +1,11 @@
 import {
-  index,
   integer,
   pgEnum,
   pgTable,
   serial,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -41,5 +41,5 @@ export const teams = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("teams_user_id_idx").on(table.userId)],
+  (table) => [unique("teams_user_id_unique").on(table.userId)],
 );

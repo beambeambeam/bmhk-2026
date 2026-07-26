@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createTeamRepository } from "../team.repository";
 
+vi.mock(import("@bmhk-2026/db"), () => ({ db: {} }));
+
 const USER_ID = "user-1";
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 

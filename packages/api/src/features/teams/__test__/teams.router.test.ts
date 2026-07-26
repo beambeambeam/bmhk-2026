@@ -1,3 +1,4 @@
+import { teamAwardValues } from "@bmhk-2026/db/schema/teams";
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -35,7 +36,7 @@ const testSession = {
 } satisfies ApiSession;
 
 const testTeam = {
-  award: "Best Team",
+  award: "NONE",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   id: TEAM_ID,
   index: 1,
@@ -126,7 +127,6 @@ describe("teams router", () => {
       call(
         router.teams.create,
         {
-          award: "Best Team",
           name: "Team One",
           school: "Test School",
         },
@@ -148,7 +148,6 @@ describe("teams router", () => {
       call(
         router.teams.create,
         {
-          award: " Best Team ",
           name: " Team One ",
           school: " Test School ",
         },
@@ -156,7 +155,7 @@ describe("teams router", () => {
       ),
     ).resolves.toStrictEqual(testTeam);
     expect(repository.create).toHaveBeenCalledWith(USER_ID, {
-      award: "Best Team",
+      award: "NONE",
       memberCount: 0,
       name: "Team One",
       school: "Test School",
@@ -164,21 +163,57 @@ describe("teams router", () => {
     expect(log.set).toHaveBeenCalledWith({ team: { id: TEAM_ID } });
   });
 
+  it.each(teamAwardValues)("accepts the %s award when creating a team", async (award) => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        {
+          award,
+          name: "Team One",
+          school: "Test School",
+        },
+        { context, path: ["teams", "create"] },
+      ),
+    ).resolves.toMatchObject({ award });
+    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
+      award,
+      memberCount: 0,
+      name: "Team One",
+      school: "Test School",
+    });
+  });
+
+  it("rejects an arbitrary award when creating a team", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        // @ts-expect-error -- verifies runtime rejection outside the award enum
+        { award: "BEST_TEAM", name: "Team", school: "School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).rejects.toBeInstanceOf(Error);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
-      input: { award: "", name: "Team", school: "School" },
-      name: "empty award",
-    },
-    {
-      input: { award: "Award", memberCount: -1, name: "Team", school: "School" },
+      input: { memberCount: -1, name: "Team", school: "School" },
       name: "negative member count",
     },
     {
-      input: { award: "Award", memberCount: 1.5, name: "Team", school: "School" },
+      input: { memberCount: 1.5, name: "Team", school: "School" },
       name: "noninteger member count",
     },
     {
-      input: { award: "Award", name: "", school: "School" },
+      input: { name: "", school: "School" },
       name: "empty name",
     },
   ])("rejects invalid create input: $name", async ({ input }) => {
@@ -335,6 +370,21 @@ describe("teams router", () => {
     });
   });
 
+  it.each(teamAwardValues)("updates an owned team to the %s award", async (award) => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.update,
+        { data: { award }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).resolves.toMatchObject({ award });
+    expect(repository.update).toHaveBeenCalledWith(USER_ID, TEAM_ID, { award });
+  });
+
   it("rejects empty and immutable update data", async () => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
@@ -348,6 +398,14 @@ describe("teams router", () => {
         router.teams.update,
         // @ts-expect-error -- verifies strict runtime rejection of immutable fields
         { data: { userId: "other-user" }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).rejects.toBeInstanceOf(Error);
+    await expect(
+      call(
+        router.teams.update,
+        // @ts-expect-error -- verifies runtime rejection outside the award enum
+        { data: { award: "BEST_TEAM" }, id: TEAM_ID },
         { context, path: ["teams", "update"] },
       ),
     ).rejects.toBeInstanceOf(Error);

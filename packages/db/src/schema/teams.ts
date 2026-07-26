@@ -1,11 +1,33 @@
-import { index, integer, pgTable, serial, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+
+export const teamAwardValues = [
+  "NONE",
+  "REGISTERED",
+  "ROUND_1_PARTICIPANT",
+  "ROUND_2_PARTICIPANT",
+  "HONORABLE_MENTION",
+  "3RD_PLACE",
+  "2ND_PLACE",
+  "1ST_PLACE",
+] as const;
+
+export const teamAwardEnum = pgEnum("team_award", teamAwardValues);
 
 export const teams = pgTable(
   "teams",
   {
-    award: text("award").notNull(),
+    award: teamAwardEnum("award").default("NONE").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     index: serial("index").notNull(),

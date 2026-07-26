@@ -1,9 +1,10 @@
+import { teamAwardValues } from "@bmhk-2026/db/schema/teams";
 import { z } from "zod";
 
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
 
-const awardSchema = z.string().trim().min(1).max(200);
+const awardSchema = z.enum(teamAwardValues);
 const memberCountSchema = z.int().nonnegative();
 const nameSchema = z.string().trim().min(1).max(120);
 const schoolSchema = z.string().trim().min(1).max(200);
@@ -11,7 +12,7 @@ const teamIdSchema = z.uuid();
 
 export const createTeamSchema = z
   .object({
-    award: awardSchema,
+    award: awardSchema.default("NONE"),
     memberCount: memberCountSchema.default(0),
     name: nameSchema,
     school: schoolSchema,

@@ -1,6 +1,7 @@
 import type { teams } from "@bmhk-2026/db/schema/teams";
 
 export type Team = typeof teams.$inferSelect;
+export type TeamAward = Team["award"];
 type TeamInsertRow = typeof teams.$inferInsert;
 
 export type CreateTeamData = Pick<TeamInsertRow, "award" | "memberCount" | "name" | "school">;

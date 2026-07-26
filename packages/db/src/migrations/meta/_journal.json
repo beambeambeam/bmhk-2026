@@ -22,6 +22,27 @@
       "when": 1784968455447,
       "tag": "0002_solid_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785051591654,
+      "tag": "0003_closed_trauma",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785054338699,
+      "tag": "0004_fixed_gorgon",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785058535069,
+      "tag": "0005_lumpy_pretty_boy",
+      "breakpoints": true
     }
   ]
 }

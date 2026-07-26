@@ -1,0 +1,3 @@
+CREATE TYPE "public"."team_award" AS ENUM('NO_ACHIEVEMENT', 'ROUND_1_COMPLETED', 'ROUND_2_COMPLETED', 'HONORABLE_MENTION', 'THIRD_PLACE', 'SECOND_PLACE', 'FIRST_PLACE');--> statement-breakpoint
+ALTER TABLE "teams" ALTER COLUMN "award" SET DEFAULT 'NO_ACHIEVEMENT'::"public"."team_award";--> statement-breakpoint
+ALTER TABLE "teams" ALTER COLUMN "award" SET DATA TYPE "public"."team_award" USING "award"::"public"."team_award";

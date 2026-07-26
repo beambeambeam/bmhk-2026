@@ -1,7 +1,7 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApiContext, ApiSession, AuthReader } from "../index";
+import type { ApiContext, ApiSession, AuthReader, TeamRepository } from "../index";
 import { createAppRouter } from "../index";
 import { createProcedures } from "../core/procedure";
 
@@ -72,10 +72,21 @@ function createAuthReader(
   };
 }
 
+function createTeamRepository(): TeamRepository {
+  return {
+    create: vi.fn<TeamRepository["create"]>(),
+    delete: vi.fn<TeamRepository["delete"]>(),
+    findById: vi.fn<TeamRepository["findById"]>(),
+    findByUserId: vi.fn<TeamRepository["findByUserId"]>(),
+    list: vi.fn<TeamRepository["list"]>(),
+    update: vi.fn<TeamRepository["update"]>(),
+  };
+}
+
 describe("API router", () => {
   it("adds the operation to public procedures without resolving auth", async () => {
     const { auth } = createAuthReader();
-    const router = createAppRouter({ auth });
+    const router = createAppRouter({ auth, teams: createTeamRepository() });
     const { context, log } = createContext();
 
     await expect(
@@ -91,7 +102,7 @@ describe("API router", () => {
 
   it("returns a structured error for anonymous protected access", async () => {
     const { auth } = createAuthReader();
-    const router = createAppRouter({ auth });
+    const router = createAppRouter({ auth, teams: createTeamRepository() });
     const { context, log } = createContext();
 
     await expect(
@@ -118,7 +129,7 @@ describe("API router", () => {
     const { auth } = createAuthReader(() => {
       throw cause;
     });
-    const router = createAppRouter({ auth });
+    const router = createAppRouter({ auth, teams: createTeamRepository() });
     const { context, log } = createContext();
 
     await expect(
@@ -141,7 +152,7 @@ describe("API router", () => {
 
   it("adds masked identity and passes the session to protected procedures", async () => {
     const { auth } = createAuthReader(async () => await Promise.resolve(testSession));
-    const router = createAppRouter({ auth });
+    const router = createAppRouter({ auth, teams: createTeamRepository() });
     const { context, log } = createContext();
 
     await expect(
@@ -194,9 +205,16 @@ describe("API router", () => {
 
   it("exposes feature-grouped procedures", () => {
     const { auth } = createAuthReader();
-    const router = createAppRouter({ auth });
+    const router = createAppRouter({ auth, teams: createTeamRepository() });
 
     expect(router).toHaveProperty("health.check");
     expect(router).toHaveProperty("privateData.get");
+    expect(Object.keys(router.teams).toSorted()).toStrictEqual([
+      "create",
+      "delete",
+      "get",
+      "list",
+      "update",
+    ]);
   });
 });

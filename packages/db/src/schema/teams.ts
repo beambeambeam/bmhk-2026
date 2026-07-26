@@ -12,14 +12,13 @@ import {
 import { user } from "./auth";
 
 export const teamAwardValues = [
-  "NONE",
-  "REGISTERED",
-  "ROUND_1_PARTICIPANT",
-  "ROUND_2_PARTICIPANT",
+  "NO_ACHIEVEMENT",
+  "ROUND_1_COMPLETED",
+  "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",
-  "3RD_PLACE",
-  "2ND_PLACE",
-  "1ST_PLACE",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
 ] as const;
 
 export const teamAwardEnum = pgEnum("team_award", teamAwardValues);
@@ -27,7 +26,7 @@ export const teamAwardEnum = pgEnum("team_award", teamAwardValues);
 export const teams = pgTable(
   "teams",
   {
-    award: teamAwardEnum("award").default("NONE").notNull(),
+    award: teamAwardEnum("award").default("NO_ACHIEVEMENT").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     index: serial("index").notNull(),

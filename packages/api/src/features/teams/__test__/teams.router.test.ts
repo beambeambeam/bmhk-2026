@@ -36,7 +36,7 @@ const testSession = {
 } satisfies ApiSession;
 
 const testTeam = {
-  award: "NONE",
+  award: "NO_ACHIEVEMENT",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   id: TEAM_ID,
   index: 1,
@@ -155,7 +155,7 @@ describe("teams router", () => {
       ),
     ).resolves.toStrictEqual(testTeam);
     expect(repository.create).toHaveBeenCalledWith(USER_ID, {
-      award: "NONE",
+      award: "NO_ACHIEVEMENT",
       memberCount: 0,
       name: "Team One",
       school: "Test School",

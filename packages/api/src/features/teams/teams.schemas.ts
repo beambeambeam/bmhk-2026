@@ -12,7 +12,7 @@ const teamIdSchema = z.uuid();
 
 export const createTeamSchema = z
   .object({
-    award: awardSchema.default("NONE"),
+    award: awardSchema.default("NO_ACHIEVEMENT"),
     memberCount: memberCountSchema.default(0),
     name: nameSchema,
     school: schoolSchema,

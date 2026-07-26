@@ -11,12 +11,29 @@ import { createAuthReader } from "../modules/auth/auth-reader";
 let storeSequence = 0;
 
 const testSession = {
+  session: {
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    expiresAt: new Date("2026-02-01T00:00:00.000Z"),
+    id: "session-1",
+    impersonatedBy: "admin-1",
+    token: "test-token",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    userId: "user-1",
+  },
   user: {
+    banExpires: new Date("2026-01-01T00:00:00.000Z"),
+    banReason: null,
+    banned: false,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    displayUsername: "TestUser",
     email: "user@example.com",
     emailVerified: true,
     id: "user-1",
     image: null,
     name: "Test User",
+    role: "admin",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    username: "testuser",
   },
 } satisfies ApiSession;
 
@@ -159,7 +176,21 @@ describe("server app", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect({ body: responseBody, status: response.status }).toMatchObject({
+      body: {
+        json: {
+          message: "This is private",
+          user: {
+            ...testSession.user,
+            banExpires: "2026-01-01T00:00:00.000Z",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+      status: 200,
+    });
     const [event] = await testApp.events();
     expect(event).toMatchObject({
       operation: "privateData.get",
@@ -170,7 +201,11 @@ describe("server app", () => {
       userId: "user-1",
     });
     expect(JSON.stringify(event)).not.toContain("user@example.com");
-    expect(event).not.toHaveProperty("auth");
+    expect(event).toMatchObject({
+      auth: {
+        role: "admin",
+      },
+    });
     expect(testApp.getSession).toHaveBeenCalledOnce();
   });
 

@@ -36,12 +36,29 @@ function createContext() {
 }
 
 const testSession = {
+  session: {
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    expiresAt: new Date("2026-02-01T00:00:00.000Z"),
+    id: "session-1",
+    impersonatedBy: "admin-1",
+    token: "test-token",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    userId: "user-1",
+  },
   user: {
+    banExpires: new Date("2026-01-01T00:00:00.000Z"),
+    banReason: null,
+    banned: false,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    displayUsername: "TestUser",
     email: "user@example.com",
     emailVerified: true,
     id: "user-1",
     image: null,
     name: "Test User",
+    role: "admin",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    username: "testuser",
   },
 } satisfies ApiSession;
 
@@ -137,6 +154,10 @@ describe("API router", () => {
       user: testSession.user,
     });
     expect(log.set).toHaveBeenCalledWith({
+      auth: {
+        impersonatedBy: "admin-1",
+        role: "admin",
+      },
       user: {
         email: "u***@example.com",
         id: "user-1",

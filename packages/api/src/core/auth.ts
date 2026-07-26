@@ -1,14 +1,9 @@
-export interface ApiUser {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image: string | null;
-}
+import type { auth } from "@bmhk-2026/auth";
+import type { AuthRole } from "@bmhk-2026/auth/permission";
 
-export interface ApiSession {
-  user: ApiUser;
-}
+export type ApiSession = typeof auth.$Infer.Session;
+export type ApiUser = ApiSession["user"];
+export type ApiRole = AuthRole;
 
 export interface AuthReader {
   getSession: (options: { headers: Headers }) => Promise<ApiSession | null>;

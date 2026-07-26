@@ -10,6 +10,7 @@
     "check-types": "tsc -b"
   },
   "dependencies": {
+    "@bmhk-2026/auth": "workspace:*",
     "@orpc/server": "catalog:",
     "evlog": "catalog:",
     "zod": "catalog:"

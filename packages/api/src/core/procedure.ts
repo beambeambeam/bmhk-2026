@@ -49,7 +49,15 @@ export function createProcedures(dependencies: ProcedureDependencies) {
       });
     }
 
+    const authContext: { impersonatedBy?: string; role: string } = {
+      role: session.user.role ?? "user",
+    };
+    if (typeof session.session.impersonatedBy === "string") {
+      authContext.impersonatedBy = session.session.impersonatedBy;
+    }
+
     context.log.set({
+      auth: authContext,
       user: {
         email: maskEmail(session.user.email),
         id: session.user.id,
@@ -72,4 +80,3 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
-export type AuthenticatedContext = ApiContext & { session: ApiSession };

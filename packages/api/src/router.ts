@@ -4,9 +4,12 @@ import type { AuthReader } from "./core/auth";
 import { createProcedures } from "./core/procedure";
 import { createHealthRouter } from "./features/health/health.router";
 import { createPrivateDataRouter } from "./features/private-data/private-data.router";
+import type { TeamRepository } from "./features/teams/teams.repository";
+import { createTeamsRouter } from "./features/teams/teams.router";
 
 export interface ApiDependencies {
   auth: AuthReader;
+  teams: TeamRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -15,6 +18,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
   return {
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
+    teams: createTeamsRouter(protectedProcedure, dependencies.teams),
   };
 }
 

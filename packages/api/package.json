@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@bmhk-2026/auth": "workspace:*",
+    "@bmhk-2026/db": "workspace:*",
     "@orpc/server": "catalog:",
     "evlog": "catalog:",
     "zod": "catalog:"

@@ -1,4 +1,4 @@
-import type { ApiSession } from "@bmhk-2026/api";
+import type { ApiSession, TeamRepository } from "@bmhk-2026/api";
 import { createAppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
 import { clearMemoryLogs, createMemoryDrain, readMemoryLogs } from "evlog/memory";
@@ -65,6 +65,13 @@ function createTestApp(getSession?: GetSession) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
     auth: createAuthReader(testAuth.auth),
+    teams: {
+      create: vi.fn<TeamRepository["create"]>(),
+      delete: vi.fn<TeamRepository["delete"]>(),
+      findById: vi.fn<TeamRepository["findById"]>(),
+      list: vi.fn<TeamRepository["list"]>(),
+      update: vi.fn<TeamRepository["update"]>(),
+    },
   });
   const store = `server-app-test-${storeSequence}`;
   storeSequence += 1;

@@ -86,7 +86,3 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    bun run test
    bun run build
    ```
-
-Stop local services with `bun run services:stop`. Remove local containers with `bun run services:down`.
-The `db:*` commands manage database schema and data; `services:*` commands manage local containers.
-Keep `.env` files private and never commit secrets.

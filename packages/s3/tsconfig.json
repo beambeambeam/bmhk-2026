@@ -1,0 +1,11 @@
+{
+  "extends": "@bmhk-2026/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "strictNullChecks": true
+  }
+}

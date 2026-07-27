@@ -41,7 +41,7 @@ const localAccounts = [
     role: "staff",
   },
   ...Array.from({ length: 5 }, (_, index) => ({
-    email: `member${index + 1}+local@kmutt.ac.th`,
+    email: `member${index + 1}+local@gmail.com`,
     name: `BMHK 2026 Member ${index + 1}`,
     role: "user" as const,
   })),

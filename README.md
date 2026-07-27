@@ -48,6 +48,12 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    bun run db:push
    ```
 
+   Seed local authentication accounts when needed:
+
+   ```bash
+   bun db:seed:dev
+   ```
+
 4. Start all applications:
 
    ```bash

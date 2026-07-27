@@ -12,7 +12,9 @@
   "scripts": {
     "auth:generate": "DOTENV_CONFIG_PATH=../../apps/server/.env auth generate --config ./src/index.ts --output ../db/src/schema/auth.ts --yes",
     "auth:info": "DOTENV_CONFIG_PATH=../../apps/server/.env auth info --config ./src/index.ts",
-    "auth:secret": "DOTENV_CONFIG_PATH=../../apps/server/.env auth secret"
+    "auth:secret": "DOTENV_CONFIG_PATH=../../apps/server/.env auth secret",
+    "db:seed:dev": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts dev",
+    "db:seed:root": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts root"
   },
   "dependencies": {
     "@bmhk-2026/db": "workspace:*",

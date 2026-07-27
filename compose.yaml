@@ -19,5 +19,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: bmhk-2026-rustfs
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfssecret}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - bmhk-2026_rustfs_data:/data
+    command: /data
+    restart: unless-stopped
+
 volumes:
   bmhk-2026_postgres_data:
+  bmhk-2026_rustfs_data:
+    name: bmhk-2026_rustfs_data

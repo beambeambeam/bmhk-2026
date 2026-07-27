@@ -49,6 +49,7 @@
     "dev:web": "vp run --filter web dev",
     "dev:staff": "vp run --filter staff dev",
     "dev:server": "vp run --filter server dev",
+    "dev:discord": "vp run --filter discord dev",
     "db:push": "vp run --filter @bmhk-2026/db db:push",
     "db:studio": "vp run --filter @bmhk-2026/db db:studio",
     "db:generate": "vp run --filter @bmhk-2026/db db:generate",
@@ -59,7 +60,9 @@
     "services:down": "docker compose down",
     "db:seed:dev": "vp run --filter @bmhk-2026/auth db:seed:dev",
     "db:seed:root": "vp run --filter @bmhk-2026/auth db:seed:root",
-    "skill:update": "skills update -p"
+    "skill:update": "skills update -p",
+    "prep:discord": "vp run --filter discord prep",
+    "deploy:discord": "vp run --filter discord deploy"
   },
   "dependencies": {
     "@bmhk-2026/env": "workspace:*",

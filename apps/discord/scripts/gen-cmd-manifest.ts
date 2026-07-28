@@ -14,29 +14,31 @@ const commandsDir = join(import.meta.dir, "..", "src", "interactions", "commands
 const manifestPath = join(import.meta.dir, "..", "src", "commands.manifest.ts");
 
 const files = readdirSync(commandsDir)
-    .filter((f) => f.endsWith(".ts"))
-    .sort();
+  .filter((f) => f.endsWith(".ts"))
+  .toSorted();
 
 const importLines = files.map((f, i) => {
-    const name = `cmd${i}`;
-    // Use .js extension so the static import resolves correctly after bundling
-    const modulePath = `./interactions/commands/${f.replace(/\.ts$/, ".js")}`;
-    return `import ${name} from "${modulePath}";`;
+  const name = `cmd${i}`;
+  // Use .js extension so the static import resolves correctly after bundling
+  const modulePath = `./interactions/commands/${f.replace(/\.ts$/, ".js")}`;
+  return `import ${name} from "${modulePath}";`;
 });
 
 const exportNames = files.map((_, i) => `cmd${i}`);
 
 const content = [
-    "// AUTO-GENERATED do not edit by hand.",
-    "// Re-run scripts/generate-commands-manifest.ts to update.",
-    'import type { Command } from "./types.js";',
-    "",
-    ...importLines,
-    "",
-    `export const commands: Command[] = [${exportNames.join(", ")}];`,
-    "",
+  "// AUTO-GENERATED do not edit by hand.",
+  "// Re-run scripts/generate-commands-manifest.ts to update.",
+  'import type { Command } from "./types.js";',
+  "",
+  ...importLines,
+  "",
+  `export const commands: Command[] = [${exportNames.join(", ")}];`,
+  "",
 ].join("\n");
 
 await Bun.write(manifestPath, content);
 console.log(`Generated commands-manifest.ts with ${files.length} command(s):`);
-for (const f of files) console.log(`  • ${f}`);
+for (const f of files) {
+  console.log(`  • ${f}`);
+}

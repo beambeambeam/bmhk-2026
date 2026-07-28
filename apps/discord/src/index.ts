@@ -5,30 +5,30 @@ import { loadInteractions } from "./loaders/interactions.js";
 import type { BotClient, Button, Command, Modal, SelectMenu } from "./types.js";
 
 const requiredEnvVars = [
-    "DISCORD_TOKEN",
-    "DISCORD_CLIENT_ID",
-    "PG_HOST",
-    "PG_USER",
-    "PG_PASSWORD",
-    "PG_DBNAME",
-    "SHEET_ID",
-    "SHEET_NAME",
+  "DISCORD_TOKEN",
+  "DISCORD_CLIENT_ID",
+  "PG_HOST",
+  "PG_USER",
+  "PG_PASSWORD",
+  "PG_DBNAME",
+  "SHEET_ID",
+  "SHEET_NAME",
 ] as const;
 
 for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
 }
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.MessageContent,
-    ],
-    partials: [Partials.Channel],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent,
+  ],
+  partials: [Partials.Channel],
 }) as BotClient;
 
 client.commands = new Collection<string, Command>();
@@ -41,13 +41,15 @@ await loadInteractions(client);
 
 await insertNewStaffs();
 setInterval(
-    async () => {
-        await insertNewStaffs();
-    },
-    60 * 60 * 1000,
+  async () => {
+    await insertNewStaffs();
+  },
+  60 * 60 * 1000,
 ); // every hour
 
 const token = Bun.env.DISCORD_TOKEN;
-if (!token) throw new Error("Missing environment variable: DISCORD_TOKEN");
+if (!token) {
+  throw new Error("Missing environment variable: DISCORD_TOKEN");
+}
 
 await client.login(token);

@@ -1,21 +1,9 @@
 import { os } from "@orpc/server";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
-import type { auth } from "@bmhk-2026/auth";
-import type { AuthRole } from "@bmhk-2026/auth/permission";
-import type { EvlogOrpcContext } from "evlog/orpc";
 
-export type ApiSession = typeof auth.$Infer.Session;
-export type ApiUser = ApiSession["user"];
-export type ApiRole = AuthRole;
-
-export interface AuthReader {
-  getSession: (options: { headers: Headers }) => Promise<ApiSession | null>;
-}
-
-export interface ApiContext extends EvlogOrpcContext {
-  headers: Headers;
-}
+import type { ApiSession, AuthReader } from "./auth";
+import type { ApiContext } from "./context";
 
 export interface ProcedureDependencies {
   auth: AuthReader;

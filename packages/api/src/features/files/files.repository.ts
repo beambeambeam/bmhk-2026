@@ -2,8 +2,8 @@ import { db } from "@bmhk-2026/db";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, eq } from "drizzle-orm";
 
-import type { CreateStoredFileData, StoredFile } from "./files";
-import { toStoredFile } from "./files";
+import type { CreateStoredFileData, StoredFile } from "./files.schema";
+import { toStoredFile } from "./files.schema";
 
 export interface FileRepository {
   create: (data: CreateStoredFileData) => Promise<StoredFile>;

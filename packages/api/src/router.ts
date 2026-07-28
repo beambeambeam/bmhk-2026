@@ -1,7 +1,7 @@
 import type { RouterClient } from "@orpc/server";
 
-import type { AuthReader } from "./core";
-import { createProcedures } from "./core";
+import type { AuthReader } from "./core/auth";
+import { createProcedures } from "./core/procedure";
 import { createHealthRouter } from "./features/health/health.router";
 import { createFileRepository } from "./features/files/files.repository";
 import { createFilesRouter } from "./features/files/files.router";

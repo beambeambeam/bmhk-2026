@@ -1,4 +1,4 @@
-import type { ProtectedProcedure } from "../../core";
+import type { ProtectedProcedure } from "../../core/procedure";
 
 export function createPrivateDataRouter(protectedProcedure: ProtectedProcedure) {
   return {

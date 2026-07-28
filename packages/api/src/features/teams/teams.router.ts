@@ -1,8 +1,8 @@
 import { env } from "@bmhk-2026/env/server";
 import { z } from "zod";
-import type { ProtectedProcedure } from "../../core";
-import { assertAllowedOrigin } from "../files/files";
+import type { ProtectedProcedure } from "../../core/procedure";
 import {
+  assertAllowedOrigin,
   createStoredFileData,
   toPublicFileWithUrl,
   uploadValidatedFile,
@@ -10,8 +10,10 @@ import {
 } from "../files/files.service";
 import {
   createTeamAlreadyExistsError,
-  createTeamNotFoundError,
   createTeamListPagination,
+  createTeamNotFoundError,
+} from "./teams.service";
+import {
   createTeamSchema,
   deleteTeamResultSchema,
   listTeamsSchema,
@@ -20,7 +22,7 @@ import {
   teamListResultSchema,
   teamSchema,
   updateTeamSchema,
-} from "./teams";
+} from "./teams.schema";
 import type { TeamRepository } from "./teams.repository";
 
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();

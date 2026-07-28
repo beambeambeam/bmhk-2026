@@ -1,4 +1,4 @@
-import type { PublicProcedure } from "../../core";
+import type { PublicProcedure } from "../../core/procedure";
 
 export function createHealthRouter(publicProcedure: PublicProcedure) {
   return {

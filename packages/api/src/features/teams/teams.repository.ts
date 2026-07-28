@@ -3,10 +3,10 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, eq } from "drizzle-orm";
 
-import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams";
-import type { CreateTeamData, Team, UpdateTeamData } from "./teams";
-import type { CreateStoredFileData, StoredFile } from "../files/files";
-import { toStoredFile } from "../files/files";
+import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams.service";
+import type { CreateTeamData, Team, UpdateTeamData } from "./teams.schema";
+import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
+import { toStoredFile } from "../files/files.schema";
 
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;

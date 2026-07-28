@@ -1,16 +1,16 @@
 import { env } from "@bmhk-2026/env/server";
 
-import type { ProtectedProcedure } from "../../core";
+import type { ProtectedProcedure } from "../../core/procedure";
 import {
-  assertAllowedOrigin,
-  createFileNotFoundError,
   fileIdSchema,
   fileMetadataSchema,
   fileWithUrlSchema,
   uploadFileSchema,
-} from "./files";
+} from "./files.schema";
 import type { FileRepository } from "./files.repository";
 import {
+  assertAllowedOrigin,
+  createFileNotFoundError,
   createStoredFileData,
   saveFileMetadata,
   toPublicFile,

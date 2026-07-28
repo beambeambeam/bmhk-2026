@@ -12,7 +12,10 @@
   "dependencies": {
     "@bmhk-2026/auth": "workspace:*",
     "@bmhk-2026/db": "workspace:*",
+    "@bmhk-2026/env": "workspace:*",
+    "@bmhk-2026/s3": "workspace:*",
     "@orpc/server": "catalog:",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "evlog": "catalog:",
     "zod": "catalog:"

@@ -24,6 +24,7 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    BETTER_AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters-long
    BETTER_AUTH_URL=http://localhost:3000
    AWS_ACCESS_KEY_ID=rustfsadmin
+   AWS_S3_BUCKET=uploads
    AWS_ENDPOINT_URL_S3=http://localhost:9000
    AWS_REGION=us-east-1
    AWS_SECRET_ACCESS_KEY=rustfssecret
@@ -58,6 +59,7 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    - RustFS S3 API: http://localhost:9000
    - RustFS console: http://localhost:9001
    - RustFS development credentials: `rustfsadmin` / `rustfssecret`
+   - Create configured bucket `uploads` in the RustFS console before starting the server.
 
    Seed local authentication accounts when needed:
 

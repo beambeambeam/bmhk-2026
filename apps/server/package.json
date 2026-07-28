@@ -12,13 +12,11 @@
   "dependencies": {
     "@bmhk-2026/api": "workspace:*",
     "@bmhk-2026/auth": "workspace:*",
-    "@bmhk-2026/db": "workspace:*",
     "@bmhk-2026/env": "workspace:*",
     "@elysiajs/cors": "^1.4.2",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "drizzle-orm": "^0.45.2",
     "elysia": "catalog:",
     "evlog": "catalog:"
   },

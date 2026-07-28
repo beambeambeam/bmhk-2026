@@ -23,7 +23,7 @@ export function createApiModule(router: AppRouter) {
     ],
   });
 
-  return new Elysia({ name: "api" })
+  const api = new Elysia({ name: "api" })
     .all(
       "/rpc*",
       async ({ request, set }) => {
@@ -52,4 +52,6 @@ export function createApiModule(router: AppRouter) {
       },
       { parse: "none" },
     );
+
+  return api;
 }

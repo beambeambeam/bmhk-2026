@@ -6,13 +6,12 @@ import { log } from "evlog";
 import { createApp } from "./app";
 import { initializeObservability } from "./infrastructure/observability";
 import { createAuthReader } from "./modules/auth/auth-reader";
-import { createTeamRepository } from "./modules/teams/team.repository";
 
 initializeObservability();
 
+const authReader = createAuthReader(auth);
 const apiRouter = createAppRouter({
-  auth: createAuthReader(auth),
-  teams: createTeamRepository(),
+  auth: authReader,
 });
 const app = createApp({
   apiRouter,

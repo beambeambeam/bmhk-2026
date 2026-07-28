@@ -151,6 +151,24 @@ describe("server app", () => {
     });
   });
 
+  it("keeps file procedures under RPC and removes literal file routes", async () => {
+    const testApp = createTestApp();
+
+    const rpcResponse = await testApp.app.handle(
+      new Request("http://localhost/rpc/files/get", { method: "POST" }),
+    );
+    const uploadResponse = await testApp.app.handle(
+      new Request("http://localhost/upload", { method: "POST" }),
+    );
+    const fileResponse = await testApp.app.handle(
+      new Request("http://localhost/files/file-id", { method: "GET" }),
+    );
+
+    expect(rpcResponse.status).toBe(401);
+    expect(uploadResponse.status).toBe(404);
+    expect(fileResponse.status).toBe(404);
+  });
+
   it("records structured unauthorized errors without raw console output", async () => {
     const consoleError = vi.spyOn(console, "error");
     const testApp = createTestApp();

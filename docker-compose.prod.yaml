@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: bmhk-2026-postgres
+    environment:
+      POSTGRES_DB: ${PG_DBNAME:-bmhk-2026}
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?PG_PASSWORD is required}
+    volumes:
+      - bmhk-2026_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: bmhk-2026-rustfs
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - bmhk-2026_rustfs_data:/data
+    command: /data
+    restart: unless-stopped
+
+volumes:
+  bmhk-2026_postgres_data:
+  bmhk-2026_rustfs_data:
+    name: bmhk-2026_rustfs_data

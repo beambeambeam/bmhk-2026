@@ -1,4 +1,13 @@
+import { env } from "@bmhk-2026/env/server";
+import { putObject } from "@bmhk-2026/s3";
+import { z } from "zod";
 import type { ProtectedProcedure } from "../../core/procedure";
+import {
+  createFileOriginNotAllowedError,
+  createFileStorageUnavailableError,
+} from "../files/files.errors";
+import { validateUploadedImage } from "../files/files.validation";
+import type { CreateStoredFileData } from "../files/files.types";
 import { createTeamAlreadyExistsError, createTeamNotFoundError } from "./teams.errors";
 import { createTeamListPagination } from "./teams.pagination";
 import type { TeamRepository } from "./teams.repository";
@@ -11,6 +20,15 @@ import {
   teamSchema,
   updateTeamSchema,
 } from "./teams.schemas";
+
+const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
+
+function assertAllowedOrigin(headers: Headers): void {
+  const origin = headers.get("origin");
+  if (origin !== null && origin.length > 0 && !env.CORS_ORIGIN.includes(origin)) {
+    throw createFileOriginNotAllowedError();
+  }
+}
 
 export function createTeamsRouter(
   protectedProcedure: ProtectedProcedure,
@@ -65,6 +83,58 @@ export function createTeamsRouter(
 
         context.log.set({ team: { id: team.id } });
         return team;
+      }),
+    image: protectedProcedure
+      .route({ method: "POST", tags: ["Team", "File"] })
+      .input(imageSchema)
+      .output(teamSchema)
+      .handler(async ({ context, input }) => {
+        assertAllowedOrigin(context.headers);
+        const existing = await repository.findById(context.session.user.id, input.id);
+
+        if (!existing) {
+          throw createTeamNotFoundError();
+        }
+
+        const validated = await validateUploadedImage(input.file);
+        const id = crypto.randomUUID();
+        const bucket = env.AWS_S3_BUCKET;
+        const objectKey = `teams/${input.id}/images/${id}`;
+
+        try {
+          await putObject({
+            body: validated.body,
+            bucket,
+            contentType: validated.contentType,
+            key: objectKey,
+            originalName: validated.originalName,
+          });
+        } catch (error) {
+          throw createFileStorageUnavailableError(error);
+        }
+
+        const file: CreateStoredFileData = {
+          bucket,
+          contentType: validated.contentType,
+          id,
+          objectKey,
+          originalName: validated.originalName,
+          sizeBytes: validated.body.byteLength,
+          uploadedBy: context.session.user.id,
+        };
+
+        const result = await repository.replaceImage(context.session.user.id, input.id, file);
+
+        if (result === null) {
+          throw createTeamNotFoundError();
+        }
+
+        context.log.set({
+          file: { contentType: file.contentType, id, sizeBytes: file.sizeBytes },
+          team: { id: input.id },
+        });
+
+        return result.team;
       }),
     list: protectedProcedure
       .route({

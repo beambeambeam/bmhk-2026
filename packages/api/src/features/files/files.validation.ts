@@ -98,3 +98,16 @@ export async function validateUploadedFile(file: File): Promise<{
 
   return { body, contentType, originalName };
 }
+
+export async function validateUploadedImage(file: File): Promise<{
+  body: Uint8Array;
+  contentType: "image/jpeg" | "image/png" | "image/webp";
+  originalName: string;
+}> {
+  const validated = await validateUploadedFile(file);
+  const { contentType } = validated;
+  if (contentType === "application/pdf") {
+    throw createFileTypeNotAllowedError();
+  }
+  return { ...validated, contentType };
+}

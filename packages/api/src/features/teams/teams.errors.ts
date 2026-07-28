@@ -19,3 +19,13 @@ export function createTeamNotFoundError() {
     why: "No team owned by the current user matches this ID",
   });
 }
+
+export function createTeamRepositoryError(message: string) {
+  return createError({
+    code: "TEAM_REPOSITORY_ERROR",
+    fix: "Try again or contact support",
+    message,
+    status: 500,
+    why: "The team repository could not satisfy an internal invariant",
+  });
+}

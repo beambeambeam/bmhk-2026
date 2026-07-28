@@ -1,9 +1,12 @@
 import { db } from "@bmhk-2026/db";
 import { teams } from "@bmhk-2026/db/schema/teams";
+import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, eq } from "drizzle-orm";
 
-import { createTeamAlreadyExistsError } from "./teams.errors";
+import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams.errors";
 import type { CreateTeamData, Team, UpdateTeamData } from "./teams.types";
+import type { CreateStoredFileData, StoredFile } from "../files/files.types";
+import { allowedFileContentTypes } from "../files/files.types";
 
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
@@ -15,6 +18,12 @@ export interface TeamRepository {
     pagination: { limit: number; offset: number },
   ) => Promise<{ data: Team[]; total: number }>;
   update: (userId: string, id: string, data: UpdateTeamData) => Promise<Team | null>;
+  replaceImage: (
+    userId: string,
+    id: string,
+    file: CreateStoredFileData,
+  ) => Promise<{ previous: StoredFile | null; team: Team } | null>;
+  deleteFile: (userId: string, id: string) => Promise<boolean>;
 }
 
 type Database = typeof db;
@@ -32,6 +41,14 @@ function isTeamUserUniqueViolation(error: unknown): boolean {
   );
 }
 
+function toStoredFile(file: typeof files.$inferSelect): StoredFile {
+  const contentType = allowedFileContentTypes.find((value) => value === file.contentType);
+  if (!contentType) {
+    throw createTeamRepositoryError(`Unsupported stored file content type: ${file.contentType}`);
+  }
+  return { ...file, contentType };
+}
+
 export function createTeamRepository(database: Database = db): TeamRepository {
   return {
     create: async (userId, data) => {
@@ -42,7 +59,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
           .returning();
 
         if (!team) {
-          throw new Error("Team insert returned no row");
+          throw createTeamRepositoryError("Team insert returned no row");
         }
 
         return team;
@@ -51,7 +68,9 @@ export function createTeamRepository(database: Database = db): TeamRepository {
           throw createTeamAlreadyExistsError();
         }
 
-        throw error;
+        throw createTeamRepositoryError(
+          error instanceof Error ? error.message : "Unknown team repository error",
+        );
       }
     },
     delete: async (userId, id) => {
@@ -61,6 +80,13 @@ export function createTeamRepository(database: Database = db): TeamRepository {
         .returning({ id: teams.id });
 
       return team !== undefined;
+    },
+    deleteFile: async (userId, id) => {
+      const deleted = await database
+        .delete(files)
+        .where(and(eq(files.id, id), eq(files.uploadedBy, userId)))
+        .returning({ id: files.id });
+      return deleted.length > 0;
     },
     findById: async (userId, id) => {
       const [team] = await database
@@ -101,6 +127,37 @@ export function createTeamRepository(database: Database = db): TeamRepository {
           isolationLevel: "repeatable read",
         },
       ),
+    replaceImage: async (userId, id, file) =>
+      await database.transaction(async (transaction) => {
+        const [current] = await transaction
+          .select()
+          .from(teams)
+          .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+          .for("update")
+          .limit(1);
+        if (!current) {
+          return null;
+        }
+        let previous: StoredFile | null = null;
+        if (current.image !== null) {
+          const [oldFile] = await transaction
+            .select()
+            .from(files)
+            .where(eq(files.id, current.image))
+            .limit(1);
+          previous = oldFile ? toStoredFile(oldFile) : null;
+        }
+        await transaction.insert(files).values(file);
+        const [team] = await transaction
+          .update(teams)
+          .set({ image: file.id })
+          .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+          .returning();
+        if (!team) {
+          throw createTeamRepositoryError("Team image update returned no row");
+        }
+        return { previous, team };
+      }),
     update: async (userId, id, data) => {
       const [team] = await database
         .update(teams)

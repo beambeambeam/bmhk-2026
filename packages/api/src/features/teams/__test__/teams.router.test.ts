@@ -26,6 +26,7 @@ const testTeam = {
   award: "NO_ACHIEVEMENT",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   id: TEAM_ID,
+  image: null,
   index: 1,
   memberCount: 0,
   name: "Team One",
@@ -40,9 +41,14 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
       overrides.create ??
       (async (userId, data) => await Promise.resolve({ ...testTeam, ...data, userId })),
     delete: overrides.delete ?? (async () => await Promise.resolve(true)),
+    deleteFile: overrides.deleteFile ?? (async () => await Promise.resolve(true)),
     findById: overrides.findById ?? (async () => await Promise.resolve(testTeam)),
     findByUserId: overrides.findByUserId ?? (async () => await Promise.resolve(null)),
     list: overrides.list ?? (async () => await Promise.resolve({ data: [testTeam], total: 1 })),
+    replaceImage:
+      overrides.replaceImage ??
+      (async (_userId, _id, file) =>
+        await Promise.resolve({ previous: null, team: { ...testTeam, image: file.id } })),
     update:
       overrides.update ??
       (async (_userId, _id, data) => await Promise.resolve({ ...testTeam, ...data })),

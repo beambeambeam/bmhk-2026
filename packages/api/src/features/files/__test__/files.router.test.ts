@@ -210,7 +210,14 @@ describe("files RPC router", () => {
 
     await expect(
       call(router.get, { id: FILE_ID }, { context, path: ["files", "get"] }),
-    ).resolves.toStrictEqual({ url: "https://storage.test/file" });
+    ).resolves.toStrictEqual({
+      contentType: "application/pdf",
+      id: FILE_ID,
+      originalName: "submission.pdf",
+      sizeBytes: 9,
+      uploadedAt: new Date("2026-01-01T00:00:00.000Z"),
+      url: "https://storage.test/file",
+    });
     expect(getPresigned).toHaveBeenCalledWith({
       bucket: "uploads",
       contentType: "application/pdf",

@@ -1,5 +1,5 @@
 import { env } from "@bmhk-2026/env/server";
-import { deleteObject, getPresigned, putObject } from "@bmhk-2026/s3";
+import { deleteObject, putObject } from "@bmhk-2026/s3";
 
 import type { ProtectedProcedure } from "../../core/procedure";
 import {
@@ -9,10 +9,11 @@ import {
   createFileStorageUnavailableError,
 } from "./files.errors";
 import type { FileRepository } from "./files.repository";
+import { toPublicFileWithUrl } from "./files.read";
 import {
   fileIdSchema,
   fileMetadataSchema,
-  fileReadUrlSchema,
+  fileWithUrlSchema,
   uploadFileSchema,
 } from "./files.schemas";
 import { validateUploadedFile } from "./files.validation";
@@ -45,29 +46,16 @@ export function createFilesRouter(
         tags: ["File"],
       })
       .input(fileIdSchema)
-      .output(fileReadUrlSchema)
+      .output(fileWithUrlSchema)
       .handler(async ({ context, input }) => {
         const file = await repository.findById(context.session.user.id, input.id);
         if (!file) {
           throw createFileNotFoundError();
         }
 
-        let url: string;
-        try {
-          url = await getPresigned({
-            bucket: file.bucket,
-            contentType: file.contentType,
-            key: file.objectKey,
-            method: "GET",
-            originalName: file.originalName,
-          });
-        } catch (error) {
-          throw createFileStorageUnavailableError(error);
-        }
-
+        const publicFile = await toPublicFileWithUrl(file);
         context.log.set({ file: { id: file.id } });
-
-        return { url };
+        return publicFile;
       }),
     upload: protectedProcedure
       .route({

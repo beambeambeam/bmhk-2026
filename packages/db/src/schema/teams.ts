@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { files } from "./files";
 
 export const teamAwardValues = [
   "NO_ACHIEVEMENT",
@@ -29,6 +30,7 @@ export const teams = pgTable(
     award: teamAwardEnum("award").default("NO_ACHIEVEMENT").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
+    image: uuid("image").references(() => files.id, { onDelete: "set null" }),
     index: serial("index").notNull(),
     memberCount: integer("member_count").default(0).notNull(),
     name: text("team_name").notNull(),

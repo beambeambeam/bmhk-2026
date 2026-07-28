@@ -94,9 +94,11 @@ export function createUnusedTeamRepository(): TeamRepository {
   return {
     create: createUnusedMethod("TeamRepository", "create"),
     delete: createUnusedMethod("TeamRepository", "delete"),
+    deleteFile: createUnusedMethod("TeamRepository", "deleteFile"),
     findById: createUnusedMethod("TeamRepository", "findById"),
     findByUserId: createUnusedMethod("TeamRepository", "findByUserId"),
     list: createUnusedMethod("TeamRepository", "list"),
+    replaceImage: createUnusedMethod("TeamRepository", "replaceImage"),
     update: createUnusedMethod("TeamRepository", "update"),
   };
 }

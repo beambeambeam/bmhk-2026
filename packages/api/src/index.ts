@@ -10,12 +10,14 @@ export type {
   AllowedFileContentType,
   CreateStoredFileData,
   PublicFile,
+  PublicFileWithUrl,
   StoredFile,
 } from "./features/files/files.types";
 export type {
   CreateTeamData,
   Team,
   TeamAward,
+  TeamDetails,
   TeamListPagination,
   TeamListResult,
   UpdateTeamData,

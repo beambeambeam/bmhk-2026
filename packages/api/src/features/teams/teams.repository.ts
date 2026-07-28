@@ -11,7 +11,7 @@ import { allowedFileContentTypes } from "../files/files.types";
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
   delete: (userId: string, id: string) => Promise<boolean>;
-  findById: (userId: string, id: string) => Promise<Team | null>;
+  findById: (userId: string, id: string) => Promise<TeamWithStoredImage | null>;
   findByUserId: (userId: string) => Promise<Team | null>;
   list: (
     userId: string,
@@ -27,6 +27,10 @@ export interface TeamRepository {
 }
 
 type Database = typeof db;
+
+export type TeamWithStoredImage = Omit<Team, "image"> & {
+  image: StoredFile | null;
+};
 
 function isTeamUserUniqueViolation(error: unknown): boolean {
   if (typeof error !== "object" || error === null) {
@@ -89,13 +93,21 @@ export function createTeamRepository(database: Database = db): TeamRepository {
       return deleted.length > 0;
     },
     findById: async (userId, id) => {
-      const [team] = await database
-        .select()
+      const [result] = await database
+        .select({ image: files, team: teams })
         .from(teams)
+        .leftJoin(files, and(eq(files.id, teams.image), eq(files.uploadedBy, userId)))
         .where(and(eq(teams.id, id), eq(teams.userId, userId)))
         .limit(1);
 
-      return team ?? null;
+      if (!result) {
+        return null;
+      }
+
+      return {
+        ...result.team,
+        image: result.image ? toStoredFile(result.image) : null,
+      };
     },
     findByUserId: async (userId) => {
       const [team] = await database.select().from(teams).where(eq(teams.userId, userId)).limit(1);

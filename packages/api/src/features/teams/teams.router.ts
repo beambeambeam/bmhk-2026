@@ -6,6 +6,7 @@ import {
   createFileOriginNotAllowedError,
   createFileStorageUnavailableError,
 } from "../files/files.errors";
+import { toPublicFileWithUrl } from "../files/files.read";
 import { validateUploadedImage } from "../files/files.validation";
 import type { CreateStoredFileData } from "../files/files.types";
 import { createTeamAlreadyExistsError, createTeamNotFoundError } from "./teams.errors";
@@ -15,6 +16,7 @@ import {
   createTeamSchema,
   deleteTeamResultSchema,
   listTeamsSchema,
+  teamDetailsSchema,
   teamIdInputSchema,
   teamListResultSchema,
   teamSchema,
@@ -74,15 +76,19 @@ export function createTeamsRouter(
         tags: ["Team"],
       })
       .input(teamIdInputSchema)
-      .output(teamSchema)
+      .output(teamDetailsSchema)
       .handler(async ({ context, input }) => {
         const team = await repository.findById(context.session.user.id, input.id);
         if (!team) {
           throw createTeamNotFoundError();
         }
 
+        const publicImage = team.image === null ? null : await toPublicFileWithUrl(team.image);
         context.log.set({ team: { id: team.id } });
-        return team;
+        return {
+          ...team,
+          image: publicImage,
+        };
       }),
     image: protectedProcedure
       .route({ method: "POST", tags: ["Team", "File"] })

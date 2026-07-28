@@ -45,4 +45,4 @@ export const fileMetadataSchema = fileSchema
   })
   .strict();
 
-export const fileReadUrlSchema = z.object({ url: z.url() }).strict();
+export const fileWithUrlSchema = fileMetadataSchema.extend({ url: z.url() }).strict();

@@ -1,13 +1,28 @@
 import { call } from "@orpc/server";
-import { describe, expect, it } from "vitest";
+import type { GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
+import { describe, expect, it, vi } from "vitest";
 
-import type { AuthReader, Team, TeamAward, TeamRepository } from "../../../index";
+import type { AuthReader, StoredFile, Team, TeamAward, TeamRepository } from "../../../index";
 import { createAppRouter } from "../../../index";
+import type { TeamWithStoredImage } from "../teams.repository";
 import {
   createTestAuthReader as createAuthReader,
   createTestContext as createContext,
   createUnusedFileRepository,
 } from "../../../__test__/test-support";
+
+const s3Mocks = vi.hoisted(() => ({
+  getPresigned: vi.fn<(input: GetPresignedInput) => Promise<string>>(
+    async () => await Promise.resolve("https://storage.test/team-image"),
+  ),
+  putObject: vi.fn<(input: PutObjectInput) => Promise<void>>(async () => {
+    await Promise.resolve();
+  }),
+}));
+
+vi.mock(import("@bmhk-2026/s3"), () => s3Mocks);
+
+const { getPresigned } = s3Mocks;
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
@@ -34,6 +49,17 @@ const testTeam = {
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   userId: USER_ID,
 } satisfies Team;
+
+const testImage: StoredFile = {
+  bucket: "uploads",
+  contentType: "image/png",
+  id: "22222222-2222-4222-8222-222222222222",
+  objectKey: `teams/${TEAM_ID}/images/22222222-2222-4222-8222-222222222222`,
+  originalName: "team.png",
+  sizeBytes: 12,
+  uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+  uploadedBy: USER_ID,
+};
 
 function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepository {
   return {
@@ -337,10 +363,54 @@ describe("teams router", () => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
     const { context } = createContext();
+    getPresigned.mockClear();
 
     await expect(
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
     ).resolves.toStrictEqual(testTeam);
+    expect(getPresigned).not.toHaveBeenCalled();
+  });
+
+  it("returns an owned team with public image metadata and URL", async () => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, image: testImage }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toStrictEqual({
+      ...testTeam,
+      image: {
+        contentType: "image/png",
+        id: testImage.id,
+        originalName: "team.png",
+        sizeBytes: 12,
+        uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+        url: "https://storage.test/team-image",
+      },
+    });
+    expect(getPresigned).toHaveBeenCalledWith({
+      bucket: "uploads",
+      contentType: "image/png",
+      key: testImage.objectKey,
+      method: "GET",
+      originalName: "team.png",
+    });
+  });
+
+  it("returns storage unavailable when team image URL signing fails", async () => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, image: testImage }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+    getPresigned.mockRejectedValueOnce(new Error("signer offline"));
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).rejects.toMatchObject({ code: "FILE_STORAGE_UNAVAILABLE", status: 503 });
   });
 
   it("rejects an invalid team ID before getting", async () => {
@@ -355,8 +425,8 @@ describe("teams router", () => {
 
   it("rejects malformed team output", async () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as Team;
-    async function findById(_userId: string, _id: string): Promise<Team | null> {
+    const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as TeamWithStoredImage;
+    async function findById(_userId: string, _id: string): Promise<TeamWithStoredImage | null> {
       return await Promise.resolve(malformedTeam);
     }
 
@@ -391,7 +461,8 @@ describe("teams router", () => {
     { name: "foreign-owned", team: { ...testTeam, userId: "other-user" } },
   ])("returns the same not-found error for a $name team", async ({ team }) => {
     const repository = createTeamRepository({
-      findById: async (userId) => await Promise.resolve(team?.userId === userId ? team : null),
+      findById: async (userId) =>
+        await Promise.resolve(team?.userId === userId ? { ...team, image: null } : null),
     });
     const router = createRouter(repository);
     const { context } = createContext();

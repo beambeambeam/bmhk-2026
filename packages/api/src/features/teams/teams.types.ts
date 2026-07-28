@@ -4,11 +4,13 @@ import type {
   createTeamSchema,
   teamListPaginationSchema,
   teamListResultSchema,
+  teamDetailsSchema,
   teamSchema,
   updateTeamDataSchema,
 } from "./teams.schemas";
 
 export type Team = z.output<typeof teamSchema>;
+export type TeamDetails = z.output<typeof teamDetailsSchema>;
 export type TeamAward = Team["award"];
 
 export type CreateTeamData = z.output<typeof createTeamSchema>;

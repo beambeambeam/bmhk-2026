@@ -2,6 +2,8 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 
+import { fileWithUrlSchema } from "../files/files.schemas";
+
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
 
@@ -15,6 +17,10 @@ const teamInsertSchema = createInsertSchema(teams, teamFieldRefinements);
 const teamUpdateSchema = createUpdateSchema(teams, teamFieldRefinements);
 
 export const teamSchema = createSelectSchema(teams).strict();
+export const teamDetailsSchema = teamSchema
+  .omit({ image: true })
+  .extend({ image: fileWithUrlSchema.nullable() })
+  .strict();
 
 const createTeamFieldsSchema = teamInsertSchema
   .pick({

@@ -7,6 +7,7 @@ vi.mock(import("@bmhk-2026/env/server"), () => ({
     AWS_ACCESS_KEY_ID: "test-access-key",
     AWS_ENDPOINT_URL_S3: "http://localhost:9000",
     AWS_REGION: "us-east-1",
+    AWS_S3_BUCKET: "media",
     AWS_SECRET_ACCESS_KEY: "test-secret-key",
     BETTER_AUTH_SECRET: "test-secret-that-is-at-least-32-characters",
     BETTER_AUTH_URL: "http://localhost:3000",
@@ -37,15 +38,6 @@ const invalidPutInput: GetPresignedInput = {
   method: "PUT",
 };
 
-const invalidGetInput: GetPresignedInput = {
-  bucket: "media",
-  // @ts-expect-error GET presigned URLs do not accept contentType.
-  contentType: "application/pdf",
-  key: "documents/report.pdf",
-  method: "GET",
-};
-
-void invalidGetInput;
 void invalidPutInput;
 
 describe("presigned URLs", () => {
@@ -82,6 +74,27 @@ describe("presigned URLs", () => {
       host: "localhost:9000",
       path: "/media/documents/report.pdf",
       signedHeaders: ["content-type", "host"],
+    });
+  });
+
+  it("adds inline response headers for file reads", async () => {
+    const url = new URL(
+      await getPresigned({
+        bucket: "media",
+        contentType: "application/pdf",
+        key: "documents/report.pdf",
+        method: "GET",
+        originalName: "résumé final.pdf",
+      }),
+    );
+
+    expect({
+      contentDisposition: url.searchParams.get("response-content-disposition"),
+      contentType: url.searchParams.get("response-content-type"),
+    }).toStrictEqual({
+      contentDisposition:
+        "inline; filename=\"r_sum_ final.pdf\"; filename*=UTF-8''r%C3%A9sum%C3%A9%20final.pdf",
+      contentType: "application/pdf",
     });
   });
 

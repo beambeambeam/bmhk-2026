@@ -1,16 +1,13 @@
 import { call } from "@orpc/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import type {
-  ApiContext,
-  ApiSession,
-  AuthReader,
-  FileRepository,
-  Team,
-  TeamAward,
-  TeamRepository,
-} from "../../../index";
+import type { AuthReader, Team, TeamAward, TeamRepository } from "../../../index";
 import { createAppRouter } from "../../../index";
+import {
+  createTestAuthReader as createAuthReader,
+  createTestContext as createContext,
+  createUnusedFileRepository,
+} from "../../../__test__/test-support";
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
@@ -25,33 +22,6 @@ const expectedAwards = [
   "FIRST_PLACE",
 ] as const satisfies readonly TeamAward[];
 
-const testSession = {
-  session: {
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    expiresAt: new Date("2026-02-01T00:00:00.000Z"),
-    id: "session-1",
-    impersonatedBy: null,
-    token: "test-token",
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-    userId: USER_ID,
-  },
-  user: {
-    banExpires: null,
-    banReason: null,
-    banned: false,
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    displayUsername: "TestUser",
-    email: "user@example.com",
-    emailVerified: true,
-    id: USER_ID,
-    image: null,
-    name: "Test User",
-    role: "user",
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-    username: "testuser",
-  },
-} satisfies ApiSession;
-
 const testTeam = {
   award: "NO_ACHIEVEMENT",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -63,42 +33,6 @@ const testTeam = {
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   userId: USER_ID,
 } satisfies Team;
-
-function createTestLogger() {
-  const audit = Object.assign(vi.fn<(...args: never[]) => void>(), {
-    deny: vi.fn<(...args: never[]) => void>(),
-  });
-
-  return {
-    audit,
-    emit: vi.fn<() => null>(() => null),
-    error: vi.fn<(...args: never[]) => void>(),
-    getContext: vi.fn<() => Record<string, unknown>>(() => ({})),
-    info: vi.fn<(...args: never[]) => void>(),
-    set: vi.fn<(...args: never[]) => void>(),
-    setLevel: vi.fn<(...args: never[]) => void>(),
-    warn: vi.fn<(...args: never[]) => void>(),
-  };
-}
-
-function createContext() {
-  const log = createTestLogger();
-
-  return {
-    context: {
-      headers: new Headers(),
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      log: log as unknown as ApiContext["log"],
-    } satisfies ApiContext,
-    log,
-  };
-}
-
-function createAuthReader(
-  getSession: AuthReader["getSession"] = async () => await Promise.resolve(testSession),
-): AuthReader {
-  return { getSession };
-}
 
 function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepository {
   return {
@@ -115,15 +49,8 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
   };
 }
 
-function createFileRepository(): FileRepository {
-  return {
-    create: async () => await Promise.reject(new Error("file repository is unused in team tests")),
-    findById: async () => await Promise.resolve(null),
-  };
-}
-
 function createRouter(repository: TeamRepository, auth: AuthReader = createAuthReader()) {
-  return createAppRouter({ auth, files: createFileRepository(), teams: repository });
+  return createAppRouter({ auth, files: createUnusedFileRepository(), teams: repository });
 }
 
 describe("teams router", () => {

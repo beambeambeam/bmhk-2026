@@ -22,7 +22,12 @@ export function createApp({
   corsOrigins,
   observability,
 }: CreateAppOptions): AnyElysia {
-  return new Elysia({ name: "bmhk-2026-server" })
+  return new Elysia({
+    name: "bmhk-2026-server",
+    serve: {
+      maxRequestBodySize: 12 * 1024 * 1024,
+    },
+  })
     .use(createObservabilityPlugin(observability))
     .use(createCorsPlugin(corsOrigins))
     .use(createAuthModule(auth))

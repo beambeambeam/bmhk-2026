@@ -2,27 +2,15 @@ import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApiContext, ApiSession, AuthReader } from "../../../index";
-import { createProcedures } from "../../../core/procedure";
-import { createFilesRouter } from "../files.router";
-import type { FileRepository } from "../files.repository";
+import type {
+  ApiContext,
+  ApiSession,
+  AuthReader,
+  FileRepository,
+  TeamRepository,
+} from "../../../index";
+import { createAppRouter } from "../../../index";
 import type { StoredFile } from "../files.types";
-
-vi.mock(import("@bmhk-2026/env/server"), () => ({
-  env: {
-    AWS_ACCESS_KEY_ID: "test-access-key",
-    AWS_ENDPOINT_URL_S3: "http://localhost:9000",
-    AWS_REGION: "us-east-1",
-    AWS_S3_BUCKET: "uploads",
-    AWS_SECRET_ACCESS_KEY: "test-secret-key",
-    BETTER_AUTH_SECRET: "test-secret-that-is-at-least-32-characters",
-    BETTER_AUTH_URL: "http://localhost:3000",
-    CORS_ORIGIN: ["http://localhost:3001"],
-    DATABASE_URL: "postgresql://localhost/test",
-    NODE_ENV: "test" as const,
-    PORT: 3000,
-  },
-}));
 
 const s3Mocks = vi.hoisted(() => ({
   deleteObject: vi.fn<(input: DeleteObjectInput) => Promise<void>>(async () => {
@@ -112,25 +100,29 @@ function createContext(headers = new Headers()) {
 function createAuthReader(
   getSession: AuthReader["getSession"] = async () => await Promise.resolve(testSession),
 ): AuthReader {
-  return { getSession: vi.fn<AuthReader["getSession"]>(getSession) };
+  return { getSession };
 }
 
 function createRepository(overrides: Partial<FileRepository> = {}): FileRepository {
   return {
-    create:
-      overrides.create ??
-      vi.fn<FileRepository["create"]>(
-        async (data) => await Promise.resolve({ ...testFile, ...data }),
-      ),
-    findById:
-      overrides.findById ??
-      vi.fn<FileRepository["findById"]>(async () => await Promise.resolve(testFile)),
+    create: overrides.create ?? (async (data) => await Promise.resolve({ ...testFile, ...data })),
+    findById: overrides.findById ?? (async () => await Promise.resolve(testFile)),
+  };
+}
+
+function createTeamRepository(): TeamRepository {
+  return {
+    create: async () => await Promise.reject(new Error("team repository is unused in file tests")),
+    delete: async () => await Promise.resolve(false),
+    findById: async () => await Promise.resolve(null),
+    findByUserId: async () => await Promise.resolve(null),
+    list: async () => await Promise.resolve({ data: [], total: 0 }),
+    update: async () => await Promise.resolve(null),
   };
 }
 
 function createRouter(repository: FileRepository, auth: AuthReader = createAuthReader()) {
-  const { protectedProcedure } = createProcedures({ auth });
-  return createFilesRouter(protectedProcedure, repository);
+  return createAppRouter({ auth, files: repository, teams: createTeamRepository() }).files;
 }
 
 function pdfFile(name = "submission.pdf", type = "application/pdf") {
@@ -139,7 +131,6 @@ function pdfFile(name = "submission.pdf", type = "application/pdf") {
 
 describe("files RPC router", () => {
   it("uploads a valid file and returns public metadata", async () => {
-    putObject.mockClear();
     const repository = createRepository();
     const router = createRouter(repository);
     const { context } = createContext(new Headers({ origin: "http://localhost:3001" }));
@@ -173,7 +164,6 @@ describe("files RPC router", () => {
   });
 
   it("rejects unauthenticated uploads before storage", async () => {
-    putObject.mockClear();
     const router = createRouter(
       createRepository(),
       createAuthReader(async () => await Promise.resolve(null)),
@@ -187,7 +177,6 @@ describe("files RPC router", () => {
   });
 
   it("rejects an untrusted upload origin", async () => {
-    putObject.mockClear();
     const router = createRouter(createRepository());
     const { context } = createContext(new Headers({ origin: "https://evil.test" }));
 
@@ -198,12 +187,11 @@ describe("files RPC router", () => {
   });
 
   it("deletes the object when metadata persistence fails", async () => {
-    deleteObject.mockClear();
     const repository = createRepository({
-      create: vi.fn<FileRepository["create"]>(async () => {
+      create: async () => {
         await Promise.resolve();
         throw new Error("database offline");
-      }),
+      },
     });
     const router = createRouter(repository);
     const { context } = createContext();
@@ -217,7 +205,6 @@ describe("files RPC router", () => {
   });
 
   it("returns an owned file URL", async () => {
-    getPresigned.mockClear();
     const router = createRouter(createRepository());
     const { context } = createContext();
 
@@ -234,9 +221,8 @@ describe("files RPC router", () => {
   });
 
   it("hides files that are not owned by the current user", async () => {
-    getPresigned.mockClear();
     const repository = createRepository({
-      findById: vi.fn<FileRepository["findById"]>(async () => await Promise.resolve(null)),
+      findById: async () => await Promise.resolve(null),
     });
     const router = createRouter(repository);
     const { context } = createContext();

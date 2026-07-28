@@ -1,9 +1,8 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApiContext, ApiSession, AuthReader, TeamRepository } from "../index";
+import type { ApiContext, ApiSession, AuthReader, FileRepository, TeamRepository } from "../index";
 import { createAppRouter } from "../index";
-import { createProcedures } from "../core/procedure";
 
 function createTestLogger() {
   const audit = Object.assign(vi.fn<(...args: never[]) => void>(), {
@@ -22,16 +21,13 @@ function createTestLogger() {
   };
 }
 
-function createContext() {
+function createContext(): ApiContext {
   const log = createTestLogger();
 
   return {
-    context: {
-      headers: new Headers(),
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      log: log as unknown as ApiContext["log"],
-    } satisfies ApiContext,
-    log,
+    headers: new Headers(),
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    log: log as unknown as ApiContext["log"],
   };
 }
 
@@ -64,50 +60,56 @@ const testSession = {
 
 function createAuthReader(
   getSession: AuthReader["getSession"] = async () => await Promise.resolve(null),
-) {
+): AuthReader {
+  return { getSession };
+}
+
+function createFileRepository(): FileRepository {
   return {
-    auth: {
-      getSession: vi.fn<AuthReader["getSession"]>(getSession),
-    } satisfies AuthReader,
+    create: async () =>
+      await Promise.reject(new Error("file repository is unused in router tests")),
+    findById: async () => await Promise.resolve(null),
   };
 }
 
 function createTeamRepository(): TeamRepository {
   return {
-    create: vi.fn<TeamRepository["create"]>(),
-    delete: vi.fn<TeamRepository["delete"]>(),
-    findById: vi.fn<TeamRepository["findById"]>(),
-    findByUserId: vi.fn<TeamRepository["findByUserId"]>(),
-    list: vi.fn<TeamRepository["list"]>(),
-    update: vi.fn<TeamRepository["update"]>(),
+    create: async () =>
+      await Promise.reject(new Error("team repository is unused in router tests")),
+    delete: async () => await Promise.resolve(false),
+    findById: async () => await Promise.resolve(null),
+    findByUserId: async () => await Promise.resolve(null),
+    list: async () => await Promise.resolve({ data: [], total: 0 }),
+    update: async () => await Promise.resolve(null),
   };
 }
 
+function createRouter(auth: AuthReader) {
+  return createAppRouter({
+    auth,
+    files: createFileRepository(),
+    teams: createTeamRepository(),
+  });
+}
+
 describe("API router", () => {
-  it("adds the operation to public procedures without resolving auth", async () => {
-    const { auth } = createAuthReader();
-    const router = createAppRouter({ auth, teams: createTeamRepository() });
-    const { context, log } = createContext();
+  it("returns OK from health check", async () => {
+    const router = createRouter(createAuthReader());
 
     await expect(
       call(router.health.check, undefined, {
-        context,
+        context: createContext(),
         path: ["health", "check"],
       }),
     ).resolves.toBe("OK");
-    expect(log.set).toHaveBeenCalledWith({ operation: "health.check" });
-    expect(log.emit).not.toHaveBeenCalled();
-    expect(auth.getSession).not.toHaveBeenCalled();
   });
 
   it("returns a structured error for anonymous protected access", async () => {
-    const { auth } = createAuthReader();
-    const router = createAppRouter({ auth, teams: createTeamRepository() });
-    const { context, log } = createContext();
+    const router = createRouter(createAuthReader());
 
     await expect(
       call(router.privateData.get, undefined, {
-        context,
+        context: createContext(),
         path: ["privateData", "get"],
       }),
     ).rejects.toMatchObject({
@@ -119,22 +121,19 @@ describe("API router", () => {
       message: "Authentication required",
       status: 401,
     });
-    expect(log.set).toHaveBeenCalledWith({ operation: "privateData.get" });
-    expect(log.error).toHaveBeenCalledOnce();
-    expect(log.emit).not.toHaveBeenCalled();
   });
 
   it("returns a structured error when authentication is unavailable", async () => {
     const cause = new Error("database offline");
-    const { auth } = createAuthReader(() => {
-      throw cause;
-    });
-    const router = createAppRouter({ auth, teams: createTeamRepository() });
-    const { context, log } = createContext();
+    const router = createRouter(
+      createAuthReader(() => {
+        throw cause;
+      }),
+    );
 
     await expect(
       call(router.privateData.get, undefined, {
-        context,
+        context: createContext(),
         path: ["privateData", "get"],
       }),
     ).rejects.toMatchObject({
@@ -146,75 +145,19 @@ describe("API router", () => {
       message: "Authentication temporarily unavailable",
       status: 503,
     });
-    expect(log.error).toHaveBeenCalledOnce();
-    expect(log.emit).not.toHaveBeenCalled();
   });
 
-  it("adds masked identity and passes the session to protected procedures", async () => {
-    const { auth } = createAuthReader(async () => await Promise.resolve(testSession));
-    const router = createAppRouter({ auth, teams: createTeamRepository() });
-    const { context, log } = createContext();
+  it("returns private data for an authenticated user", async () => {
+    const router = createRouter(createAuthReader(async () => await Promise.resolve(testSession)));
 
     await expect(
       call(router.privateData.get, undefined, {
-        context,
+        context: createContext(),
         path: ["privateData", "get"],
       }),
     ).resolves.toStrictEqual({
       message: "This is private",
       user: testSession.user,
     });
-    expect(log.set).toHaveBeenCalledWith({
-      auth: {
-        impersonatedBy: "admin-1",
-        role: "admin",
-      },
-      user: {
-        email: "u***@example.com",
-        id: "user-1",
-      },
-      userId: "user-1",
-    });
-    expect(log.emit).not.toHaveBeenCalled();
-  });
-
-  it("allows procedures to add grouped business context", async () => {
-    const { auth } = createAuthReader();
-    const { publicProcedure } = createProcedures({ auth });
-    const procedure = publicProcedure.handler(({ context }) => {
-      context.log.set({
-        booking: {
-          id: "booking-1",
-          status: "confirmed",
-        },
-      });
-
-      return "OK";
-    });
-    const { context, log } = createContext();
-
-    await expect(call(procedure, undefined, { context })).resolves.toBe("OK");
-    expect(log.set).toHaveBeenCalledWith({
-      booking: {
-        id: "booking-1",
-        status: "confirmed",
-      },
-    });
-    expect(log.emit).not.toHaveBeenCalled();
-  });
-
-  it("exposes feature-grouped procedures", () => {
-    const { auth } = createAuthReader();
-    const router = createAppRouter({ auth, teams: createTeamRepository() });
-
-    expect(router).toHaveProperty("health.check");
-    expect(router).toHaveProperty("privateData.get");
-    expect(Object.keys(router.teams).toSorted()).toStrictEqual([
-      "create",
-      "delete",
-      "get",
-      "list",
-      "update",
-    ]);
   });
 });

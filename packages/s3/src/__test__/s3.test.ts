@@ -1,22 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { GetPresignedInput } from "..";
 import { getPresigned } from "..";
-
-vi.mock(import("@bmhk-2026/env/server"), () => ({
-  env: {
-    AWS_ACCESS_KEY_ID: "test-access-key",
-    AWS_ENDPOINT_URL_S3: "http://localhost:9000",
-    AWS_REGION: "us-east-1",
-    AWS_S3_BUCKET: "media",
-    AWS_SECRET_ACCESS_KEY: "test-secret-key",
-    BETTER_AUTH_SECRET: "test-secret-that-is-at-least-32-characters",
-    BETTER_AUTH_URL: "http://localhost:3000",
-    CORS_ORIGIN: ["http://localhost:3001"],
-    DATABASE_URL: "postgresql://localhost/test",
-    NODE_ENV: "test" as const,
-    PORT: 3000,
-  },
-}));
 
 const validGetInput: GetPresignedInput = {
   bucket: "media",

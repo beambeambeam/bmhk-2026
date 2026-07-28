@@ -8,10 +8,10 @@
  */
 
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import path from "node:path";
 
-const commandsDir = join(import.meta.dir, "..", "src", "interactions", "commands");
-const manifestPath = join(import.meta.dir, "..", "src", "commands.manifest.ts");
+const commandsDir = path.join(import.meta.dir, "..", "src", "interactions", "commands");
+const manifestPath = path.join(import.meta.dir, "..", "src", "commands.manifest.ts");
 
 const files = readdirSync(commandsDir)
   .filter((f) => f.endsWith(".ts"))
@@ -20,7 +20,7 @@ const files = readdirSync(commandsDir)
 const importLines = files.map((f, i) => {
   const name = `cmd${i}`;
   // Use .js extension so the static import resolves correctly after bundling
-  const modulePath = `./interactions/commands/${f.replace(/\.ts$/, ".js")}`;
+  const modulePath = `./interactions/commands/${f.replace(/\.ts$/u, ".js")}`;
   return `import ${name} from "${modulePath}";`;
 });
 

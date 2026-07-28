@@ -3,7 +3,7 @@ import type { Client } from "discord.js";
 import { ActivityType, PresenceUpdateStatus } from "discord.js";
 
 const clientReady: Event<"clientReady"> = {
-  async execute(client: Client<true>) {
+  execute(client: Client<true>) {
     console.log(`[Ready] Logged in as ${client.user.tag}`);
     client.user.setPresence({
       activities: [

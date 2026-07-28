@@ -6,7 +6,10 @@ const ping: Command = {
 
   async execute(interaction) {
     const { resource } = await interaction.reply({ content: "Pinging…", withResponse: true });
-    const sent = resource!.message!;
+    const sent = resource?.message;
+    if (!sent) {
+      return;
+    }
     const latency = sent.createdTimestamp - interaction.createdTimestamp;
     const wsLatency = interaction.client.ws.ping;
 

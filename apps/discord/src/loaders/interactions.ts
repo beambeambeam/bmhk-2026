@@ -4,7 +4,7 @@ import { modals } from "../modals.manifest.js";
 import { selectMenus } from "../select-menus.manifest.js";
 import type { BotClient } from "../types.js";
 
-export async function loadInteractions(client: BotClient): Promise<void> {
+export function loadInteractions(client: BotClient): void {
   for (const cmd of commands) {
     client.commands.set(cmd.data.name, cmd);
     console.log(`Loaded command: /${cmd.data.name}`);

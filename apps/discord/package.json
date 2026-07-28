@@ -4,8 +4,9 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
-    "deploy": "bun scripts/gen-cmd-manifest.ts && bun run src/deploy-commands.ts",
+    "deploy": "bun scripts/gen-cmd-manifest.ts && bun run src/deploy-cmd.ts",
     "prep": "bun scripts/gen-handler-manifest.ts && bun scripts/gen-cmd-manifest.ts",
+    "generate": "bun run prep",
     "dev": "bun run prep && bun run --watch src/index.ts",
     "start": "bun run src/index.ts"
   },

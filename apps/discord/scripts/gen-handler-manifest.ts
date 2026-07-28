@@ -7,9 +7,9 @@
  */
 
 import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import path from "node:path";
 
-const root = join(import.meta.dir, "..");
+const root = path.join(import.meta.dir, "..");
 
 interface ManifestSpec {
   dir: string;
@@ -21,39 +21,39 @@ interface ManifestSpec {
 
 const specs: ManifestSpec[] = [
   {
-    dir: join(root, "src", "events"),
+    dir: path.join(root, "src", "events"),
     exportName: "events",
     exportType: "Event[]",
-    out: join(root, "src", "events.manifest.ts"),
+    out: path.join(root, "src", "events.manifest.ts"),
     typeImport: 'import type { Event } from "./types.js";',
   },
   {
-    dir: join(root, "src", "interactions", "buttons"),
+    dir: path.join(root, "src", "interactions", "buttons"),
     exportName: "buttons",
     exportType: "Button[]",
-    out: join(root, "src", "buttons.manifest.ts"),
+    out: path.join(root, "src", "buttons.manifest.ts"),
     typeImport: 'import type { Button } from "./types.js";',
   },
   {
-    dir: join(root, "src", "interactions", "modals"),
+    dir: path.join(root, "src", "interactions", "modals"),
     exportName: "modals",
     exportType: "Modal[]",
-    out: join(root, "src", "modals.manifest.ts"),
+    out: path.join(root, "src", "modals.manifest.ts"),
     typeImport: 'import type { Modal } from "./types.js";',
   },
   {
-    dir: join(root, "src", "interactions", "selectMenus"),
+    dir: path.join(root, "src", "interactions", "select-menus"),
     exportName: "selectMenus",
     exportType: "SelectMenu[]",
-    out: join(root, "src", "select-menus.manifest.ts"),
+    out: path.join(root, "src", "select-menus.manifest.ts"),
     typeImport: 'import type { SelectMenu } from "./types.js";',
   },
 ];
 
-for (const spec of specs) {
+const writes = specs.flatMap((spec) => {
   if (!existsSync(spec.dir)) {
     console.warn(`Skipping ${spec.dir} (does not exist)`);
-    continue;
+    return [];
   }
 
   const files = readdirSync(spec.dir)
@@ -61,8 +61,8 @@ for (const spec of specs) {
     .toSorted();
 
   const importLines = files.map((f, i) => {
-    const srcRel = spec.dir.replace(`${join(root, "src")}/`, "");
-    const modulePath = `./${srcRel}/${f.replace(/\.ts$/, ".js")}`;
+    const srcRel = spec.dir.replace(`${path.join(root, "src")}/`, "");
+    const modulePath = `./${srcRel}/${f.replace(/\.ts$/u, ".js")}`;
     return `import h${i} from "${modulePath}";`;
   });
 
@@ -79,9 +79,12 @@ for (const spec of specs) {
     "",
   ].join("\n");
 
-  await Bun.write(spec.out, content);
   console.log(`Generated ${spec.out.replace(`${root}/`, "")} with ${files.length} handler(s):`);
   for (const f of files) {
     console.log(`  • ${f}`);
   }
-}
+
+  return [Bun.write(spec.out, content)];
+});
+
+await Promise.all(writes);

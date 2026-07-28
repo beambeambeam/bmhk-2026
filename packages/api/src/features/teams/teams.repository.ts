@@ -3,10 +3,10 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, eq } from "drizzle-orm";
 
-import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams.errors";
-import type { CreateTeamData, Team, UpdateTeamData } from "./teams.types";
-import type { CreateStoredFileData, StoredFile } from "../files/files.types";
-import { allowedFileContentTypes } from "../files/files.types";
+import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams";
+import type { CreateTeamData, Team, UpdateTeamData } from "./teams";
+import type { CreateStoredFileData, StoredFile } from "../files/files";
+import { toStoredFile } from "../files/files";
 
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
@@ -32,6 +32,16 @@ export type TeamWithStoredImage = Omit<Team, "image"> & {
   image: StoredFile | null;
 };
 
+function toTeamStoredFile(file: typeof files.$inferSelect): StoredFile {
+  try {
+    return toStoredFile(file);
+  } catch (error) {
+    throw createTeamRepositoryError(
+      error instanceof Error ? error.message : "Unsupported stored team image",
+    );
+  }
+}
+
 function isTeamUserUniqueViolation(error: unknown): boolean {
   if (typeof error !== "object" || error === null) {
     return false;
@@ -43,14 +53,6 @@ function isTeamUserUniqueViolation(error: unknown): boolean {
     "constraint" in error &&
     error.constraint === "teams_user_id_unique"
   );
-}
-
-function toStoredFile(file: typeof files.$inferSelect): StoredFile {
-  const contentType = allowedFileContentTypes.find((value) => value === file.contentType);
-  if (!contentType) {
-    throw createTeamRepositoryError(`Unsupported stored file content type: ${file.contentType}`);
-  }
-  return { ...file, contentType };
 }
 
 export function createTeamRepository(database: Database = db): TeamRepository {
@@ -106,7 +108,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
 
       return {
         ...result.team,
-        image: result.image ? toStoredFile(result.image) : null,
+        image: result.image ? toTeamStoredFile(result.image) : null,
       };
     },
     findByUserId: async (userId) => {
@@ -157,7 +159,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             .from(files)
             .where(eq(files.id, current.image))
             .limit(1);
-          previous = oldFile ? toStoredFile(oldFile) : null;
+          previous = oldFile ? toTeamStoredFile(oldFile) : null;
         }
         await transaction.insert(files).values(file);
         const [team] = await transaction

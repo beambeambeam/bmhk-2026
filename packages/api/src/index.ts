@@ -1,18 +1,17 @@
 export { createAppRouter } from "./router";
-export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
+export { createTeamAlreadyExistsError } from "./features/teams/teams";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
-export type { ApiRole, ApiSession, ApiUser, AuthReader } from "./core/auth";
-export type { ApiContext } from "./core/context";
+export type { ApiContext, ApiRole, ApiSession, ApiUser, AuthReader } from "./core";
 export type { TeamRepository } from "./features/teams/teams.repository";
 export type { FileRepository } from "./features/files/files.repository";
-export { allowedFileContentTypes, MAX_FILE_SIZE_BYTES } from "./features/files/files.types";
+export { allowedFileContentTypes, MAX_FILE_SIZE_BYTES } from "./features/files/files";
 export type {
   AllowedFileContentType,
   CreateStoredFileData,
   PublicFile,
   PublicFileWithUrl,
   StoredFile,
-} from "./features/files/files.types";
+} from "./features/files/files";
 export type {
   CreateTeamData,
   Team,
@@ -21,4 +20,4 @@ export type {
   TeamListPagination,
   TeamListResult,
   UpdateTeamData,
-} from "./features/teams/teams.types";
+} from "./features/teams/teams";

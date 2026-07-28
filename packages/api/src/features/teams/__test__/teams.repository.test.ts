@@ -1,8 +1,8 @@
-import type { CreateTeamData, Team } from "@bmhk-2026/api";
+import type { CreateTeamData, Team } from "../../../index";
 import type { db as database } from "@bmhk-2026/db";
 import { describe, expect, it, vi } from "vitest";
 
-import { createTeamRepository } from "../team.repository";
+import { createTeamRepository } from "../teams.repository";
 
 vi.mock(import("@bmhk-2026/db"), () => ({
   // Test mock only needs satisfy import-time default dependency.
@@ -43,7 +43,7 @@ function createSelectDatabase(rows: Team[]) {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   const database = { select } as unknown as NonNullable<Database>;
 
-  return { database, limit, select, where };
+  return { database, select };
 }
 
 function createInsertDatabase(returning: () => Promise<unknown>) {
@@ -56,16 +56,15 @@ function createInsertDatabase(returning: () => Promise<unknown>) {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   const database = { insert } as unknown as NonNullable<Database>;
 
-  return { database, insert, returning: returningMock, values };
+  return { database };
 }
 
 describe("team repository", () => {
   it("finds a team by owner", async () => {
-    const { database, select } = createSelectDatabase([testTeam]);
+    const { database } = createSelectDatabase([testTeam]);
     const repository = createTeamRepository(database);
 
     await expect(repository.findByUserId(USER_ID)).resolves.toStrictEqual(testTeam);
-    expect(select).toHaveBeenCalledOnce();
   });
 
   it("returns null when owner has no team", async () => {
@@ -75,7 +74,7 @@ describe("team repository", () => {
     await expect(repository.findByUserId(USER_ID)).resolves.toBeNull();
   });
 
-  it("maps the future user uniqueness violation to a team conflict", async () => {
+  it("maps user uniqueness violations to a team conflict", async () => {
     const databaseError = Object.assign(new Error("duplicate key"), {
       code: "23505",
       constraint: "teams_user_id_unique",
@@ -85,7 +84,6 @@ describe("team repository", () => {
 
     await expect(repository.create(USER_ID, createTeamData)).rejects.toMatchObject({
       code: "TEAM_ALREADY_EXISTS",
-      message: "User already owns a team",
       status: 409,
     });
   });

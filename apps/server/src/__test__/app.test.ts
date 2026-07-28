@@ -1,4 +1,4 @@
-import type { ApiSession, TeamRepository } from "@bmhk-2026/api";
+import type { ApiSession, FileRepository, TeamRepository } from "@bmhk-2026/api";
 import { createAppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
 import { clearMemoryLogs, createMemoryDrain, readMemoryLogs } from "evlog/memory";
@@ -61,18 +61,32 @@ function createTestAuth(getSession: GetSession = async () => await Promise.resol
   };
 }
 
+function createTestFileRepository(): FileRepository {
+  return {
+    create: async () =>
+      await Promise.reject(new Error("file repository is unused in server app tests")),
+    findById: async () => await Promise.resolve(null),
+  };
+}
+
+function createTestTeamRepository(): TeamRepository {
+  return {
+    create: async () =>
+      await Promise.reject(new Error("team repository is unused in server app tests")),
+    delete: async () => await Promise.resolve(false),
+    findById: async () => await Promise.resolve(null),
+    findByUserId: async () => await Promise.resolve(null),
+    list: async () => await Promise.resolve({ data: [], total: 0 }),
+    update: async () => await Promise.resolve(null),
+  };
+}
+
 function createTestApp(getSession?: GetSession) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
     auth: createAuthReader(testAuth.auth),
-    teams: {
-      create: vi.fn<TeamRepository["create"]>(),
-      delete: vi.fn<TeamRepository["delete"]>(),
-      findById: vi.fn<TeamRepository["findById"]>(),
-      findByUserId: vi.fn<TeamRepository["findByUserId"]>(),
-      list: vi.fn<TeamRepository["list"]>(),
-      update: vi.fn<TeamRepository["update"]>(),
-    },
+    files: createTestFileRepository(),
+    teams: createTestTeamRepository(),
   });
   const store = `server-app-test-${storeSequence}`;
   storeSequence += 1;
@@ -128,7 +142,6 @@ describe("server app", () => {
     expect(Object.keys(event ?? {})).not.toStrictEqual(
       expect.arrayContaining(["auth", "user", "userId"]),
     );
-    expect(testApp.getSession).not.toHaveBeenCalled();
   });
 
   it("adds the oRPC operation to the same request event", async () => {
@@ -189,9 +202,7 @@ describe("server app", () => {
       operation: "privateData.get",
       status: 401,
     });
-    expect(testApp.getSession).toHaveBeenCalledOnce();
     expect(consoleError).not.toHaveBeenCalled();
-    consoleError.mockRestore();
   });
 
   it("adds masked identity after protected authorization succeeds", async () => {
@@ -232,7 +243,6 @@ describe("server app", () => {
         role: "admin",
       },
     });
-    expect(testApp.getSession).toHaveBeenCalledOnce();
   });
 
   it("returns 503 when protected authentication is unavailable", async () => {
@@ -272,8 +282,6 @@ describe("server app", () => {
       route: "/api/auth/*",
       status: 405,
     });
-    expect(testApp.handler).not.toHaveBeenCalled();
-    expect(testApp.getSession).not.toHaveBeenCalled();
   });
 
   it.each(["http://localhost:3001", "http://localhost:3002"])(
@@ -292,7 +300,6 @@ describe("server app", () => {
       );
 
       expect(response.headers.get("access-control-allow-origin")).toBe(origin);
-      expect(testApp.getSession).not.toHaveBeenCalled();
     },
   );
 

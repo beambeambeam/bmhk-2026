@@ -1,16 +1,6 @@
-# Ultracite Code Standards
+# Code Standards
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
-
-## Quick Reference
-
-- **Format code**: `bun x ultracite fix`
-- **Check for issues**: `bun x ultracite check`
-- **Diagnose setup**: `bun x ultracite doctor`
-
-Oxlint + Oxfmt (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
-
----
+This project uses **Ultracite** + self code standards
 
 ## Core Principles
 
@@ -87,28 +77,71 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 ### Framework-Specific Guidance
 
-**Next.js:**
-
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
 **React 19+:**
 
 - Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
 
 ---
 
 ## Testing
 
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
+This repository uses Vitest through Vite Plus. Test files live under
+`apps/**/__test__/` and `packages/**/__test__/`.
+
+### Commands
+
+```sh
+# Run complete suite with deterministic test environment
+bun run test
+
+# Run tests continuously
+bun run test:watch
+
+# Run one suite or file
+bun run test -- packages/api/src/__test__/router.test.ts
+```
+
+Test environment values are configured in `vite.config.ts`; do not require
+developers to export local secrets or service credentials before running tests.
+Component tests opt into `jsdom` with the `@vitest-environment jsdom` file
+annotation.
+
+### Test design
+
+- Test behavior through public seams: `createApp().handle()`,
+  `createAppRouter()` with `call()`, exported package functions, rendered
+  components, and authentication adapters.
+- Confirm the seam before adding a test. Do not test private procedures,
+  feature-router constructors, ORM method chains, or implementation-only DOM
+  attributes.
+- Use plain fakes for repositories and other owned collaborators. Mock only
+  system boundaries such as S3, Better Auth, time, randomness, or browser APIs.
+- Assert independent expected values and user-visible outcomes. Do not
+  recompute expected results with the same algorithm as production code.
+- Keep tests focused and reasonably flat. Name tests after observable behavior,
+  not implementation mechanics.
+- Write assertions inside `it()` or `test()` blocks. Use `async`/`await`, never
+  done callbacks. Do not commit `.only` or `.skip` tests.
+
+### TDD loop
+
+- Red before green: write one failing behavior test, then make the smallest
+  implementation change needed to pass it.
+- Work one vertical slice at a time; avoid writing a bulk test suite before
+  implementation.
+- Refactor only after behavior is green, preserving the public-seam contract.
+
+### Verification
+
+After test changes, run the targeted suite, then the complete suite and relevant
+checks:
+
+```sh
+bun run test
+bun x vp check <changed-paths>
+bun x tsc -b packages/api/tsconfig.json apps/server/tsconfig.json packages/s3/tsconfig.json --pretty false
+git diff --check
+```
 
 ## When Oxlint + Oxfmt Can't Help
 
@@ -120,7 +153,3 @@ Oxlint + Oxfmt's linter will catch most issues automatically. Focus your attenti
 4. **Edge cases** - Handle boundary conditions and error states
 5. **User experience** - Accessibility, performance, and usability considerations
 6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
-
----
-
-Most formatting and common issues are automatically fixed by Oxlint + Oxfmt. Run `bun x ultracite fix` before committing to ensure compliance.

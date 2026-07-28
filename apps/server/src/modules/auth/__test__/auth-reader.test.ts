@@ -43,12 +43,12 @@ const testSession = {
 } satisfies ApiSession;
 
 describe("auth reader", () => {
-  it("returns Better Auth session without remapping it", async () => {
+  it("returns the authenticated session", async () => {
     const { authInstance, getSession } = createAuthDouble();
     getSession.mockResolvedValue(testSession);
 
     const reader = createAuthReader(authInstance);
-    await expect(reader.getSession({ headers: new Headers() })).resolves.toBe(testSession);
+    await expect(reader.getSession({ headers: new Headers() })).resolves.toStrictEqual(testSession);
   });
 
   it("returns null when Better Auth has no session", async () => {

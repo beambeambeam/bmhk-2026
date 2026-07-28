@@ -14,7 +14,6 @@ describe("button component", () => {
     const button = screen.getByRole("button", { name: "Save" });
     fireEvent.click(button);
 
-    expect(button.dataset.slot).toBe("button");
     expect(handleClick).toHaveBeenCalledOnce();
   });
 });

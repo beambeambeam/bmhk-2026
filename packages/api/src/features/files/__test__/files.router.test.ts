@@ -2,27 +2,14 @@ import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ApiContext, ApiSession, AuthReader } from "../../../index";
-import { createProcedures } from "../../../core/procedure";
-import { createFilesRouter } from "../files.router";
-import type { FileRepository } from "../files.repository";
-import type { StoredFile } from "../files.types";
-
-vi.mock(import("@bmhk-2026/env/server"), () => ({
-  env: {
-    AWS_ACCESS_KEY_ID: "test-access-key",
-    AWS_ENDPOINT_URL_S3: "http://localhost:9000",
-    AWS_REGION: "us-east-1",
-    AWS_S3_BUCKET: "uploads",
-    AWS_SECRET_ACCESS_KEY: "test-secret-key",
-    BETTER_AUTH_SECRET: "test-secret-that-is-at-least-32-characters",
-    BETTER_AUTH_URL: "http://localhost:3000",
-    CORS_ORIGIN: ["http://localhost:3001"],
-    DATABASE_URL: "postgresql://localhost/test",
-    NODE_ENV: "test" as const,
-    PORT: 3000,
-  },
-}));
+import type { AuthReader, FileRepository } from "../../../index";
+import { createAppRouter } from "../../../index";
+import type { CreateStoredFileData, StoredFile } from "../files.types";
+import {
+  createTestAuthReader,
+  createTestContext,
+  createUnusedTeamRepository,
+} from "../../../__test__/test-support";
 
 const s3Mocks = vi.hoisted(() => ({
   deleteObject: vi.fn<(input: DeleteObjectInput) => Promise<void>>(async () => {
@@ -43,33 +30,6 @@ const { deleteObject, getPresigned, putObject } = s3Mocks;
 const USER_ID = "user-1";
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
 
-const testSession = {
-  session: {
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    expiresAt: new Date("2026-02-01T00:00:00.000Z"),
-    id: "session-1",
-    impersonatedBy: null,
-    token: "test-token",
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-    userId: USER_ID,
-  },
-  user: {
-    banExpires: null,
-    banReason: null,
-    banned: false,
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    displayUsername: "TestUser",
-    email: "user@example.com",
-    emailVerified: true,
-    id: USER_ID,
-    image: null,
-    name: "Test User",
-    role: "user",
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-    username: "testuser",
-  },
-} satisfies ApiSession;
-
 const testFile: StoredFile = {
   bucket: "uploads",
   contentType: "application/pdf",
@@ -81,56 +41,15 @@ const testFile: StoredFile = {
   uploadedBy: USER_ID,
 };
 
-function createTestLogger() {
-  return {
-    audit: Object.assign(vi.fn<(...args: never[]) => void>(), {
-      deny: vi.fn<(...args: never[]) => void>(),
-    }),
-    emit: vi.fn<() => null>(() => null),
-    error: vi.fn<(error: Error) => void>(),
-    getContext: vi.fn<() => Record<string, unknown>>(() => ({})),
-    info: vi.fn<(...args: never[]) => void>(),
-    set: vi.fn<(...args: never[]) => void>(),
-    setLevel: vi.fn<(...args: never[]) => void>(),
-    warn: vi.fn<(...args: never[]) => void>(),
-  };
-}
-
-function createContext(headers = new Headers()) {
-  const log = createTestLogger();
-
-  return {
-    context: {
-      headers,
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      log: log as unknown as ApiContext["log"],
-    } satisfies ApiContext,
-    log,
-  };
-}
-
-function createAuthReader(
-  getSession: AuthReader["getSession"] = async () => await Promise.resolve(testSession),
-): AuthReader {
-  return { getSession: vi.fn<AuthReader["getSession"]>(getSession) };
-}
-
 function createRepository(overrides: Partial<FileRepository> = {}): FileRepository {
   return {
-    create:
-      overrides.create ??
-      vi.fn<FileRepository["create"]>(
-        async (data) => await Promise.resolve({ ...testFile, ...data }),
-      ),
-    findById:
-      overrides.findById ??
-      vi.fn<FileRepository["findById"]>(async () => await Promise.resolve(testFile)),
+    create: overrides.create ?? (async (data) => await Promise.resolve({ ...testFile, ...data })),
+    findById: overrides.findById ?? (async () => await Promise.resolve(testFile)),
   };
 }
 
-function createRouter(repository: FileRepository, auth: AuthReader = createAuthReader()) {
-  const { protectedProcedure } = createProcedures({ auth });
-  return createFilesRouter(protectedProcedure, repository);
+function createRouter(repository: FileRepository, auth: AuthReader = createTestAuthReader()) {
+  return createAppRouter({ auth, files: repository, teams: createUnusedTeamRepository() }).files;
 }
 
 function pdfFile(name = "submission.pdf", type = "application/pdf") {
@@ -139,10 +58,15 @@ function pdfFile(name = "submission.pdf", type = "application/pdf") {
 
 describe("files RPC router", () => {
   it("uploads a valid file and returns public metadata", async () => {
-    putObject.mockClear();
-    const repository = createRepository();
+    let persistedFile: CreateStoredFileData | undefined;
+    const repository = createRepository({
+      create: async (data) => {
+        persistedFile = data;
+        return await Promise.resolve({ ...testFile, ...data });
+      },
+    });
     const router = createRouter(repository);
-    const { context } = createContext(new Headers({ origin: "http://localhost:3001" }));
+    const { context } = createTestContext(new Headers({ origin: "http://localhost:3001" }));
 
     const uploaded = await call(
       router.upload,
@@ -170,15 +94,20 @@ describe("files RPC router", () => {
       keyIsUuid: true,
       originalName: "submission.pdf",
     });
+    expect(persistedFile).toStrictEqual({
+      bucket: "uploads",
+      contentType: "application/pdf",
+      id: uploaded.id,
+      objectKey: `files/${uploaded.id}`,
+      originalName: "submission.pdf",
+      sizeBytes: 9,
+      uploadedBy: USER_ID,
+    });
   });
 
   it("rejects unauthenticated uploads before storage", async () => {
-    putObject.mockClear();
-    const router = createRouter(
-      createRepository(),
-      createAuthReader(async () => await Promise.resolve(null)),
-    );
-    const { context } = createContext();
+    const router = createRouter(createRepository(), createTestAuthReader(null));
+    const { context } = createTestContext();
 
     await expect(
       call(router.upload, { file: pdfFile() }, { context, path: ["files", "upload"] }),
@@ -187,9 +116,8 @@ describe("files RPC router", () => {
   });
 
   it("rejects an untrusted upload origin", async () => {
-    putObject.mockClear();
     const router = createRouter(createRepository());
-    const { context } = createContext(new Headers({ origin: "https://evil.test" }));
+    const { context } = createTestContext(new Headers({ origin: "https://evil.test" }));
 
     await expect(
       call(router.upload, { file: pdfFile() }, { context, path: ["files", "upload"] }),
@@ -198,15 +126,14 @@ describe("files RPC router", () => {
   });
 
   it("deletes the object when metadata persistence fails", async () => {
-    deleteObject.mockClear();
     const repository = createRepository({
-      create: vi.fn<FileRepository["create"]>(async () => {
+      create: async () => {
         await Promise.resolve();
         throw new Error("database offline");
-      }),
+      },
     });
     const router = createRouter(repository);
-    const { context } = createContext();
+    const { context } = createTestContext();
 
     await expect(
       call(router.upload, { file: pdfFile() }, { context, path: ["files", "upload"] }),
@@ -216,10 +143,70 @@ describe("files RPC router", () => {
     expect(deleteInput?.key).toMatch(/^files\/[0-9a-f-]{36}$/u);
   });
 
+  it("returns storage unavailable without persisting metadata when object upload fails", async () => {
+    let createWasCalled = false;
+    const repository = createRepository({
+      create: async (data) => {
+        createWasCalled = true;
+        return await Promise.resolve({ ...testFile, ...data });
+      },
+    });
+    const router = createRouter(repository);
+    const { context } = createTestContext();
+    putObject.mockRejectedValueOnce(new Error("storage offline"));
+
+    await expect(
+      call(router.upload, { file: pdfFile() }, { context, path: ["files", "upload"] }),
+    ).rejects.toMatchObject({ code: "FILE_STORAGE_UNAVAILABLE", status: 503 });
+    expect(createWasCalled).toBeFalsy();
+    expect(deleteObject).not.toHaveBeenCalled();
+  });
+
+  it("reports cleanup failure without hiding the metadata persistence error", async () => {
+    const cleanupError = new Error("cleanup failed");
+    const repository = createRepository({
+      create: async () => {
+        await Promise.resolve();
+        throw new Error("database offline");
+      },
+    });
+    const router = createRouter(repository);
+    const { context, log } = createTestContext();
+    deleteObject.mockRejectedValueOnce(cleanupError);
+
+    await expect(
+      call(router.upload, { file: pdfFile() }, { context, path: ["files", "upload"] }),
+    ).rejects.toMatchObject({ code: "FILE_METADATA_SAVE_FAILED", status: 500 });
+    const rollbackLog = log.set.mock.calls
+      .map(([entry]) => entry)
+      .find((entry) => entry.event === "file.upload.rollback_failed");
+    if (!rollbackLog) {
+      throw new Error("Rollback failure was not logged");
+    }
+    const rollbackFile = rollbackLog.file;
+    if (typeof rollbackFile !== "object" || rollbackFile === null) {
+      throw new Error("Rollback log did not include file context");
+    }
+    if (
+      !("id" in rollbackFile) ||
+      typeof rollbackFile.id !== "string" ||
+      !("objectKey" in rollbackFile) ||
+      typeof rollbackFile.objectKey !== "string"
+    ) {
+      throw new Error("Rollback log did not include file identity");
+    }
+    expect(rollbackLog).toMatchObject({
+      event: "file.upload.rollback_failed",
+      file: { bucket: "uploads" },
+    });
+    expect(rollbackFile.id).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(rollbackFile.objectKey).toBe(`files/${rollbackFile.id}`);
+    expect(log.error).toHaveBeenCalledWith(cleanupError);
+  });
+
   it("returns an owned file URL", async () => {
-    getPresigned.mockClear();
     const router = createRouter(createRepository());
-    const { context } = createContext();
+    const { context } = createTestContext();
 
     await expect(
       call(router.get, { id: FILE_ID }, { context, path: ["files", "get"] }),
@@ -233,13 +220,22 @@ describe("files RPC router", () => {
     });
   });
 
+  it("returns storage unavailable when file URL signing fails", async () => {
+    const router = createRouter(createRepository());
+    const { context } = createTestContext();
+    getPresigned.mockRejectedValueOnce(new Error("signer offline"));
+
+    await expect(
+      call(router.get, { id: FILE_ID }, { context, path: ["files", "get"] }),
+    ).rejects.toMatchObject({ code: "FILE_STORAGE_UNAVAILABLE", status: 503 });
+  });
+
   it("hides files that are not owned by the current user", async () => {
-    getPresigned.mockClear();
     const repository = createRepository({
-      findById: vi.fn<FileRepository["findById"]>(async () => await Promise.resolve(null)),
+      findById: async () => await Promise.resolve(null),
     });
     const router = createRouter(repository);
-    const { context } = createContext();
+    const { context } = createTestContext();
 
     await expect(
       call(router.get, { id: FILE_ID }, { context, path: ["files", "get"] }),

@@ -2,5 +2,6 @@
 export * from "./auth";
 export * from "./files";
 export * from "./team-advisors";
+export * from "./team-consents";
 export * from "./team-participants";
 export * from "./teams";

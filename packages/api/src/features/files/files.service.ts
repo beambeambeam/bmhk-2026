@@ -50,6 +50,16 @@ export function createFileTypeNotAllowedError() {
   });
 }
 
+export function createPdfFileTypeNotAllowedError() {
+  return createError({
+    code: "FILE_TYPE_NOT_ALLOWED",
+    fix: "Upload a PDF file",
+    message: "File type is not allowed",
+    status: 415,
+    why: "Team advisor documents must be PDF files",
+  });
+}
+
 export function createFileOriginNotAllowedError() {
   return createError({
     code: "ORIGIN_NOT_ALLOWED",
@@ -215,6 +225,14 @@ export async function validateUploadedImage(file: File): Promise<ValidatedUpload
   const validated = await validateUploadedFile(file);
   if (validated.contentType === "application/pdf") {
     throw createFileTypeNotAllowedError();
+  }
+  return validated;
+}
+
+export async function validateUploadedPdf(file: File): Promise<ValidatedUpload> {
+  const validated = await validateUploadedFile(file);
+  if (validated.contentType !== "application/pdf") {
+    throw createPdfFileTypeNotAllowedError();
   }
   return validated;
 }

@@ -10,12 +10,16 @@ import type { FileRepository } from "./features/files/files.repository";
 import type { TeamRepository } from "./features/teams/teams.repository";
 import { createTeamRepository } from "./features/teams/teams.repository";
 import { createTeamsRouter } from "./features/teams/teams.router";
+import type { TeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
+import { createTeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
+import { createTeamAdvisorsRouter } from "./features/team-advisors/team-advisors.router";
 
 export interface ApiDependencies {
   auth: AuthReader;
   /** Optional overrides keep feature tests isolated; production uses API-owned repositories. */
   files?: FileRepository;
   teams?: TeamRepository;
+  teamAdvisors?: TeamAdvisorRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -25,6 +29,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
     files: createFilesRouter(protectedProcedure, dependencies.files ?? createFileRepository()),
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
+    teamAdvisors: createTeamAdvisorsRouter(
+      protectedProcedure,
+      dependencies.teamAdvisors ?? createTeamAdvisorRepository(),
+    ),
     teams: createTeamsRouter(protectedProcedure, dependencies.teams ?? createTeamRepository()),
   };
 }

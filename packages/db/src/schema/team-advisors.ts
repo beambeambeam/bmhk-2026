@@ -6,11 +6,11 @@ import { files } from "./files";
 import { teams } from "./teams";
 
 function requiredTextCheck(column: SQLWrapper, maxLength: number) {
-  return sql`btrim(${column}) = ${column} AND length(${column}) BETWEEN 1 AND ${maxLength}`;
+  return sql`btrim(${column}) = ${column} AND length(${column}) BETWEEN 1 AND ${sql.raw(String(maxLength))}`;
 }
 
 function optionalTextCheck(column: SQLWrapper, maxLength: number) {
-  return sql`${column} IS NULL OR (btrim(${column}) = ${column} AND length(${column}) BETWEEN 1 AND ${maxLength})`;
+  return sql`${column} IS NULL OR (btrim(${column}) = ${column} AND length(${column}) BETWEEN 1 AND ${sql.raw(String(maxLength))})`;
 }
 
 export const teamAdvisors = pgTable(
@@ -25,18 +25,19 @@ export const teamAdvisors = pgTable(
     firstNameTh: text("first_name_th").notNull(),
     foodAllergies: text("food_allergies"),
     id: uuid("id").defaultRandom().primaryKey(),
-    identityDocumentFileId: uuid("identity_document_file_id")
-      .notNull()
-      .references(() => files.id, { onDelete: "restrict" }),
+    identityDocumentFileId: uuid("identity_document_file_id").references(() => files.id, {
+      onDelete: "restrict",
+    }),
     lastNameEn: text("last_name_en").notNull(),
     lastNameTh: text("last_name_th").notNull(),
     lineId: text("line_id"),
     middleNameEn: text("middle_name_en"),
     middleNameTh: text("middle_name_th"),
     phone: text("phone").notNull(),
-    teacherStatusDocumentFileId: uuid("teacher_status_document_file_id")
-      .notNull()
-      .references(() => files.id, { onDelete: "restrict" }),
+    teacherStatusDocumentFileId: uuid("teacher_status_document_file_id").references(
+      () => files.id,
+      { onDelete: "restrict" },
+    ),
     teamId: uuid("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),

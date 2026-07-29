@@ -57,6 +57,20 @@
       "when": 1785236776973,
       "tag": "0007_gifted_the_spike",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785307084219,
+      "tag": "0008_warm_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785307927742,
+      "tag": "0009_silent_the_leader",
+      "breakpoints": true
     }
   ]
 }

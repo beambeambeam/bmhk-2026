@@ -1,4 +1,11 @@
-import type { ApiContext, ApiSession, AuthReader, FileRepository, TeamRepository } from "../index";
+import type {
+  ApiContext,
+  ApiSession,
+  AuthReader,
+  FileRepository,
+  TeamAdvisorRepository,
+  TeamRepository,
+} from "../index";
 import { vi } from "vitest";
 
 export interface TestSessionOverrides {
@@ -100,5 +107,14 @@ export function createUnusedTeamRepository(): TeamRepository {
     list: createUnusedMethod("TeamRepository", "list"),
     replaceImage: createUnusedMethod("TeamRepository", "replaceImage"),
     update: createUnusedMethod("TeamRepository", "update"),
+  };
+}
+
+export function createUnusedTeamAdvisorRepository(): TeamAdvisorRepository {
+  return {
+    create: createUnusedMethod("TeamAdvisorRepository", "create"),
+    findByTeamId: createUnusedMethod("TeamAdvisorRepository", "findByTeamId"),
+    replaceDocument: createUnusedMethod("TeamAdvisorRepository", "replaceDocument"),
+    update: createUnusedMethod("TeamAdvisorRepository", "update"),
   };
 }

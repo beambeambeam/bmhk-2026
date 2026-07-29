@@ -30,3 +30,11 @@ export type {
   UpdateTeamAdvisorData,
 } from "./features/team-advisors/team-advisors.schema";
 export type { TeamAdvisorDocumentType } from "./features/team-advisors/team-advisors.service";
+export type { TeamParticipantRepository } from "./features/team-participants/team-participants.repository";
+export type { TeamParticipantDocumentType } from "./features/team-participants/team-participants.service";
+export type {
+  CreateTeamParticipantData,
+  TeamParticipant,
+  TeamParticipantDetails,
+  UpdateTeamParticipantData,
+} from "./features/team-participants/team-participants.schema";

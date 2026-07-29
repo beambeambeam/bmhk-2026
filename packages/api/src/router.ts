@@ -13,6 +13,9 @@ import { createTeamsRouter } from "./features/teams/teams.router";
 import type { TeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
 import { createTeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
 import { createTeamAdvisorsRouter } from "./features/team-advisors/team-advisors.router";
+import type { TeamParticipantRepository } from "./features/team-participants/team-participants.repository";
+import { createTeamParticipantRepository } from "./features/team-participants/team-participants.repository";
+import { createTeamParticipantsRouter } from "./features/team-participants/team-participants.router";
 
 export interface ApiDependencies {
   auth: AuthReader;
@@ -20,6 +23,7 @@ export interface ApiDependencies {
   files?: FileRepository;
   teams?: TeamRepository;
   teamAdvisors?: TeamAdvisorRepository;
+  teamParticipants?: TeamParticipantRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -32,6 +36,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
     teamAdvisors: createTeamAdvisorsRouter(
       protectedProcedure,
       dependencies.teamAdvisors ?? createTeamAdvisorRepository(),
+    ),
+    teamParticipants: createTeamParticipantsRouter(
+      protectedProcedure,
+      dependencies.teamParticipants ?? createTeamParticipantRepository(),
     ),
     teams: createTeamsRouter(protectedProcedure, dependencies.teams ?? createTeamRepository()),
   };

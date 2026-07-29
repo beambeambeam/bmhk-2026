@@ -5,6 +5,7 @@ import type {
   FileRepository,
   TeamAdvisorRepository,
   TeamRepository,
+  TeamParticipantRepository,
 } from "../index";
 import { vi } from "vitest";
 
@@ -116,5 +117,15 @@ export function createUnusedTeamAdvisorRepository(): TeamAdvisorRepository {
     findByTeamId: createUnusedMethod("TeamAdvisorRepository", "findByTeamId"),
     replaceDocument: createUnusedMethod("TeamAdvisorRepository", "replaceDocument"),
     update: createUnusedMethod("TeamAdvisorRepository", "update"),
+  };
+}
+
+export function createUnusedTeamParticipantRepository(): TeamParticipantRepository {
+  return {
+    create: createUnusedMethod("TeamParticipantRepository", "create"),
+    findBySlot: createUnusedMethod("TeamParticipantRepository", "findBySlot"),
+    listByTeamId: createUnusedMethod("TeamParticipantRepository", "listByTeamId"),
+    replaceDocument: createUnusedMethod("TeamParticipantRepository", "replaceDocument"),
+    update: createUnusedMethod("TeamParticipantRepository", "update"),
   };
 }

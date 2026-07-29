@@ -15,7 +15,15 @@ function maskEmail(email: string): string {
 }
 
 function toError(cause: unknown): Error {
-  return cause instanceof Error ? cause : new Error("Unknown authentication error", { cause });
+  return cause instanceof Error
+    ? cause
+    : createError({
+        code: "AUTH_UNKNOWN_ERROR",
+        fix: "Contact support",
+        message: "Unknown authentication error",
+        status: 500,
+        why: "Authentication returned a non-Error failure",
+      });
 }
 
 export function createProcedures(dependencies: ProcedureDependencies) {

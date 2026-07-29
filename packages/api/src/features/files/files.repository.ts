@@ -2,6 +2,7 @@ import { db } from "@bmhk-2026/db";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, eq } from "drizzle-orm";
 
+import { createFileRepositoryError } from "./files.service";
 import type { CreateStoredFileData, StoredFile } from "./files.schema";
 import { toStoredFile } from "./files.schema";
 
@@ -18,7 +19,7 @@ export function createFileRepository(database: Database = db): FileRepository {
       const [file] = await database.insert(files).values(data).returning();
 
       if (!file) {
-        throw new Error("File insert returned no row");
+        throw createFileRepositoryError("File insert returned no row");
       }
 
       return toStoredFile(file);

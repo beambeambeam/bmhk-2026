@@ -70,9 +70,28 @@ export function createFileNotFoundError() {
   });
 }
 
+export function createFileRepositoryError(message: string) {
+  return createError({
+    code: "FILE_REPOSITORY_ERROR",
+    fix: "Try again or contact support",
+    message,
+    status: 500,
+    why: "The file repository could not satisfy an internal invariant",
+  });
+}
+
 export function createFileStorageUnavailableError(cause: unknown) {
   return createError({
-    cause: cause instanceof Error ? cause : new Error("Unknown file storage error"),
+    cause:
+      cause instanceof Error
+        ? cause
+        : createError({
+            code: "FILE_STORAGE_UNKNOWN_ERROR",
+            fix: "Contact support",
+            message: "Unknown file storage error",
+            status: 500,
+            why: "File storage returned a non-Error failure",
+          }),
     code: "FILE_STORAGE_UNAVAILABLE",
     fix: "Try again shortly",
     message: "File storage is temporarily unavailable",
@@ -83,7 +102,16 @@ export function createFileStorageUnavailableError(cause: unknown) {
 
 export function createFileMetadataSaveError(cause: unknown) {
   return createError({
-    cause: cause instanceof Error ? cause : new Error("Unknown file metadata error"),
+    cause:
+      cause instanceof Error
+        ? cause
+        : createError({
+            code: "FILE_METADATA_UNKNOWN_ERROR",
+            fix: "Contact support",
+            message: "Unknown file metadata error",
+            status: 500,
+            why: "The file metadata repository returned a non-Error failure",
+          }),
     code: "FILE_METADATA_SAVE_FAILED",
     fix: "Try the upload again",
     message: "File metadata could not be saved",
@@ -285,7 +313,15 @@ export async function saveFileMetadata({
         file: { bucket: data.bucket, id: data.id, objectKey: data.objectKey },
       });
       context.log.error(
-        cleanupError instanceof Error ? cleanupError : new Error("Unknown cleanup error"),
+        cleanupError instanceof Error
+          ? cleanupError
+          : createError({
+              code: "FILE_CLEANUP_UNKNOWN_ERROR",
+              fix: "Contact support",
+              message: "Unknown cleanup error",
+              status: 500,
+              why: "File storage cleanup returned a non-Error failure",
+            }),
       );
     }
     throw createFileMetadataSaveError(error);

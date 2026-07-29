@@ -37,6 +37,14 @@ export default defineConfig({
       typeAware: true,
       typeCheck: false,
     },
+    overrides: [
+      {
+        files: ["packages/db/src/schema/**/*.{ts,tsx}"],
+        rules: {
+          "sort-keys": "off",
+        },
+      },
+    ],
     rules: {
       "func-style": ["error", "declaration"],
       "no-use-before-define": [

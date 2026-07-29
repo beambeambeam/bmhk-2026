@@ -18,7 +18,9 @@ RUN bun install --frozen-lockfile
 
 FROM deps AS runner
 ARG VITE_SERVER_URL
+ARG VITE_BMHK_ENV
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
+ENV VITE_BMHK_ENV=$VITE_BMHK_ENV
 COPY . .
 RUN bun run --filter web build
 

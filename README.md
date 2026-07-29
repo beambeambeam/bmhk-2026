@@ -46,6 +46,19 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    VITE_SERVER_URL=http://localhost:3000
    ```
 
+   Create `apps/discord/.env` (if using the Discord bot):
+
+   ```bash
+   cp apps/discord/.env.example apps/discord/.env
+   ```
+
+   ```dotenv
+   DISCORD_TOKEN=your-bot-token
+   DISCORD_CLIENT_ID=your-client-id
+   DISCORD_GUILD_ID=your-guild-id
+   # GLOBAL=true  # Optional: set to true to deploy commands globally instead of guild-scoped
+   ```
+
 3. Start local services and apply the database schema:
 
    ```bash
@@ -67,7 +80,19 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    bun db:seed:dev
    ```
 
-4. Start all applications:
+4. Discord Bot setup (optional):
+
+   1. Create an application and bot in the [Discord Developer Portal](https://discord.com/developers/applications).
+   2. Enable **Privileged Gateway Intents** under **Bot** settings:
+      - **Server Members Intent**
+      - **Message Content Intent**
+   3. Deploy slash commands to Discord:
+
+      ```bash
+      bun run deploy:discord
+      ```
+
+5. Start all applications:
 
    ```bash
    bun run dev
@@ -79,9 +104,9 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    - Staff app: http://localhost:3002
    - API: http://localhost:3000
 
-   Run one app only with `bun run dev:web`, `bun run dev:staff`, or `bun run dev:server`.
+   Run one app only with `bun run dev:web`, `bun run dev:staff`, `bun run dev:server`, or `bun run dev:discord`.
 
-5. Run checks before committing:
+6. Run checks before committing:
 
    ```bash
    bun run check

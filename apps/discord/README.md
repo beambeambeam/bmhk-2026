@@ -1,15 +1,38 @@
-# discord
+# Discord Bot
 
-To install dependencies:
+Discord bot service for Bangmod Hackathon 2026.
 
-```bash
-bun install
-```
+## Environment Variables
 
-To run:
+Copy `.env.example` to `.env` and fill in the required credentials:
 
 ```bash
-bun run index.ts
+cp .env.example .env
 ```
 
-This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Variables:
+
+- `DISCORD_TOKEN`: Bot Token from Discord Developer Portal.
+- `DISCORD_CLIENT_ID`: Application Client ID.
+- `DISCORD_GUILD_ID`: Target Discord Guild (Server) ID for development command registration.
+- `GLOBAL` (optional): Set to `true` to register slash commands globally instead of guild-scoped.
+
+## Setup & Deployment
+
+1. **Enable Privileged Intents**: Ensure **Server Members Intent** and **Message Content Intent** are enabled in the Discord Developer Portal under your application's **Bot** settings.
+2. **Deploy Slash Commands**:
+
+   ```bash
+   bun run deploy
+   ```
+
+   (Or from the monorepo root: `bun run deploy:discord`)
+
+3. **Start the Bot**:
+   ```bash
+   # Development mode with watch:
+   bun run dev
+
+   # Production / direct start:
+   bun run start
+   ```

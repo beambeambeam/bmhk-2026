@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { AuthReader, FileRepository } from "../../../index";
 import { createAppRouter } from "../../../index";
-import type { CreateStoredFileData, StoredFile } from "../files.types";
+import type { CreateStoredFileData, StoredFile } from "../files.schema";
 import {
   createTestAuthReader,
   createTestContext,

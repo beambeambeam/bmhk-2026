@@ -15,7 +15,15 @@ function maskEmail(email: string): string {
 }
 
 function toError(cause: unknown): Error {
-  return cause instanceof Error ? cause : new Error("Unknown authentication error", { cause });
+  return cause instanceof Error
+    ? cause
+    : createError({
+        code: "AUTH_UNKNOWN_ERROR",
+        fix: "Contact support",
+        message: "Unknown authentication error",
+        status: 500,
+        why: "Authentication returned a non-Error failure",
+      });
 }
 
 export function createProcedures(dependencies: ProcedureDependencies) {
@@ -25,9 +33,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     let session: ApiSession | null;
 
     try {
-      session = await dependencies.auth.getSession({
-        headers: context.headers,
-      });
+      session = await dependencies.auth.getSession({ headers: context.headers });
     } catch (error) {
       throw createError({
         cause: toError(error),
@@ -58,18 +64,11 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 
     context.log.set({
       auth: authContext,
-      user: {
-        email: maskEmail(session.user.email),
-        id: session.user.id,
-      },
+      user: { email: maskEmail(session.user.email), id: session.user.id },
       userId: session.user.id,
     });
 
-    return await next({
-      context: {
-        session,
-      },
-    });
+    return await next({ context: { session } });
   });
 
   return {

@@ -1,17 +1,18 @@
 import { env } from "@bmhk-2026/env/server";
-import { putObject } from "@bmhk-2026/s3";
 import { z } from "zod";
 import type { ProtectedProcedure } from "../../core/procedure";
 import {
-  createFileOriginNotAllowedError,
-  createFileStorageUnavailableError,
-} from "../files/files.errors";
-import { toPublicFileWithUrl } from "../files/files.read";
-import { validateUploadedImage } from "../files/files.validation";
-import type { CreateStoredFileData } from "../files/files.types";
-import { createTeamAlreadyExistsError, createTeamNotFoundError } from "./teams.errors";
-import { createTeamListPagination } from "./teams.pagination";
-import type { TeamRepository } from "./teams.repository";
+  assertAllowedOrigin,
+  createStoredFileData,
+  toPublicFileWithUrl,
+  uploadValidatedFile,
+  validateUploadedImage,
+} from "../files/files.service";
+import {
+  createTeamAlreadyExistsError,
+  createTeamListPagination,
+  createTeamNotFoundError,
+} from "./teams.service";
 import {
   createTeamSchema,
   deleteTeamResultSchema,
@@ -21,16 +22,10 @@ import {
   teamListResultSchema,
   teamSchema,
   updateTeamSchema,
-} from "./teams.schemas";
+} from "./teams.schema";
+import type { TeamRepository } from "./teams.repository";
 
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
-
-function assertAllowedOrigin(headers: Headers): void {
-  const origin = headers.get("origin");
-  if (origin !== null && origin.length > 0 && !env.CORS_ORIGIN.includes(origin)) {
-    throw createFileOriginNotAllowedError();
-  }
-}
 
 export function createTeamsRouter(
   protectedProcedure: ProtectedProcedure,
@@ -107,27 +102,14 @@ export function createTeamsRouter(
         const bucket = env.AWS_S3_BUCKET;
         const objectKey = `teams/${input.id}/images/${id}`;
 
-        try {
-          await putObject({
-            body: validated.body,
-            bucket,
-            contentType: validated.contentType,
-            key: objectKey,
-            originalName: validated.originalName,
-          });
-        } catch (error) {
-          throw createFileStorageUnavailableError(error);
-        }
-
-        const file: CreateStoredFileData = {
+        await uploadValidatedFile({ bucket, file: validated, objectKey });
+        const file = createStoredFileData({
           bucket,
-          contentType: validated.contentType,
+          file: validated,
           id,
           objectKey,
-          originalName: validated.originalName,
-          sizeBytes: validated.body.byteLength,
           uploadedBy: context.session.user.id,
-        };
+        });
 
         const result = await repository.replaceImage(context.session.user.id, input.id, file);
 

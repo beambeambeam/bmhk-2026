@@ -4,6 +4,7 @@ import type {
   AuthReader,
   FileRepository,
   TeamAdvisorRepository,
+  TeamConsentRepository,
   TeamRepository,
   TeamParticipantRepository,
 } from "../index";
@@ -117,6 +118,14 @@ export function createUnusedTeamAdvisorRepository(): TeamAdvisorRepository {
     findByTeamId: createUnusedMethod("TeamAdvisorRepository", "findByTeamId"),
     replaceDocument: createUnusedMethod("TeamAdvisorRepository", "replaceDocument"),
     update: createUnusedMethod("TeamAdvisorRepository", "update"),
+  };
+}
+
+export function createUnusedTeamConsentRepository(): TeamConsentRepository {
+  return {
+    create: createUnusedMethod("TeamConsentRepository", "create"),
+    findByTeamId: createUnusedMethod("TeamConsentRepository", "findByTeamId"),
+    update: createUnusedMethod("TeamConsentRepository", "update"),
   };
 }
 

@@ -53,9 +53,9 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    ```
 
    ```dotenv
-   DISCORD_TOKEN=your-bot-token
-   DISCORD_CLIENT_ID=your-client-id
-   DISCORD_GUILD_ID=your-guild-id
+   DISCORD_TOKEN=your_bot_token_here
+   DISCORD_CLIENT_ID=your_client_id_here
+   DISCORD_GUILD_ID=your_guild_id_here
    # GLOBAL=true  # Optional: set to true to deploy commands globally instead of guild-scoped
    ```
 

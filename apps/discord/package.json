@@ -8,7 +8,7 @@
     "prep": "bun scripts/gen-handler-manifest.ts && bun scripts/gen-cmd-manifest.ts",
     "generate": "bun run prep",
     "dev": "bun run prep && bun run --watch src/index.ts",
-    "start": "bun run src/index.ts"
+    "start": "bun run prep && bun run src/index.ts"
   },
   "dependencies": {
     "discord.js": "^14.27.0",

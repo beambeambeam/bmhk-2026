@@ -19,8 +19,9 @@ Variables:
 
 ## Setup & Deployment
 
-1. **Enable Privileged Intents**: Ensure **Server Members Intent** and **Message Content Intent** are enabled in the Discord Developer Portal under your application's **Bot** settings.
-2. **Deploy Slash Commands**:
+1. **Environment Setup**: Copy `.env.example` to `.env` and fill in required variables (`DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_GUILD_ID`).
+2. **Enable Privileged Intents**: Ensure **Server Members Intent** and **Message Content Intent** are enabled in the Discord Developer Portal under your application's **Bot** settings.
+3. **Deploy Slash Commands**:
 
    ```bash
    bun run deploy
@@ -28,7 +29,7 @@ Variables:
 
    (Or from the monorepo root: `bun run deploy:discord`)
 
-3. **Start the Bot**:
+4. **Start the Bot**:
    ```bash
    # Development mode with watch:
    bun run dev

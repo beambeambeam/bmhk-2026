@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "vp build",
-    "serve": "srvx serve --prod -s ../client ./dist/server/server.js",
+    "serve": "srvx serve --prod -s ./dist/client ./dist/server/server.js",
     "dev": "vp dev",
     "generate": "tsr generate",
     "check-types": "tsr generate && tsc --noEmit"

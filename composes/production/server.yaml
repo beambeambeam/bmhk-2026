@@ -8,7 +8,7 @@ services:
     volumes:
       - bmhk-2026_postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,6 +29,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT:-http://rustfs:9000}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:?AWS_S3_BUCKET is required}
     depends_on:
       postgres:
         condition: service_healthy

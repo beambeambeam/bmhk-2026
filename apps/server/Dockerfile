@@ -15,6 +15,7 @@ COPY packages/client/package.json packages/client/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/env/package.json packages/env/package.json
+COPY packages/s3/package.json packages/s3/package.json
 RUN bun install --frozen-lockfile
 
 FROM deps AS runner

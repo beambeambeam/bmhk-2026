@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM oven/bun:1 AS base
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tini && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 FROM base AS deps
@@ -27,5 +27,7 @@ COPY . .
 RUN bun run --filter staff build
 
 ENV NODE_ENV=production
+ENV PORT=4173
 EXPOSE 4173
-CMD ["bun", "run", "--filter", "staff", "serve", "--host", "0.0.0.0"]
+ENTRYPOINT ["tini", "-g", "--"]
+CMD ["bun", "run", "--filter", "staff", "serve"]

@@ -1,0 +1,26 @@
+services:
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    volumes:
+      - bmhk-2026_rustfs_data:/data
+    command: /data
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run --protocol http2
+    environment:
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN_STORAGE:?CF_TUNNEL_TOKEN_STORAGE is required}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+volumes:
+  bmhk-2026_rustfs_data:

@@ -1,0 +1,22 @@
+name: Deploy Staging Environment for server
+
+on:
+  workflow_run:
+    workflows: ["Build server Docker image"]
+    types: [completed]
+
+jobs:
+  trigger-coolify-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'staging' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy webhook
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK_DEPLOY_SERVER }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          test -n "$COOLIFY_WEBHOOK"
+          test -n "$COOLIFY_TOKEN"
+          curl --fail --show-error --silent \
+            --request GET "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"

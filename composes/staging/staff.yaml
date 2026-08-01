@@ -1,0 +1,16 @@
+services:
+  staff:
+    image: ghcr.io/beambeambeam/bmhk-2026/staff:staging
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run --protocol http2
+    environment:
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN_STAFF:?CF_TUNNEL_TOKEN_STAFF is required}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s

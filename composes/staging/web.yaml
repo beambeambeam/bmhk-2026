@@ -1,6 +1,7 @@
 services:
   web:
     image: ghcr.io/beambeambeam/bmhk-2026/web:staging
+    pull_policy: always
     restart: unless-stopped
 
   cloudflared:

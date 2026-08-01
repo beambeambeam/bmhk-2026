@@ -16,6 +16,7 @@ services:
 
   server:
     image: ghcr.io/beambeambeam/bmhk-2026/server:staging
+    pull_policy: always
     container_name: bmhk-2026-server
     environment:
       NODE_ENV: production

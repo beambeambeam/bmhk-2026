@@ -39,11 +39,12 @@ services:
   pg-backup:
     image: itbm/postgres-backup-s3:latest
     depends_on:
-      postgresql:
+      postgres:
         condition: service_healthy
     environment:
       - SCHEDULE=${PGBK_SCHEDULE:-@daily}
       - DELETE_OLDER_THAN=${PGBK_DELETE_OLDER_THAN:-""}
+      - ENCRYPTION_PASSWORD=${PGBK_ENCRYPTION_PASSWORD:?PGBK_ENCRYPTION_PASSWORD is required}
       - POSTGRES_HOST=postgres
       - POSTGRES_DATABASE=${PG_DBNAME:-bmhk-2026}
       - POSTGRES_USER=${PG_USER:-postgres}

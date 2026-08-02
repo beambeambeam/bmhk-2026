@@ -29,7 +29,7 @@ services:
       AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT:?AWS_ENDPOINT is required}
+      AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:?AWS_ENDPOINT_URL_S3 is required}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:?AWS_S3_BUCKET is required}
     depends_on:
       postgres:

@@ -2,7 +2,7 @@ import { db } from "@bmhk-2026/db";
 import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { createTeamRegistrationStatusRepositoryError } from "./team-registration-status.service";
 
@@ -31,7 +31,7 @@ export interface TeamRegistrationStatusFacts {
 }
 
 export interface TeamRegistrationStatusRepository {
-  find: (userId: string, teamId?: string) => Promise<TeamRegistrationStatusFacts | null>;
+  find: (userId: string) => Promise<TeamRegistrationStatusFacts | null>;
 }
 
 type Database = typeof db;
@@ -40,7 +40,7 @@ export function createTeamRegistrationStatusRepository(
   database: Database = db,
 ): TeamRegistrationStatusRepository {
   return {
-    find: async (userId, teamId) => {
+    find: async (userId) => {
       try {
         return await database.transaction(
           async (transaction) => {
@@ -67,11 +67,7 @@ export function createTeamRegistrationStatusRepository(
               .from(teams)
               .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
               .leftJoin(teamConsents, eq(teamConsents.teamId, teams.id))
-              .where(
-                teamId === undefined
-                  ? eq(teams.userId, userId)
-                  : and(eq(teams.id, teamId), eq(teams.userId, userId)),
-              )
+              .where(eq(teams.userId, userId))
               .orderBy(asc(teamParticipants.index));
 
             const [firstRow] = rows;

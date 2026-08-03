@@ -84,19 +84,6 @@ function participant3Status(
   return NOT_STARTED;
 }
 
-export function createNotStartedTeamRegistrationStatus(): TeamRegistrationStatus {
-  return {
-    isComplete: false,
-    memberCount: null,
-    participant1: NOT_STARTED,
-    participant2: NOT_STARTED,
-    participant3: NOT_STARTED,
-    team: NOT_STARTED,
-    teamId: null,
-    termsAndConditions: NOT_STARTED,
-  };
-}
-
 export function calculateTeamRegistrationStatus(
   facts: TeamRegistrationStatusFacts,
 ): TeamRegistrationStatus {

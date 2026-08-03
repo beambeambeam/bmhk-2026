@@ -9,9 +9,9 @@ export const teamRegistrationItemStatusValues = [
 
 export const teamRegistrationItemStatusSchema = z.enum(teamRegistrationItemStatusValues);
 
-const memberCountSchema = z.number().int().nonnegative().nullable();
+const memberCountSchema = z.number().int().nonnegative();
 
-export const teamRegistrationStatusInputSchema = z.object({ teamId: z.uuid().optional() }).strict();
+export const teamRegistrationStatusInputSchema = z.object({}).strict();
 
 export const teamRegistrationStatusSchema = z
   .object({
@@ -21,7 +21,7 @@ export const teamRegistrationStatusSchema = z
     participant2: teamRegistrationItemStatusSchema,
     participant3: teamRegistrationItemStatusSchema,
     team: teamRegistrationItemStatusSchema,
-    teamId: z.uuid().nullable(),
+    teamId: z.uuid(),
     termsAndConditions: teamRegistrationItemStatusSchema,
   })
   .strict();

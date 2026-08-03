@@ -6,8 +6,6 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { createTeamRegistrationStatusRepositoryError } from "./team-registration-status.service";
 
-type RegistrationMemberCount = 2 | 3;
-
 export interface TeamRegistrationStatusFacts {
   consent: {
     codernTermsAccepted: boolean;
@@ -24,82 +22,99 @@ export interface TeamRegistrationStatusFacts {
     portraitPhotoFileId: string | null;
   }[];
   team: {
+    image: string | null;
     id: string;
-    memberCount: RegistrationMemberCount;
+    memberCount: number;
     name: string;
     school: string;
   };
 }
 
 export interface TeamRegistrationStatusRepository {
-  findByTeamId: (userId: string, teamId: string) => Promise<TeamRegistrationStatusFacts | null>;
+  find: (userId: string, teamId?: string) => Promise<TeamRegistrationStatusFacts | null>;
 }
 
 type Database = typeof db;
-
-function toRegistrationMemberCount(memberCount: number): RegistrationMemberCount {
-  if (memberCount !== 2 && memberCount !== 3) {
-    throw createTeamRegistrationStatusRepositoryError();
-  }
-
-  return memberCount;
-}
 
 export function createTeamRegistrationStatusRepository(
   database: Database = db,
 ): TeamRegistrationStatusRepository {
   return {
-    findByTeamId: async (userId, teamId) => {
+    find: async (userId, teamId) => {
       try {
         return await database.transaction(
           async (transaction) => {
-            const [team] = await transaction
+            const rows = await transaction
               .select({
-                id: teams.id,
-                memberCount: teams.memberCount,
-                name: teams.name,
-                school: teams.school,
+                consentCodernTermsAccepted: teamConsents.codernTermsAccepted,
+                consentCompetitionRulesAccepted: teamConsents.competitionRulesAccepted,
+                consentGuardianConsentObtained: teamConsents.guardianConsentObtained,
+                consentHealthDataConsent: teamConsents.healthDataConsent,
+                consentId: teamConsents.id,
+                consentPrivacyPolicyAccepted: teamConsents.privacyPolicyAccepted,
+                consentPublicityMediaConsent: teamConsents.publicityMediaConsent,
+                participantAcademicRecordDocumentFileId:
+                  teamParticipants.academicRecordDocumentFileId,
+                participantIdentityDocumentFileId: teamParticipants.identityDocumentFileId,
+                participantIndex: teamParticipants.index,
+                participantPortraitPhotoFileId: teamParticipants.portraitPhotoFileId,
+                teamId: teams.id,
+                teamImage: teams.image,
+                teamMemberCount: teams.memberCount,
+                teamName: teams.name,
+                teamSchool: teams.school,
               })
               .from(teams)
-              .where(and(eq(teams.id, teamId), eq(teams.userId, userId)))
-              .limit(1);
+              .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
+              .leftJoin(teamConsents, eq(teamConsents.teamId, teams.id))
+              .where(
+                teamId === undefined
+                  ? eq(teams.userId, userId)
+                  : and(eq(teams.id, teamId), eq(teams.userId, userId)),
+              )
+              .orderBy(asc(teamParticipants.index));
 
-            if (!team) {
+            const [firstRow] = rows;
+            if (!firstRow) {
               return null;
             }
 
-            const participants = await transaction
-              .select({
-                academicRecordDocumentFileId: teamParticipants.academicRecordDocumentFileId,
-                identityDocumentFileId: teamParticipants.identityDocumentFileId,
-                index: teamParticipants.index,
-                portraitPhotoFileId: teamParticipants.portraitPhotoFileId,
-              })
-              .from(teamParticipants)
-              .where(eq(teamParticipants.teamId, team.id))
-              .orderBy(asc(teamParticipants.index));
+            const participants = rows.flatMap((row) => {
+              if (row.participantIndex === null) {
+                return [];
+              }
 
-            const [consent] = await transaction
-              .select({
-                codernTermsAccepted: teamConsents.codernTermsAccepted,
-                competitionRulesAccepted: teamConsents.competitionRulesAccepted,
-                guardianConsentObtained: teamConsents.guardianConsentObtained,
-                healthDataConsent: teamConsents.healthDataConsent,
-                privacyPolicyAccepted: teamConsents.privacyPolicyAccepted,
-                publicityMediaConsent: teamConsents.publicityMediaConsent,
-              })
-              .from(teamConsents)
-              .where(eq(teamConsents.teamId, team.id))
-              .limit(1);
+              return [
+                {
+                  academicRecordDocumentFileId: row.participantAcademicRecordDocumentFileId,
+                  identityDocumentFileId: row.participantIdentityDocumentFileId,
+                  index: row.participantIndex,
+                  portraitPhotoFileId: row.participantPortraitPhotoFileId,
+                },
+              ];
+            });
+
+            const consent =
+              firstRow.consentId === null
+                ? null
+                : {
+                    codernTermsAccepted: firstRow.consentCodernTermsAccepted ?? false,
+                    competitionRulesAccepted: firstRow.consentCompetitionRulesAccepted ?? false,
+                    guardianConsentObtained: firstRow.consentGuardianConsentObtained ?? false,
+                    healthDataConsent: firstRow.consentHealthDataConsent ?? false,
+                    privacyPolicyAccepted: firstRow.consentPrivacyPolicyAccepted ?? false,
+                    publicityMediaConsent: firstRow.consentPublicityMediaConsent ?? false,
+                  };
 
             return {
-              consent: consent ?? null,
+              consent,
               participants,
               team: {
-                id: team.id,
-                memberCount: toRegistrationMemberCount(team.memberCount),
-                name: team.name,
-                school: team.school,
+                id: firstRow.teamId,
+                image: firstRow.teamImage,
+                memberCount: firstRow.teamMemberCount,
+                name: firstRow.teamName,
+                school: firstRow.teamSchool,
               },
             };
           },

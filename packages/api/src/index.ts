@@ -39,6 +39,15 @@ export type { TeamAdvisorDocumentType } from "./features/team-advisors/team-advi
 export type { TeamParticipantRepository } from "./features/team-participants/team-participants.repository";
 export type { TeamParticipantDocumentType } from "./features/team-participants/team-participants.service";
 export type {
+  TeamRegistrationStatusFacts,
+  TeamRegistrationStatusRepository,
+} from "./features/team-registration-status/team-registration-status.repository";
+export type {
+  TeamRegistrationItemStatus,
+  TeamRegistrationStatus,
+} from "./features/team-registration-status/team-registration-status.schema";
+export { teamRegistrationItemStatusValues } from "./features/team-registration-status/team-registration-status.schema";
+export type {
   CreateTeamParticipantData,
   TeamParticipant,
   TeamParticipantDetails,

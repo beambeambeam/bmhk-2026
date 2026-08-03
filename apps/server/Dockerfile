@@ -25,4 +25,4 @@ RUN bun run --filter server build
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
-CMD ["bun", "run", "apps/server/dist/main.mjs"]
+CMD ["sh", "-c", "cd packages/db && bunx drizzle-kit migrate && cd /app && exec bun run apps/server/dist/main.mjs"]

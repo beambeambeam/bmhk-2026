@@ -15,9 +15,7 @@ import { createTeamRegistrationStatusRepositoryError } from "../team-registratio
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
 
-type StatusFacts = NonNullable<
-  Awaited<ReturnType<TeamRegistrationStatusRepository["findByTeamId"]>>
->;
+type StatusFacts = NonNullable<Awaited<ReturnType<TeamRegistrationStatusRepository["find"]>>>;
 
 const consent = {
   codernTermsAccepted: true,
@@ -42,6 +40,7 @@ const completeTwoPersonFacts = {
   participants: [participant(1), participant(2)],
   team: {
     id: TEAM_ID,
+    image: "team-image",
     memberCount: 2,
     name: "Team One",
     school: "School One",
@@ -53,6 +52,7 @@ const completeThreePersonFacts = {
   participants: [participant(1), participant(2), participant(3)],
   team: {
     id: TEAM_ID,
+    image: "team-image",
     memberCount: 3,
     name: "Team One",
     school: "School One",
@@ -72,8 +72,7 @@ function createRepository(
   overrides: Partial<TeamRegistrationStatusRepository> = {},
 ): TeamRegistrationStatusRepository {
   return {
-    findByTeamId:
-      overrides.findByTeamId ?? (async () => await Promise.resolve(completeTwoPersonFacts)),
+    find: overrides.find ?? (async () => await Promise.resolve(completeTwoPersonFacts)),
   };
 }
 
@@ -90,11 +89,36 @@ function createRouter(
 }
 
 describe("team registration status router", () => {
+  it("returns not-started status before a user creates a team", async () => {
+    const find = vi.fn<TeamRegistrationStatusRepository["find"]>(
+      async () => await Promise.resolve(null),
+    );
+    const router = createRouter({ find });
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toStrictEqual({
+      isComplete: false,
+      memberCount: null,
+      participant1: "NOT_STARTED",
+      participant2: "NOT_STARTED",
+      participant3: "NOT_STARTED",
+      team: "NOT_STARTED",
+      teamId: null,
+      termsAndConditions: "NOT_STARTED",
+    });
+    expect(find).toHaveBeenCalledWith(USER_ID, undefined);
+    expect(log.set).toHaveBeenCalledWith({
+      teamRegistrationStatus: { teamId: null },
+    });
+  });
+
   it("returns complete status for a two-person team without participant 3", async () => {
-    const findByTeamId = vi.fn<TeamRegistrationStatusRepository["findByTeamId"]>(
+    const find = vi.fn<TeamRegistrationStatusRepository["find"]>(
       async () => await Promise.resolve(completeTwoPersonFacts),
     );
-    const router = createRouter(createRepository({ findByTeamId }));
+    const router = createRouter(createRepository({ find }));
     const { context, log } = createTestContext();
 
     await expect(
@@ -102,25 +126,23 @@ describe("team registration status router", () => {
     ).resolves.toStrictEqual({
       isComplete: true,
       memberCount: 2,
-      participant1: true,
-      participant2: true,
-      participant3: null,
-      team: true,
+      participant1: "COMPLETED",
+      participant2: "COMPLETED",
+      participant3: "NOT_APPLICABLE",
+      team: "COMPLETED",
       teamId: TEAM_ID,
-      termsAndConditions: true,
+      termsAndConditions: "COMPLETED",
     });
-    expect(findByTeamId).toHaveBeenCalledWith(USER_ID, TEAM_ID);
+    expect(find).toHaveBeenCalledWith(USER_ID, TEAM_ID);
     expect(log.set).toHaveBeenCalledWith({
       teamRegistrationStatus: { teamId: TEAM_ID },
     });
   });
 
-  it("requires and reports participant 3 for a three-person team", async () => {
-    const router = createRouter(
-      createRepository({
-        findByTeamId: async () => await Promise.resolve(completeThreePersonFacts),
-      }),
-    );
+  it("returns complete status for a three-person team", async () => {
+    const router = createRouter({
+      find: async () => await Promise.resolve(completeThreePersonFacts),
+    });
     const { context } = createTestContext();
 
     await expect(
@@ -128,18 +150,36 @@ describe("team registration status router", () => {
     ).resolves.toStrictEqual({
       isComplete: true,
       memberCount: 3,
-      participant1: true,
-      participant2: true,
-      participant3: true,
-      team: true,
+      participant1: "COMPLETED",
+      participant2: "COMPLETED",
+      participant3: "COMPLETED",
+      team: "COMPLETED",
       teamId: TEAM_ID,
-      termsAndConditions: true,
+      termsAndConditions: "COMPLETED",
     });
   });
 
-  it("blocks three-person completion when participant 3 lacks a document", async () => {
+  it("blocks three-person completion when participant 3 is missing", async () => {
     const router = createRouter({
-      findByTeamId: async () => await Promise.resolve(incompleteThreePersonFacts),
+      find: async () =>
+        await Promise.resolve({
+          ...completeThreePersonFacts,
+          participants: completeThreePersonFacts.participants.slice(0, 2),
+        }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      isComplete: false,
+      participant3: "NOT_STARTED",
+    });
+  });
+
+  it("reports participant in progress when required documents are missing", async () => {
+    const router = createRouter({
+      find: async () => await Promise.resolve(incompleteThreePersonFacts),
     });
     const { context } = createTestContext();
 
@@ -148,18 +188,18 @@ describe("team registration status router", () => {
     ).resolves.toStrictEqual({
       isComplete: false,
       memberCount: 3,
-      participant1: true,
-      participant2: true,
-      participant3: false,
-      team: true,
+      participant1: "COMPLETED",
+      participant2: "COMPLETED",
+      participant3: "IN_PROGRESS",
+      team: "COMPLETED",
       teamId: TEAM_ID,
-      termsAndConditions: true,
+      termsAndConditions: "COMPLETED",
     });
   });
 
-  it("reports missing consent as incomplete", async () => {
+  it("reports missing participant rows as not started", async () => {
     const router = createRouter({
-      findByTeamId: async () => await Promise.resolve({ ...completeTwoPersonFacts, consent: null }),
+      find: async () => await Promise.resolve({ ...completeTwoPersonFacts, participants: [] }),
     });
     const { context } = createTestContext();
 
@@ -168,39 +208,114 @@ describe("team registration status router", () => {
     ).resolves.toStrictEqual({
       isComplete: false,
       memberCount: 2,
-      participant1: true,
-      participant2: true,
-      participant3: null,
-      team: true,
+      participant1: "NOT_STARTED",
+      participant2: "NOT_STARTED",
+      participant3: "NOT_APPLICABLE",
+      team: "COMPLETED",
       teamId: TEAM_ID,
-      termsAndConditions: false,
+      termsAndConditions: "COMPLETED",
     });
   });
 
-  it("reports missing required participant rows as incomplete", async () => {
+  it("distinguishes missing and incomplete participant rows", async () => {
     const router = createRouter({
-      findByTeamId: async () =>
-        await Promise.resolve({ ...completeTwoPersonFacts, participants: [] }),
+      find: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          participants: [{ ...participant(2), portraitPhotoFileId: null }],
+        }),
     });
     const { context } = createTestContext();
 
     await expect(
       call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
-    ).resolves.toStrictEqual({
+    ).resolves.toMatchObject({
       isComplete: false,
-      memberCount: 2,
-      participant1: false,
-      participant2: false,
-      participant3: null,
-      team: true,
-      teamId: TEAM_ID,
-      termsAndConditions: true,
+      participant1: "NOT_STARTED",
+      participant2: "IN_PROGRESS",
     });
   });
 
-  it("requires every consent flag for terms and conditions", async () => {
+  it("reports a draft team as in progress", async () => {
     const router = createRouter({
-      findByTeamId: async () =>
+      find: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          team: { ...completeTwoPersonFacts.team, memberCount: 0 },
+        }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      isComplete: false,
+      memberCount: 0,
+      participant3: "NOT_STARTED",
+      team: "IN_PROGRESS",
+    });
+  });
+
+  it("requires a team image for completion", async () => {
+    const router = createRouter({
+      find: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          team: { ...completeTwoPersonFacts.team, image: null },
+        }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      isComplete: false,
+      team: "IN_PROGRESS",
+    });
+  });
+
+  it("reports missing consent as not started", async () => {
+    const router = createRouter({
+      find: async () => await Promise.resolve({ ...completeTwoPersonFacts, consent: null }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      isComplete: false,
+      termsAndConditions: "NOT_STARTED",
+    });
+  });
+
+  it("reports all-false consent as not started", async () => {
+    const router = createRouter({
+      find: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          consent: {
+            codernTermsAccepted: false,
+            competitionRulesAccepted: false,
+            guardianConsentObtained: false,
+            healthDataConsent: false,
+            privacyPolicyAccepted: false,
+            publicityMediaConsent: false,
+          },
+        }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      isComplete: false,
+      termsAndConditions: "NOT_STARTED",
+    });
+  });
+
+  it("reports partial consent as in progress", async () => {
+    const router = createRouter({
+      find: async () =>
         await Promise.resolve({
           ...completeTwoPersonFacts,
           consent: { ...consent, healthDataConsent: false },
@@ -210,20 +325,14 @@ describe("team registration status router", () => {
 
     await expect(
       call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
-    ).resolves.toStrictEqual({
+    ).resolves.toMatchObject({
       isComplete: false,
-      memberCount: 2,
-      participant1: true,
-      participant2: true,
-      participant3: null,
-      team: true,
-      teamId: TEAM_ID,
-      termsAndConditions: false,
+      termsAndConditions: "IN_PROGRESS",
     });
   });
 
-  it("returns team not found for an inaccessible team", async () => {
-    const router = createRouter({ findByTeamId: async () => await Promise.resolve(null) });
+  it("returns team not found for an explicit missing or inaccessible team", async () => {
+    const router = createRouter({ find: async () => await Promise.resolve(null) });
     const { context } = createTestContext();
 
     await expect(
@@ -233,7 +342,7 @@ describe("team registration status router", () => {
 
   it("preserves structured repository failures", async () => {
     const router = createRouter({
-      findByTeamId: async () => await Promise.reject(createTeamRegistrationStatusRepositoryError()),
+      find: async () => await Promise.reject(createTeamRegistrationStatusRepositoryError()),
     });
     const { context } = createTestContext();
 
@@ -246,10 +355,10 @@ describe("team registration status router", () => {
   });
 
   it("rejects invalid IDs before repository access and requires authentication", async () => {
-    const findByTeamId = vi.fn<TeamRegistrationStatusRepository["findByTeamId"]>(
+    const find = vi.fn<TeamRegistrationStatusRepository["find"]>(
       async () => await Promise.resolve(completeTwoPersonFacts),
     );
-    const router = createRouter(createRepository({ findByTeamId }));
+    const router = createRouter(createRepository({ find }));
     const { context } = createTestContext();
 
     await expect(
@@ -259,21 +368,17 @@ describe("team registration status router", () => {
         { context, path: ["teamRegistrationStatus", "get"] },
       ),
     ).rejects.toBeInstanceOf(Error);
-    expect(findByTeamId).not.toHaveBeenCalled();
+    expect(find).not.toHaveBeenCalled();
 
     const anonymousRouter = createRouter(createRepository(), createTestAuthReader(null));
     await expect(
-      call(
-        anonymousRouter.get,
-        { teamId: TEAM_ID },
-        { context, path: ["teamRegistrationStatus", "get"] },
-      ),
+      call(anonymousRouter.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED", status: 401 });
   });
 
   it("ignores slot 3 for a two-person team", async () => {
     const router = createRouter({
-      findByTeamId: async () =>
+      find: async () =>
         await Promise.resolve({
           ...completeTwoPersonFacts,
           participants: [
@@ -288,7 +393,7 @@ describe("team registration status router", () => {
       call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toMatchObject({
       isComplete: true,
-      participant3: null,
+      participant3: "NOT_APPLICABLE",
     });
   });
 });

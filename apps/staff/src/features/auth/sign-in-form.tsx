@@ -1,142 +1,118 @@
 import { Button } from "@/components/button";
-import { Input } from "@/components/input";
-import { Label } from "@/components/label";
-import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import z from "zod";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
 
 import Loader from "@/components/loader";
 
-export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
-  const navigate = useNavigate({
-    from: "/",
-  });
+function getOAuthErrorMessage(error: string) {
+  if (error === "invalid_code") {
+    return "Microsoft could not exchange the login code. Check the server logs, client secret, and redirect URI.";
+  }
+
+  if (error === "email_not_found") {
+    return "Microsoft did not return an email address for this account.";
+  }
+
+  if (error === "oauth_provider_not_found") {
+    return "Microsoft SSO is not configured on the server.";
+  }
+
+  return `Microsoft sign in failed: ${error}`;
+}
+
+function getInitialOAuthError() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const error = new URLSearchParams(window.location.search).get("error");
+
+  return error === null ? null : getOAuthErrorMessage(error);
+}
+
+export default function SignInForm() {
+  const oauthError = useMemo(() => getInitialOAuthError(), []);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const { isPending } = authClient.useSession();
 
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-    onSubmit: async ({ value }) => {
-      await authClient.signIn.email(
-        {
-          email: value.email,
-          password: value.password,
+  useEffect(() => {
+    if (oauthError === null) {
+      return;
+    }
+
+    toast.error(oauthError);
+  }, [oauthError]);
+
+  async function signInWithMicrosoft() {
+    setIsSigningIn(true);
+    const staffOrigin = window.location.origin;
+
+    await authClient.signIn.social(
+      {
+        callbackURL: `${staffOrigin}/dashboard`,
+        errorCallbackURL: `${staffOrigin}/login`,
+        provider: "microsoft",
+      },
+      {
+        onError: (error) => {
+          setIsSigningIn(false);
+          toast.error(error.error.message || error.error.statusText);
         },
-        {
-          onError: (error) => {
-            toast.error(error.error.message || error.error.statusText);
-          },
-          onSuccess: () => {
-            void navigate({
-              to: "/dashboard",
-            });
-            toast.success("Sign in successful");
-          },
-        },
-      );
-    },
-    validators: {
-      onSubmit: z.object({
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
-      }),
-    },
-  });
+      },
+    );
+  }
 
   if (isPending) {
     return <Loader />;
   }
 
   return (
-    <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          void form.handleSubmit();
-        }}
-        className="space-y-4"
-      >
-        <div>
-          <form.Field name="email">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="email"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => {
-                    field.handleChange(e.target.value);
-                  }}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
+    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center px-6 py-10">
+      <div className="space-y-6">
+        <div className="space-y-2 text-center">
+          <div className="mx-auto flex size-11 items-center justify-center rounded-lg border border-border bg-muted">
+            <Building2 aria-hidden="true" className="size-5" />
+          </div>
+          <h1 className="text-2xl font-semibold">Staff sign in</h1>
+          <p className="text-sm text-muted-foreground">
+            Use your KMUTT Microsoft account ending with @kmutt.ac.th.
+          </p>
         </div>
 
-        <div>
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="password"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => {
-                    field.handleChange(e.target.value);
-                  }}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        <form.Subscribe
-          selector={(state) => ({
-            canSubmit: state.canSubmit,
-            isSubmitting: state.isSubmitting,
-          })}
-        >
-          {({ canSubmit, isSubmitting }) => (
-            <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Sign In"}
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
-
-      <div className="mt-4 text-center">
         <Button
-          variant="link"
-          onClick={onSwitchToSignUp}
-          className="text-indigo-600 hover:text-indigo-800"
+          type="button"
+          className="h-10 w-full gap-2"
+          disabled={isSigningIn}
+          onClick={() => {
+            void signInWithMicrosoft();
+          }}
         >
-          Need an account? Sign Up
+          {isSigningIn ? (
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+          ) : (
+            <svg aria-hidden="true" className="size-4" viewBox="0 0 23 23">
+              <path fill="#f35325" d="M1 1h10v10H1z" />
+              <path fill="#81bc06" d="M12 1h10v10H12z" />
+              <path fill="#05a6f0" d="M1 12h10v10H1z" />
+              <path fill="#ffba08" d="M12 12h10v10H12z" />
+            </svg>
+          )}
+          Continue with Microsoft
         </Button>
+
+        {oauthError === null ? null : (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {oauthError}
+          </p>
+        )}
+
+        <p className="text-center text-xs text-muted-foreground">
+          Access is limited to Bangmod Hackathon staff.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }

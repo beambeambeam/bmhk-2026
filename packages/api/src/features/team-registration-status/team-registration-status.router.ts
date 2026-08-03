@@ -1,7 +1,10 @@
 import type { ProtectedProcedure } from "../../core/procedure";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamRegistrationStatusRepository } from "./team-registration-status.repository";
-import { calculateTeamRegistrationStatus } from "./team-registration-status.service";
+import {
+  calculateTeamRegistrationStatus,
+  createNotStartedTeamRegistrationStatus,
+} from "./team-registration-status.service";
 import {
   teamRegistrationStatusInputSchema,
   teamRegistrationStatusSchema,
@@ -17,13 +20,16 @@ export function createTeamRegistrationStatusRouter(
       .input(teamRegistrationStatusInputSchema)
       .output(teamRegistrationStatusSchema)
       .handler(async ({ context, input }) => {
-        const facts = await repository.findByTeamId(context.session.user.id, input.teamId);
+        const findTeamStatus = repository.find;
+        const facts = await findTeamStatus(context.session.user.id, input.teamId);
 
-        if (!facts) {
+        if (!facts && input.teamId !== undefined) {
           throw createTeamNotFoundError();
         }
 
-        const status = calculateTeamRegistrationStatus(facts);
+        const status = facts
+          ? calculateTeamRegistrationStatus(facts)
+          : createNotStartedTeamRegistrationStatus();
         context.log.set({ teamRegistrationStatus: { teamId: status.teamId } });
         return status;
       }),

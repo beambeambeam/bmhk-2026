@@ -42,7 +42,11 @@ export type {
   TeamRegistrationStatusFacts,
   TeamRegistrationStatusRepository,
 } from "./features/team-registration-status/team-registration-status.repository";
-export type { TeamRegistrationStatus } from "./features/team-registration-status/team-registration-status.schema";
+export type {
+  TeamRegistrationItemStatus,
+  TeamRegistrationStatus,
+} from "./features/team-registration-status/team-registration-status.schema";
+export { teamRegistrationItemStatusValues } from "./features/team-registration-status/team-registration-status.schema";
 export type {
   CreateTeamParticipantData,
   TeamParticipant,

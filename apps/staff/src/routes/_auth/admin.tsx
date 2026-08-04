@@ -5,14 +5,15 @@ import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Loader2, Pencil, Search, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const STAFF_ROLES = ["admin", "registrationStaff", "staff", "user"] as const;
-const API_USER_PAGE_SIZE = 100;
 const TABLE_USER_PAGE_SIZE = 10;
+const SEARCH_FIELDS = ["email", "name"] as const;
 
 type AuthRole = (typeof STAFF_ROLES)[number];
+type SearchField = (typeof SEARCH_FIELDS)[number];
 
 interface StaffUser {
   readonly id: string;
@@ -28,8 +29,19 @@ interface UsersPage {
   readonly users: StaffUser[];
 }
 
+interface FetchUsersPageInput {
+  readonly page: number;
+  readonly roleFilter: RoleFilter;
+  readonly search: string;
+  readonly searchField: SearchField;
+}
+
 function isAuthRole(role: string | null | undefined): role is AuthRole {
   return STAFF_ROLES.some((staffRole) => staffRole === role);
+}
+
+function isSearchField(value: string): value is SearchField {
+  return SEARCH_FIELDS.some((field) => field === value);
 }
 
 function isRoleFilter(value: string): value is RoleFilter {
@@ -48,14 +60,48 @@ function getUserRole(user: StaffUser): AuthRole {
   return isAuthRole(user.role) ? user.role : "user";
 }
 
-async function fetchUsersPage(offset: number): Promise<UsersPage> {
+function getPageOffset(page: number): number {
+  return (page - 1) * TABLE_USER_PAGE_SIZE;
+}
+
+function getUsersQuery(input: FetchUsersPageInput) {
+  const normalizedSearch = input.search.trim();
+  const query = {
+    limit: TABLE_USER_PAGE_SIZE,
+    offset: getPageOffset(input.page),
+    sortBy: "email",
+    sortDirection: "asc",
+  } as {
+    filterField?: string;
+    filterOperator?: "eq";
+    filterValue?: string;
+    limit: number;
+    offset: number;
+    searchField?: SearchField;
+    searchOperator?: "contains";
+    searchValue?: string;
+    sortBy: string;
+    sortDirection: "asc";
+  };
+
+  if (normalizedSearch.length > 0) {
+    query.searchField = input.searchField;
+    query.searchOperator = "contains";
+    query.searchValue = normalizedSearch;
+  }
+
+  if (input.roleFilter !== "all") {
+    query.filterField = "role";
+    query.filterOperator = "eq";
+    query.filterValue = input.roleFilter;
+  }
+
+  return query;
+}
+
+async function fetchUsersPage(input: FetchUsersPageInput): Promise<UsersPage> {
   const response = await authClient.admin.listUsers({
-    query: {
-      limit: API_USER_PAGE_SIZE,
-      offset,
-      sortBy: "email",
-      sortDirection: "asc",
-    },
+    query: getUsersQuery(input),
   });
 
   if (response.error) {
@@ -65,32 +111,6 @@ async function fetchUsersPage(offset: number): Promise<UsersPage> {
   const { total, users } = response.data;
 
   return { total, users };
-}
-
-function appendUsers(target: StaffUser[], source: readonly StaffUser[]): void {
-  for (const user of source) {
-    target.push(user);
-  }
-}
-
-async function listAllUsers(): Promise<StaffUser[]> {
-  const firstPage = await fetchUsersPage(0);
-  const users: StaffUser[] = [];
-  appendUsers(users, firstPage.users);
-
-  const remainingPageRequests: Promise<UsersPage>[] = [];
-
-  for (let offset = API_USER_PAGE_SIZE; offset < firstPage.total; offset += API_USER_PAGE_SIZE) {
-    remainingPageRequests.push(fetchUsersPage(offset));
-  }
-
-  const remainingPages = await Promise.all(remainingPageRequests);
-
-  for (const page of remainingPages) {
-    appendUsers(users, page.users);
-  }
-
-  return users;
 }
 
 export const Route = createFileRoute("/_auth/admin")({
@@ -111,6 +131,7 @@ function AdminPage() {
   const { session } = Route.useRouteContext();
   const currentUserId = session.data?.user.id;
   const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState<SearchField>("email");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
@@ -118,38 +139,26 @@ function AdminPage() {
   const [confirmingDeleteUserId, setConfirmingDeleteUserId] = useState<string | null>(null);
 
   const usersQuery = useQuery({
-    queryFn: listAllUsers,
-    queryKey: ["staff-admin-users"],
+    queryFn: async () =>
+      await fetchUsersPage({ page: currentPage, roleFilter, search, searchField }),
+    queryKey: ["staff-admin-users", currentPage, roleFilter, search, searchField],
   });
 
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-
-    return (usersQuery.data ?? []).filter((user) => {
-      const role = getUserRole(user);
-      const matchesRole = roleFilter === "all" || role === roleFilter;
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        user.name.toLowerCase().includes(normalizedSearch) ||
-        user.email.toLowerCase().includes(normalizedSearch);
-
-      return matchesRole && matchesSearch;
-    });
-  }, [roleFilter, search, usersQuery.data]);
-
-  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / TABLE_USER_PAGE_SIZE));
+  const totalUsers = usersQuery.data?.total ?? 0;
+  const users = usersQuery.data?.users ?? [];
+  const pageCount = Math.max(1, Math.ceil(totalUsers / TABLE_USER_PAGE_SIZE));
   const visiblePage = Math.min(currentPage, pageCount);
+  const firstVisibleUserNumber = totalUsers === 0 ? 0 : getPageOffset(visiblePage) + 1;
+  const lastVisibleUserNumber = Math.min(getPageOffset(visiblePage) + users.length, totalUsers);
 
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (visiblePage - 1) * TABLE_USER_PAGE_SIZE;
-    const endIndex = startIndex + TABLE_USER_PAGE_SIZE;
+  async function refetchAfterRowRemoval(): Promise<void> {
+    if (users.length === 1 && currentPage > 1) {
+      setCurrentPage((page) => page - 1);
+      return;
+    }
 
-    return filteredUsers.slice(startIndex, endIndex);
-  }, [filteredUsers, visiblePage]);
-
-  const firstVisibleUserNumber =
-    filteredUsers.length === 0 ? 0 : (visiblePage - 1) * TABLE_USER_PAGE_SIZE + 1;
-  const lastVisibleUserNumber = Math.min(visiblePage * TABLE_USER_PAGE_SIZE, filteredUsers.length);
+    await usersQuery.refetch();
+  }
 
   async function updateRole(user: StaffUser) {
     const role = roleDrafts[user.id] ?? getUserRole(user);
@@ -172,6 +181,11 @@ function AdminPage() {
 
       toast.success("Role updated");
       setRoleDrafts(({ [user.id]: _updatedUserRole, ...drafts }) => drafts);
+      if (roleFilter !== "all" && role !== roleFilter) {
+        await refetchAfterRowRemoval();
+        return;
+      }
+
       await usersQuery.refetch();
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -204,7 +218,7 @@ function AdminPage() {
 
       toast.success("User deleted");
       setConfirmingDeleteUserId(null);
-      await usersQuery.refetch();
+      await refetchAfterRowRemoval();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -238,6 +252,25 @@ function AdminPage() {
                 setCurrentPage(1);
               }}
             />
+          </label>
+          <label className="block sm:w-32" htmlFor="admin-search-field">
+            <span className="sr-only">Search by</span>
+            <select
+              id="admin-search-field"
+              className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              value={searchField}
+              onChange={(event) => {
+                const nextSearchField = event.target.value;
+
+                if (isSearchField(nextSearchField)) {
+                  setSearchField(nextSearchField);
+                  setCurrentPage(1);
+                }
+              }}
+            >
+              <option value="email">Email</option>
+              <option value="name">Name</option>
+            </select>
           </label>
           <label className="block sm:w-48" htmlFor="admin-role-filter">
             <span className="sr-only">Filter by role</span>
@@ -290,14 +323,14 @@ function AdminPage() {
                 </TableCell>
               </TableRow>
             ) : null}
-            {usersQuery.isSuccess && filteredUsers.length === 0 ? (
+            {usersQuery.isSuccess && totalUsers === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                   No users found.
                 </TableCell>
               </TableRow>
             ) : null}
-            {paginatedUsers.map((user) => {
+            {users.map((user) => {
               const currentRole = getUserRole(user);
               const selectedRole = roleDrafts[user.id] ?? currentRole;
               const isPending = pendingUserId === user.id;
@@ -381,7 +414,7 @@ function AdminPage() {
 
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">
-          Showing {firstVisibleUserNumber}-{lastVisibleUserNumber} of {filteredUsers.length} users
+          Showing {firstVisibleUserNumber}-{lastVisibleUserNumber} of {totalUsers} users
         </p>
         <div className="flex items-center justify-end gap-2">
           <Button

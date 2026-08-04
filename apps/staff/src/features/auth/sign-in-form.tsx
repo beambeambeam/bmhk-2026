@@ -1,7 +1,12 @@
 import { Button } from "@/components/button";
+import { Input } from "@/components/input";
+import { Label } from "@/components/label";
+import { useForm } from "@tanstack/react-form";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import z from "zod";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
 
@@ -34,9 +39,51 @@ function getInitialOAuthError() {
 }
 
 export default function SignInForm() {
+  const navigate = useNavigate({
+    from: "/login",
+  });
   const oauthError = useMemo(() => getInitialOAuthError(), []);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const { isPending } = authClient.useSession();
+  const form = useForm({
+    defaultValues: {
+      identifier: "",
+      password: "",
+    },
+    onSubmit: async ({ value }) => {
+      const identifier = value.identifier.trim();
+      const isEmail = identifier.includes("@");
+      const credentials = {
+        password: value.password,
+      };
+
+      const response = isEmail
+        ? await authClient.signIn.email({
+            email: identifier,
+            ...credentials,
+          })
+        : await authClient.signIn.username({
+            username: identifier,
+            ...credentials,
+          });
+
+      if (response.error) {
+        toast.error(response.error.message ?? response.error.statusText);
+        return;
+      }
+
+      toast.success("Sign in successful");
+      await navigate({
+        to: "/dashboard",
+      });
+    },
+    validators: {
+      onSubmit: z.object({
+        identifier: z.string().trim().min(1, "Enter your email or username"),
+        password: z.string().min(1, "Enter your password"),
+      }),
+    },
+  });
 
   useEffect(() => {
     if (oauthError === null) {
@@ -102,6 +149,88 @@ export default function SignInForm() {
           )}
           Continue with Microsoft
         </Button>
+
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-muted-foreground text-xs">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void form.handleSubmit();
+          }}
+        >
+          <form.Field name="identifier">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor={field.name}>Email or username</Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  autoComplete="username"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => {
+                    field.handleChange(event.target.value);
+                  }}
+                />
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-destructive text-sm">
+                    {error?.message}
+                  </p>
+                ))}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="password">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor={field.name}>Password</Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  type="password"
+                  autoComplete="current-password"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => {
+                    field.handleChange(event.target.value);
+                  }}
+                />
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-destructive text-sm">
+                    {error?.message}
+                  </p>
+                ))}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Subscribe
+            selector={(state) => ({
+              canSubmit: state.canSubmit,
+              isSubmitting: state.isSubmitting,
+            })}
+          >
+            {({ canSubmit, isSubmitting }) => (
+              <Button type="submit" className="h-10 w-full" disabled={!canSubmit || isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                    Signing in
+                  </>
+                ) : (
+                  "Sign in with password"
+                )}
+              </Button>
+            )}
+          </form.Subscribe>
+        </form>
 
         {oauthError === null ? null : (
           <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

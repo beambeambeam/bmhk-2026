@@ -4,12 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Loader2, Pencil, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const STAFF_ROLES = ["admin", "registrationStaff", "staff", "user"] as const;
-const USER_PAGE_SIZE = 100;
+const API_USER_PAGE_SIZE = 100;
+const TABLE_USER_PAGE_SIZE = 10;
 
 type AuthRole = (typeof STAFF_ROLES)[number];
 
@@ -50,7 +51,7 @@ function getUserRole(user: StaffUser): AuthRole {
 async function fetchUsersPage(offset: number): Promise<UsersPage> {
   const response = await authClient.admin.listUsers({
     query: {
-      limit: USER_PAGE_SIZE,
+      limit: API_USER_PAGE_SIZE,
       offset,
       sortBy: "email",
       sortDirection: "asc",
@@ -79,7 +80,7 @@ async function listAllUsers(): Promise<StaffUser[]> {
 
   const remainingPageRequests: Promise<UsersPage>[] = [];
 
-  for (let offset = USER_PAGE_SIZE; offset < firstPage.total; offset += USER_PAGE_SIZE) {
+  for (let offset = API_USER_PAGE_SIZE; offset < firstPage.total; offset += API_USER_PAGE_SIZE) {
     remainingPageRequests.push(fetchUsersPage(offset));
   }
 
@@ -111,6 +112,7 @@ function AdminPage() {
   const currentUserId = session.data?.user.id;
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [confirmingDeleteUserId, setConfirmingDeleteUserId] = useState<string | null>(null);
@@ -134,6 +136,20 @@ function AdminPage() {
       return matchesRole && matchesSearch;
     });
   }, [roleFilter, search, usersQuery.data]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / TABLE_USER_PAGE_SIZE));
+  const visiblePage = Math.min(currentPage, pageCount);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (visiblePage - 1) * TABLE_USER_PAGE_SIZE;
+    const endIndex = startIndex + TABLE_USER_PAGE_SIZE;
+
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, visiblePage]);
+
+  const firstVisibleUserNumber =
+    filteredUsers.length === 0 ? 0 : (visiblePage - 1) * TABLE_USER_PAGE_SIZE + 1;
+  const lastVisibleUserNumber = Math.min(visiblePage * TABLE_USER_PAGE_SIZE, filteredUsers.length);
 
   async function updateRole(user: StaffUser) {
     const role = roleDrafts[user.id] ?? getUserRole(user);
@@ -219,6 +235,7 @@ function AdminPage() {
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
+                setCurrentPage(1);
               }}
             />
           </label>
@@ -233,6 +250,7 @@ function AdminPage() {
 
                 if (isRoleFilter(nextRoleFilter)) {
                   setRoleFilter(nextRoleFilter);
+                  setCurrentPage(1);
                 }
               }}
             >
@@ -279,7 +297,7 @@ function AdminPage() {
                 </TableCell>
               </TableRow>
             ) : null}
-            {filteredUsers.map((user) => {
+            {paginatedUsers.map((user) => {
               const currentRole = getUserRole(user);
               const selectedRole = roleDrafts[user.id] ?? currentRole;
               const isPending = pendingUserId === user.id;
@@ -359,6 +377,41 @@ function AdminPage() {
             })}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted-foreground">
+          Showing {firstVisibleUserNumber}-{lastVisibleUserNumber} of {filteredUsers.length} users
+        </p>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={visiblePage === 1}
+            onClick={() => {
+              setCurrentPage((page) => Math.max(1, page - 1));
+            }}
+          >
+            <ChevronLeft aria-hidden="true" />
+            Previous
+          </Button>
+          <span className="min-w-20 text-center text-muted-foreground">
+            Page {visiblePage} of {pageCount}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={visiblePage === pageCount}
+            onClick={() => {
+              setCurrentPage((page) => Math.min(pageCount, page + 1));
+            }}
+          >
+            Next
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </div>
       </div>
     </section>
   );

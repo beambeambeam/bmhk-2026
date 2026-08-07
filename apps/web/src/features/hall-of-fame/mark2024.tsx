@@ -3,10 +3,10 @@
  * visible pieces are recomposed at their original insets inside the 300x242 box Figma
  * gives them. Every inset is a percentage, so the mark scales with the box.
  */
-const CRYSTAL = '/assets/figma/7fe73f053542b24d662e0203c618bda9405be29c.png'
-const LETTERING = '/assets/figma/6e1c76a3ea11aa20fb517842f57c146469d5f3c7.svg'
-const PILL = '/assets/figma/6ee2faa5ea064531d4e11bff4e295c5b7ea3e65a.svg'
-const SPARKLE = '/assets/figma/702cfe8d347f9be2095b3a1ae6ee66eaee1334da.svg'
+const CRYSTAL = "/assets/figma/7fe73f053542b24d662e0203c618bda9405be29c.png";
+const LETTERING = "/assets/figma/6e1c76a3ea11aa20fb517842f57c146469d5f3c7.svg";
+const PILL = "/assets/figma/6ee2faa5ea064531d4e11bff4e295c5b7ea3e65a.svg";
+const SPARKLE = "/assets/figma/702cfe8d347f9be2095b3a1ae6ee66eaee1334da.svg";
 
 export default function Mark2024() {
   return (
@@ -52,5 +52,5 @@ export default function Mark2024() {
        * visible pixel either way, so it is left out rather than shipped broken.
        */}
     </div>
-  )
+  );
 }

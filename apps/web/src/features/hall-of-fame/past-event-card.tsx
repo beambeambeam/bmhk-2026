@@ -101,7 +101,7 @@ export default function PastEventCard({ event }: { event: PastEvent }) {
      */
     <article
       ref={revealRef}
-      className={`relative flex min-h-[calc(646.1px_+_153.9*var(--fl))] flex-col overflow-clip rounded-[40px] p-[calc(23.58px_+_16.42*var(--fl))] max-md:w-[280px] max-md:flex-none max-md:snap-start md:flex-row md:items-start md:gap-x-[calc(100%*73/1120)] ${revealCls}`}
+      className={`relative flex min-h-[calc(646.1px_+_153.9*var(--fl))] flex-col overflow-clip rounded-[40px] p-[calc(23.58px_+_16.42*var(--fl))] w-[280px] shrink-0 snap-start md:w-auto md:shrink md:snap-none md:flex-row md:items-start md:gap-x-[calc(100%*73/1120)] ${revealCls}`}
     >
       {photoCrop ? (
         // Figma frames the 2025 shot wider than the card and slides it left

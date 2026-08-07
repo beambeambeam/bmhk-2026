@@ -6,8 +6,8 @@ export const Route = createFileRoute("/_site")({
 
 function RouteComponent() {
   return (
-    <div className="font-thai flex min-h-screen flex-col">
-      <main className="flex-1">
+    <div className="font-thai relative">
+      <main>
         <Outlet />
       </main>
     </div>

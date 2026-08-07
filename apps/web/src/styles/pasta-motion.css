@@ -1,0 +1,361 @@
+/* The homepage's rigatoni flow. Owned by the background track — app-wide micro-motion
+   lives in micro-motion.css, auth-flow motion in auth-motion.css.
+
+   What it does: the twenty rigatoni tubes scattered under the hero drift in from the left,
+   gather into the pile on the right, give each other a small outward nudge as they meet
+   and settle — and then never quite stop, each one turning a slow closed orbit a few
+   pixels wide around the spot it landed on. Everything is one transform per piece, so the
+   whole band is a single composited layer per tube and nothing in the section below it
+   reflows. (This file also holds sign-in's pan turn, at the bottom, which is the same kind
+   of thing and has nowhere better to live.)
+
+   Why it is shaped this way:
+
+   - The rest state is the design. `.pasta-flow` is added only when the band scrolls into
+     view; before that the piece carries `.pasta-flow-armed`, and if the observer never
+     runs — no JS, reduced motion, a server render — the piece has no class at all and
+     sits at the coordinates transcribed from Figma 935:451. A still screenshot is always
+     the composition.
+   - Per-piece variation (offset, spin, scale, delay, duration, nudge direction) is passed
+     in as custom properties from HomeBackground, derived from the piece's index. The
+     keyframes only say *how* a piece travels, never *which* piece it is.
+   - The drift-in curve is a cubic ease-out rather than the app's shared `--mm-ease-out`.
+     That curve is an expo-out, tuned for a menu travelling 8px; over the 500px a tube
+     covers it spends 90% of the distance in the first third of the time, which reads as a
+     whip rather than a drift. The last quarter — the settle — switches to the gentle
+     on-screen curve, because an ease-out landing plus an overshoot reads as a bounce.
+   - `will-change` sits on the armed state only, which is the whole point of the hint: the
+     compositor gets told before the transform starts. Once the animation is running the
+     browser promotes it anyway, and twenty permanent composited layers behind a whole
+     page is not a trade worth making.
+
+   Three bands share these keyframes, and nothing here needs to know which: the 1440 px
+   canvas, the fluid band that runs from `sm` to `lg`, and — since Figma gave the homepage a
+   real 402-wide frame — the phone band in components/MobileHomeBackground.tsx. Each observes
+   its OWN sentinel (a separate `useFlowPhase`), so no band starts because another scrolled
+   into view, and each is handed its own distances: the phone draws the same twenty tubes at
+   0.48 of their desktop size, so its flight covers 0.48 of the desktop distance and reads as
+   the same throw. The idle amplitudes are deliberately NOT scaled with it — see the note on
+   `nudge` in HomeBackground; the smallest movement that reads as alive is a property of the
+   eye, not of the artwork. Only one band is ever mounted at a width (the others are
+   `display: none`, which suspends their animations), so the twenty layers are never doubled. */
+
+/* ------------------------------------------------- the 1440 canvas, narrowed ----
+
+   Every decoration on this site is authored against Figma's 1440 canvas, and the numbers
+   are transcribed as px. `--decor-fit` is the one factor that turns those px into a narrow
+   viewport's: 100vw / 1440, capped at 1 so nothing at or above 1440 moves — that geometry
+   is the design and was measured against it.
+
+   `tan(atan2(a, b))` is the standard way to get a plain number out of two lengths: calc()
+   will not divide a length by a length, but atan2 takes two lengths and returns an angle,
+   and tan turns that back into the ratio a/b. Same trick `.hof-band` and `.team-decor-stage`
+   use in index.css; it lives here as a variable so the three canvases share one definition
+   and so a group's *anchor* can be scaled by it too — `calc(-314px * var(--decor-fit))` —
+   which a bare `scale` on the stage could never do, because a stage's own offsets are
+   outside its transform.
+
+   A stage carries the scale and a `transform-origin` naming the corner it is pinned by.
+   `scale` is the individual transform property, not `transform`: the art inside a stage
+   already uses `transform` for Figma's rotations and flips, and the two must not collide. */
+.decor-fit {
+  --decor-fit: min(1, tan(atan2(100vw, 1440px)));
+}
+
+/* ------------------------------------------------- the no-trig fallback ladder ----
+
+   `tan()` / `atan2()` are Chrome 111+, Safari 15.4+, Firefox 108+. Below any of those the
+   function is unknown, so `min(1, tan(atan2(100vw, 1440px)))` cannot be parsed as a
+   <number>. It still *stores* fine — a custom property is a token stream and is not
+   validated until it is substituted — so the failure surfaces at the consumer: `scale:
+   var(--decor-fit)` becomes invalid at computed-value time and computes to the property's
+   INITIAL value, i.e. `scale: none`. Every decoration canvas would then draw at its authored
+   1440 size on a 375 phone, centred, with only the middle 375px on screen: the garlic, the
+   cutlery, the tomatoes and the closing wave all land somewhere the design never puts them.
+   That is the "backgrounds in the wrong place" failure, not a missing polish.
+
+   There is no pre-trig way to divide a length by a length in CSS, so the fallback is a step
+   ladder in media queries. READ THIS BEFORE "FIXING" THE QUERY SYNTAX: these are written as
+   `min-width`, but Tailwind 4 runs the sheet through Lightning CSS at a hardcoded Safari 16.4
+   / Chrome 111 / Firefox 128 target (node_modules/@tailwindcss/node, not configurable and not
+   affected by a browserslist), and the optimizer rewrites every one of them to the Media
+   Queries 4 range form — `@media (width >= 384px)`, which is itself Safari 16.4+. Verified in
+   the build output. There is no way to keep the legacy form from inside a Tailwind pipeline.
+
+   That is fine, and the reason is worth writing down. Line up the two floors per engine:
+
+     Chrome/Edge   range 104, trig 111  ->  104-110 needs this ladder and can read it   ✓
+     Firefox       range 102, trig 108  ->  102-107 needs this ladder and can read it   ✓
+     Safari        trig 15.4, range 16.4 -> trig lands FIRST, so no Safari both needs
+                                            the ladder and can read it
+
+   So the ladder covers every engine that lacks trig *and can still render this site*. Safari
+   below 15.4 cannot read it — but that Safari also cannot read a single Tailwind breakpoint
+   for the same range-syntax reason, so it renders the base mobile layout at every width and is
+   not recoverable by anything in this file. See the report in index.css's `@supports not
+   (overflow: clip)` note for what IS recoverable there.
+
+   One step is 96px, which is exactly 1/15 of 1440 — so every rung is n/15 and the ladder
+   reads as "how many fifteenths of the canvas fit". Each rung carries its band's UPPER bound
+   rather than its midpoint, so the value is never BELOW the true 100vw/1440. That direction
+   is the safe one for all three consumers: too large means a few more px of a canvas are
+   cropped by an `overflow` that is already cropping it, where too small means white down the
+   sides of `.hof-band`. Worst-case error is +6.7% at the bottom of a band, against the
+   +300% of no fallback at all.
+
+   `--vw-1440` is published on `:root` for index.css's `.team-decor-stage` and `.hof-band`
+   to read as well — the three of them are the same ratio and must not drift apart. */
+@supports not (scale: tan(atan2(1px, 1px))) {
+  :root {
+    --vw-1440: 0.2667; /* below 384 */
+  }
+  @media (min-width: 384px) {
+    :root {
+      --vw-1440: 0.3334;
+    }
+  }
+  @media (min-width: 480px) {
+    :root {
+      --vw-1440: 0.4;
+    }
+  }
+  @media (min-width: 576px) {
+    :root {
+      --vw-1440: 0.4667;
+    }
+  }
+  @media (min-width: 672px) {
+    :root {
+      --vw-1440: 0.5334;
+    }
+  }
+  @media (min-width: 768px) {
+    :root {
+      --vw-1440: 0.6;
+    }
+  }
+  @media (min-width: 864px) {
+    :root {
+      --vw-1440: 0.6667;
+    }
+  }
+  @media (min-width: 960px) {
+    :root {
+      --vw-1440: 0.7334;
+    }
+  }
+  @media (min-width: 1056px) {
+    :root {
+      --vw-1440: 0.8;
+    }
+  }
+  @media (min-width: 1152px) {
+    :root {
+      --vw-1440: 0.8667;
+    }
+  }
+  @media (min-width: 1248px) {
+    :root {
+      --vw-1440: 0.9334;
+    }
+  }
+  @media (min-width: 1344px) {
+    :root {
+      --vw-1440: 1; /* capped, as `min(1, …)` does */
+    }
+  }
+
+  /* The `min(1, …)` cap is already in the ladder, so this is a straight substitution. */
+  .decor-fit {
+    --decor-fit: var(--vw-1440);
+  }
+}
+
+/* The one clock. Four decorations turn across this site — sign-in's pan and its shaker
+   ring, hall of fame's pan ring, and the 404's shrimp ring — and the comments below each
+   of them insist the period must be identical, because two rings at 96s and 92s read as
+   two clocks rather than as one slow world. It was written as a literal in three files;
+   now it is written once. ~23px/s at a rim, which is a lazy turn you notice only if you
+   look at it and never a spinner: raising it is not a tuning knob, it is a redesign. */
+:root {
+  --turn-period: 96s;
+}
+
+.decor-stage {
+  scale: var(--decor-fit);
+}
+
+@keyframes pasta-flow {
+  0% {
+    transform: translate3d(var(--pasta-dx), var(--pasta-dy), 0) rotate(var(--pasta-spin))
+      scale(var(--pasta-scale));
+    opacity: 0;
+  }
+
+  /* In view well before the piece lands — a tube that fades all the way to its resting
+     spot reads as a slideshow, not as something arriving. */
+  30% {
+    opacity: 1;
+  }
+
+  /* The nudge: a few px past the resting spot, away from the pile's centre. */
+  76% {
+    transform: translate3d(var(--pasta-px), var(--pasta-py), 0) rotate(0deg) scale(1);
+    opacity: 1;
+    animation-timing-function: var(--mm-ease, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Armed: the piece is parked at the animation's first frame, waiting for the band to
+   scroll in. Same values as the 0% keyframe, so arming and starting cannot disagree. */
+.pasta-flow-armed {
+  transform: translate3d(var(--pasta-dx), var(--pasta-dy), 0) rotate(var(--pasta-spin))
+    scale(var(--pasta-scale));
+  opacity: 0;
+  will-change: transform;
+}
+
+/* The idle: a closed orbit around the resting pose, running for as long as the page is
+   open. Both ends are the rest pose, so it can be looped and it can be stopped at any
+   time without leaving a piece somewhere the design never puts it.
+
+   It is an ellipse traced through four stops — right/up, up, left/up, back — with a
+   sine-like ease on every quarter rather than `linear`, because four linear segments
+   read as a diamond. The rotation swings the other way at the halfway mark, so a tube
+   rocks as it drifts instead of sliding rigidly. Amplitudes come from HomeBackground and
+   are single-digit pixels: at any frame the band is still the Figma arrangement. */
+@keyframes pasta-idle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate3d(var(--pasta-idle-x), calc(var(--pasta-idle-y) * -1), 0)
+      rotate(var(--pasta-idle-r));
+  }
+
+  50% {
+    transform: translate3d(0, calc(var(--pasta-idle-y) * -2), 0) rotate(0deg);
+  }
+
+  75% {
+    transform: translate3d(calc(var(--pasta-idle-x) * -1), calc(var(--pasta-idle-y) * -1), 0)
+      rotate(calc(var(--pasta-idle-r) * -1));
+  }
+}
+
+/* Two animations on one property: the arrival is `both`, so it would hold the piece for
+   ever, but a later animation in the list wins over an earlier one *while it is running*,
+   and the idle's delay is exactly when the arrival ends. So the arrival owns the transform
+   until it finishes and the idle owns it from then on, with no gap and no third element to
+   nest. `will-change` is deliberately not set: this runs for the life of the page, and
+   twenty permanently promoted layers is a worse trade here than on a 2s entrance. */
+.pasta-flow {
+  animation:
+    pasta-flow var(--pasta-duration) cubic-bezier(0.33, 1, 0.68, 1) var(--pasta-delay) both,
+    pasta-idle var(--pasta-idle-duration) cubic-bezier(0.37, 0, 0.63, 1) var(--pasta-idle-delay)
+      infinite;
+}
+
+/* The animation is only ever armed from JS, which does not arm it under reduced motion —
+   this is the belt to that braces: if either class is somehow present, drop the motion
+   and leave the piece at its Figma coordinates. */
+@media (prefers-reduced-motion: reduce) {
+  .pasta-flow-armed,
+  .pasta-flow {
+    animation: none;
+    transform: none;
+    opacity: 1;
+    will-change: auto;
+  }
+}
+
+/* ----------------------------------------------------------- the 360deg turn ----
+
+   One turn, shared by the two rings below. Sign-in's pan used to be a third consumer via
+   `.auth-pan-turn`, with a hand-solved `transform-origin: 49.7% 59.1%` (the bowl's centre in
+   the 654x465 art, since turning that drawing about its box centre orbited it around a point
+   50px under the bowl). That rule is gone — the pan is static by design now, and
+   AuthBackdrop renders it as a single element rather than the wrapper-plus-image split the
+   turn needed. The keyframe stays: both rings still want exactly this animation, at the same
+   period, so the decorations across the site read as one clock. */
+@keyframes pan-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------- the hall-of-fame pan ring ----
+
+   The other pan. Hall of fame's hero carries a ring of nine pans, and it turns the same
+   way sign-in's single pan and shaker ring do: one group, 96s, linear, so the three
+   decorations across the site read as one clock.
+
+   As with sign-in's pan, the whole difficulty is the origin, and here the box centre is
+   not even close. Figma's "Pan" frame is 1754x1115 and hangs 314 off the right edge of the
+   1440 canvas; the ring inside it is a ~177 radius circle whose centre is the mean of the
+   nine pans' own centres, (1330.8, 377.2) — 1331 across the 1440 canvas, which is the
+   whole reason the ring half-leaves the page. As a fraction of the frame that is
+   1330.8/1754 = 75.87% across and 377.2/1115 = 33.82% down. Turning about 50% 50% instead
+   would drag the ring 500px left and 190px down through the page on every revolution.
+
+   The nine pans are grouped and the group is turned, rather than each pan being animated:
+   one composited layer, and every pan keeps the angle Figma gave it relative to the ring.
+   The grey plate is left out of the group on purpose — see components/HallOfFameDecor.tsx.
+
+   Reuses `pan-turn` above; there is only one 360deg turn in this file and both rings want
+   exactly it. */
+.hof-pan-ring {
+  transform-origin: 75.87% 33.82%;
+  animation: pan-turn var(--turn-period, 96s) linear infinite;
+  /* nine PNGs under one transform — promote the group once, not nine layers per frame */
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hof-pan-ring {
+    animation: none;
+    will-change: auto;
+  }
+}
+
+/* ----------------------------------------------------- the 404's shrimp ring ----
+
+   Structurally the third of the same object: eight shrimp ringed around the centre of
+   their own 447.75x448.09 box, the way the shaker ring is eight shakers and the pan ring
+   is nine pans. It was the only one of the three standing still, on the one page whose
+   whole job is to soften a dead end — a page that does not move reads as broken twice.
+
+   Origin is the plain box centre, unlike either pan: the eight shrimp are laid out on a
+   circle about the middle of the box, so their mean *is* 50% / 50% (see the coordinate
+   table in pages/NotFound.tsx). Same `pan-turn`, same period token, same reason.
+
+   The class goes on the ring GROUP, never on a shrimp: each shrimp box already carries its own
+   `rotate(...) scaleY(-1)` inline, and an animation on `transform` would overwrite it and
+   flatten the arrangement. Same split as the pan ring above.
+
+   That ORDER is load-bearing and was wrong here for a while. Figma emits `-scale-y-100
+   rotate-[Ndeg]`, which are the INDIVIDUAL `scale`/`rotate` properties, and css-transforms-2
+   composes those translate → rotate → scale. Hand-writing them into one `transform` in Figma's
+   textual order applies scale first, and since `S·R(N) === R(−N)·S` that negates every angle —
+   which turned this ring into a heap of prawns lying across each other. Anywhere a single
+   `transform` string carries both a flip and a rotation, the rotation goes first. */
+.nf-shrimp-ring {
+  transform-origin: 50% 50%;
+  animation: pan-turn var(--turn-period, 96s) linear infinite;
+  /* eight PNGs under one transform — promote the group once, not eight layers per frame */
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-shrimp-ring {
+    animation: none;
+    will-change: auto;
+  }
+}

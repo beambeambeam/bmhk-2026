@@ -1,0 +1,1012 @@
+/* App-wide micro-interaction keyframes and view-transition rules.
+   Owned by the micro-interactions track — auth-flow motion lives in auth-motion.css.
+
+   One vocabulary for the whole app: four durations, three curves, no per-component
+   magic numbers. Everything that moves is transform/opacity (plus one-shot
+   grid-template-rows for the two collapsibles, which cannot be done with a transform
+   without distorting the text).
+
+   Structure, and why it is shaped this way: the base rules below carry only the
+   opacity/colour half of each interaction, which is what reduced motion should keep.
+   Every transform and every transition lives in the
+   `prefers-reduced-motion: no-preference` blocks further down, so switching the OS
+   setting on removes the movement without leaving an element stuck mid-state — nothing
+   needs a second "undo" rule. Hover effects are additionally gated on a fine pointer,
+   because touch fires :hover on tap. */
+
+:root {
+  /* Enter / exit / reveal. Same curve the scroll reveal in index.css uses, so a card
+     arriving on scroll and a menu opening under the thumb read as one system. */
+  --mm-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* On-screen movement that starts and ends in view — the tab indicator. */
+  --mm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Hover and colour: no punch wanted, just "not instant". */
+  --mm-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --mm-press: 110ms; /* press feedback — must feel simultaneous with the finger */
+  --mm-fast: 160ms; /* hover, icon swaps, colour */
+  --mm-base: 220ms; /* accordion, menu, tab indicator, modal exit */
+  --mm-slow: 300ms; /* modal enter — the one thing allowed to take its time */
+}
+
+/* ---------------------------------------------------------------- collapsibles
+   FAQ answers and the mobile nav panel. A 0fr→1fr grid row is the only way to get a
+   content-height collapse; the row is animated once per click, never in a loop, and the
+   inner element also fades so the text does not appear to slide out of a hard edge.
+   The rows themselves are declared outside the motion guard: with reduced motion the
+   open/closed states still apply, they just swap instantly. */
+.mm-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* clips on the container too, so a collapsed panel cannot leak its own drop shadow */
+  overflow: clip;
+}
+
+.mm-collapse > * {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.mm-collapse.is-open {
+  grid-template-rows: 1fr;
+}
+
+.mm-collapse.is-open > * {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------------ links
+   Nav and footer links only change colour, and colour is safe under reduced motion, so
+   this one lives outside the guard. Links are hovered dozens of times a session — a
+   fast tint is the whole budget; anything that moves would be noise. */
+.mm-link {
+  transition: color var(--mm-fast) var(--mm-ease);
+}
+
+/* ------------------------------------------------- the pressables' colour half
+ * `transition` is a SHORTHAND, so a second `transition` declaration on the same element
+ * replaces the first outright — the two lists never merge. That is the whole reason this
+ * block exists as its own rule rather than being folded into the `.mm-press` rule inside
+ * the motion guard below: the guarded rule has to restate colour and opacity alongside
+ * translate and scale, and this rule is what is left when the guard does not apply.
+ *
+ * It is also the fix for a defect that hit twenty call sites. `@import 'tailwindcss'`
+ * puts every utility in `@layer utilities`, and an UNLAYERED declaration beats a layered
+ * one whatever its specificity — so `.mm-press { transition: transform … }` was silently
+ * winning over the `transition-opacity` / `transition-colors` utility written beside it on
+ * the element, and `transition-property` came out as the single value `transform`. Every
+ * `hover:opacity-90` and `hover:border-brand-red` in the app was landing in one frame.
+ * Fixing it centrally here is what lets those call sites keep the utility they already
+ * wrote — none of them has to win the cascade, because nothing is fighting them any more. */
+.mm-press,
+.mm-press-icon {
+  transition:
+    color var(--mm-fast) var(--mm-ease),
+    background-color var(--mm-fast) var(--mm-ease),
+    border-color var(--mm-fast) var(--mm-ease),
+    opacity var(--mm-fast) var(--mm-ease);
+}
+
+/* -------------------------------------------------------------- two-state icons
+   Hamburger↔close, copy↔tick. Both glyphs are stacked in one grid cell and cross-fade,
+   so the button never reflows and the swap has no empty frame. */
+.mm-swap {
+  display: grid;
+  place-items: center;
+}
+
+.mm-swap > * {
+  grid-area: 1 / 1;
+}
+
+.mm-swap[data-on="true"] .mm-swap-off,
+.mm-swap[data-on="false"] .mm-swap-on {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------- plus ↔ minus
+   The FAQ toggle is two copies of the same minus asset, so "collapsed" is the second
+   copy stood on end. Rotating it back down as it fades makes the plus fold into the
+   minus instead of blinking out. The rotation is the base state: with reduced motion the
+   bar stays upright and only the fade remains.
+
+   `rotate`, the individual property, not `transform: rotate(…)` — see the sweep note above
+   `.mm-press`. Here it is not about winning a cascade fight but about not starting one: the
+   glyph is an `<img>` inside a `.mm-press-child`/`.mm-icon-pop` box (FaqSection.tsx), i.e. a
+   subtree this file already animates on `scale`, and a `transform` on a sibling axis is the
+   one thing that would make those two rules exclusive rather than additive. */
+.mm-toggle-bar {
+  rotate: 90deg;
+}
+
+.mm-toggle-bar[data-open="true"] {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------- dialogues
+   Scrim and sheet are driven by a data-state the component flips a frame after mount
+   and back before unmount, so the exit is as considered as the entrance. Modals keep
+   a centre origin on purpose: unlike a popover they are not anchored to a trigger.
+
+   NO CURRENT CONSUMER — audited 2026-08-07. Both dialogues on the site (PolicyModal,
+   team/ResultModal) drive `.auth-modal-scrim` / `.auth-modal-sheet` from auth-motion.css,
+   which is the richer vocabulary: it grows the sheet out of the row that opened it via
+   `--auth-origin-x/y`, and staggers the sheet's regions in with `.auth-modal-part`. This
+   pair is kept as the unanchored fallback — a dialogue with no trigger to grow from — and
+   is deliberately timed the same way (exit at `--mm-base`, entry at `--mm-slow`), so
+   adopting it cannot introduce a second set of modal timings. If a second dialogue
+   vocabulary is still unused at the next sweep, delete this block rather than re-tune it. */
+.mm-scrim {
+  opacity: 0;
+}
+
+.mm-scrim[data-state="open"] {
+  opacity: 1;
+}
+
+.mm-sheet {
+  opacity: 0;
+}
+
+.mm-sheet[data-state="open"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mm-collapse {
+    transition: grid-template-rows var(--mm-base) var(--mm-ease-out);
+  }
+
+  .mm-collapse > * {
+    transition: opacity var(--mm-base) var(--mm-ease-out);
+  }
+
+  /* Both glyphs carry the transition, not just the outgoing one — that is what makes the swap
+     reversible. Each glyph animates its own scale/rotate/opacity in whichever direction the
+     attribute just moved, so closing is the opening played backwards rather than a second
+     animation that happens to end where the first began. */
+  .mm-swap-off,
+  .mm-swap-on {
+    transition:
+      opacity var(--mm-fast) var(--mm-ease),
+      scale var(--mm-fast) var(--mm-ease-out),
+      rotate var(--mm-fast) var(--mm-ease-out);
+  }
+
+  /* the outgoing glyph shrinks away rather than dissolving in place */
+  .mm-swap[data-on="true"] .mm-swap-off,
+  .mm-swap[data-on="false"] .mm-swap-on {
+    scale: 0.7;
+  }
+
+  .mm-toggle-bar {
+    transition:
+      opacity var(--mm-base) var(--mm-ease),
+      rotate var(--mm-base) var(--mm-ease-out);
+  }
+
+  .mm-toggle-bar[data-open="true"] {
+    rotate: 0deg;
+  }
+
+  /* The hamburger rotates through the swap, so open/close reads as one gesture.
+   *
+   * These used to be `transform: scale(0.7) rotate(±90deg)`, which made them a REPLACEMENT for
+   * the plain `scale(0.7)` above rather than an addition to it: both selectors are (0,3,0), so
+   * the fact that the rotating pair won at all was down to source order and nothing else, and
+   * moving either block would have silently dropped the shrink. Written as `rotate` alone the two
+   * rules compose — `.mm-swap` supplies the scale, `.mm-swap-rotate` adds the spin — and there is
+   * no tie left to lose. It is also the one place in this file where the shorthand's composition
+   * order genuinely mattered: `scale(0.7) rotate(-90deg)` is S·R, and only because the scale is
+   * UNIFORM does that happen to equal R·S. A non-uniform scale there would have negated the
+   * angle, which is the bug `.nf-shrimp-ring` documents in pasta-motion.css. */
+  .mm-swap-rotate[data-on="true"] .mm-swap-off {
+    rotate: -90deg;
+  }
+
+  .mm-swap-rotate[data-on="false"] .mm-swap-on {
+    rotate: 90deg;
+  }
+
+  /* Press feedback. Scale, not colour, because it must land on pointer-down and read
+     the same on every surface.
+   *
+   * EVERY interaction transform in this file is written as `translate` / `scale` — the
+   * individual transform properties — and never as the `transform` shorthand. Same reason
+   * `.team-decor-stage` and the pasta bands already do it (index.css, pasta-motion.css):
+   * `transform` is one property, so whoever writes it last wins the whole thing, and on
+   * these elements someone else is always writing it. The scroll reveal is the case that
+   * bit: `.reveal.is-visible` / `.reveal-group.is-visible > *` set `transform: none` at
+   * 0-2-0 from a sheet that loads after this one, which beat `.mm-lift:hover` (0-2-0) and
+   * `.mm-press:active` (0-1-0) outright — the three `/guide` cards and the two contact
+   * channels measured `transform: none` on hover, so their 4px lift never happened at all.
+   * `translate` and `scale` are separate properties that compose in a fixed order, so the
+   * reveal can own `transform` and the interaction can own its own axis, and neither has
+   * to out-specify the other. */
+  .mm-press,
+  .mm-press-icon {
+    transition:
+      translate var(--mm-press) var(--mm-ease-out),
+      scale var(--mm-press) var(--mm-ease-out),
+      color var(--mm-fast) var(--mm-ease),
+      background-color var(--mm-fast) var(--mm-ease),
+      border-color var(--mm-fast) var(--mm-ease),
+      opacity var(--mm-fast) var(--mm-ease);
+  }
+
+  .mm-press:active {
+    scale: 0.97;
+  }
+
+  /* small icon-only controls need a deeper scale to register at all */
+  .mm-press-icon:active {
+    scale: 0.9;
+  }
+
+  /* Press feedback for a full-width trigger (an accordion row), where scaling the whole
+     row would shift the copy under the reader's eye: the glyph takes the press instead. */
+  .mm-press-child {
+    transition: scale var(--mm-press) var(--mm-ease-out);
+  }
+
+  /*
+   * `transition-duration` is restated HERE, on the state, rather than left to the rule above.
+   *
+   * The FAQ toggle carries `mm-press-child` AND `mm-icon-pop` (FaqSection.tsx) because it needs
+   * both a press shrink and a hover swell, and both of those classes declare `transition: scale`.
+   * Equal specificity, so the later one — `.mm-icon-pop`, forty lines down — replaced the whole
+   * shorthand, and the press ran at `--mm-fast` (160ms) instead of the `--mm-press` (110ms) this
+   * class exists to guarantee. The same shorthand-replacement trap this file documents at the
+   * top, one element deeper: it is not `transform` this time, it is `transition` itself.
+   *
+   * Naming the duration on `:active` fixes it for any combination: whichever class wins the
+   * shorthand, the pressed state overrides only its duration, and the hover swell keeps 160ms.
+   */
+  :is(a, button):active .mm-press-child {
+    scale: 0.88;
+    transition-duration: var(--mm-press);
+  }
+
+  .mm-lift {
+    transition: translate var(--mm-base) var(--mm-ease-out);
+  }
+
+  .mm-arrow-shift,
+  .mm-arrow-down {
+    transition: translate var(--mm-fast) var(--mm-ease-out);
+  }
+
+  .mm-icon-pop {
+    transition: scale var(--mm-fast) var(--mm-ease-out);
+  }
+
+  /* Tab indicator. The bar is one element positioned by an inline transform, so the
+     active state slides between tabs instead of being redrawn under each one. Only the
+     transition is guarded — the transform itself is layout, and must always apply. */
+  .mm-indicator {
+    transition: transform var(--mm-base) var(--mm-ease-in-out);
+  }
+
+  .mm-scrim {
+    transition: opacity var(--mm-base) var(--mm-ease-out);
+  }
+
+  /* Enter is slower than exit: arriving is an event, leaving should get out of the way.
+     Nothing scales from 0 — the sheet is already almost full size before it fades in.
+
+     `translate` + `scale` rather than `transform: translateY(8px) scale(0.98)`, and the open
+     state resets BOTH longhands rather than writing `transform: none`. That reset is the
+     asymmetry this shape avoids: `transform: none` clears one property and so cannot leave
+     anything behind, but it also clears any `translate`/`scale` a call site had put on the
+     sheet for layout (a `-translate-x-1/2` centring, say — Tailwind v4 compiles that to the
+     `translate` PROPERTY), which is exactly how a modal ends up centred on the way out and
+     half a width off on the way in. Naming both axes keeps the two directions identical. */
+  .mm-sheet {
+    translate: 0 8px;
+    scale: 0.98;
+    transition:
+      opacity var(--mm-base) var(--mm-ease-out),
+      translate var(--mm-base) var(--mm-ease-out),
+      scale var(--mm-base) var(--mm-ease-out);
+  }
+
+  .mm-sheet[data-state="open"] {
+    translate: 0 0;
+    scale: 1;
+    transition-duration: var(--mm-slow);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .mm-lift:hover {
+    translate: 0 -4px;
+  }
+
+  /* an arrow that points out of the button leans in the direction it points */
+  :is(a, button):hover .mm-arrow-shift {
+    translate: 3px -3px;
+  }
+
+  :is(a, button):hover .mm-arrow-down {
+    translate: 0 3px;
+  }
+
+  /* `:not(:active)` so a glyph that is BOTH the hover cue and the press cue — the FAQ
+     toggle carries `mm-icon-pop` and `mm-press-child` — still shrinks under the finger.
+     The hover block loads after the press rules, so without this the pop would win. */
+  :is(a, button):hover:not(:active) .mm-icon-pop {
+    scale: 1.08;
+  }
+}
+
+/* ------------------------------------------------------- the same states, from the keyboard
+ *
+ * Every glyph cue above is gated on `(hover: hover) and (pointer: fine)` — correctly, because
+ * touch fires `:hover` on tap and would leave the arrow leaning after the finger left. But that
+ * gate also excluded the keyboard, and a keyboard user is on a fine-pointer machine reaching the
+ * same controls: tabbing onto the hero CTA, the PDF pill, a contact channel or a footer social
+ * row moved nothing at all. The affordance existed for one input modality and not the other,
+ * which is the same incompleteness as an animation that plays one way and snaps the other.
+ *
+ * So the informational cues — the arrow that leans the way it will travel, the glyph that
+ * acknowledges its row — are restated for `:focus-visible`, OUTSIDE the pointer query. The
+ * `.mm-lift` card translate is deliberately NOT among them: its one call site is an `<article>`
+ * with no focusable descendant (ScopeSection.tsx), so the rule would be dead, and a dead motion
+ * rule is worse than a missing one because the next reader has to prove it dead again.
+ *
+ * `:focus-visible` and never `:focus`: the UA only matches it for keyboard and AT focus, so a
+ * mouse click cannot leave a control stuck in its focused pose after the pointer has gone — the
+ * exact failure the pointer gate exists to prevent, arriving by the other door.
+ *
+ * No new transitions are declared. Each of these properties is already in its element's
+ * transition list a few rules up, which is what makes the focus-OUT animate back rather than
+ * snap; restating a `transition` here would replace that list, since it is a shorthand. */
+@media (prefers-reduced-motion: no-preference) {
+  :is(a, button):focus-visible .mm-arrow-shift {
+    translate: 3px -3px;
+  }
+
+  :is(a, button):focus-visible .mm-arrow-down {
+    translate: 0 3px;
+  }
+
+  /* same `:not(:active)` carve-out as the hover rule, and for the same reason */
+  :is(a, button):focus-visible:not(:active) .mm-icon-pop {
+    scale: 1.08;
+  }
+}
+
+/* ------------------------------------------------------------- shared enters
+   Two one-shot arrivals used by the panels and cards other tracks own. They live here
+   rather than beside their call sites because both are the same gesture as the scroll
+   reveal — a short rise on the shared ease-out — and there should be one copy of it.
+   `backwards` on the panel and `both` on the card: a panel is mounted and then left
+   alone, while a card may be given a delay and must hold its start frame through it. */
+@media (prefers-reduced-motion: no-preference) {
+  .mm-panel {
+    animation: mm-panel-in var(--mm-base) var(--mm-ease-out) backwards;
+  }
+
+  .mm-card-in {
+    animation: mm-card-in 280ms var(--mm-ease-out) both;
+  }
+}
+
+@keyframes mm-panel-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes mm-card-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* ===================================== the marketing pages' second layer of arrival
+ *
+ * Everything in this block hangs off the SCROLL REVEAL rather than off a pointer: `useReveal`
+ * writes `is-visible` on a card, and these rules let one piece INSIDE that card arrive a beat
+ * after the card itself. That is the whole design. The reveal says "a card landed"; this layer
+ * says "and then it assembled". None of it is a second entrance competing with the first —
+ * every rule is delayed PAST `--reveal-delay`, the stagger the per-card reveals publish inline
+ * (index.css) and which inherits, being a custom property, down to exactly these children. So
+ * the third scope card's doodle band is still 140ms behind the second's, for free — the ladder
+ * is not re-derived here, it is read.
+ *
+ * FOUR constraints shape every selector below, and each has already cost a round in this repo:
+ *
+ * - `transform` IS NOT AVAILABLE, anywhere in here. The reveal owns it on the card
+ *   (`translateY(24px)` -> `none`, index.css) and Figma's own rotations own it on the art — the
+ *   two tilted step photos, the calendar's tipped plate, every doodle in ScopeCardArt. So each
+ *   rule takes `translate`, `scale` or `rotate`, the individual properties, which COMPOSE with
+ *   whatever `transform` is already there (in the fixed order translate, rotate, scale, then
+ *   `transform`) instead of replacing it. This is the same rule `.mm-lift` and `.mm-press`
+ *   already follow, for the same reason, and the note beside them is the long version.
+ *   It is also what makes the fan below possible at all: `rotate` here ADDS to Figma's inline
+ *   `transform: rotate(-27.38deg)`, so animating to `rotate: 0deg` lands the photo exactly on
+ *   the angle the design draws without this file needing to know what that angle is.
+ *
+ * - THE "FROM" STATE LIVES INSIDE THE MOTION GUARD, never outside it. `is-visible` is written
+ *   by the hook whatever the OS setting says, so a start state declared outside the guard would
+ *   leave a reduced-motion reader looking at a permanently invisible doodle band with no rule
+ *   left to bring it back. Under `reduce` none of these rules exist and every piece renders at
+ *   its resting value — which is deliberately also its FINAL value, so nothing is missing.
+ *
+ * - NO OUTWARD TRAVEL, ever. `documentElement.scrollWidth` must equal `clientWidth` on every
+ *   route at every width, so anything that moves horizontally moves INWARD and settles (the
+ *   step fan closes toward the plate's centre before opening to rest) and anything that scales
+ *   past 1 does so inside a box that already clips (the calendar bowl). No frame of any
+ *   animation here can push a box past an edge that is not already clipping it.
+ *
+ * - DURATIONS ARE THE REVEAL'S, NOT THE UI SCALE'S. `--mm-fast`/`--mm-base` are budgeted for a
+ *   control answering a finger. These run alongside a 600ms scroll reveal on a marketing page,
+ *   and a 200ms flourish inside a 600ms arrival reads as a glitch in it. 620-700ms is the
+ *   reveal's own tempo; `--mm-ease-out` is literally the reveal's own curve, so the card and
+ *   the thing inside it are one gesture rather than two.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* --------------------------------------------------------------------------- the fan
+   * Steps' illustration plates. The team card is three student photos fanned out, and it
+   * ARRIVES as a fan: the two tilted copies start nearer upright and nearer the middle, then
+   * swing out to Figma's angles. The one-photo plates (advisor, documents) get only the scale,
+   * which is the same gesture with nothing to fan.
+   *
+   * The tilt deltas are ~half of Figma's own angles (-27.38 and 26.89), so the closed pose is
+   * a recognisable narrower fan rather than a stack — a photo rotated all the way to 0 would
+   * read as three photos that were accidentally on top of each other. Inward translate is a
+   * percentage of the photo's own width, so it holds at every card width.
+   */
+  .reveal .mm-fan > * {
+    scale: 0.9;
+    transition:
+      scale 620ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 120ms),
+      rotate 620ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 120ms),
+      translate 620ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 120ms);
+  }
+
+  /* `:nth-child`, not a class: Figma paints the upright centre photo FIRST and the two tilted
+     ones over it (see TEAM_PHOTOS in Steps.tsx), so paint order already IS the fan's order and
+     the selector should read it rather than duplicating the fact as markup. The one-photo plates
+     simply have no 2nd or 3rd child, so the same rule covers all three cards.
+
+     Purely horizontal, no y term — a small downward one read slightly more natural and is not
+     worth the risk: `PLATE_GAP` in Steps.tsx ramps to ZERO at 402, so on the phone the plate
+     butts straight onto the card title and any downward travel would put a photo over the copy
+     for the length of the animation. A fan closes sideways anyway. */
+  .reveal .mm-fan > *:nth-child(2) {
+    rotate: 13deg;
+    translate: 22% 0;
+  }
+
+  .reveal .mm-fan > *:nth-child(3) {
+    rotate: -13deg;
+    translate: -22% 0;
+  }
+
+  /* THIS RULE MUST STAY BELOW THE TWO ABOVE. `:nth-child()` counts as a class, so
+     `.reveal .mm-fan > *:nth-child(2)` and `.reveal.is-visible .mm-fan > *` are BOTH (0,3,0) —
+     an exact tie, and source order is the only thing that decides it. Moved above them, the
+     open pose would lose and the fan would never unfold. */
+  .reveal.is-visible .mm-fan > * {
+    scale: 1;
+    rotate: 0deg;
+    translate: 0 0;
+  }
+
+  /* ------------------------------------------------------------------------ the settle
+   * One piece of card art that starts a few percent off its resting size and closes onto it,
+   * a beat behind the card. Two call sites, one rule, because the direction is a variable:
+   *
+   *   PastEventCard's wordmark  0.94 -> 1   grows, so the trophy plate reads as stamped
+   *   Calendar's tipped plate   1.06 -> 1   shrinks, a slow settle onto a food photo
+   *
+   * The bowl has to be the shrinking one. It is `w-[106.29%]` inside an `overflow-hidden`
+   * card, i.e. already wider than the box that clips it, so growing from under 1 could pull
+   * its edge inside the card and show a seam where the design shows plate. Starting large and
+   * settling can never expose anything.
+   *
+   * `scale` alone, no `translate`, and that is forced rather than chosen: below `md` the
+   * wordmark box is centred with Tailwind's `-translate-x-1/2`, which in v4 compiles to the
+   * `translate` PROPERTY. Animating `translate` there would drop the -50% and throw the
+   * wordmark half its own width off centre. `scale` is the one axis nobody else is using.
+   */
+  .reveal .mm-settle {
+    scale: var(--mm-settle-from, 0.94);
+    transition: scale 640ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 140ms);
+  }
+
+  .reveal.is-visible .mm-settle {
+    scale: 1;
+  }
+
+  /* --------------------------------------------------------------- the section heading's lead
+   *
+   * A `SectionHeader` is a number over a title over a description, and it used to arrive as one
+   * flat slab — the number, the 34px title and three lines of copy all painting in the same
+   * frame, at seven call sites. Everything else composed of parts in this repo staggers.
+   *
+   * Only the SECOND child moves, and only by 6px. The header already rides the caller's
+   * `.reveal` (opacity + 24px of translate over 600ms), so this is not a second entrance — it
+   * is the same one, arriving 90ms later for the title block than for the number. Two stops is
+   * enough to read as sequence; a third would turn a heading into a title card.
+   *
+   * `> :nth-child(2)` rather than a class on the div: what is being described is "the part
+   * after the number", which is a position, and the component has exactly two children by
+   * construction. `--reveal-delay` is respected so a header inside a staggered group keeps its
+   * place in that queue instead of resetting it.
+   */
+  .reveal .mm-header-lead > :nth-child(2) {
+    opacity: 0;
+    translate: 0 6px;
+    transition:
+      opacity 520ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 90ms),
+      translate 520ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 90ms);
+  }
+
+  .reveal.is-visible .mm-header-lead > :nth-child(2) {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* ------------------------------------------------------------------- the doodle band
+   * /guide's three scope cards each carry a loose vector drawing above the folder, and it is
+   * the identity of that page. It used to paint in the same frame as the card, which made the
+   * busiest thing on the card the flattest. Now it lifts in behind the copy.
+   *
+   * `.scope-art-stage` is targeted directly rather than through a new class: the hook already
+   * exists — ScopeCardArt sets it so index.css's `@supports not` block has something to write
+   * `--art-fit-fallback` on — and a second class for the same box would be a second name for
+   * one thing. `opacity` and `translate` are the only two properties free on it: the stage
+   * itself is `scale: var(--art-fit)` and `top: calc(…)` inline, and every doodle inside it
+   * carries Figma's rotation on `transform`.
+   *
+   * One layer for the whole band, not one per doodle. A per-item stagger would be prettier and
+   * would promote up to 24 images per card x 3 cards at once; PastEvents.tsx already documents
+   * what happens to frame time when three of these cards animate together.
+   */
+  .reveal .scope-art-stage {
+    opacity: 0;
+    translate: 0 12px;
+    transition:
+      opacity 700ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 160ms),
+      translate 700ms var(--mm-ease-out) calc(var(--reveal-delay, 0ms) + 160ms);
+  }
+
+  .reveal.is-visible .scope-art-stage {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* -------------------------------------------------------- the answer's own unfolding
+   * A `.mm-collapse` modifier, opt-in, and a modifier rather than a change to the base rule
+   * because `.mm-collapse` also drives the phone nav's panel — which is a menu appearing under
+   * a thumb, not a paragraph unfolding out of a heading, and wants no second motion.
+   *
+   * The row's grid track grows downward from the question, so the answer starts 8px ABOVE its
+   * resting place and rides down with the edge: text emerging from under the question rather
+   * than materialising in a box that happens to be getting taller. The 8px is hidden by the
+   * container's own `overflow: clip` at every frame, so there is no moment where the copy is
+   * seen sitting on the heading. Same `--mm-base` as the track and the toggle glyph's
+   * rotation, so all three are one gesture — which is what the row was missing.
+   */
+  .mm-collapse-lift > * {
+    translate: 0 -8px;
+    transition:
+      opacity var(--mm-base) var(--mm-ease-out),
+      translate var(--mm-base) var(--mm-ease-out);
+  }
+
+  .mm-collapse-lift.is-open > * {
+    translate: 0 0;
+  }
+
+  /* --------------------------------------------------------------------------- the nudge
+   * An arrow that answers its CARD's hover rather than its own. The three scope cards carry a
+   * right-pointing "go" glyph and an `mm-lift`, but the existing arrow utilities key off
+   * `:is(a, button):hover` and the card is an `<article>` — so the card rose under the pointer
+   * and the arrow that promises the card is reachable sat still. Declared here, outside the
+   * hover query, so the transition exists before the hover does; the hover itself is in the
+   * pointer-gated block below.
+   */
+  .mm-nudge {
+    transition: translate var(--mm-fast) var(--mm-ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .mm-lift:hover .mm-nudge {
+    translate: 4px 0;
+  }
+}
+
+/* ------------------------------------------------------ the PDF pill, and why not a fade
+ *
+ * `/guide`'s ดาวน์โหลดฉบับเต็ม (PDF) button hovered by dropping to `opacity: .9`, and on a filled
+ * control over a light page that is the wrong direction: lowering a red pill's alpha lets the
+ * cream band show through, so the button reads as RECEDING exactly when the pointer arrives.
+ * Same mistake the hero CTA had and the same fix — `#b14f39` is brand red at 92% luminance, the
+ * value `.hero-cta:hover` already uses in liquid.css, so every filled button on the site now
+ * darkens by the same amount.
+ *
+ * The colour sits OUTSIDE the motion guard on purpose: this file's stated rule is that paint is
+ * the affordance reduced motion keeps and movement is what it drops. `.mm-press` already times
+ * `background-color` at `--mm-fast`, so no transition is restated here — and restating one would
+ * replace its whole list, since `transition` is a shorthand.
+ *
+ * The download arrow leans DOWN rather than the pill's label moving: the glyph is
+ * `arrow_down_regular`, so downward travel is the button describing what it does. It is the same
+ * idea as `.mm-nudge`'s 4px right lean on the scope cards' "go" arrow, turned through 90 degrees,
+ * and it is `translate` — never `transform` — because `.mm-press` owns `scale` on the pill and
+ * the shorthand would clobber it.
+ *
+ * That travel is `.mm-arrow-down`'s 3px and nothing else. There used to be a second pair of
+ * rules here — `.mm-pdf-cta img` and `.mm-pdf-cta:hover img` — giving the `<img>` INSIDE the
+ * `.mm-arrow-down` span another 2px. Both matched, both applied to different elements in the
+ * same subtree, and they added: the arrow travelled 5px, not the 2 this note used to claim.
+ * `.mm-arrow-down` is the vocabulary class (`.mm-arrow-shift`'s vertical twin) and this pill is
+ * its only caller, so the pill-specific pair was a second name for one behaviour — deleted
+ * rather than retuned. Anything wanting a different distance should set `--mm-arrow-travel`
+ * where that becomes necessary, not re-target a descendant.
+ */
+.mm-pdf-cta:hover {
+  background-color: #b14f39;
+}
+
+/* ------------------------------------------------------- the FAQ row, and why it has no colour
+ *
+ * `/guide`'s questions hovered to `text-brand-red`. On a row whose question can wrap to two
+ * lines that is a whole paragraph changing colour to say "clickable" — too loud for an
+ * invitation, and it reads as a STATE (this one is selected) rather than as a hover, which is
+ * actively confusing on an accordion where one row genuinely is open.
+ *
+ * So the row's hover is movement only: the question leans 2px right while the toggle glyph
+ * swells on its own `mm-icon-pop`. Two small signals at the two ends of a wide row, which is
+ * what makes the whole row read as one control.
+ *
+ * Only the label moves, not the button: the button is the flex row that also holds the glyph, and
+ * translating it would carry the glyph along and cancel the pop. 2px and not `.mm-nudge`'s 4:
+ * that one leans an arrow that points the way it travels, where this is a block of text with no
+ * direction of its own, so it wants the smallest movement that registers.
+ *
+ * Nothing here is gated on colour, so under `prefers-reduced-motion` this row simply has no
+ * hover — which is correct. The affordance of last resort is the pointer cursor on a `<button>`,
+ * and the focus ring for anyone on a keyboard; neither is motion.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .mm-faq-row > span:first-child {
+    transition: translate var(--mm-fast) var(--mm-ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .mm-faq-row:hover > span:first-child {
+    translate: 2px 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  /* `:not(:active)` so the press's own scale is the only thing happening on pointer-down —
+     the lift getting out of the way is what makes the click feel like it lands. */
+  .mm-pdf-cta:hover:not(:active) {
+    translate: 0 -1px;
+  }
+}
+
+/* ------------------------------------------------- why there is no `.mm-float`, on purpose
+ *
+ * Every rule above has a RESTING FRAME, and that is a constraint on this whole layer rather
+ * than a coincidence: each one is a one-shot that ends on the element's Figma pose, or a hover
+ * that returns to it. Nothing on the marketing pages' foreground loops.
+ *
+ * A `.mm-float` did exist for one round — a 3px translate over 8s on `cubic-bezier(0.37, 0,
+ * 0.63, 1)` (sine in-out, `pasta-idle`'s own curve) on the hero lockup, on the reasonable
+ * premise that the masthead is the largest drawing on the site, is seen once per visit, and
+ * that a masthead which breathes is the difference between a poster and a page. It is deleted,
+ * and the reason generalises to any future request for one:
+ *
+ * A perpetual translate has NO resting frame, and every foreground element on these three pages
+ * is transcribed from a Figma node and measured against it — the lockup against `935:451` and
+ * `1190:672`, the doodle bands against `708:492`, every card against its own frame. So the float
+ * would have put the single most measured box on the site up to 3px off its Figma y at any
+ * moment a parity check happened to sample, and "1440 must not move" would have become "1440
+ * moves ±3px, on a clock". No amount of subtlety fixes that; it is the loop itself.
+ *
+ * The site is not short of idle motion as a result — it is just one layer back, in the
+ * decoration canvases: twenty rigatoni holding a slow orbit (`pasta-idle`) and two rings on the
+ * shared 96s clock (`pan-turn`). That is the right home for it. Those arrangements are art, the
+ * amplitudes are the artist's, and nothing out there is being read back against a frame.
+ */
+
+/* =========================================================== the nav's scrolled state
+ * The band is NOT gated on scroll, and that is a fix rather than a simplification.
+ *
+ * It used to be `opacity: 0` until `[data-scrolled='true']`, on the premise that at the top
+ * of a page the band's backdrop stack was "fading nothing". That premise is false on
+ * this site: every marketing page paints its artwork from y = 0 (`HomeBackground` /
+ * `MobileHomeBackground` are `absolute inset-0` on the page root, and the crowd plate starts
+ * *under* the pill — MobileHomeBackground even offsets it by the pill's own 92px). So at
+ * scroll 0 there is a photograph behind the band, the design's soft graduated edge is what
+ * separates it from the white pill, and the gate was hiding exactly the frame Figma draws
+ * ("Scroll Edge Effect - Soft", 708:406 — it is composed against the hero, not against
+ * scrolled body copy).
+ *
+ * `opacity` was also the worst possible property to animate here, twice over:
+ *   - a partially-transparent ancestor is an isolated group, i.e. a BACKDROP ROOT, so for the
+ *     whole of the transition the band's `backdrop-filter` layers sample an empty group and
+ *     the blur vanishes rather than fading in. The ramp could only ever pop.
+ *   - at `opacity: 0` the band is still laid out and still composited; the layers were not
+ *     actually cheaper, only invisible.
+ *
+ * THE STANDING RULE, which is why this block is prose and not a rule: `.site-nav-band` has no
+ * declarations at all, and must not acquire any of `opacity`, `filter`, `backdrop-filter`,
+ * `transform`, `contain`, `isolation`, `mix-blend-mode` or a `will-change` naming one of them
+ * — nor may any ancestor between it and `<html>`. Every one of those makes an isolated group,
+ * and an isolated group is a backdrop root: the layers inside ScrollEdgeEffect would then
+ * sample that empty group instead of the page, and the effect would not weaken, it would
+ * disappear. The class exists purely as a name for this constraint (and as a DevTools handle);
+ * if it ever needs to move, animate `translate` on the fixed shell in Navbar instead, which
+ * isolates nothing. ScrollEdgeEffect.tsx carries the same note beside its `overflow-clip`.
+ *
+ * The pill's shadow still keys off `data-scrolled` below — that one genuinely only reads as
+ * "lifted" once there is content under it, and a box-shadow transition isolates nothing.
+ * Navbar keeps writing the attribute for it. */
+/*
+ * `border-radius` joins the list because the phone nav now UNFOLDS: `1341:333` (closed) is a
+ * 72-tall pill and `1341:317` (open) is a 303-tall block at radius 24, so the corner has to
+ * travel with the height or it snaps at the start of the animation.
+ *
+ * It belongs here rather than as a utility on the element. This rule is UNLAYERED, so it beats
+ * anything Tailwind emits in `@layer utilities`, and `transition` is a shorthand — a
+ * `transition-*` utility on the nav would not merge with this, it would be silently dropped.
+ * Navbar carried a `motion-safe:[transition:…]!` escape hatch for exactly that reason; listing
+ * both properties here is what lets that `!important` go away.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .site-nav {
+    transition:
+      box-shadow var(--mm-base) var(--mm-ease),
+      border-radius var(--mm-base) var(--mm-ease-out);
+  }
+}
+
+/* The pill lifts off the page as it starts to overlap content. Same 40px spread as
+   `--shadow-soft`, twice the alpha — read as "closer", not as a different shadow. */
+[data-scrolled="true"] .site-nav {
+  box-shadow: 0 0 40px rgb(0 0 0 / 0.1);
+}
+
+/* ============================================== the marketing pages' page transition
+ * `/`, `/guide` and `/hall-of-fame` share one `SiteLayout`, so the nav and the footer are
+ * literally the same DOM on all three — and yet crossing between them was a hard cut, in
+ * an app whose auth flow morphs. Naming the two persistent pieces and pinning them lets
+ * the browser see what the markup already says: only the page body changed.
+ *
+ * EVERYTHING here is gated on `:root[data-site-nav^='marketing']`, which App.tsx sets from
+ * a router subscriber and only ever for a navigation whose start and end are both
+ * marketing routes. That gate is not decoration — auth-motion.css owns
+ * `::view-transition-*(root)` for the sign-in morph and the wizard hops, including one
+ * unconditional `::view-transition-group(root)` rule, and two sheets quietly re-timing the
+ * same pseudo-element is how a morph starts drifting. With the gate, the two rule sets are
+ * mutually exclusive by construction: on any navigation that touches an auth route the
+ * attribute is absent, nothing below matches, and the auth choreography is the only thing
+ * in play. `view-transition-name` is gated too, so outside a marketing→marketing hop no
+ * element is even named and the snapshot tree is byte-for-byte what it was before.
+ *
+ * `^=` and not `=`, because the attribute now carries the hop's DIRECTION as well as its
+ * kind — `marketing` for a push, `marketing-back` for a pop backwards. Everything that is
+ * direction-agnostic (which pieces are named, which are pinned) matches the prefix; only the
+ * four `old`/`new` rules at the bottom split on the exact value. Prefix matching keeps that
+ * split in one place instead of doubling every selector in the block, and the specificity is
+ * unchanged at (0,2,0), so the mutual exclusion with auth-motion.css still holds.
+ *
+ * Selector shape: `:root[…]::view-transition-group(x)` with NO space. The pseudo tree
+ * hangs off the document element itself, so a descendant combinator cannot reach it — the
+ * same trap auth-motion.css documents.
+ *
+ * Exit 200ms against a 320ms entry, in BOTH directions. Leaving should get out of the way;
+ * arriving is the event. That is the ratio the wizard steps already use. */
+@supports (view-transition-name: none) {
+  :root[data-site-nav^="marketing"] .site-nav {
+    view-transition-name: site-nav;
+  }
+
+  :root[data-site-nav^="marketing"] .site-footer {
+    view-transition-name: site-footer;
+  }
+
+  /* The nav's active-item underline used to be named out of the pinned pill here, so that it
+     could travel from the old label to the new one instead of being baked into a pinned
+     snapshot. The underline is gone from the design (Navbar renders no `.site-nav-indicator`),
+     so nothing in the chrome moves during a marketing hop any more and the rules that timed
+     that travel are dropped with it. `.mm-indicator` stays — the dashboard's tab rule
+     (pages/MyTeam.tsx) is a different bar and still uses it. */
+
+  /* Pinned, not animated: the chrome is the same element on both sides, so the honest
+     reading is that it never moved. A zero-length group animation holds its geometry and
+     `animation: none` on the two snapshots stops the UA cross-fading a thing against
+     itself, which would show as a flicker on the shadow. Direction-agnostic — a pinned
+     thing is pinned whichever way the user is going — so both match on the prefix. */
+  :root[data-site-nav^="marketing"]::view-transition-group(site-nav),
+  :root[data-site-nav^="marketing"]::view-transition-group(site-footer) {
+    animation-duration: 0s;
+  }
+
+  :root[data-site-nav^="marketing"]::view-transition-old(site-nav),
+  :root[data-site-nav^="marketing"]::view-transition-new(site-nav),
+  :root[data-site-nav^="marketing"]::view-transition-old(site-footer),
+  :root[data-site-nav^="marketing"]::view-transition-new(site-footer) {
+    animation: none;
+  }
+
+  /* With the chrome named out of it, the root snapshot IS the page body — so the body is
+     what rises, and nothing else has to be named to say so. */
+  :root[data-site-nav^="marketing"]::view-transition-group(root) {
+    animation-duration: 320ms;
+    animation-timing-function: var(--mm-ease-out);
+  }
+
+  /* ------------------------------------------------------------------ going, and coming back
+   *
+   * The marketing hop used to have ONE choreography: the outgoing page always rose out of the
+   * top and the incoming one always came up from below. Played on a back press that is a lie
+   * about which way the user moved — pressing back walked the same stack the other way and got
+   * the identical forward animation, so the one gesture on the site whose entire meaning is
+   * "return" read as another departure. The auth flow has solved this since it was built (a
+   * REVERSE table in form/wizardNav.ts, `wizard-enter-back` / `wizard-exit-forward` in
+   * auth-motion.css); the three marketing pages were the hole in it.
+   *
+   * So `data-site-nav` now carries the direction too, and App.tsx derives it the same way
+   * `trackAuthNav` does — from the history INDEX, not from `historyAction`. React Router reports
+   * `POP` for a forward traversal as well as a backward one, so keying off the action alone
+   * would play the reverse animation on the browser's FORWARD button: the same defect, moved.
+   *
+   * Reversing means reversing WHERE THINGS GO, not transcribing the easing backwards — the point
+   * auth-motion.css's `--ease-in-auth` note makes at length. Both directions therefore keep the
+   * same two curves and the same 200/320 ratio, and only the signs flip:
+   *
+   *   forward   old ↑ out (-12px)   new ↑ in from below (+16px)   — advancing into the stack
+   *   back      old ↓ out (+12px)   new ↓ in from above (-16px)   — retracing it
+   *
+   * Purely vertical, in both directions, and that is a constraint rather than a taste: this
+   * site's hard rule is `documentElement.scrollWidth === clientWidth` on every route at every
+   * width. A horizontal push/pop would be the more conventional reading of forward/back, and it
+   * is exactly the one that cannot be had here — a snapshot is painted in the pseudo tree rather
+   * than in the document, so it would not itself widen the page, but the 16px of x-travel would
+   * be visible against the page's own left edge for the length of the hop, which reads as a pan.
+   * Up is forward and down is back is unambiguous enough on three pages.
+   *
+   * The travel is also asymmetric BY DESIGN and identically so in each direction: the leaver
+   * moves 12px and the arriver 16px. Equal distances would put both snapshots at the same offset
+   * mid-hop and the cross-fade would look like one page sliding through itself. */
+  :root[data-site-nav="marketing"]::view-transition-old(root) {
+    animation: mm-page-out 200ms var(--mm-ease) both;
+  }
+
+  :root[data-site-nav="marketing"]::view-transition-new(root) {
+    animation: mm-page-in 320ms var(--mm-ease-out) both;
+  }
+
+  :root[data-site-nav="marketing-back"]::view-transition-old(root) {
+    animation: mm-page-out-back 200ms var(--mm-ease) both;
+  }
+
+  :root[data-site-nav="marketing-back"]::view-transition-new(root) {
+    animation: mm-page-in-back 320ms var(--mm-ease-out) both;
+  }
+
+  /* Reduced motion keeps the transition — a cross-fade is not movement — and drops the
+     travel. A backstop, not the live rule: auth-motion.css already clamps
+     `::view-transition-old(*)` / `new(*)` / `group(*)` under this query with `!important`,
+     which wins over anything here. Measured under `reducedMotion: 'reduce'`, the marketing
+     hop runs a 140ms fade with 1ms groups — which is what these three rules say, so the two
+     sheets agree on the answer whichever one is doing the talking. Scoped like everything
+     else in this block so it can never reach an auth route.
+
+     The prefix gate is what makes the back hop inherit this for free: with the travel gone
+     the two directions ARE the same animation, so there is deliberately no `-back` variant
+     of the fade to keep in step with anything. */
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-site-nav^="marketing"]::view-transition-group(root) {
+      animation-duration: 1ms;
+    }
+
+    :root[data-site-nav^="marketing"]::view-transition-old(root) {
+      animation: mm-page-fade-out 140ms linear both;
+    }
+
+    :root[data-site-nav^="marketing"]::view-transition-new(root) {
+      animation: mm-page-fade-in 140ms linear both;
+    }
+  }
+}
+
+/* `translate`, not `transform: translateY(…)`, for the reason the whole file gives above
+   `.mm-press` — and here it is cheap insurance rather than a live fix. A `::view-transition-old`
+   / `-new` pseudo-element is the one place on the site where nothing else is writing `transform`
+   (the UA's own morph animates `transform` on the `-group` pseudo, which is a different element),
+   so the shorthand was not currently colliding with anything. It is written on the longhand
+   anyway so that the rule "no `transform` shorthand in a motion sheet" has no exceptions to
+   remember, and so that a future `scale` or `rotate` on a page snapshot composes with this
+   instead of replacing it. */
+@keyframes mm-page-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 -12px;
+  }
+}
+
+@keyframes mm-page-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* The same two hops with the y sign flipped: the page being left sinks, and the page being
+   returned to comes down from above. Written as their own keyframes rather than as one pair
+   reading a `--mm-page-dir` multiplier, because a custom property inside `@keyframes` is
+   substituted at the KEYFRAME rule, not per element — it resolves against `:root` and cannot be
+   varied by the selector that plays the animation, so the direction has to live in the animation
+   name. (That is also why auth-motion.css has four `wizard-*` keyframes rather than two.) */
+@keyframes mm-page-out-back {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+@keyframes mm-page-in-back {
+  from {
+    opacity: 0;
+    translate: 0 -16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes mm-page-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes mm-page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,729 @@
+@theme {
+  --font-thai: "Noto Sans Thai", sans-serif;
+  /*
+   * Figma sets a few controls (the Google sign-in button, some numerals) in Sukhumvit Set,
+   * an Apple system face with no webfont. Per the project's decision every face is
+   * Noto Sans Thai, so `display` is an alias rather than a second stack — keeping the token
+   * means the Figma-faithful call sites still read as "the display face".
+   */
+  --font-display: "Noto Sans Thai", sans-serif;
+
+  /* Figma styles: Red / Yellow / Black / Gray 01 / Gray 02 */
+  --color-brand-red: #c0563e;
+  --color-brand-yellow: #d79a4e;
+  --color-brand-green: #94b45e;
+  --color-brand-cream: #ffeab4;
+  --color-ink: #282828;
+  --color-gray-1: #808080;
+  --color-gray-2: #8c8c8c;
+
+  /* card gradient stops */
+  --color-red-grad-from: #b44d36;
+  --color-red-grad-to: #cc684a;
+  --color-yellow-grad-from: #d79a4e;
+  --color-yellow-grad-to: #eca700;
+
+  /*
+   * Figma's shared card effect, radius 40. Do not "correct" this to 20px: Figma emits the
+   * same effect as `box-shadow: 0 0 40px` but as `filter: drop-shadow(0 0 20px)`, because a
+   * filter's blur argument is a standard deviation — half the box-shadow radius. This token
+   * is a box-shadow, so 40 is the matching value.
+   */
+  --shadow-soft: 0 0 40px rgb(0 0 0 / 0.05);
+}
+
+/* ==========================================================================
+   Keyboard focus
+   ==========================================================================
+
+   One ring for every control on the site. Before this, `.hero-cta:focus-visible`
+   (styles/liquid.css) was the ONLY custom focus style in the codebase and there was not a
+   single `focus-visible:` utility in any component — so the scope PDF pill, the FAQ rows,
+   both contact channels and both 404 exits fell back to the UA outline, drawn tight against
+   backgrounds it was never picked for. The 404 is what makes this a defect rather than a
+   polish item: those two links are the only way off a dead end, and they are white type on
+   brand yellow.
+
+   `currentColor`, not a fixed ink, because these controls sit on cream, on brand red and on
+   brand yellow. The ring inherits whatever contrast the control's own label already had to
+   earn — white on the red pill, ink on a cream card — instead of one colour that has to lose
+   somewhere. 3px of offset clears the ring of the glyph without reaching a neighbour.
+
+   `:where()` so the whole selector is specificity 0, and every rule in the app outranks it:
+   the form controls' own red border and 12% tint ring (components/form/Field.tsx, which sets
+   `focus:outline-none` and means it), `.hero-cta`'s ink ring, and any future per-control
+   treatment. This is a floor, not a policy.
+
+   `:focus-visible` and never `:focus` — a mouse press must not leave a ring behind it, which
+   is the reason the pseudo-class exists. It transitions nothing and is outside every motion
+   guard: a ring that fades in is not there yet when a fast tab lands on it.
+   ========================================================================== */
+:where(
+  a[href],
+  button,
+  summary,
+  [role="button"],
+  [role="link"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Fluid scale
+   ==========================================================================
+
+   Every size on this site was transcribed from the Figma 1440 frame as a hard px,
+   with a second hard px behind `lg:`. That gave the site exactly two sizes — a
+   "mobile" one and a "1440" one — with a jump at 1024 and nothing in between. Past
+   1440 the 1200 column stayed 1200, so a wide display showed a small block flanked
+   by big margins.
+
+   Everything below is driven by two ramps. Both are *lengths* that run 0px → 1px,
+   which is what lets a token be written as `calc(MIN + DELTA * var(--ramp))`:
+   a unitless number times a length is a length, so no per-token clamp() is needed
+   and every value is readable as "starts here, moves by this much".
+
+     --fl   375 → 1440.  Type, gutters, control sizes, gaps.
+     --flv  375 → 1024.  Section vertical rhythm, and any composition that has to be
+                         fully resolved BY `lg` rather than by 1440 — the 404's below-lg
+                         artwork scale reads it as exactly that kind of track, since the
+                         desktop row takes over at `lg` and a ramp still climbing there
+                         would step at the breakpoint.
+
+   Why two. The Figma value must be reached at exactly 1440 and must not move above
+   it, because the page's decorations are painted on fixed 1440-wide canvases
+   (HomeBackground, AboutDecor, HallOfFameDecor) with every prop pinned in absolute
+   px. `--fl` therefore tops out at 1440 and freezes — content above 1440 keeps the
+   design's geometry rather than growing away from the art behind it.
+
+   Vertical is stricter still. Those same canvases pin their props at absolute *y*,
+   so shortening a section's tail slides the content off its decoration. From 1024
+   up the vertical rhythm is already at its Figma value today, and that is the band
+   where the canvases are visible — so `--flv` reaches the Figma value at 1024 and
+   holds. Below 1024 it ramps, which removes the old jump at the `lg` breakpoint
+   without moving anything the decorations are registered against. */
+:root {
+  --fl: clamp(0px, calc((100vw - 375px) / 1065), 1px);
+  --flv: clamp(0px, calc((100vw - 375px) / 649), 1px);
+
+  /*
+   * A third ramp for the decoration fields was tried here and REVERTED — leaving the note,
+   * because the reasoning that rejects it is not obvious and the idea will occur again.
+   *
+   * Several pads below are not rhythm: they are the empty field a decoration is painted
+   * into. `sec-calendar`'s 451.5 of bottom pad is the garlic-and-fork field, `sec-scope`'s
+   * 197 the tomatoes and pots, `sec-hall-hero`'s 286.6 the ring. While those canvases were
+   * `hidden lg:block` the pad below `lg` reserved space for art that was never drawn, which
+   * at 768 left 343px of blank white between the last timeline card and the "02" heading.
+   *
+   * The fix is not to close the field: it is to draw the art, which HomeBackground now does
+   * below `lg` by hanging each group at the FRACTION of the section Figma puts it at. That
+   * makes the field load-bearing at every width — closing it does not remove a hole, it
+   * moves the garlic and the cutlery on top of the timeline cards. So every pad here stays
+   * on `--flv`, and a section's proportions stay Figma's at every width.
+   */
+
+  /* Content gutter. 20 at 375 → 120 at 1440, where it meets the 1200 column that
+     `max-w-[1200px]` caps: 120 + 1200 + 120 = the 1440 frame exactly. The old
+     `px-4 lg:px-15` only ever reached 60, so between 1024 and 1440 the full-size
+     1440 typography sat in a column barely narrower than the viewport — which is
+     what made the proportions read as too big and too wide.
+
+     The low anchor is no longer chosen: `1190:558` insets its content by 24 (its sections
+     are 402 wide holding a 354 column), so both ends are Figma's and the ramp is solved
+     through both. The old line gave 22.54 at 402, i.e. a 356.94 column where the frame
+     says 354. 1440 is unchanged — it is an anchor. */
+  --fl-gutter: calc(21.5px + 98.5 * var(--fl));
+
+  /* The nav pill and the footer sit in Figma's wider 1320 column, inset 60. Same story:
+     the old `16 + 44` gave 17.1 at 402 where the phone frame insets section content by 24.
+     The nav is a genuine exception at 20 and inlines its own value rather than this token. */
+  --fl-gutter-wide: clamp(24px, 3.4682081vw + 10.0578035px, 60px);
+}
+
+/* The two content shells. The inner column keeps its own `max-w-*`, so the shell
+   only ever supplies the gutter and the cap is still visible at the call site. */
+@utility shell {
+  padding-inline: var(--fl-gutter);
+}
+
+@utility shell-wide {
+  padding-inline: var(--fl-gutter-wide);
+}
+
+/* -------------------------------------------------------------- type ladder
+   ONE ordered ladder for every marketing page, calibrated against the *registration
+   screens* rather than against Figma's 1440 marketing numbers. Those numbers are the
+   design, but they are drawn for a 1440 display and transcribing them literally left
+   the three main pages reading a full step louder than the wizard sitting next to
+   them — 48px section headings against the wizard's 40px page title, 24px body
+   against its 20px.
+
+   Measured live off /register and /register/team, which is the reference:
+
+     caption 16 → 16 · body 18 → 20 · section h2 24 → 28 · page h1 30 → 40
+
+   The eight ranks below land inside that envelope at both ends.
+
+   Ordering is structural, not coincidental. Every rank is `calc(MIN + DELTA * --fl)`
+   and MIN *and* DELTA both decrease strictly down the ladder, so the difference
+   between two neighbouring ranks is itself `a + b * --fl` with a > 0 and b > 0 —
+   positive for every value of the ramp. That is what makes the hierarchy hold at
+   360, 768, 1024 and 1440 alike, rather than only at the two ends where the old
+   overlapping pairs happened to be checked.
+
+     rank           375   1440   role
+     fl-display      28     40   the page's own h1 — one per page
+     fl-section      23     34   a numbered section's h2
+     fl-title        19     26   card heading
+     fl-title-sm     17     23   card sub-heading, FAQ question
+     fl-lead         16     21   section subtitle, intro and feature copy
+     fl-body         15     19   body copy, list items
+     fl-eyebrow      14   17.5   the "01 / 02 / 03" section marker
+     fl-caption      13     16   meta, units, footnotes
+
+   Display numerals sit deliberately OUTSIDE the ladder. A date set as the visual
+   subject of a card is a graphic rather than a heading, and Figma places them above
+   the section title on purpose (60 against 48); they keep that relationship. Their
+   floors are cut hard, though — 36px on a 390 phone was the single largest thing on
+   the page. */
+
+@utility fl-display {
+  font-size: calc(28px + 12 * var(--fl)); /* 28 → 40 */
+}
+
+/* Both anchors are Figma's: `1190:755` is a 28px/1.4 title on the phone frame, 34 at 1440.
+   The old 23 floor was chosen when there was no frame under 1440. */
+@utility fl-section {
+  font-size: calc(27.844px + 6.156 * var(--fl)); /* 28 @402 → 34 @1440 */
+}
+
+@utility fl-title {
+  font-size: calc(19px + 7 * var(--fl)); /* 19 → 26 */
+}
+
+@utility fl-title-sm {
+  font-size: calc(17px + 6 * var(--fl)); /* 17 → 23 */
+}
+
+@utility fl-lead {
+  font-size: calc(16px + 5 * var(--fl)); /* 16 → 21 */
+}
+
+@utility fl-body {
+  font-size: calc(15px + 4 * var(--fl)); /* 15 → 19 */
+}
+
+/* `1190:753` sets the phone marker at 20px/1.5 — LARGER than the phone's body copy, which
+   is the one place the ladder's strict ordering does not hold. That is the designer's call
+   on the phone frame, not a slip: the "01" is a graphic label there, the way the display
+   numerals below sit outside the ladder for the same reason. Above ~700 the ramp descends
+   back under `fl-body` and the ordering resumes. */
+@utility fl-eyebrow {
+  font-size: calc(20.065px - 2.565 * var(--fl)); /* 20 @402 → 17.5 @1440 */
+}
+
+@utility fl-caption {
+  font-size: calc(13px + 3 * var(--fl)); /* 13 → 16 */
+}
+
+/* The section footnotes Figma added under the calendar grid and the prize cards
+   (`1235:79`/`1297:2057` and `1235:87`/`1297:2061`). Both are 12 on the 402 frame and 20 at
+   1440 — one spec, two call sites, hence one rank rather than the same calc written twice.
+
+   It sits OUTSIDE the ordered ladder above, deliberately and for the ladder's own stated
+   reason: its floor (12) is under `fl-caption`'s 13 and its ceiling (20) is over `fl-body`'s
+   19, so it crosses three ranks on the way up and cannot be ordered against them at every
+   width. That is the designer's call and not a slip — a footnote is the smallest thing on a
+   phone screen and, at 1440, a full-width line of prose set to be read once. The display
+   numerals below are excluded from the ladder on the same grounds. */
+@utility fl-note {
+  font-size: calc(11.792px + 8.208 * var(--fl)); /* 12 @402 → 20 @1440 */
+}
+
+/* Display numerals — see above. */
+@utility fl-num-lg {
+  font-size: calc(20px + 12 * var(--fl)); /* 20 → 32 */
+}
+
+@utility fl-num-xl {
+  font-size: calc(24px + 22 * var(--fl)); /* 24 → 46 */
+}
+
+/* The nav row and its CTA. These had no `lg:` pair at all — a flat 20px that only
+   ever rendered at 1024+, which left the tablet band carrying desktop-size chrome. */
+@utility fl-nav {
+  font-size: calc(16px + 4 * var(--fl)); /* 16 → 20 */
+}
+
+/* -------------------------------------------------------- the flat px ladder
+   The dashboard and the 404 were transcribed with no `lg:` pair at all — a single
+   hard px that rendered at full desktop size on a 375 phone. Each utility is named
+   for its Figma value and ramps up to it, so `text-[24px]` becomes `fl-24` and the
+   1440 render is byte-identical while every width below it steps down.
+
+   The five small ranks now carry a FLOOR, written as `max(floor, ramp)`. Ramping a 12px
+   Figma caption down to 11 and a 14px label down to 13 was the wrong direction: those two
+   ranks sit at the bottom of what is legible, and on /my-team they are the label above
+   every value in the form — so the screen made almost entirely of small type was the one
+   carrying the smallest type on the site.
+
+   `max()` and not a re-based `calc()` on purpose. The desktop footer is frozen from `lg`
+   up and it uses `fl-16` and `fl-18`, so a new MIN/DELTA pair would have had to reproduce
+   the old value at every width from 1024 to 1440, not just at 1440. `max(floor, old-ramp)`
+   is *exactly* the old ramp everywhere the old ramp is already above the floor — it can
+   only ever lift the narrow end. The crossover widths are 641 (fl-20), 730 (fl-18) and 907
+   (fl-16), all well below `lg`, so nothing at or above 1024 moves by so much as a
+   hundredth of a pixel. fl-14 and fl-12 cross over only at 1440, so in practice they hold
+   flat at their Figma value, which is what those two ranks want.
+
+   The ordering property survives trivially: `max` of two strictly ordered quantities is
+   strictly ordered, and both the floors (17 > 16 > 15 > 14 > 12) and the ramps they replace
+   were already strictly ordered at every width.
+
+     rank     375   1024   1440
+     fl-40     28   35.3     40
+     fl-24     20  22.44     24
+     fl-20     17  18.44     20
+     fl-18     16  16.83     18
+     fl-16     15  15.22     16
+     fl-14     14     14     14
+     fl-12     12     12     12                                                        */
+@utility fl-40 {
+  font-size: calc(28px + 12 * var(--fl)); /* 28 → 40 */
+}
+@utility fl-24 {
+  font-size: calc(20px + 4 * var(--fl)); /* 20 → 24 */
+}
+@utility fl-20 {
+  font-size: max(17px, calc(16px + 4 * var(--fl))); /* 17 → 20, crossover 641 */
+}
+@utility fl-18 {
+  font-size: max(16px, calc(15px + 3 * var(--fl))); /* 16 → 18, crossover 730 */
+}
+@utility fl-16 {
+  font-size: max(15px, calc(14px + 2 * var(--fl))); /* 15 → 16, crossover 907 */
+}
+@utility fl-14 {
+  font-size: max(14px, calc(13px + 1 * var(--fl))); /* Figma's own 14, held */
+}
+@utility fl-12 {
+  font-size: max(12px, calc(11px + 1 * var(--fl))); /* likewise 12 */
+}
+
+/* The dashboard's own column: Figma insets a 1240 content block by 100 in the 1440
+   frame, so this shell tops out at 100 rather than the marketing pages' 120.
+
+   The low anchor is Figma's too now — `1297:1132` insets the phone dashboard's content by 24
+   (a 354 column in the 402 frame), where the old `16 + 84` gave 18.1 at 402. Same pattern as
+   `--fl-gutter` above: both ends measured, 1440 unchanged because it is an anchor. */
+@utility shell-dash {
+  padding-inline: calc(22.023px + 77.977 * var(--fl)); /* 24 @402 → 100 @1440 */
+}
+
+/* ------------------------------------------------------- section vertical pads
+   One class per section, all on `--flv`. Kept here rather than as arbitrary
+   Tailwind values because each is a two-number interpolation and the arithmetic is
+   worth reading in one place; the Figma value is the second number in each pair. */
+
+@utility sec-hall-hero {
+  padding-top: calc(160px + 126.6 * var(--flv)); /* → 286.6 */
+  padding-bottom: calc(80px + 69.6 * var(--flv)); /* → 149.6 */
+}
+
+@utility sec-hall-timeline {
+  padding-bottom: calc(64px - 64 * var(--flv)); /* → 0, the waves butt straight on */
+}
+
+/* The four homepage sections below have both anchors from Figma. On the phone frame
+   `1190:558` the section top IS the header top — there is no vertical padding above a
+   heading — and the tails are long, because they are the fields the garlic, the cutlery and
+   the closing band are painted into. With a short tail those props land behind the next
+   heading instead of in open air, which is the misalignment both decoration tracks reported.
+
+   The three phone tails were RE-SOLVED after Figma added the two section footnotes
+   (`1297:2057` under the calendar grid, `1297:2061` under the prize cards). Adding a line to
+   a section grows the section, so every figure downstream of it moved and the numbers taken
+   from the pre-footnote frame were all stale by 20-96px. Current frame:
+
+     calendar `1190:589`  932 .. 1841     -> Steps at 2253, so the tail is 412 (was read 472)
+     steps    `1190:626` 2253 .. 3834     -> Prizes at 3924, so the tail is  90 (was read 114)
+     prizes   `1190:750` 3924 .. 4573     -> the footnote ENDS on the section's own bottom
+                                            edge, so the phone tail is 0 (was read 96)
+
+   Every 1024 anchor below is unchanged — these edits only move the narrow end, and each pair
+   still reaches its verified desktop value at exactly `--flv` = 1. */
+
+@utility sec-calendar {
+  padding-top: max(0px, calc(-3.84px + 92.34 * var(--flv))); /* 0 → 88.5 */
+  padding-bottom: calc(410.28px + 41.22 * var(--flv)); /* 412 → 451.5, the garlic/fork field */
+}
+
+@utility sec-steps {
+  /* 0 at BOTH ends. `1190:626` starts its content at the section's own y0 — the run-up is the
+     calendar's tail, on the phone frame exactly as at 1440 — so there was never anything for
+     this to interpolate. The old `80 - 80 * --flv` reached 0 only at 1024 and left 76.67 at
+     402, which pushed the whole steps section 77px below the frame and took `HomeBackground`'s
+     `CIRCLE_1` wash down with it. */
+  padding-top: 0;
+  padding-bottom: calc(89.21px + 19.79 * var(--flv)); /* 90 → 109 exactly */
+}
+
+@utility sec-prizes {
+  /* 0 at both ends on the phone — `1190:752` is the header at y0, and `1297:2061` closes the
+     section — so this is the same ramp twice. 165.5 at 1440 for both. */
+  padding-top: max(0px, calc(-7.17px + 172.67 * var(--flv)));
+  padding-bottom: max(0px, calc(-7.17px + 172.67 * var(--flv)));
+}
+
+/* /guide's three pads, low anchors now from the 402 frame rather than invented.
+
+   READ THIS BEFORE CHECKING THE NUMBERS AGAINST FIGMA: on the mobile About frame
+   `1190:926` every section carries the NEXT section's layer name. Ordered by y the stack is
+
+     `1190:963`  "Section / Coding Platform"   139 .. 1358     is §01 ขอบเขตเนื้อหา
+     `1190:1328` "Section / Contact Info"     1412 .. 2078.07  is §02 แพลตฟอร์ม Codern
+     `1190:1338` "Section / Features"         2161 .. 3127.35  is §03 คำถามที่พบบ่อย
+     `1190:930`  "Section / Hero Banner"      3287 .. 3868     is §04 ติดต่อทีมงาน
+
+   which matches the desktop frame's own naming (`708:702` "Section / Features" is the FAQ
+   grid there too). The names are off by one; the geometry is not.
+
+   Sections butt in the code — there is no inter-section margin — so a `padding-bottom` here
+   has to absorb BOTH the section's own inset and the page gap that follows it. */
+
+@utility sec-scope {
+  padding-top: calc(160px + 59 * var(--flv)); /* → 219 */
+  /* 78 @402 = the section's own 24 inset (content ends 1195 of 1219) + the 54 of page
+     between `1190:963` and `1190:1328`. 197 @1024 is unchanged — it is the tomato/pot field
+     and was measured against it. */
+  padding-bottom: calc(72.835px + 124.165 * var(--flv)); /* 78 → 197 */
+}
+
+@utility sec-codern {
+  /* Flat 10: Figma insets this section's content by 10 on BOTH frames (`708:741`,
+     `1190:1330`), so there is nothing to interpolate. The old ramp gave 77 at 402. */
+  padding-top: 10px;
+  /* 92.93 @402 = the same 10 inset + the 82.93 of page between `1190:1328`'s end (2078.07)
+     and `1190:1338` (2161). 114.3 @1024 unchanged. */
+  padding-bottom: calc(92.007px + 22.293 * var(--flv)); /* 92.93 → 114.3 */
+}
+
+@utility sec-faq {
+  /* 0 at BOTH ends on the phone: the mascot sits at the section's own y0 and the grid ends on
+     its bottom edge (`1190:1340`, `1190:1344`), so the phone section has no block padding at
+     all. Same `max(0px, …)` guard as `sec-prizes`, for the same reason — the ramp's intercept
+     is negative, and a negative pad is not what "0 at the narrow end" means.
+
+     NOTE the coupling: `ContactSection`'s own `paddingTop` low anchor is the 159.65 between
+     `1190:1338`'s end and `1190:930` MINUS whatever this pad contributes at 402. With this at
+     0, that anchor is the full 159.65. */
+  padding-block: max(0px, calc(-5.408px + 130.113 * var(--flv))); /* 0 → 124.705 */
+}
+
+/*
+ * The hall-of-fame closing band. Its art is pinned to the 1440 canvas like every other
+ * decoration, but unlike the others it is a full-bleed band with no copy in it, so a fixed
+ * stage just leaves white down the sides — the red mass is a finite drawing and simply runs
+ * out. Here the stage tracks the viewport instead, at ONE continuous ratio.
+ *
+ * `tan(atan2(a, b))` is the standard way to get a unitless ratio out of two lengths:
+ * calc() will not divide a length by a length, but atan2 takes two lengths and returns an
+ * angle, and tan turns that back into the plain number a/b. So `tan(atan2(100vw, 1440px))`
+ * is just `100vw / 1440` — the factor at which the 1440 drawing exactly covers the screen.
+ *
+ * This used to be three steps: a flat 0.45, then 0.7 from `md`, then `max(1, …)` from `lg`.
+ * Every one of them was below `100vw/1440` somewhere inside its own band, and a band narrower
+ * than the viewport is a band with white down both sides — 0.45 draws 648px of art and was in
+ * force out to 767, and 0.7 draws 1008 and was in force out to 1023. Then 1024 jumped the art
+ * from 0.711 to 1.0. Taking the max against the ratio removes all three: the art can never be
+ * narrower than the screen, and it is continuous through both old breakpoints.
+ *
+ * The 0.45 floor stays as the floor because it is not arbitrary — it is the factor Figma's own
+ * phone band is drawn at (`1190:1606`'s wave is 1502.87 of `1297:224`'s 3342.99 = 0.4496), and
+ * it binds only below 648px where the ratio drops under it. At and above 1440 this is
+ * byte-identical to the old `lg` rule, so the measured desktop geometry does not move.
+ *
+ * The height has to track the scale or the band would keep its 906 while the art inside it
+ * grew past the clip.
+ */
+/*
+ * /my-team's decoration band. Same problem and same shape of answer as `.hof-band` below:
+ * the art is authored on the 1440 canvas, but this is a self-contained band pinned to the top
+ * of the page rather than props registered against section positions, so it can simply be
+ * scaled rather than hidden. `translate` and `scale` are the individual transform properties,
+ * not `transform` — the element needs both and the longhands compose in a fixed order
+ * (translate, then scale) without either one clobbering the other, which a single `transform`
+ * shorthand shared with a Tailwind utility could not do.
+ *
+ * `tan(atan2(a, b))` is the standard way to get a plain number out of two lengths, since
+ * calc() will not divide a length by a length. Capped at 1: past 1440 the band is already
+ * wider than the viewport.
+ */
+.team-decor-stage {
+  translate: -50% 0;
+  scale: min(1, tan(atan2(100vw, 1440px)));
+  transform-origin: top center;
+}
+
+.hof-band {
+  --hof-scale: max(0.45, tan(atan2(100vw, 1440px)));
+  height: calc(906px * var(--hof-scale));
+}
+
+.hof-stage {
+  transform: scale(var(--hof-scale));
+}
+
+/*
+ * Both of the above, for engines with no CSS trig: `tan()` / `atan2()` are Chrome 111+,
+ * Safari 15.4+, Firefox 108+. `--vw-1440` is the step ladder that stands in for
+ * `100vw / 1440` there; it is defined once, next to `--decor-fit`, in styles/pasta-motion.css
+ * — see the long note on it for why a ladder and why plain `min-width` queries.
+ *
+ * What breaks without this. A custom property is a token stream and is not validated until it
+ * is substituted, so `--hof-scale` stores the unparseable `max(0.45, tan(…))` happily and both
+ * of its consumers go invalid at computed-value time instead, falling back to the property's
+ * INITIAL value:
+ *
+ *   - `.hof-band`'s `height` → `auto`. The band's contents are absolutely positioned, so the
+ *     band measures 0 and the whole hall-of-fame closing wave DISAPPEARS.
+ *   - `.hof-stage`'s `transform` → `none`, so the 1440 art draws at full size inside it.
+ *   - `.team-decor-stage`'s `scale` → `none` (`translate` is a separate property and survives),
+ *     so /my-team's 1440-wide pasta band draws unscaled and only its middle 375px is on screen.
+ *
+ * `--hof-scale` needed an author `!important` here for a while, because HallOfFameDecor also set
+ * the same custom property as an inline style and an inline declaration outranks a stylesheet
+ * one. That inline is gone — its own comment had asked for it to be folded into this class — so
+ * the `!important` is gone with it. Noted because the pattern recurs: if a decoration ever
+ * publishes a scale inline again, a fallback here cannot reach it without one.
+ */
+@supports not (scale: tan(atan2(1px, 1px))) {
+  .team-decor-stage {
+    scale: var(--vw-1440);
+  }
+
+  .hof-band {
+    --hof-scale: max(0.45, var(--vw-1440));
+  }
+
+  /*
+   * ScopeCardArt's doodle stage reads `var(--art-fit-fallback, <trig value>)`, and nothing sets
+   * the custom property — so in a supporting browser the fallback arm never fires and the value
+   * is byte-identical to before. Setting it to 1 here is "draw the art at authored size", which
+   * is right because the stage's own container query is the other half of `--art-fit`: a browser
+   * without trig is also likely to be without container queries, and 1 is the only value that
+   * does not depend on either.
+   */
+  .scope-art-stage {
+    --art-fit-fallback: 1;
+  }
+
+  /*
+   * Sign-in's collage panel. Its ratio is NOT `100vw/1440`, so `--vw-1440` cannot serve here:
+   * the panel is `calc(69.6px + 624.4 * var(--fl))` of a 694-wide canvas, which is 0.10 at 375
+   * against `--vw-1440`'s 0.26 — the collage would render 2.6x too large. Hence its own rungs.
+   *
+   * Each rung carries its band's LOWER bound, so the stage is never larger than the panel: an
+   * over-scaled collage overflows (contained, but wrong), where an under-scaled one just leaves
+   * a little of the panel unpainted. The row only exists from `md`, so there is nothing below 768.
+   */
+  .signin-panel-stage {
+    scale: 0.4323;
+  }
+  @media (min-width: 56rem) {
+    .signin-panel-stage {
+      scale: 0.5404;
+    }
+  }
+  @media (min-width: 64rem) {
+    .signin-panel-stage {
+      scale: 0.6488;
+    }
+  }
+  @media (min-width: 72rem) {
+    .signin-panel-stage {
+      scale: 0.7567;
+    }
+  }
+  @media (min-width: 80rem) {
+    .signin-panel-stage {
+      scale: 0.8648;
+    }
+  }
+  @media (min-width: 88rem) {
+    .signin-panel-stage {
+      scale: 0.973;
+    }
+  }
+  @media (min-width: 90rem) {
+    .signin-panel-stage {
+      scale: 1;
+    }
+  }
+
+  /*
+   * Calendar's highlight row. `--hl-split` is the 0.4443 → 0.5952 track fraction, and its
+   * consumer is a Tailwind `md:grid-cols-[calc((100% - var(--hl-gap)) * var(--hl-split))_…]`.
+   * Without trig the custom property substitutes something unparseable as a <number>, so
+   * `grid-template-columns` is invalid at computed-value time and resets to `none` — the two
+   * gradient cards STACK from `md` up instead of forming Figma's 700/476 row.
+   *
+   * A preceding declaration in the same rule cannot rescue this: a value containing `var()`
+   * parses fine and only fails at substitution, which wipes the earlier fallback. So the
+   * fallback has to be a separate rule, and `.hl-row` is the hook Calendar exposes for it.
+   * No `!important` needed — this rule is unlayered and Tailwind's utilities live in `@layer
+   * utilities`, so it wins on origin alone.
+   *
+   * 0.5 is deliberately the LOW anchor rather than the desktop 0.5952: an even split is the
+   * value the ramp itself carries at 768, and any browser taking this branch has no trig,
+   * which means it is old enough that a 1440 display is not the case worth optimising for.
+   * Both cards stay wider than the 354 the phone frame gives them at every width from 768 up.
+   */
+  .hl-row {
+    --hl-split: 0.5;
+  }
+
+  /* From `lg` the same browsers are on a desktop display, where reproducing Figma's own
+     700/476 matters more than the tablet band's even split. 0.5952381 = 700/1176. */
+  @media (min-width: 64rem) {
+    .hl-row {
+      --hl-split: 0.5952381;
+    }
+  }
+}
+
+html {
+  /*
+   * Decorations bleed past the viewport edge, so the document has to clip them — but
+   * `overflow-x: hidden` is the wrong primitive for that. `hidden` makes the element a
+   * scroll *container* whose overflow is merely not shown: the box is still scrollable
+   * programmatically and, on a touch device, by dragging. That is exactly the bug — the
+   * page could be panned sideways onto empty space in Chrome's device mode even though
+   * `window.scrollX` read 0 afterwards, because the pan snapped back.
+   *
+   * `overflow-x: clip` clips without creating a scroll container, so there is no
+   * scrollport to pan and `scrollWidth` collapses to `clientWidth`. `overflow-y` stays
+   * `visible` (clip is one of the two values allowed to pair with visible), so the
+   * document keeps being the vertical scroll container and `scroll-behavior` below,
+   * `position: sticky` and scroll anchoring all keep working.
+   */
+  overflow-x: clip;
+}
+
+/*
+ * ...and `clip` is the one value in that note with a hard cliff: Chrome 90+ and Firefox 81+,
+ * but Safari only from 16. On Safari 15.x `clip` is an unknown value, so the declaration above
+ * is DROPPED and the property keeps its initial `visible` — which is strictly worse than the
+ * `hidden` the note argues against. `hidden` can be panned and snaps back; `visible` means the
+ * decorations that bleed past the viewport edge become genuinely scrollable, so the page can be
+ * dragged sideways onto empty white and stay there. So the fallback is `hidden`: the lesser
+ * containment, but containment.
+ *
+ * (`overflow-x: hidden` with `overflow-y: visible` computes the y axis to `auto`, so the
+ * document stays the vertical scroll container and `scroll-behavior`, `position: sticky` and
+ * scroll anchoring keep working — the same properties the note above wants preserved.)
+ *
+ * The three Tailwind utilities are here for the same reason and are NOT a separate decision:
+ * `overflow-clip` / `overflow-x-clip` / `overflow-y-clip` are written on some twenty elements
+ * across the components — every decoration band's own crop (HomeBackground, MobileHomeBackground,
+ * AboutDecor, HallOfFameDecor, AuthBackdrop), all four page roots, PastEventCard's photo crop,
+ * the two modals' close buttons, the wizard shell — and each one fails exactly as `html` does.
+ * Restating the utilities here fixes every call site at once without editing a component, and
+ * the declaration is what the author already asked for by choosing that class. These rules are
+ * unlayered while Tailwind's are in `@layer utilities`, so they win outright inside this block.
+ *
+ * `max-md:overflow-y-clip` (pages/PastEvents.tsx:113) is spelled out because a variant compiles
+ * to its own class name and the bare selector does not reach it. The band is a horizontal snap
+ * carousel whose cards reveal on `translateY(24px)`, so without a y clip that entrance shows a
+ * vertical scrollbar on the row. Note that this one rule is the only part of this block a
+ * Safari 15 cannot use: Lightning CSS rewrites the query to `(width <= 767px)` range syntax,
+ * which is Safari 16.4+ (see the ladder note in styles/pasta-motion.css). The four unqualified
+ * rules above it — the ones that stop the page being dragged sideways — carry no media query
+ * and so apply there in full, which is why they are deliberately left unqualified.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * THE SITE'S REAL FLOOR, since this is the block where the question gets asked. Tailwind 4
+ * compiles with Lightning CSS pinned to Safari 16.4 / Chrome 111 / Firefox 128 and emits
+ * `@media (width >= 48rem)` for every breakpoint plus 69 `@property` rules. Range syntax is
+ * Safari 16.4+, so on any older Safari EVERY breakpoint is dropped and the site renders its
+ * base mobile layout at 1440 — a failure no `@supports` in this sheet can reach, because the
+ * rules that would carry the fallback are inside the same dropped queries. So: `clip`, trig,
+ * `:has()`, container queries and `dvh` all have floors BELOW 16.4 and none of them is the
+ * binding constraint. The fallbacks in this sheet exist because they are free and because they
+ * are what makes the sheet itself honest below that line, not because they move it.
+ */
+@supports not (overflow: clip) {
+  html {
+    overflow-x: hidden;
+  }
+
+  .overflow-clip {
+    overflow: hidden;
+  }
+
+  .overflow-x-clip {
+    overflow-x: hidden;
+  }
+
+  .overflow-y-clip {
+    overflow-y: hidden;
+  }
+
+  @media (max-width: 767px) {
+    .max-md\:overflow-y-clip {
+      overflow-y: hidden;
+    }
+  }
+}
+
+/*
+ * Smooth scrolling, for the one navigation that wants it and no other.
+ *
+ * `html { scroll-behavior: smooth }` used to be unconditional, and it was quietly the most
+ * destructive line in the stylesheet. `<ScrollRestoration>` resets a new route to the top
+ * with `scrollTo(0, 0)`, and a *programmatic* scroll obeys `scroll-behavior` too — so
+ * clicking a nav link from the bottom of `/` (y 4704) committed `/guide` at y 4704 and then
+ * flew 4704px back up over about 1550ms. Measured: at t≈90ms all eight of `/guide`'s
+ * reveals were already above the fold, so `useReveal`'s "already scrolled past on mount"
+ * branch marked every one of them visible with no animation, and the page the user landed
+ * on could never animate again. `/hall-of-fame` lost 3 of 3 the same way, at t≈38ms.
+ *
+ * ONE trigger, `[data-fragment-nav]`, and it covers the app's own in-page fragment links.
+ * React Router changes the URL with `history.pushState`, and pushState deliberately does NOT
+ * re-run the browser's scroll-to-fragment steps — so it never updates the document's target
+ * element and `:target` matches nothing, measured `false` on `/#calendar` at y 1192. App.tsx
+ * stamps the attribute from a router subscriber, which runs before React commits and so
+ * before `<ScrollRestoration>` scrolls, and clears it once the scroll settles.
+ *
+ * It is stamped only for a hash hop that is NOT a POP and does NOT change the pathname. Both
+ * of those exclusions were measured regressions, not caution: a POP onto a hash entry is a
+ * scroll RESTORE (`<ScrollRestoration>` prefers its saved offset over the hash), so smooth
+ * turned forward-onto-`/#calendar` into a 2331 → 1242 glide over ~560ms; and a cross-route
+ * fragment link committed the new route at the OLD scroll and flew it up, which burned 11 of
+ * 19 reveals on `/` against 8 of 19 for a cold load at the same offset. The trade-off, stated
+ * plainly: a cross-route fragment link now lands instantly, exactly as a cold load of that
+ * URL does. Only the same-pathname in-page jump still glides.
+ */
+/*
+ * `html:has(:target)` used to be the second trigger here and it is DELETED, because measurement
+ * showed it does the opposite of what it was written for — it never fires in the case it was
+ * meant to cover and it does fire in a case that hurts:
+ *
+ * - On a COLD LOAD of `/#calendar` it is dead. The browser resolves the target while the
+ *   document is still the empty Vite shell; React creates `#calendar` afterwards, so nothing
+ *   was ever `:target` at the moment it mattered. Measured `scroll-behavior: auto` on exactly
+ *   the "direct load or reload" case the old comment claimed it existed for.
+ * - On a same-document TRAVERSAL to `/#calendar` (back or forward onto a hash entry) it DOES
+ *   fire, because a traversal genuinely sets the target. But that hop is a scroll RESTORE —
+ *   `<ScrollRestoration>` prefers its saved offset over the hash — so the rule turned a restore
+ *   into a 560ms glide, and left the document smooth afterwards, so a subsequent `End` or
+ *   PageDown flew the page and burned the reveals it landed past. That is precisely the
+ *   regression the note above this block was written to prevent.
+ *
+ * `[data-fragment-nav]` is the correctly scoped trigger and now the only one: App.tsx stamps it
+ * only for a hash hop that is not a POP and does not change the pathname — i.e. a real in-page
+ * jump — and clears it once the scroll settles.
+ */

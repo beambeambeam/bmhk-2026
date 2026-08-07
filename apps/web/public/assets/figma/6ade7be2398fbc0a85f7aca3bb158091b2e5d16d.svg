@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="2191" height="2177" viewBox="0 0 2191 2177" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Decoration / Circle 2" filter="url(#filter0_f_0_4)">
+<path d="M1391 884.596C1391 1154.47 1258.05 1377 1081.83 1377C905.598 1377 800 1362.01 800 1185.59C800 1009.17 934.325 862.438 1110.55 862.438C1286.78 862.438 1391 708.178 1391 884.596Z" fill="#D79A4E" fill-opacity="0.1" style="fill:#D79A4E;fill:color(display-p3 0.8431 0.6039 0.3059);fill-opacity:0.1;"/>
+</g>
+<defs>
+<filter id="filter0_f_0_4" x="0" y="2.67998e-06" width="2191" height="2177" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="400" result="effect1_foregroundBlur_0_4"/>
+</filter>
+</defs>
+</svg>

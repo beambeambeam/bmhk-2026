@@ -1,0 +1,21 @@
+:root {
+  --turn-period: 96s;
+}
+.decor-fit {
+  --decor-fit: min(1, tan(atan2(100vw, 1440px)));
+}
+.decor-stage {
+  scale: var(--decor-fit);
+}
+.hof-pan-ring {
+  transform-origin: 75.87% 33.82%;
+  animation: pan-turn var(--turn-period) linear infinite;
+}
+@keyframes pan-turn {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

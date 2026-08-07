@@ -1,9 +1,6 @@
-import PastEventCard from "@/features/hall-of-fame/past-event-card.tsx";
-import {
-  HallOfFameHeroDecor,
-  HallOfFameWaveBand,
-} from "@/features/hall-of-fame/hall-of-fame-decor";
-import { PAST_EVENTS, PAST_INTRO } from "@/features/hall-of-fame/data/past-events-data";
+import PastEventCard from "./past-event-card.tsx";
+import { HallOfFameHeroDecor, HallOfFameWaveBand } from "./hall-of-fame-decor";
+import { PAST_EVENTS, PAST_INTRO } from "./data/past-events-data";
 import { useReveal } from "@/hooks/use-reveal";
 
 const BANGMOD = "/assets/figma/9813e3e647c50b42236b9552d81e1c94b33bbd46.svg";

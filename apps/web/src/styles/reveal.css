@@ -1,0 +1,91 @@
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * The transition list carries the INTERACTION properties as well as the reveal's own two.
+   * `transition` is a shorthand, and this rule (0-1-0) loads after micro-motion.css's
+   * `.mm-lift` / `.mm-press` (also 0-1-0), so for any hoverable that is itself a reveal or
+   * a reveal-group child — the three `/guide` scope cards, the two contact channels — this
+   * declaration REPLACED their transition list and their hover became instant. Restating
+   * the four longhands micro-motion.css animates is what lets one element be both a reveal
+   * and a pressable; the pairs are `translate`/`scale` (never `transform`, which the reveal
+   * itself owns) at micro-motion's own durations.
+   */
+  .reveal,
+  .reveal-group > * {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 600ms var(--mm-ease-out) var(--reveal-delay, 0ms),
+      transform 600ms var(--mm-ease-out) var(--reveal-delay, 0ms),
+      translate var(--mm-base) var(--mm-ease-out),
+      scale var(--mm-press) var(--mm-ease-out),
+      color var(--mm-fast) var(--mm-ease),
+      background-color var(--mm-fast) var(--mm-ease),
+      border-color var(--mm-fast) var(--mm-ease);
+  }
+
+  .reveal.is-visible,
+  .reveal-group.is-visible > * {
+    opacity: 1;
+    transform: none;
+  }
+
+  /*
+   * Children of a group cascade in; 70ms apart reads as one motion, not a queue.
+   *
+   * Published as a custom property rather than as `transition-delay`, which is a list
+   * matching `transition-property` and so delayed the hover lift on the scope cards by up
+   * to 140ms as well. `--reveal-delay` is spent only on the two reveal entries above.
+   * An element revealing on its own — see PastEventCard, ScopeSection, Prizes, Steps, where
+   * a group's children are taller than the viewport and cannot share one trigger — sets the
+   * same property inline, so the ladder survives being taken apart.
+   */
+  .reveal-group.is-visible > *:nth-child(2) {
+    --reveal-delay: 70ms;
+  }
+  .reveal-group.is-visible > *:nth-child(3) {
+    --reveal-delay: 140ms;
+  }
+  .reveal-group.is-visible > *:nth-child(4) {
+    --reveal-delay: 210ms;
+  }
+  .reveal-group.is-visible > *:nth-child(5) {
+    --reveal-delay: 280ms;
+  }
+  .reveal-group.is-visible > *:nth-child(6) {
+    --reveal-delay: 350ms;
+  }
+  .reveal-group.is-visible > *:nth-child(n + 7) {
+    --reveal-delay: 420ms;
+  }
+}
+
+/* ------------------------------------------------------------------ prize row
+ *
+ * The prize row's track lives here rather than in utilities because the two rules must land in
+ * THIS order, and Tailwind's order is not ours to pick: it emits arbitrary media variants
+ * (`min-[1440px]:`) ahead of the named breakpoints, so `md:grid-cols-2` won at 1440 as well and
+ * the row stayed two-up at every width. Both rules are plain classes of equal specificity, so
+ * the later one wins — which is the whole mechanism, and it is only reliable when written out.
+ *
+ * Why four-up waits for 1440 and does not start at `lg`: the titles must not wrap (the user's
+ * requirement, and Figma's own frames), and `รางวัลรองชนะเลิศอันดับ 1` needs 10.47x its font
+ * size on one line. Four cards inside the 1200 content column leave 270 each, which the title
+ * clears only once Prizes.tsx's `min(…, 9.2cqi)` trims it to ~24.8px; at 1280 the cell is 239
+ * and at 1024 it is 185, where fitting one line would drive the title below the body copy's
+ * size. Two-up gives 414 at 1024 and 516 at 1280, so the ladder's own size fits untouched.
+ */
+@media (min-width: 768px) {
+  .prize-row {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    padding-inline: 0;
+  }
+}
+
+@media (min-width: 1440px) {
+  .prize-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

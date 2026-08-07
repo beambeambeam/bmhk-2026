@@ -17,8 +17,9 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
   head: () => ({
     links: [
+      { href: appCss, rel: "stylesheet" },
       {
-        href: appCss,
+        href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap",
         rel: "stylesheet",
       },
     ],
@@ -39,7 +40,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light">
       <head>
         <HeadContent />
       </head>

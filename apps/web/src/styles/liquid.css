@@ -1,0 +1,135 @@
+/* The hero's fluid scale, and the resting appearance and two states of its CTA. Owned by
+   the hero track — app-wide micro-motion lives in micro-motion.css, auth-flow motion in
+   auth-motion.css, the homepage pasta in pasta-motion.css.
+
+   Still called liquid.css because index.css imports it by that name, and because it used
+   to open with a second section: the `.lq-*` primitive behind `LiquidButton`, a pressable
+   that deformed like a body of liquid — a pointer-tracked drag on a rubber band, six
+   springs chasing each other so the fill and the label arrived late, per-corner radii, a
+   skew in the direction of travel and a release squash. The control is asked for a hover
+   and a press and nothing else now, so the component and that whole block are gone rather
+   than left switched off; the CTA is one element again, and everything it needs is in
+   `.hero-cta` below.
+
+   Deliberately no design tokens are added here: a parallel track is building a fluid type
+   scale in index.css's @theme, and two independent scales under one name would collide.
+   These are local clamp() utilities instead. */
+
+/* ================================================================ Hero fluid scale
+   The hero was transcribed from the 1440 Figma frame as hard px with a second hard px
+   value behind `lg:`, which gave it exactly two sizes and a jump at 1024. These clamps
+   interpolate linearly and clamp at both ends: above 1440 the 1200 column is fixed, so the
+   design's numbers are the ceiling.
+
+   The low anchor used to be an invented 375 floor, because Figma had no frame under 1440.
+   `1190:558` is that frame now, so the hero's ramps are solved through BOTH real anchors:
+
+     slope = (v1440 - v402) / 1038 as vw;  intercept = v402 - slope * 402
+
+   Each lands on its Figma value to 0.001px at 402 and at 1440 — so 1440 cannot move (it is
+   an anchor) and the phone is measured rather than chosen. The 402 values are read off the
+   frame as gaps between siblings, since the phone hero is three separate nodes rather than
+   one frame: the lockup `1190:672` starts at y151 and the Calendar `1190:589` starts at
+   y932 against a CTA `1190:670` ending at 641 — so 151 above and 291 below.
+
+   Ramps that are not part of the hero still carry the older 375-floor form; each comment
+   names which anchors it was solved through. */
+
+/* The hero's own box — both anchors real (402 and 1440). */
+.hero-pad {
+  padding-inline: clamp(16px, 4.238921vw - 1.0404624px, 60px); /* 16 → 60 (Figma px-15) */
+  padding-top: clamp(151px, 3.0828516vw + 138.6069364px, 183px); /* 151 → 183 */
+  /* The run-up to §01. The section's last child is no longer the CTA: Figma added the
+     สมัครฟรี line under it (`1297:2051`, y620 h24), so the phone measurement is that line's
+     bottom 644 → Calendar top 932 = 288, where the pre-footnote frame gave CTA bottom 641
+     → 291. 1440 is unchanged — it is an anchor. */
+  padding-bottom: clamp(288px, 8.766859vw + 252.7572px, 379px);
+}
+
+/* The CTA, both anchors real. `1190:670` is 200x52: `px-32 py-12` around a 136x28 label at
+   20px/1.4, with **no arrow glyph**. The 1440 control is 40 left / 24 right precisely
+   because it has one, so dropping the glyph below `md` is what makes the padding
+   symmetrical again — the left ramp grows 32 → 40 and the right one *shrinks* 32 → 24.
+
+   The control is 200 wide and not the 305 an earlier read recorded because Figma retyped the
+   label: `1190:671` / `708:242` now read สมัครเข้าแข่งขัน where they read
+   ลงทะเบียนเข้าร่วมการแข่งขัน. The horizontal padding survives that unchanged — 200 is still
+   exactly 32 + 136 + 32 — but the block padding does not: the pill went 60 tall to 52 around
+   the same 28px line, i.e. py-16 to py-12.
+
+   `font-size` carries a `min()` in front of the ramp. Below 402 the line keeps rising while
+   the viewport falls away, and this control's width is its label's: a 320 phone gave a 300px
+   pill inside a 288px column. `4.9751vw` is exactly 20px at 402, so it is continuous there
+   and simply hands the label to the viewport underneath. */
+.hero-cta {
+  /* inline-flex so the pill is only as wide as its label, as in Figma. The fill is the
+     element's own background now — there is no inner painted layer left to keep in step. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px; /* Figma: rounded-[100px] */
+  /* the pill draws its own press, so the mobile browser's grey flash is noise on top of it */
+  -webkit-tap-highlight-color: transparent;
+  /* 20 on the phone: `1190:669` ends at 528 and `1190:670` starts at 548. The old 32 was read
+     off the pre-retype frame's 549→581. */
+  margin-top: clamp(20px, 1.734104vw + 13.0289px, 38px); /* 20 → 38 */
+  font-size: min(4.9751244vw, clamp(20px, 0.3853565vw + 18.4508671px, 24px)); /* 20 → 24 */
+  line-height: 1.4;
+  padding-block: clamp(12px, 0.385356vw + 10.4509px, 16px); /* 12 → 16, see above */
+  padding-left: clamp(28px, 0.7707129vw + 28.9017341px, 40px); /* 32 → 40 */
+  padding-right: clamp(24px, 35.0982659px - 0.7707129vw, 32px); /* 32 → 24 */
+  gap: clamp(12px, 0.7512vw + 9.183px, 20px); /* glyph is md+ only, so 1440-anchored */
+}
+
+/* Offset 4 rather than 2 because the red runs to the very edge of the box, so a ring any
+   tighter would be drawn on top of it instead of around it. */
+.hero-cta:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+/*
+ * Hover and press, and nothing else. Neither state declares a `transition`, deliberately:
+ * the CTA is a `.reveal-group > *` child, and that rule in index.css — which loads after
+ * every @import, so it wins the shorthand outright — already lists `scale` at `--mm-press`
+ * and `background-color` at `--mm-fast` for exactly this reason. Restating the shorthand
+ * here would silently drop the reveal's own `opacity`/`transform` entries and the hero
+ * lockup would stop revealing. `mm-press` on the element covers the reduced-motion case,
+ * where the reveal rule does not apply at all.
+ *
+ * Hover is a darkening, where the old liquid fill lightened to 0.92 opacity. Over white,
+ * lightening a flat red reads as the control fading out from under the pointer; #b14f39 is
+ * the same red at 92% luminance, which reads as the surface being warmed up. Gated on a
+ * fine pointer, since touch fires :hover on tap and would leave the pill dark after it.
+ *
+ * Unguarded by motion preference on purpose: colour IS the hover affordance, and this file
+ * follows auth-motion.css in keeping the paint change and dropping only the movement.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .hero-cta:hover {
+    background-color: #b14f39;
+  }
+}
+
+/*
+ * The lift. 1.5% on a ~380px pill is about 6px of total width — felt as the control coming
+ * forward, never seen as a resize, which is the same restraint `mm-lift`'s 4px translate
+ * takes on the cards. `scale`, not `transform`: the reveal owns `transform` and the two
+ * compose in a fixed order, so neither has to out-specify the other.
+ *
+ * `:not(:active)` because `.mm-press:active` (0-2-0, micro-motion.css) loads BEFORE this
+ * file and would otherwise lose the 0.97 press scale to a hover that is still matching.
+ * Same fix `.mm-icon-pop` carries for the same reason.
+ */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .hero-cta:hover:not(:active) {
+    scale: 1.015;
+  }
+}
+
+/* The arrow's cell — Figma insets the glyph inside a 34px box rather than scaling it, so
+   the box is what scales and the inset stays a percentage. */
+.hero-cta-icon {
+  width: clamp(26px, 0.7512vw + 23.183px, 34px);
+  height: clamp(26px, 0.7512vw + 23.183px, 34px);
+}

@@ -1,8 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@source "./**/*.{ts,tsx}";
+@import "./styles/micro-motion.css";
+@import "./styles/pasta-motion.css";
+@import "./styles/liquid.css";
+@import "./styles/reveal.css";
+@import "./styles/hall-of-fame.css";
+@import "./styles/legacy-tokens.css";
 
+@source "./**/*.{ts,tsx}";
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -125,5 +131,6 @@
   }
   html {
     @apply font-sans;
+    overflow-x: clip;
   }
 }

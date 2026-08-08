@@ -2,6 +2,7 @@ import { env } from "@bmhk-2026/env/server";
 import { deleteObject, getPresigned, putObject } from "@bmhk-2026/s3";
 import { createError } from "evlog";
 
+import { toError } from "../../core/errors";
 import { allowedFileContentTypes, MAX_FILE_SIZE_BYTES } from "./files.schema";
 import type {
   CreateStoredFileData,
@@ -91,13 +92,16 @@ export function createFileNotFoundError() {
   });
 }
 
-export function createFileRepositoryError(message: string) {
+export function createFileRepositoryError(
+  cause: unknown = new Error("Unknown file repository error"),
+) {
   return createError({
+    cause: toError(cause, "Unknown file repository error"),
     code: "FILE_REPOSITORY_ERROR",
     fix: "Try again or contact support",
-    message,
+    message: "File operation failed",
     status: 500,
-    why: "The file repository could not satisfy an internal invariant",
+    why: "The file repository could not complete the operation",
   });
 }
 

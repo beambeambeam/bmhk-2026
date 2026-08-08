@@ -1,5 +1,6 @@
 import { createError } from "evlog";
 
+import { toError } from "../../core/errors";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamConsentRepository } from "./team-consents.repository";
 import type {
@@ -34,13 +35,16 @@ export function createTeamConsentNotFoundError() {
   });
 }
 
-export function createTeamConsentRepositoryError() {
+export function createTeamConsentRepositoryError(
+  cause: unknown = new Error("Unknown team consent repository error"),
+) {
   return createError({
+    cause: toError(cause, "Unknown team consent repository error"),
     code: "TEAM_CONSENT_REPOSITORY_ERROR",
     fix: "Try again or contact support",
     message: "Team consent operation failed",
     status: 500,
-    why: "The team consent repository could not satisfy an internal invariant",
+    why: "The team consent repository could not complete the operation",
   });
 }
 

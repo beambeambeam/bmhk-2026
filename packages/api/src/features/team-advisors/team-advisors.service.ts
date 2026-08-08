@@ -1,6 +1,7 @@
 import { env } from "@bmhk-2026/env/server";
 import { createError } from "evlog";
 
+import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
 import {
   createStoredFileData,
@@ -56,13 +57,16 @@ export function createTeamAdvisorNotFoundError() {
   });
 }
 
-export function createTeamAdvisorRepositoryError(message: string) {
+export function createTeamAdvisorRepositoryError(
+  cause: unknown = new Error("Unknown team advisor repository error"),
+) {
   return createError({
+    cause: toError(cause, "Unknown team advisor repository error"),
     code: "TEAM_ADVISOR_REPOSITORY_ERROR",
     fix: "Try again or contact support",
-    message,
+    message: "Team advisor operation failed",
     status: 500,
-    why: "The team advisor repository could not satisfy an internal invariant",
+    why: "The team advisor repository could not complete the operation",
   });
 }
 

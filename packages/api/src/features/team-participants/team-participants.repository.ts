@@ -2,8 +2,10 @@ import { db } from "@bmhk-2026/db";
 import { files } from "@bmhk-2026/db/schema/files";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
+import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, eq } from "drizzle-orm";
+import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import { toStoredFile } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 import {
@@ -65,7 +67,9 @@ function stored(
     (expected === "pdf" && result.contentType !== "application/pdf") ||
     (expected === "image" && result.contentType === "application/pdf")
   ) {
-    throw createTeamParticipantRepositoryError("Unsupported stored team participant document");
+    throw createTeamParticipantRepositoryError(
+      new Error("Unsupported stored team participant document"),
+    );
   }
 
   return result;
@@ -84,20 +88,14 @@ function map(row: {
   };
 }
 
-function unique(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505" &&
-    "constraint" in error &&
-    error.constraint === "team_participants_team_id_index_unique"
-  );
-}
-
 export function createTeamParticipantRepository(
   database: Database = db,
 ): TeamParticipantRepository {
+  const execute = createRepositoryExecutor(
+    "TEAM_PARTICIPANT_REPOSITORY_ERROR",
+    createTeamParticipantRepositoryError,
+  );
+
   async function query(userId: string, teamId: string, index?: number) {
     const academic = alias(files, "team_participant_academic");
     const identity = alias(files, "team_participant_identity");
@@ -154,105 +152,115 @@ export function createTeamParticipantRepository(
           return row ?? null;
         });
       } catch (error) {
-        if (unique(error)) {
+        if (isPostgresUniqueViolation(error, "team_participants_team_id_index_unique")) {
           throw createTeamParticipantAlreadyExistsError();
         }
 
-        throw createTeamParticipantRepositoryError(
-          error instanceof Error ? error.message : "Unknown team participant repository error",
+        return rethrowRepositoryError(
+          error,
+          "TEAM_PARTICIPANT_REPOSITORY_ERROR",
+          createTeamParticipantRepositoryError,
         );
       }
     },
-    findBySlot: async (userId, teamId, index) => {
-      const [row] = await query(userId, teamId, index);
+    findBySlot: async (userId, teamId, index) =>
+      await execute(async () => {
+        const [row] = await query(userId, teamId, index);
 
-      return row ? map(row) : null;
-    },
-    listByTeamId: async (userId, teamId) => {
-      const [team] = await database
-        .select({ id: teams.id })
-        .from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.userId, userId)))
-        .limit(1);
+        return row ? map(row) : null;
+      }),
+    listByTeamId: async (userId, teamId) =>
+      await execute(async () => {
+        const [team] = await database
+          .select({ id: teams.id })
+          .from(teams)
+          .where(and(eq(teams.id, teamId), eq(teams.userId, userId)))
+          .limit(1);
 
-      if (!team) {
-        return null;
-      }
+        if (!team) {
+          return null;
+        }
 
-      const rows = await query(userId, teamId);
-      return rows.map(map);
-    },
+        const rows = await query(userId, teamId);
+        return rows.map(map);
+      }),
     replaceDocument: async (userId, teamId, index, type, file) =>
-      await database.transaction(async (tx) => {
-        const [current] = await tx
-          .select({ id: teamParticipants.id })
-          .from(teamParticipants)
-          .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-          .where(
-            and(
-              eq(teamParticipants.teamId, teamId),
-              eq(teamParticipants.index, index),
-              eq(teams.userId, userId),
-            ),
-          )
-          .for("update")
-          .limit(1);
+      await execute(
+        async () =>
+          await database.transaction(async (tx) => {
+            const [current] = await tx
+              .select({ id: teamParticipants.id })
+              .from(teamParticipants)
+              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+              .where(
+                and(
+                  eq(teamParticipants.teamId, teamId),
+                  eq(teamParticipants.index, index),
+                  eq(teams.userId, userId),
+                ),
+              )
+              .for("update")
+              .limit(1);
 
-        if (!current) {
-          return null;
-        }
+            if (!current) {
+              return null;
+            }
 
-        await tx.insert(files).values(file);
+            await tx.insert(files).values(file);
 
-        let update: {
-          academicRecordDocumentFileId?: string;
-          identityDocumentFileId?: string;
-          portraitPhotoFileId?: string;
-        };
+            let update: {
+              academicRecordDocumentFileId?: string;
+              identityDocumentFileId?: string;
+              portraitPhotoFileId?: string;
+            };
 
-        if (type === "portraitPhoto") {
-          update = { portraitPhotoFileId: file.id };
-        } else if (type === "identityDocument") {
-          update = { identityDocumentFileId: file.id };
-        } else {
-          update = { academicRecordDocumentFileId: file.id };
-        }
+            if (type === "portraitPhoto") {
+              update = { portraitPhotoFileId: file.id };
+            } else if (type === "identityDocument") {
+              update = { identityDocumentFileId: file.id };
+            } else {
+              update = { academicRecordDocumentFileId: file.id };
+            }
 
-        const [row] = await tx
-          .update(teamParticipants)
-          .set(update)
-          .where(eq(teamParticipants.id, current.id))
-          .returning();
+            const [row] = await tx
+              .update(teamParticipants)
+              .set(update)
+              .where(eq(teamParticipants.id, current.id))
+              .returning();
 
-        return row ?? null;
-      }),
+            return row ?? null;
+          }),
+      ),
     update: async (userId, teamId, index, data) =>
-      await database.transaction(async (tx) => {
-        const [current] = await tx
-          .select({ id: teamParticipants.id })
-          .from(teamParticipants)
-          .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-          .where(
-            and(
-              eq(teamParticipants.teamId, teamId),
-              eq(teamParticipants.index, index),
-              eq(teams.userId, userId),
-            ),
-          )
-          .for("update")
-          .limit(1);
+      await execute(
+        async () =>
+          await database.transaction(async (tx) => {
+            const [current] = await tx
+              .select({ id: teamParticipants.id })
+              .from(teamParticipants)
+              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+              .where(
+                and(
+                  eq(teamParticipants.teamId, teamId),
+                  eq(teamParticipants.index, index),
+                  eq(teams.userId, userId),
+                ),
+              )
+              .for("update")
+              .limit(1);
 
-        if (!current) {
-          return null;
-        }
+            if (!current) {
+              return null;
+            }
 
-        const [row] = await tx
-          .update(teamParticipants)
-          .set(data)
-          .where(eq(teamParticipants.id, current.id))
-          .returning();
+            const [row] = await tx
+              .update(teamParticipants)
+              .set(data)
+              .where(eq(teamParticipants.id, current.id))
+              .returning();
 
-        return row ?? null;
-      }),
+            return row ?? null;
+          }),
+      ),
   };
 }

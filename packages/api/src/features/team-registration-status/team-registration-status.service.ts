@@ -1,5 +1,6 @@
 import { createError } from "evlog";
 
+import { toError } from "../../core/errors";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type {
   TeamRegistrationItemStatus,
@@ -19,13 +20,16 @@ const IN_PROGRESS: TeamRegistrationItemStatus = "IN_PROGRESS";
 const NOT_APPLICABLE: TeamRegistrationItemStatus = "NOT_APPLICABLE";
 const NOT_STARTED: TeamRegistrationItemStatus = "NOT_STARTED";
 
-export function createTeamRegistrationStatusRepositoryError() {
+export function createTeamRegistrationStatusRepositoryError(
+  cause: unknown = new Error("Unknown team registration status repository error"),
+) {
   return createError({
+    cause: toError(cause, "Unknown team registration status repository error"),
     code: "TEAM_REGISTRATION_STATUS_REPOSITORY_ERROR",
     fix: "Try again or contact support",
     message: "Team registration status operation failed",
     status: 500,
-    why: "The team registration status repository could not satisfy an internal invariant",
+    why: "The team registration status repository could not complete the operation",
   });
 }
 

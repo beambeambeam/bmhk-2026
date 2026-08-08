@@ -1,8 +1,10 @@
 import { db } from "@bmhk-2026/db";
 import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teams } from "@bmhk-2026/db/schema/teams";
+import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { and, eq } from "drizzle-orm";
 
+import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import type {
   CreateTeamConsentData,
   TeamConsent,
@@ -25,37 +27,12 @@ export interface TeamConsentRepository {
 
 type Database = typeof db;
 
-function isTeamConsentUniqueViolation(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) {
-    return false;
-  }
-
-  return (
-    "code" in error &&
-    error.code === "23505" &&
-    "constraint" in error &&
-    error.constraint === "team_consents_team_id_unique"
-  );
-}
-
-function isTeamConsentRepositoryError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "TEAM_CONSENT_REPOSITORY_ERROR"
-  );
-}
-
-function repositoryError(error: unknown): never {
-  if (isTeamConsentRepositoryError(error)) {
-    throw error;
-  }
-
-  throw createTeamConsentRepositoryError();
-}
-
 export function createTeamConsentRepository(database: Database = db): TeamConsentRepository {
+  const execute = createRepositoryExecutor(
+    "TEAM_CONSENT_REPOSITORY_ERROR",
+    createTeamConsentRepositoryError,
+  );
+
   return {
     create: async (userId, data) => {
       try {
@@ -73,21 +50,27 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
 
           const [consent] = await transaction.insert(teamConsents).values(data).returning();
           if (!consent) {
-            throw createTeamConsentRepositoryError();
+            throw createTeamConsentRepositoryError(
+              new Error("Team consent insert returned no row"),
+            );
           }
 
           return consent;
         });
       } catch (error) {
-        if (isTeamConsentUniqueViolation(error)) {
+        if (isPostgresUniqueViolation(error, "team_consents_team_id_unique")) {
           throw createTeamConsentAlreadyExistsError();
         }
 
-        return repositoryError(error);
+        return rethrowRepositoryError(
+          error,
+          "TEAM_CONSENT_REPOSITORY_ERROR",
+          createTeamConsentRepositoryError,
+        );
       }
     },
-    findByTeamId: async (userId, teamId) => {
-      try {
+    findByTeamId: async (userId, teamId) =>
+      await execute(async () => {
         const [consent] = await database
           .select({ consent: teamConsents })
           .from(teamConsents)
@@ -96,40 +79,37 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
           .limit(1);
 
         return consent?.consent ?? null;
-      } catch (error) {
-        return repositoryError(error);
-      }
-    },
-    update: async (userId, teamId, data) => {
-      try {
-        return await database.transaction(async (transaction) => {
-          const [current] = await transaction
-            .select({ id: teamConsents.id })
-            .from(teamConsents)
-            .innerJoin(teams, eq(teams.id, teamConsents.teamId))
-            .where(and(eq(teamConsents.teamId, teamId), eq(teams.userId, userId)))
-            .for("update")
-            .limit(1);
+      }),
+    update: async (userId, teamId, data) =>
+      await execute(
+        async () =>
+          await database.transaction(async (transaction) => {
+            const [current] = await transaction
+              .select({ id: teamConsents.id })
+              .from(teamConsents)
+              .innerJoin(teams, eq(teams.id, teamConsents.teamId))
+              .where(and(eq(teamConsents.teamId, teamId), eq(teams.userId, userId)))
+              .for("update")
+              .limit(1);
 
-          if (!current) {
-            return null;
-          }
+            if (!current) {
+              return null;
+            }
 
-          const [consent] = await transaction
-            .update(teamConsents)
-            .set(data)
-            .where(eq(teamConsents.id, current.id))
-            .returning();
+            const [consent] = await transaction
+              .update(teamConsents)
+              .set(data)
+              .where(eq(teamConsents.id, current.id))
+              .returning();
 
-          if (!consent) {
-            throw createTeamConsentRepositoryError();
-          }
+            if (!consent) {
+              throw createTeamConsentRepositoryError(
+                new Error("Team consent update returned no row"),
+              );
+            }
 
-          return consent;
-        });
-      } catch (error) {
-        return repositoryError(error);
-      }
-    },
+            return consent;
+          }),
+      ),
   };
 }

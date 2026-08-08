@@ -1,6 +1,7 @@
 import { env } from "@bmhk-2026/env/server";
 import { createError } from "evlog";
 
+import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
 import {
   createStoredFileData,
@@ -70,13 +71,16 @@ export function createTeamParticipantNotFoundError() {
   });
 }
 
-export function createTeamParticipantRepositoryError(message: string) {
+export function createTeamParticipantRepositoryError(
+  cause: unknown = new Error("Unknown team participant repository error"),
+) {
   return createError({
+    cause: toError(cause, "Unknown team participant repository error"),
     code: "TEAM_PARTICIPANT_REPOSITORY_ERROR",
     fix: "Try again or contact support",
-    message,
+    message: "Team participant operation failed",
     status: 500,
-    why: "The team participant repository could not satisfy an internal invariant",
+    why: "The team participant repository could not complete the operation",
   });
 }
 

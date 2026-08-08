@@ -17,8 +17,8 @@ import type {
   TeamAdvisor,
   UpdateTeamAdvisorData,
 } from "./team-advisors.schema";
+import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
-import { toStoredFile } from "../files/files.schema";
 
 export interface TeamAdvisorRepository {
   create: (userId: string, data: CreateTeamAdvisorData) => Promise<TeamAdvisor | null>;
@@ -42,18 +42,6 @@ export type TeamAdvisorWithStoredDocuments = TeamAdvisor & {
   identityDocument: StoredFile | null;
   teacherStatusDocument: StoredFile | null;
 };
-
-function toTeamAdvisorStoredFile(file: typeof files.$inferSelect): StoredFile {
-  try {
-    const storedFile = toStoredFile(file);
-    if (storedFile.contentType !== "application/pdf") {
-      throw new Error(`Unsupported team advisor document content type: ${storedFile.contentType}`);
-    }
-    return storedFile;
-  } catch (error) {
-    throw createTeamAdvisorRepositoryError(error);
-  }
-}
 
 export function createTeamAdvisorRepository(database: Database = db): TeamAdvisorRepository {
   const execute = createRepositoryExecutor(
@@ -133,10 +121,10 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
         return {
           ...result.advisor,
           identityDocument: result.identityDocument
-            ? toTeamAdvisorStoredFile(result.identityDocument)
+            ? toStoredFileOfKind(result.identityDocument, "pdf")
             : null,
           teacherStatusDocument: result.teacherStatusDocument
-            ? toTeamAdvisorStoredFile(result.teacherStatusDocument)
+            ? toStoredFileOfKind(result.teacherStatusDocument, "pdf")
             : null,
         };
       }),

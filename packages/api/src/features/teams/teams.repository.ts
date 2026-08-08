@@ -1,14 +1,14 @@
 import { db } from "@bmhk-2026/db";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { files } from "@bmhk-2026/db/schema/files";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
+import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, eq } from "drizzle-orm";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams.service";
 import type { CreateTeamData, Team, UpdateTeamData } from "./teams.schema";
+import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
-import { toStoredFile } from "../files/files.schema";
 
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
@@ -33,14 +33,6 @@ type Database = typeof db;
 export type TeamWithStoredImage = Omit<Team, "image"> & {
   image: StoredFile | null;
 };
-
-function toTeamStoredFile(file: typeof files.$inferSelect): StoredFile {
-  try {
-    return toStoredFile(file);
-  } catch (error) {
-    throw createTeamRepositoryError(error);
-  }
-}
 
 export function createTeamRepository(database: Database = db): TeamRepository {
   const execute = createRepositoryExecutor("TEAM_REPOSITORY_ERROR", createTeamRepositoryError);
@@ -98,7 +90,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
 
         return {
           ...result.team,
-          image: result.image ? toTeamStoredFile(result.image) : null,
+          image: result.image ? toStoredFileOfKind(result.image, "image") : null,
         };
       }),
     findByUserId: async (userId) =>
@@ -155,7 +147,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
                 .from(files)
                 .where(eq(files.id, current.image))
                 .limit(1);
-              previous = oldFile ? toTeamStoredFile(oldFile) : null;
+              previous = oldFile ? toStoredFileOfKind(oldFile, "image") : null;
             }
             await transaction.insert(files).values(file);
             const [team] = await transaction

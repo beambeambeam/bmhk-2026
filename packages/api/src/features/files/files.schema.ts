@@ -42,6 +42,7 @@ export const fileMetadataSchema = fileSchema
 export const fileWithUrlSchema = fileMetadataSchema.extend({ url: z.url() }).strict();
 
 export type AllowedFileContentType = z.output<typeof fileContentTypeSchema>;
+export type StoredFileKind = "image" | "pdf";
 export type StoredFile = z.output<typeof fileSchema>;
 export type CreateStoredFileData = z.output<typeof createStoredFileDataSchema>;
 export type PublicFile = z.output<typeof fileMetadataSchema>;
@@ -59,4 +60,25 @@ export function toStoredFile(file: typeof files.$inferSelect): StoredFile {
     });
   }
   return { ...file, contentType };
+}
+
+export function toStoredFileOfKind(
+  file: typeof files.$inferSelect,
+  kind: StoredFileKind,
+): StoredFile {
+  const storedFile = toStoredFile(file);
+  const isPdf = storedFile.contentType === "application/pdf";
+
+  if ((kind === "pdf" && !isPdf) || (kind === "image" && isPdf)) {
+    throw createError({
+      code: "FILE_SCHEMA_INVALID",
+      fix: "Contact support",
+      internal: { contentType: storedFile.contentType, fileId: storedFile.id, kind },
+      message: "Stored file type is invalid",
+      status: 500,
+      why: `Stored file does not match required ${kind} kind`,
+    });
+  }
+
+  return storedFile;
 }

@@ -6,7 +6,7 @@ import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, eq } from "drizzle-orm";
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
-import { toStoredFile } from "../files/files.schema";
+import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 import {
   createTeamParticipantAlreadyExistsError,
@@ -61,18 +61,7 @@ function stored(
     return null;
   }
 
-  const result = toStoredFile(file);
-
-  if (
-    (expected === "pdf" && result.contentType !== "application/pdf") ||
-    (expected === "image" && result.contentType === "application/pdf")
-  ) {
-    throw createTeamParticipantRepositoryError(
-      new Error("Unsupported stored team participant document"),
-    );
-  }
-
-  return result;
+  return toStoredFileOfKind(file, expected);
 }
 function map(row: {
   participant: typeof teamParticipants.$inferSelect;

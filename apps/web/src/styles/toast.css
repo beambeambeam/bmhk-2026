@@ -1,0 +1,385 @@
+/* Upload toasts — Figma 1359:1024 / 1359:1142 / 1359:1117 / 1359:1161 / 1359:1185.
+   Owned by the toast track. Geometry and type live in the components' classNames the way
+   the rest of this repo writes them (`calc(MIN + DELTA * var(--fl))`); this sheet carries
+   only what a class attribute cannot express — the per-state accent, the enter/exit
+   transition, the one-row collapse, and the four SVG draw-ons.
+
+   It borrows micro-motion.css's vocabulary rather than forking it: `--mm-fast` /
+   `--mm-base` for durations, `--mm-ease-out` for arrival and departure, `--mm-ease` for
+   colour, `--mm-ease-in-out` for the one thing that breathes. No new duration and no new
+   curve is introduced anywhere below.
+
+   Structure mirrors micro-motion.css exactly, and for the same reason: the unguarded rules
+   carry the opacity/colour half of every interaction — the half reduced motion should keep
+   — and every `transform`, every `transition` and every `animation` lives inside a
+   `prefers-reduced-motion: no-preference` block. Switching the OS setting on therefore
+   removes the movement without leaving anything stuck mid-state, and no rule has to undo
+   another. A toast still arrives, still fades, still announces; it just does not travel,
+   scale, spin or draw itself.
+
+   Imported from components/toast/ToastProvider.tsx rather than from index.css, because the
+   toast track does not own index.css. `@import './styles/toast.css';` beside the other four
+   sheets there is equivalent — see the report. */
+
+/* ------------------------------------------------------------------ the accents
+
+   One property per state, so the card can MORPH between states instead of being replaced.
+   A transfer is one toast from first byte to last: `uploading` → `paused` → `uploading` →
+   `success`/`failed` all happen on the same element, and the only things that change are
+   this variable, one line of copy, and whether the progress row is open.
+
+   Custom properties are not themselves animatable without an `@property` registration, but
+   they do not need to be: changing `--toast-accent` re-resolves every `color`,
+   `background-color` and `border-color` that reads it, and the transition on THOSE
+   properties is what runs. That is why the tint below is stated as three separate
+   transitionable declarations rather than as one variable interpolation.
+
+   The values are Figma's, exactly: #d79a4e (brand-yellow) for a transfer in flight,
+   #c0563e (brand-red) for every stop and every refusal, #94b45e (brand-green) for done.
+   The ring is the accent at 10% over white with a 1px inside stroke at 20%, on all five
+   frames — 1359:1095, 1359:1144, 1359:1135, 1359:1179, 1359:1187 agree. */
+
+.toast-card {
+  --toast-accent: #c0563e;
+}
+
+.toast-card[data-kind='uploading'] {
+  --toast-accent: #d79a4e; /* 1359:1101, 1359:1206 */
+}
+
+.toast-card[data-kind='paused'],
+.toast-card[data-kind='failed'],
+.toast-card[data-kind='rejected'] {
+  --toast-accent: #c0563e; /* 1359:1150, 1359:1169, 1359:1193 */
+}
+
+.toast-card[data-kind='success'] {
+  --toast-accent: #94b45e; /* 1359:1125 */
+}
+
+/* The things that read the accent, so a state change tints rather than cuts.
+ *
+ * `.toast-fill` is deliberately NOT in this list even though it reads the accent too, and the
+ * reason is the shorthand trap micro-motion.css spells out: `transition` is one property, so a
+ * second `transition` declaration on the same element REPLACES the first outright — the two
+ * lists never merge. The fill needs a scale transition as well as a colour one, so both have to
+ * be stated together in one declaration per branch, which is what the progress block below
+ * does. Folding it in here silently cost the bar its amber→green tint. */
+.toast-ring,
+.toast-reason {
+  transition:
+    color var(--mm-fast) var(--mm-ease),
+    background-color var(--mm-fast) var(--mm-ease),
+    border-color var(--mm-fast) var(--mm-ease);
+}
+
+/* --------------------------------------------------------------- arrival + exit
+
+   Transitions, not keyframes. A toast is the textbook rapidly-retriggered element: seven
+   upload slots across four wizard steps, a picker that can be reopened in under a second,
+   and a dismiss button sitting on top of an entrance that is still running. A transition
+   retargets from whatever the current computed value is, so dismissing a card 90ms into
+   its arrival reverses it from where it actually is; keyframes would restart it from zero
+   and the card would jump back out to its offset before leaving.
+
+   `--toast-enter-y` is the axis, and it points at the edge the stack is anchored to, so
+   the exit is the entrance played backwards along the same line — which is what makes the
+   dismiss feel like the obvious inverse of the arrival. Mobile hangs the stack from the
+   top (see the viewport's note on the keyboard), so a card arrives from ABOVE, -14px;
+   desktop is a bottom-right corner card, so it arrives from BELOW, +14px. 14px is small on
+   purpose: the card is already fading and scaling, and a long slide on something that
+   appears while the user is reading a form is noise.
+
+   `transform-origin` follows the same anchor. A modal is exempt from origin-at-the-trigger
+   because it is not anchored to anything; a toast IS anchored — to its edge — so growing
+   out of that edge rather than out of its own centre is the honest reading.
+
+   Exit runs at `--mm-fast` against `--mm-base` in: a thing that is leaving should get out
+   of the way faster than it arrived. `--mm-fast` is on the base rule so it applies to the
+   opacity-only transition under reduced motion too. */
+
+.toast-card {
+  opacity: 0;
+  transition: opacity var(--mm-base) var(--mm-ease-out);
+}
+
+.toast-card[data-state='open'] {
+  opacity: 1;
+}
+
+/* Exit at `--mm-fast` against `--mm-base` in. Unguarded, and it holds in BOTH branches by
+   specificity rather than by source order: 0-2-0 here beats the 0-1-0 `.toast-card` rules that
+   set the duration, whichever of them the media query lets through. So the opacity-only exit
+   under reduced motion and the full translate/scale exit are both 160ms. */
+.toast-card[data-state='closed'] {
+  transition-duration: var(--mm-fast);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-card {
+    --toast-enter-y: -14px;
+
+    /* `translate` and `scale`, not the `transform` shorthand — micro-motion.css's rule for
+       every interaction transform in the app, and it earns its keep here: the FLIP that
+       settles the stack (Toast.tsx) writes `transform` on the row ABOVE this element, and
+       keeping the two on separate properties means neither has to out-specify the other
+       even if a future change moves the FLIP down onto the card itself. */
+    translate: 0 var(--toast-enter-y);
+    scale: 0.96;
+    transform-origin: top center;
+    /* named, never `all`: the card must not pick up the accent tint its children carry */
+    transition:
+      opacity var(--mm-base) var(--mm-ease-out),
+      translate var(--mm-base) var(--mm-ease-out),
+      scale var(--mm-base) var(--mm-ease-out);
+  }
+
+  @media (width >= 48rem) {
+    .toast-card {
+      --toast-enter-y: 14px;
+
+      transform-origin: bottom right;
+    }
+  }
+
+  .toast-card[data-state='open'] {
+    translate: none;
+    scale: 1;
+  }
+}
+
+/* ------------------------------------------------------- the progress row's collapse
+
+   1359:1024 and 1359:1142 are 77 tall; 1359:1117, 1359:1161 and 1359:1185 are 59. The
+   18px difference is exactly this row — Figma's 6-tall bar (1359:1205) plus the frame's
+   own 12 gap — so a transfer reaching `success` has to shed 18px of card height.
+
+   A 0fr→1fr grid row is the same mechanism micro-motion.css uses for the FAQ answers and
+   the mobile nav panel, and it is here for the identical reason: there is no transform
+   that removes 18px of height without distorting what is above it. The 12 gap lives INSIDE
+   the collapsing row (as its top padding) rather than on the flex column, because a flex
+   `gap` does not collapse with its item and would leave 12px of dead white under the text.
+
+   Declared outside the motion guard so the open/closed states still apply with reduced
+   motion — the row just swaps instantly, which is the same end state the transition
+   reaches. */
+
+.toast-progress {
+  display: grid;
+  grid-template-rows: 1fr;
+  /* clip, not hidden: the bar's own 100-radius fill must not be able to leak past a
+     half-collapsed row. `overflow: clip` degrades to `hidden` via index.css's @supports. */
+  overflow: clip;
+}
+
+/* The grid item's automatic minimum size, zeroed so the `0fr` track can actually reach 0.
+   This zeroes the item's CONTENT box only — its padding and border still contribute to the
+   border-box minimum, which is why the 12 gap lives on a child of this element rather than on
+   it: measured, a 12px `padding-top` here held the closed track at `12px` and left every
+   settled card 71.27 tall against Figma's 59. See the note at the row in Toast.tsx. */
+.toast-progress > * {
+  min-height: 0;
+}
+
+.toast-progress[data-open='false'] {
+  grid-template-rows: 0fr;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-progress {
+    transition: grid-template-rows var(--mm-base) var(--mm-ease-out);
+  }
+}
+
+/* The fill is scaled from its left edge, never sized with `width`: `width` is layout +
+   paint + composite on an element that updates ~24 times per transfer, and a scale is none
+   of the three. The bar is 6 tall with a 100 radius, i.e. a 3px cap, so squeezing the x
+   axis takes that cap to 3 * p px — under a pixel of difference at any progress worth
+   looking at, and invisible against the 348-wide track.
+
+   `scale`, the individual property, for the reason above and because the call site sets it
+   inline from the byte count; `transform-origin` still governs it.
+
+   `linear`, not an ease: this is constant motion carrying real numbers (bytes actually
+   read off the disk — see Field.tsx), and easing it would make the bar disagree with the
+   count printed beside it. */
+.toast-fill {
+  transform-origin: left center;
+  /* the colour half, which is what reduced motion keeps */
+  transition: background-color var(--mm-fast) var(--mm-ease);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-fill {
+    /* both, in one declaration — see the shorthand note at the top of this sheet */
+    transition:
+      background-color var(--mm-fast) var(--mm-ease),
+      scale var(--mm-base) linear;
+  }
+}
+
+/* ------------------------------------------------------------- the drawn glyphs
+
+   Four of the five states carry a mark that MEANS something — a tick, a warning triangle,
+   a warned document, a ring closing on a transfer — and Figma ships all four as flat
+   filled vectors. A mark that states an outcome should arrive by being drawn, the way
+   Field.tsx's `CheckMark`/`.auth-check-path` already does for the consent tick, so each
+   one below is re-cut as a stroked centreline derived from the Figma fill's own outline
+   (the derivation is written out beside each path in toast/icons.tsx) and travelled with
+   `stroke-dasharray`/`stroke-dashoffset`.
+
+   One keyframe serves all of them. It declares only `from`, so the `to` is the element's
+   own `stroke-dashoffset` — which is the initial 0. `backwards` fill is what makes the
+   pre-delay state the `from` (offset = length, i.e. nothing painted) instead of a fully
+   drawn mark that flickers before its turn; that is the same trick `.auth-check-path`
+   uses. `--toast-len` is the path length, declared per glyph beside its dasharray, so a
+   single keyframe covers a 20-unit tick and a 46-unit triangle without either being
+   approximated.
+
+   Unguarded, the marks simply exist: `stroke-dasharray` with the default 0 offset is a
+   solid line, so reduced motion gets the finished glyph with no animation to cancel. */
+
+.toast-draw {
+  stroke-dasharray: var(--toast-len);
+}
+
+@keyframes toast-draw {
+  from {
+    stroke-dashoffset: var(--toast-len);
+  }
+}
+
+/* A mark that pops in rather than travelling — the two warning dots, which are 1.7 units
+   across and have no length to travel along. `scale(0.4)`, never `scale(0)`: nothing in
+   the world appears out of nothing, and a dot that grows from a visible seed reads as
+   placed rather than switched on. */
+@keyframes toast-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/* Per-glyph dash length, duration and stagger. Lengths are the measured path perimeters
+   recorded beside each path in toast/icons.tsx, rounded up so the dash always fully covers
+   the line. Durations sit inside the marks' own budget: the tick keeps the 260ms
+   `.auth-check-path` already uses for the consent tick, so the two ticks in the flow travel
+   at the same speed, and the two multi-part warnings are staged so the outline lands before
+   the exclamation is placed into it — a sentence, not a flash. The last dot of the document
+   glyph lands at 520ms; that is a one-shot illustration inside a card that is already
+   present and readable, not a transition the user is waiting on. */
+.toast-glyph-check {
+  --toast-len: 20;
+  --toast-dur: 260ms;
+  --toast-delay: 90ms; /* after the card itself has arrived */
+}
+
+.toast-glyph-alert {
+  --toast-len: 46;
+  --toast-dur: 240ms;
+  --toast-delay: 50ms;
+}
+
+.toast-glyph-alert-bar {
+  --toast-len: 3.5;
+  --toast-dur: 110ms;
+  --toast-delay: 240ms;
+}
+
+.toast-glyph-alert-dot {
+  --toast-delay: 330ms;
+}
+
+.toast-glyph-doc {
+  --toast-len: 51;
+  --toast-dur: 240ms;
+  --toast-delay: 50ms;
+}
+
+.toast-glyph-doc-fold {
+  --toast-len: 10;
+  --toast-dur: 120ms;
+  --toast-delay: 200ms;
+}
+
+.toast-glyph-doc-bar {
+  --toast-len: 2;
+  --toast-dur: 100ms;
+  --toast-delay: 290ms;
+}
+
+.toast-glyph-doc-dot {
+  --toast-delay: 360ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-draw {
+    animation: toast-draw var(--toast-dur, 260ms) var(--mm-ease-out) var(--toast-delay, 0ms)
+      backwards;
+  }
+
+  .toast-pop {
+    /* fill-box so `center` is the dot's own centre and not the 20-unit icon box's */
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: toast-pop var(--mm-fast) var(--mm-ease-out) var(--toast-delay, 0ms) backwards;
+  }
+}
+
+/* ---------------------------------------------------------- the transfer's ring
+
+   1359:1096 draws the in-flight mark as a 14px solid dot inside the 32px ring, and a solid
+   dot says nothing about a transfer being in flight. Rather than invent a glyph Figma does
+   not draw, the ring ITSELF is what moves: `.toast-arc` is the same circle the frame
+   already strokes — r 15.5 in a 32 box at 1px, i.e. Figma's INSIDE stroke centreline
+   exactly — dashed down to a quarter turn at full opacity and rotated. Nothing new is
+   added to the drawing; the 20% ring is simply joined by a 100% arc of itself.
+
+   `paused` freezes it in place instead of removing it. That is the state's whole meaning,
+   and `animation-play-state` is the one property that says it without a second element.
+
+   The dot breathes underneath, on `--mm-ease-in-out` because it starts and ends in view.
+   Both stop under reduced motion, where the caption and the progress bar already carry the
+   state in text and in paint. */
+
+.toast-arc,
+.toast-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes toast-breathe {
+  50% {
+    opacity: 0.55;
+    transform: scale(0.74);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast-arc {
+    animation: toast-spin 900ms linear infinite;
+  }
+
+  .toast-card[data-kind='paused'] .toast-arc {
+    animation-play-state: paused;
+  }
+
+  .toast-card[data-kind='uploading'] .toast-dot {
+    animation: toast-breathe 1400ms var(--mm-ease-in-out) infinite;
+  }
+}
+
+/* ------------------------------------------------------------------- the controls
+
+   There is deliberately nothing here. Pause / resume / retry / dismiss are icon-only
+   controls of exactly the kind `.mm-press-icon` already exists for — a tint on
+   `--mm-fast`/`--mm-ease` plus 10% of scale on `--mm-press`/`--mm-ease-out`, both halves
+   already split across the motion guard and already written with the individual `scale`
+   property. Adding a `.toast-btn` beside it would be a second vocabulary for one gesture,
+   so the call sites wear `mm-press-icon` and this sheet says nothing about them. */

@@ -43,17 +43,17 @@
   --toast-accent: #c0563e;
 }
 
-.toast-card[data-kind='uploading'] {
+.toast-card[data-kind="uploading"] {
   --toast-accent: #d79a4e; /* 1359:1101, 1359:1206 */
 }
 
-.toast-card[data-kind='paused'],
-.toast-card[data-kind='failed'],
-.toast-card[data-kind='rejected'] {
+.toast-card[data-kind="paused"],
+.toast-card[data-kind="failed"],
+.toast-card[data-kind="rejected"] {
   --toast-accent: #c0563e; /* 1359:1150, 1359:1169, 1359:1193 */
 }
 
-.toast-card[data-kind='success'] {
+.toast-card[data-kind="success"] {
   --toast-accent: #94b45e; /* 1359:1125 */
 }
 
@@ -103,7 +103,7 @@
   transition: opacity var(--mm-base) var(--mm-ease-out);
 }
 
-.toast-card[data-state='open'] {
+.toast-card[data-state="open"] {
   opacity: 1;
 }
 
@@ -111,7 +111,7 @@
    specificity rather than by source order: 0-2-0 here beats the 0-1-0 `.toast-card` rules that
    set the duration, whichever of them the media query lets through. So the opacity-only exit
    under reduced motion and the full translate/scale exit are both 160ms. */
-.toast-card[data-state='closed'] {
+.toast-card[data-state="closed"] {
   transition-duration: var(--mm-fast);
 }
 
@@ -142,7 +142,7 @@
     }
   }
 
-  .toast-card[data-state='open'] {
+  .toast-card[data-state="open"] {
     translate: none;
     scale: 1;
   }
@@ -181,7 +181,7 @@
   min-height: 0;
 }
 
-.toast-progress[data-open='false'] {
+.toast-progress[data-open="false"] {
   grid-template-rows: 0fr;
 }
 
@@ -366,11 +366,11 @@
     animation: toast-spin 900ms linear infinite;
   }
 
-  .toast-card[data-kind='paused'] .toast-arc {
+  .toast-card[data-kind="paused"] .toast-arc {
     animation-play-state: paused;
   }
 
-  .toast-card[data-kind='uploading'] .toast-dot {
+  .toast-card[data-kind="uploading"] .toast-dot {
     animation: toast-breathe 1400ms var(--mm-ease-in-out) infinite;
   }
 }

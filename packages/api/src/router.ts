@@ -5,23 +5,29 @@ import { createProcedures } from "./core/procedure";
 import { createHealthRouter } from "./features/health/health.router";
 import { createFileRepository } from "./features/files/files.repository";
 import { createFilesRouter } from "./features/files/files.router";
+import { createFileService } from "./features/files/files.service";
 import { createPrivateDataRouter } from "./features/private-data/private-data.router";
 import type { FileRepository } from "./features/files/files.repository";
 import type { TeamRepository } from "./features/teams/teams.repository";
 import { createTeamRepository } from "./features/teams/teams.repository";
 import { createTeamsRouter } from "./features/teams/teams.router";
+import { createTeamService } from "./features/teams/teams.service";
 import type { TeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
 import { createTeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
 import { createTeamAdvisorsRouter } from "./features/team-advisors/team-advisors.router";
+import { createTeamAdvisorService } from "./features/team-advisors/team-advisors.service";
 import type { TeamParticipantRepository } from "./features/team-participants/team-participants.repository";
 import { createTeamParticipantRepository } from "./features/team-participants/team-participants.repository";
 import { createTeamParticipantsRouter } from "./features/team-participants/team-participants.router";
+import { createTeamParticipantService } from "./features/team-participants/team-participants.service";
 import type { TeamConsentRepository } from "./features/team-consents/team-consents.repository";
 import { createTeamConsentRepository } from "./features/team-consents/team-consents.repository";
 import { createTeamConsentsRouter } from "./features/team-consents/team-consents.router";
+import { createTeamConsentService } from "./features/team-consents/team-consents.service";
 import type { TeamRegistrationStatusRepository } from "./features/team-registration-status/team-registration-status.repository";
 import { createTeamRegistrationStatusRepository } from "./features/team-registration-status/team-registration-status.repository";
 import { createTeamRegistrationStatusRouter } from "./features/team-registration-status/team-registration-status.router";
+import { createTeamRegistrationStatusService } from "./features/team-registration-status/team-registration-status.service";
 
 export interface ApiDependencies {
   auth: AuthReader;
@@ -36,28 +42,36 @@ export interface ApiDependencies {
 
 export function createAppRouter(dependencies: ApiDependencies) {
   const { protectedProcedure, publicProcedure } = createProcedures(dependencies);
+  const teamAdvisorRepository = dependencies.teamAdvisors ?? createTeamAdvisorRepository();
+  const teamRepository = dependencies.teams ?? createTeamRepository();
+  const teamParticipantRepository =
+    dependencies.teamParticipants ?? createTeamParticipantRepository();
+  const teamConsentRepository = dependencies.teamConsents ?? createTeamConsentRepository();
+  const teamRegistrationStatusRepository =
+    dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository();
+  const fileRepository = dependencies.files ?? createFileRepository();
 
   return {
-    files: createFilesRouter(protectedProcedure, dependencies.files ?? createFileRepository()),
+    files: createFilesRouter(protectedProcedure, createFileService(fileRepository)),
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
     teamAdvisors: createTeamAdvisorsRouter(
       protectedProcedure,
-      dependencies.teamAdvisors ?? createTeamAdvisorRepository(),
+      createTeamAdvisorService(teamAdvisorRepository),
     ),
     teamConsents: createTeamConsentsRouter(
       protectedProcedure,
-      dependencies.teamConsents ?? createTeamConsentRepository(),
+      createTeamConsentService(teamConsentRepository),
     ),
     teamParticipants: createTeamParticipantsRouter(
       protectedProcedure,
-      dependencies.teamParticipants ?? createTeamParticipantRepository(),
+      createTeamParticipantService(teamParticipantRepository),
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
       protectedProcedure,
-      dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository(),
+      createTeamRegistrationStatusService(teamRegistrationStatusRepository),
     ),
-    teams: createTeamsRouter(protectedProcedure, dependencies.teams ?? createTeamRepository()),
+    teams: createTeamsRouter(protectedProcedure, createTeamService(teamRepository)),
   };
 }
 

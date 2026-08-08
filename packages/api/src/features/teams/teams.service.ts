@@ -1,6 +1,40 @@
+import { env } from "@bmhk-2026/env/server";
 import { createError } from "evlog";
 
-import type { TeamListPagination } from "./teams.schema";
+import type { CreateStoredFileData } from "../files/files.schema";
+import {
+  createStoredFileData,
+  toPublicFileWithUrl,
+  uploadValidatedFile,
+  validateUploadedImage,
+} from "../files/files.service";
+import type { TeamRepository } from "./teams.repository";
+import type {
+  CreateTeamData,
+  Team,
+  TeamDetails,
+  TeamListPagination,
+  TeamListResult,
+  UpdateTeamData,
+} from "./teams.schema";
+
+export interface TeamImageUploadResult {
+  file: CreateStoredFileData;
+  team: Team;
+}
+
+export interface TeamService {
+  create: (userId: string, data: CreateTeamData) => Promise<Team>;
+  delete: (userId: string, id: string) => Promise<{ id: string }>;
+  get: (userId: string, id: string) => Promise<TeamDetails>;
+  list: (userId: string, pagination: { limit: number; offset: number }) => Promise<TeamListResult>;
+  update: (userId: string, id: string, data: UpdateTeamData) => Promise<Team>;
+  uploadImage: (input: {
+    file: File;
+    id: string;
+    userId: string;
+  }) => Promise<TeamImageUploadResult>;
+}
 
 export function createTeamAlreadyExistsError() {
   return createError({
@@ -49,5 +83,82 @@ export function createTeamListPagination({
     previousOffset: offset > 0 ? Math.max(0, offset - limit) : null,
     total,
     totalPages: Math.ceil(total / limit),
+  };
+}
+
+export function createTeamService(repository: TeamRepository): TeamService {
+  return {
+    create: async (userId, data) => {
+      const existingTeam = await repository.findByUserId(userId);
+      if (existingTeam) {
+        throw createTeamAlreadyExistsError();
+      }
+
+      return await repository.create(userId, data);
+    },
+    delete: async (userId, id) => {
+      const deleted = await repository.delete(userId, id);
+      if (!deleted) {
+        throw createTeamNotFoundError();
+      }
+
+      return { id };
+    },
+    get: async (userId, id) => {
+      const team = await repository.findById(userId, id);
+      if (!team) {
+        throw createTeamNotFoundError();
+      }
+
+      return {
+        ...team,
+        image: team.image === null ? null : await toPublicFileWithUrl(team.image),
+      };
+    },
+    list: async (userId, pagination) => {
+      const result = await repository.list(userId, pagination);
+      return {
+        data: result.data,
+        pagination: createTeamListPagination({
+          ...pagination,
+          total: result.total,
+        }),
+      };
+    },
+    update: async (userId, id, data) => {
+      const team = await repository.update(userId, id, data);
+      if (!team) {
+        throw createTeamNotFoundError();
+      }
+
+      return team;
+    },
+    uploadImage: async ({ file, id, userId }) => {
+      const existingTeam = await repository.findById(userId, id);
+      if (!existingTeam) {
+        throw createTeamNotFoundError();
+      }
+
+      const validated = await validateUploadedImage(file);
+      const fileId = crypto.randomUUID();
+      const bucket = env.AWS_S3_BUCKET;
+      const objectKey = `teams/${id}/images/${fileId}`;
+
+      await uploadValidatedFile({ bucket, file: validated, objectKey });
+      const storedFile = createStoredFileData({
+        bucket,
+        file: validated,
+        id: fileId,
+        objectKey,
+        uploadedBy: userId,
+      });
+      const result = await repository.replaceImage(userId, id, storedFile);
+
+      if (result === null) {
+        throw createTeamNotFoundError();
+      }
+
+      return { file: storedFile, team: result.team };
+    },
   };
 }

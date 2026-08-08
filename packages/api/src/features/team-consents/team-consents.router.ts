@@ -1,7 +1,5 @@
 import type { ProtectedProcedure } from "../../core/procedure";
-import { createTeamNotFoundError } from "../teams/teams.service";
-import type { TeamConsentRepository } from "./team-consents.repository";
-import { createTeamConsentNotFoundError } from "./team-consents.service";
+import type { TeamConsentService } from "./team-consents.service";
 import {
   createTeamConsentSchema,
   teamConsentSchema,
@@ -11,7 +9,7 @@ import {
 
 export function createTeamConsentsRouter(
   protectedProcedure: ProtectedProcedure,
-  repository: TeamConsentRepository,
+  service: TeamConsentService,
 ) {
   return {
     create: protectedProcedure
@@ -19,11 +17,7 @@ export function createTeamConsentsRouter(
       .input(createTeamConsentSchema)
       .output(teamConsentSchema)
       .handler(async ({ context, input }) => {
-        const consent = await repository.create(context.session.user.id, input);
-
-        if (!consent) {
-          throw createTeamNotFoundError();
-        }
+        const consent = await service.create(context.session.user.id, input);
 
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;
@@ -33,11 +27,7 @@ export function createTeamConsentsRouter(
       .input(teamConsentTeamInputSchema)
       .output(teamConsentSchema)
       .handler(async ({ context, input }) => {
-        const consent = await repository.findByTeamId(context.session.user.id, input.teamId);
-
-        if (!consent) {
-          throw createTeamConsentNotFoundError();
-        }
+        const consent = await service.get(context.session.user.id, input.teamId);
 
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;
@@ -47,11 +37,7 @@ export function createTeamConsentsRouter(
       .input(updateTeamConsentSchema)
       .output(teamConsentSchema)
       .handler(async ({ context, input }) => {
-        const consent = await repository.update(context.session.user.id, input.teamId, input.data);
-
-        if (!consent) {
-          throw createTeamConsentNotFoundError();
-        }
+        const consent = await service.update(context.session.user.id, input.teamId, input.data);
 
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;

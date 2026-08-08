@@ -2,6 +2,27 @@
 
 A monorepo for Bangmod Hackathon 2026, containing the website, server, and supporting services, built with TanStack Start, Elysia, and other modern tools.
 
+## API architecture
+
+The framework-neutral [`@bmhk-2026/api`](./packages/api) package owns oRPC contracts, authorization policy, application workflows, and persistence adapters. The server application mounts the composed router but does not own feature logic.
+
+API code is organized by feature under `packages/api/src/features/<feature>/`:
+
+- `*.router.ts` defines oRPC routes, input and output contracts, authenticated request values, transport policy, and request logging.
+- `*.schema.ts` defines Zod validation and public contract types.
+- `*.service.ts` implements application workflows and business decisions.
+- `*.repository.ts` defines persistence ports and their Drizzle adapters.
+
+`packages/api/src/router.ts` is the composition root. It creates repositories, injects them into feature services, injects those services into feature routers, and combines the feature routers into `AppRouter`. Tests can replace repositories through `ApiDependencies` while exercising behavior through the public RPC seam.
+
+The dependency flow is:
+
+```text
+server -> app router -> feature router -> feature service -> repository or external service
+```
+
+Feature routers should remain transport adapters. Database coordination, not-found and conflict decisions, file processing, pagination, response mapping, and other application workflows belong in feature services.
+
 ## Getting started
 
 1. Install dependencies:

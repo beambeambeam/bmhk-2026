@@ -1,22 +1,6 @@
-import { env } from "@bmhk-2026/env/server";
-import type { z } from "zod";
-
-import type { ApiSession } from "../../core/auth";
-import type { ApiContext } from "../../core/context";
 import type { ProtectedProcedure } from "../../core/procedure";
-import {
-  assertAllowedOrigin,
-  createStoredFileData,
-  toPublicFileWithUrl,
-  uploadValidatedFile,
-  validateUploadedPdf,
-} from "../files/files.service";
-import type { TeamAdvisorRepository } from "./team-advisors.repository";
-import {
-  createTeamAdvisorNotFoundError,
-  getTeamAdvisorDocumentPath,
-} from "./team-advisors.service";
-import type { TeamAdvisorDocumentType } from "./team-advisors.service";
+import { assertAllowedOrigin } from "../files/files.service";
+import type { TeamAdvisorService } from "./team-advisors.service";
 import {
   createTeamAdvisorSchema,
   teamAdvisorDetailsSchema,
@@ -25,64 +9,10 @@ import {
   teamIdInputSchema,
   updateTeamAdvisorSchema,
 } from "./team-advisors.schema";
-import { createTeamNotFoundError } from "../teams/teams.service";
-
-type DocumentUploadInput = z.output<typeof teamAdvisorDocumentUploadSchema>;
-type ProtectedContext = ApiContext & { session: ApiSession };
-
-async function uploadTeamAdvisorDocument({
-  context,
-  documentType,
-  input,
-  repository,
-}: {
-  context: ProtectedContext;
-  documentType: TeamAdvisorDocumentType;
-  input: DocumentUploadInput;
-  repository: TeamAdvisorRepository;
-}) {
-  assertAllowedOrigin(context.headers);
-
-  const advisor = await repository.findByTeamId(context.session.user.id, input.teamId);
-  if (!advisor) {
-    throw createTeamAdvisorNotFoundError();
-  }
-
-  const validated = await validateUploadedPdf(input.file);
-  const id = crypto.randomUUID();
-  const bucket = env.AWS_S3_BUCKET;
-  const objectKey = `team-advisors/${advisor.id}/documents/${getTeamAdvisorDocumentPath(documentType)}/${id}`;
-  await uploadValidatedFile({ bucket, file: validated, objectKey });
-
-  const file = createStoredFileData({
-    bucket,
-    file: validated,
-    id,
-    objectKey,
-    uploadedBy: context.session.user.id,
-  });
-
-  const updatedAdvisor = await repository.replaceDocument(
-    context.session.user.id,
-    input.teamId,
-    documentType,
-    file,
-  );
-
-  if (!updatedAdvisor) {
-    throw createTeamAdvisorNotFoundError();
-  }
-
-  context.log.set({
-    file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
-    teamAdvisor: { id: updatedAdvisor.id, teamId: updatedAdvisor.teamId },
-  });
-  return updatedAdvisor;
-}
 
 export function createTeamAdvisorsRouter(
   protectedProcedure: ProtectedProcedure,
-  repository: TeamAdvisorRepository,
+  service: TeamAdvisorService,
 ) {
   return {
     create: protectedProcedure
@@ -93,10 +23,7 @@ export function createTeamAdvisorsRouter(
       .input(createTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await repository.create(context.session.user.id, input);
-        if (!advisor) {
-          throw createTeamNotFoundError();
-        }
+        const advisor = await service.create(context.session.user.id, input);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
@@ -109,29 +36,10 @@ export function createTeamAdvisorsRouter(
       .input(teamIdInputSchema)
       .output(teamAdvisorDetailsSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await repository.findByTeamId(context.session.user.id, input.teamId);
-        if (!advisor) {
-          throw createTeamAdvisorNotFoundError();
-        }
-
-        const [identityDocument, teacherStatusDocument] = await Promise.all([
-          advisor.identityDocument ? toPublicFileWithUrl(advisor.identityDocument) : null,
-          advisor.teacherStatusDocument ? toPublicFileWithUrl(advisor.teacherStatusDocument) : null,
-        ]);
-        const {
-          identityDocument: _identityDocument,
-          identityDocumentFileId: _identityDocumentFileId,
-          teacherStatusDocument: _teacherStatusDocument,
-          teacherStatusDocumentFileId: _teacherStatusDocumentFileId,
-          ...advisorFields
-        } = advisor;
+        const advisor = await service.get(context.session.user.id, input.teamId);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
-        return {
-          ...advisorFields,
-          identityDocument,
-          teacherStatusDocument,
-        };
+        return advisor;
       }),
     identityDocument: protectedProcedure
       .route({
@@ -140,15 +48,21 @@ export function createTeamAdvisorsRouter(
       })
       .input(teamAdvisorDocumentUploadSchema)
       .output(teamAdvisorSchema)
-      .handler(
-        async ({ context, input }) =>
-          await uploadTeamAdvisorDocument({
-            context,
-            documentType: "identity",
-            input,
-            repository,
-          }),
-      ),
+      .handler(async ({ context, input }) => {
+        assertAllowedOrigin(context.headers);
+        const { advisor, file } = await service.uploadDocument({
+          documentType: "identity",
+          file: input.file,
+          teamId: input.teamId,
+          userId: context.session.user.id,
+        });
+
+        context.log.set({
+          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
+          teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
+        });
+        return advisor;
+      }),
     teacherStatusDocument: protectedProcedure
       .route({
         method: "POST",
@@ -156,15 +70,21 @@ export function createTeamAdvisorsRouter(
       })
       .input(teamAdvisorDocumentUploadSchema)
       .output(teamAdvisorSchema)
-      .handler(
-        async ({ context, input }) =>
-          await uploadTeamAdvisorDocument({
-            context,
-            documentType: "teacherStatus",
-            input,
-            repository,
-          }),
-      ),
+      .handler(async ({ context, input }) => {
+        assertAllowedOrigin(context.headers);
+        const { advisor, file } = await service.uploadDocument({
+          documentType: "teacherStatus",
+          file: input.file,
+          teamId: input.teamId,
+          userId: context.session.user.id,
+        });
+
+        context.log.set({
+          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
+          teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
+        });
+        return advisor;
+      }),
     update: protectedProcedure
       .route({
         method: "PATCH",
@@ -173,10 +93,7 @@ export function createTeamAdvisorsRouter(
       .input(updateTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await repository.update(context.session.user.id, input.teamId, input.data);
-        if (!advisor) {
-          throw createTeamAdvisorNotFoundError();
-        }
+        const advisor = await service.update(context.session.user.id, input.teamId, input.data);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;

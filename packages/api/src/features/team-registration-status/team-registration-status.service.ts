@@ -1,10 +1,18 @@
 import { createError } from "evlog";
 
+import { createTeamNotFoundError } from "../teams/teams.service";
 import type {
   TeamRegistrationItemStatus,
   TeamRegistrationStatus,
 } from "./team-registration-status.schema";
-import type { TeamRegistrationStatusFacts } from "./team-registration-status.repository";
+import type {
+  TeamRegistrationStatusFacts,
+  TeamRegistrationStatusRepository,
+} from "./team-registration-status.repository";
+
+export interface TeamRegistrationStatusService {
+  get: (userId: string) => Promise<TeamRegistrationStatus>;
+}
 
 const COMPLETED: TeamRegistrationItemStatus = "COMPLETED";
 const IN_PROGRESS: TeamRegistrationItemStatus = "IN_PROGRESS";
@@ -111,5 +119,20 @@ export function calculateTeamRegistrationStatus(
     team,
     teamId: facts.team.id,
     termsAndConditions,
+  };
+}
+
+export function createTeamRegistrationStatusService(
+  repository: TeamRegistrationStatusRepository,
+): TeamRegistrationStatusService {
+  return {
+    get: async (userId) => {
+      const facts = await repository.find(userId);
+      if (!facts) {
+        throw createTeamNotFoundError();
+      }
+
+      return calculateTeamRegistrationStatus(facts);
+    },
   };
 }

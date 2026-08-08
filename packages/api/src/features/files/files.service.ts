@@ -9,6 +9,17 @@ import type {
   PublicFileWithUrl,
   StoredFile,
 } from "./files.schema";
+import type { FileRepository } from "./files.repository";
+
+export interface FileServiceLog {
+  error: (error: Error) => void;
+  set: (entry: Record<string, unknown>) => void;
+}
+
+export interface FileService {
+  get: (userId: string, id: string) => Promise<PublicFileWithUrl>;
+  upload: (input: { file: File; log: FileServiceLog; userId: string }) => Promise<PublicFile>;
+}
 
 export function createFileEmptyError() {
   return createError({
@@ -312,13 +323,11 @@ export function createStoredFileData({
 export async function saveFileMetadata({
   create,
   data,
-  context,
+  log,
 }: {
   create: (data: CreateStoredFileData) => Promise<StoredFile>;
   data: CreateStoredFileData;
-  context: {
-    log: { error: (error: Error) => void; set: (entry: Record<string, unknown>) => void };
-  };
+  log: FileServiceLog;
 }): Promise<StoredFile> {
   try {
     return await create(data);
@@ -326,11 +335,11 @@ export async function saveFileMetadata({
     try {
       await deleteObject({ bucket: data.bucket, key: data.objectKey });
     } catch (cleanupError) {
-      context.log.set({
+      log.set({
         event: "file.upload.rollback_failed",
         file: { bucket: data.bucket, id: data.id, objectKey: data.objectKey },
       });
-      context.log.error(
+      log.error(
         cleanupError instanceof Error
           ? cleanupError
           : createError({
@@ -344,4 +353,38 @@ export async function saveFileMetadata({
     }
     throw createFileMetadataSaveError(error);
   }
+}
+
+export function createFileService(repository: FileRepository): FileService {
+  return {
+    get: async (userId, id) => {
+      const file = await repository.findById(userId, id);
+      if (!file) {
+        throw createFileNotFoundError();
+      }
+
+      return await toPublicFileWithUrl(file);
+    },
+    upload: async ({ file, log, userId }) => {
+      const validated = await validateUploadedFile(file);
+      const id = crypto.randomUUID();
+      const objectKey = `files/${id}`;
+      const bucket = env.AWS_S3_BUCKET;
+
+      await uploadValidatedFile({ bucket, file: validated, objectKey });
+      const storedFile = await saveFileMetadata({
+        create: repository.create,
+        data: createStoredFileData({
+          bucket,
+          file: validated,
+          id,
+          objectKey,
+          uploadedBy: userId,
+        }),
+        log,
+      });
+
+      return toPublicFile(storedFile);
+    },
+  };
 }

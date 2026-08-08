@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { orpc } from "@bmhk-2026/client/orpc";
-import { Button } from "@base-ui/react/button";
-import { authClient } from "@bmhk-2026/client/auth-client";
 
 export const Route = createFileRoute("/_auth/dashboard")({
   component: RouteComponent,
@@ -11,26 +9,29 @@ export const Route = createFileRoute("/_auth/dashboard")({
 
 function RouteComponent() {
   const { session } = Route.useRouteContext();
-  const navigate = useNavigate();
-
   const privateData = useQuery(orpc.privateData.get.queryOptions());
+  const role = session.data?.user.role ?? "user";
 
-  async function handleSignOut() {
-    await authClient.signOut();
-    await navigate({ to: "/login" });
+  if (role === "user") {
+    return (
+      <section className="space-y-3">
+        <h1 className="font-semibold text-2xl">Dashboard</h1>
+        <div className="rounded-lg border border-border bg-muted/40 p-4">
+          <p className="font-medium">Waiting for staff access</p>
+          <p className="mt-1 text-muted-foreground text-sm">
+            You are signed in, but an admin needs to assign you a staff role before you can use
+            staff tools.
+          </p>
+        </div>
+      </section>
+    );
   }
 
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome {session.data?.user.name}</p>
-      <p>API: {privateData.data?.message}</p>
-      <Button
-        className="p-2 bg-white rounded-md text-red-500 hover:bg-red-100 transition-all cursor-pointer"
-        onClick={() => void handleSignOut()}
-      >
-        Sign out test
-      </Button>
-    </div>
+    <section className="space-y-2">
+      <h1 className="font-semibold text-2xl">Dashboard</h1>
+      <p className="text-muted-foreground">Welcome {session.data?.user.name}</p>
+      <p className="text-sm">API: {privateData.data?.message}</p>
+    </section>
   );
 }

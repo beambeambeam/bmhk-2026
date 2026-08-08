@@ -12,6 +12,22 @@ export type AuthDatabase = ReturnType<typeof createDb>;
 
 const STAFF_EMAIL_DOMAIN = "@kmutt.ac.th";
 
+function getCookieAttributes() {
+  if (env.NODE_ENV === "production") {
+    return {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    } as const;
+  }
+
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+  } as const;
+}
+
 function getMicrosoftEmail(profile: MicrosoftEntraIDProfile) {
   return (profile.email ?? profile.preferred_username ?? profile.upn ?? "").toLowerCase();
 }
@@ -27,11 +43,7 @@ function assertStaffEmail(email: string) {
 export function createAuth(database: AuthDatabase = createDb()) {
   return betterAuth({
     advanced: {
-      defaultCookieAttributes: {
-        httpOnly: true,
-        sameSite: "none",
-        secure: true,
-      },
+      defaultCookieAttributes: getCookieAttributes(),
     },
     baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(database, {

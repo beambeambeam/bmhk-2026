@@ -1,14 +1,8 @@
-import { env } from "@bmhk-2026/env/server";
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
-import {
-  createStoredFileData,
-  toPublicFileWithUrl,
-  uploadValidatedFile,
-  validateUploadedImage,
-} from "../files/files.service";
+import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
 import type { TeamRepository } from "./teams.repository";
 import type {
   CreateTeamData,
@@ -143,17 +137,10 @@ export function createTeamService(repository: TeamRepository): TeamService {
         throw createTeamNotFoundError();
       }
 
-      const validated = await validateUploadedImage(file);
-      const fileId = crypto.randomUUID();
-      const bucket = env.AWS_S3_BUCKET;
-      const objectKey = `teams/${id}/images/${fileId}`;
-
-      await uploadValidatedFile({ bucket, file: validated, objectKey });
-      const storedFile = createStoredFileData({
-        bucket,
-        file: validated,
-        id: fileId,
-        objectKey,
+      const storedFile = await storeUploadedFile({
+        file,
+        keyPrefix: `teams/${id}/images`,
+        kind: "image",
         uploadedBy: userId,
       });
       const result = await repository.replaceImage(userId, id, storedFile);

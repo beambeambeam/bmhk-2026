@@ -1,15 +1,8 @@
-import { env } from "@bmhk-2026/env/server";
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
-import {
-  createStoredFileData,
-  toPublicFileWithUrl,
-  uploadValidatedFile,
-  validateUploadedImage,
-  validateUploadedPdf,
-} from "../files/files.service";
+import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type {
   TeamParticipantRepository,
@@ -164,20 +157,10 @@ export function createTeamParticipantService(
         throw createTeamParticipantNotFoundError();
       }
 
-      const validated =
-        documentType === "portraitPhoto"
-          ? await validateUploadedImage(file)
-          : await validateUploadedPdf(file);
-      const id = crypto.randomUUID();
-      const bucket = env.AWS_S3_BUCKET;
-      const objectKey = `team-participants/${participant.id}/documents/${getTeamParticipantDocumentPath(documentType)}/${id}`;
-      await uploadValidatedFile({ bucket, file: validated, objectKey });
-
-      const storedFile = createStoredFileData({
-        bucket,
-        file: validated,
-        id,
-        objectKey,
+      const storedFile = await storeUploadedFile({
+        file,
+        keyPrefix: `team-participants/${participant.id}/documents/${getTeamParticipantDocumentPath(documentType)}`,
+        kind: documentType === "portraitPhoto" ? "image" : "pdf",
         uploadedBy: userId,
       });
       const updatedParticipant = await repository.replaceDocument(

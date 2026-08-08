@@ -161,6 +161,8 @@ export interface ValidatedUpload {
   originalName: string;
 }
 
+export type StoredUploadKind = "file" | "image" | "pdf";
+
 function startsWithBytes(bytes: Uint8Array, signature: Uint8Array): boolean {
   return (
     bytes.length >= signature.length && signature.every((byte, index) => bytes[index] === byte)
@@ -324,6 +326,41 @@ export function createStoredFileData({
   };
 }
 
+export async function storeUploadedFile({
+  file,
+  keyPrefix,
+  kind,
+  uploadedBy,
+}: {
+  file: File;
+  keyPrefix: string;
+  kind: StoredUploadKind;
+  uploadedBy: string;
+}): Promise<CreateStoredFileData> {
+  let validated: ValidatedUpload;
+
+  if (kind === "image") {
+    validated = await validateUploadedImage(file);
+  } else if (kind === "pdf") {
+    validated = await validateUploadedPdf(file);
+  } else {
+    validated = await validateUploadedFile(file);
+  }
+
+  const id = crypto.randomUUID();
+  const bucket = env.AWS_S3_BUCKET;
+  const objectKey = `${keyPrefix}/${id}`;
+
+  await uploadValidatedFile({ bucket, file: validated, objectKey });
+  return createStoredFileData({
+    bucket,
+    file: validated,
+    id,
+    objectKey,
+    uploadedBy,
+  });
+}
+
 export async function saveFileMetadata({
   create,
   data,
@@ -370,19 +407,12 @@ export function createFileService(repository: FileRepository): FileService {
       return await toPublicFileWithUrl(file);
     },
     upload: async ({ file, log, userId }) => {
-      const validated = await validateUploadedFile(file);
-      const id = crypto.randomUUID();
-      const objectKey = `files/${id}`;
-      const bucket = env.AWS_S3_BUCKET;
-
-      await uploadValidatedFile({ bucket, file: validated, objectKey });
       const storedFile = await saveFileMetadata({
         create: repository.create,
-        data: createStoredFileData({
-          bucket,
-          file: validated,
-          id,
-          objectKey,
+        data: await storeUploadedFile({
+          file,
+          keyPrefix: "files",
+          kind: "file",
           uploadedBy: userId,
         }),
         log,

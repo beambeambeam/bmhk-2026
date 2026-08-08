@@ -1,14 +1,8 @@
-import { env } from "@bmhk-2026/env/server";
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
-import {
-  createStoredFileData,
-  toPublicFileWithUrl,
-  uploadValidatedFile,
-  validateUploadedPdf,
-} from "../files/files.service";
+import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamAdvisorRepository } from "./team-advisors.repository";
 import type {
@@ -122,17 +116,10 @@ export function createTeamAdvisorService(repository: TeamAdvisorRepository): Tea
         throw createTeamAdvisorNotFoundError();
       }
 
-      const validated = await validateUploadedPdf(file);
-      const id = crypto.randomUUID();
-      const bucket = env.AWS_S3_BUCKET;
-      const objectKey = `team-advisors/${advisor.id}/documents/${getTeamAdvisorDocumentPath(documentType)}/${id}`;
-      await uploadValidatedFile({ bucket, file: validated, objectKey });
-
-      const storedFile = createStoredFileData({
-        bucket,
-        file: validated,
-        id,
-        objectKey,
+      const storedFile = await storeUploadedFile({
+        file,
+        keyPrefix: `team-advisors/${advisor.id}/documents/${getTeamAdvisorDocumentPath(documentType)}`,
+        kind: "pdf",
         uploadedBy: userId,
       });
       const updatedAdvisor = await repository.replaceDocument(

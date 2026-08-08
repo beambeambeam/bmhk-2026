@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { orpc } from "@bmhk-2026/client/orpc";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_site/status")({
   component: HomeComponent,
 });
 

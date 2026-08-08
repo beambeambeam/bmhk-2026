@@ -1,57 +1,25 @@
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
+
 import { fileWithUrlSchema } from "../files/files.schema";
+import {
+  optionalRegistrationPersonFields,
+  registrationPersonFieldRefinements,
+  registrationPersonWritableFields,
+} from "../registration-person/registration-person.schema";
 
 const refinements = {
-  chronicConditionsAndFirstAidNotes: (s: z.ZodString) => s.trim().min(1).max(2000),
-  dateOfBirth: (s: z.ZodString) => s.trim().regex(/^\d{4}-\d{2}-\d{2}$/u),
-  dietaryRequirements: (s: z.ZodString) => s.trim().min(1).max(1000),
-  drugAllergies: (s: z.ZodString) => s.trim().min(1).max(1000),
-  email: (s: z.ZodString) => s.trim().min(1).max(254).pipe(z.email()),
-  firstNameEn: (s: z.ZodString) => s.trim().min(1).max(100),
-  firstNameTh: (s: z.ZodString) => s.trim().min(1).max(100),
-  foodAllergies: (s: z.ZodString) => s.trim().min(1).max(1000),
-  lastNameEn: (s: z.ZodString) => s.trim().min(1).max(100),
-  lastNameTh: (s: z.ZodString) => s.trim().min(1).max(100),
-  lineId: (s: z.ZodString) => s.trim().min(1).max(100),
-  middleNameEn: (s: z.ZodString) => s.trim().min(1).max(100),
-  middleNameTh: (s: z.ZodString) => s.trim().min(1).max(100),
-  phone: (s: z.ZodString) => s.trim().min(1).max(32),
-  titleEn: (s: z.ZodString) => s.trim().min(1).max(50),
-  titleTh: (s: z.ZodString) => s.trim().min(1).max(50),
+  ...registrationPersonFieldRefinements,
+  dateOfBirth: (schema: z.ZodString) => schema.trim().regex(/^\d{4}-\d{2}-\d{2}$/u),
 };
 
 const insert = createInsertSchema(teamParticipants, refinements);
 const update = createUpdateSchema(teamParticipants, refinements);
 
 const writable = {
-  chronicConditionsAndFirstAidNotes: true,
+  ...registrationPersonWritableFields,
   dateOfBirth: true,
-  dietaryRequirements: true,
-  drugAllergies: true,
-  email: true,
-  firstNameEn: true,
-  firstNameTh: true,
-  foodAllergies: true,
-  lastNameEn: true,
-  lastNameTh: true,
-  lineId: true,
-  middleNameEn: true,
-  middleNameTh: true,
-  phone: true,
-  titleEn: true,
-  titleTh: true,
-} as const;
-
-const optional = {
-  chronicConditionsAndFirstAidNotes: true,
-  dietaryRequirements: true,
-  drugAllergies: true,
-  foodAllergies: true,
-  lineId: true,
-  middleNameEn: true,
-  middleNameTh: true,
 } as const;
 
 export const teamParticipantSchema = createSelectSchema(teamParticipants).strict();
@@ -73,7 +41,7 @@ const slot = z
   .object({ index: z.number().int().min(1).max(3), teamId: teamParticipantSchema.shape.teamId })
   .strict();
 
-const fields = insert.pick(writable).partial(optional).strict();
+const fields = insert.pick(writable).partial(optionalRegistrationPersonFields).strict();
 
 export const createTeamParticipantSchema = fields
   .extend({ index: insert.shape.index, teamId: insert.shape.teamId })

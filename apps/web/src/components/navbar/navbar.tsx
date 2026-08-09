@@ -116,7 +116,9 @@ export default function Navbar() {
   useEffect(() => {
     let ticking = false;
     const onScroll = () => {
-      if (ticking) {return;}
+      if (ticking) {
+        return;
+      }
       ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
@@ -126,7 +128,9 @@ export default function Navbar() {
 
     onScroll(); // a deep link or a restored position can start the page already scrolled
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () =>{  window.removeEventListener("scroll", onScroll); };
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   /*
@@ -168,14 +172,20 @@ export default function Navbar() {
    * rather than a resize listener: it fires once at the crossing instead of once a frame.
    */
   useEffect(() => {
-    if (!open) {return;}
+    if (!open) {
+      return;
+    }
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") {return;}
+      if (e.key !== "Escape") {
+        return;
+      }
       const panel = document.querySelector("#site-nav-menu");
       const inside = panel?.contains(document.activeElement);
       setOpen(false);
-      if (inside) {toggleRef.current?.focus();}
+      if (inside) {
+        toggleRef.current?.focus();
+      }
     };
 
     const wide = window.matchMedia(MENU_GONE_AT);
@@ -197,7 +207,9 @@ export default function Navbar() {
    * you are already on does not change `pathname`, so nothing here would fire.
    */
   const { pathname } = useLocation();
-  useEffect(() =>{  setOpen(false); }, [pathname]);
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
     /*
@@ -408,7 +420,9 @@ export default function Navbar() {
             <button
               ref={toggleRef}
               type="button"
-              onClick={() =>{  setOpen((v) => !v); }}
+              onClick={() => {
+                setOpen((v) => !v);
+              }}
               aria-expanded={open}
               aria-controls="site-nav-menu"
               aria-label="เมนู"
@@ -509,7 +523,9 @@ export default function Navbar() {
                   <Link
                     to={link.to}
                     viewTransition
-                    onClick={() =>{  setOpen(false); }}
+                    onClick={() => {
+                      setOpen(false);
+                    }}
                     className="mm-link mm-press flex min-h-[45px] origin-left items-center text-lg leading-[1.4] hover:text-brand-red"
                     activeProps={{
                       className: "font-semibold text-brand-red",
@@ -549,7 +565,9 @@ export default function Navbar() {
                */}
               <Link
                 to="/login"
-                onClick={() =>{  setOpen(false); }}
+                onClick={() => {
+                  setOpen(false);
+                }}
                 className="mm-press block rounded-[16px] bg-brand-red px-6 py-3 text-center text-xl leading-[1.4] font-bold text-white hover:bg-[#b14f39]"
               >
                 สมัครเข้าแข่งขัน

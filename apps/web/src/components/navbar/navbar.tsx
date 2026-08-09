@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from '@tanstack/react-router'
-import ScrollEdgeEffect from '../scroll-edge-effect'
-import { NAV_LINKS } from './data'
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import ScrollEdgeEffect from "../scroll-edge-effect";
+import { NAV_LINKS } from "./data";
 
 /** Past this many px the nav is over content rather than over the top of the page. */
-const SCROLLED_AT = 24
+const SCROLLED_AT = 24;
 
 /** `lg` — the one width where the menu stops existing (both the toggle and the panel are
  *  `lg:hidden`). Kept as a constant because JS has to agree with the class for the open
@@ -21,7 +21,7 @@ const SCROLLED_AT = 24
  *  2. THE CRAMPED DESKTOP ROW. At 768 the horizontal row has to seat a 178px wordmark, three
  *     Thai links and a 200px pill inside a 708px pill, which leaves the links touching. Below
  *     1024 the menu is simply the better layout — which is what the user asked for. */
-const MENU_GONE_AT = '(min-width: 64rem)'
+const MENU_GONE_AT = "(min-width: 64rem)";
 
 /**
  * The four things that arrive when the block unfolds: three links and the register button.
@@ -30,7 +30,7 @@ const MENU_GONE_AT = '(min-width: 64rem)'
  * property name on purpose: it is the app's word for "your turn in the queue", and reusing
  * it means there is one number to change if the cadence ever does.
  */
-const REVEAL_STEP = 70
+const REVEAL_STEP = 70;
 
 /**
  * Two anchors, not one.
@@ -51,10 +51,10 @@ const REVEAL_STEP = 70
  */
 const NAV_SHELL: React.CSSProperties = {
   /* 20 at 402 (1190:779 gutter) → 60 at 1440 (935:451, and `shell-wide`'s own value) */
-  paddingInline: 'clamp(20px, 3.8535645vw + 4.5086705px, 60px)',
+  paddingInline: "clamp(20px, 3.8535645vw + 4.5086705px, 60px)",
   /* 20 at 402 → 40 at 1440 */
-  paddingTop: 'clamp(20px, 1.9267823vw + 12.2543353px, 40px)',
-}
+  paddingTop: "clamp(20px, 1.9267823vw + 12.2543353px, 40px)",
+};
 
 /**
  * Figma's `menu_regular` (`1190:782`): three fully rounded bars on a 24 grid, spanning
@@ -72,7 +72,7 @@ function MenuGlyph() {
         strokeLinecap="round"
       />
     </svg>
-  )
+  );
 }
 
 /** The close state has no Figma node — it is the same 2px rounded stroke on the same grid,
@@ -87,12 +87,12 @@ function CloseGlyph() {
         strokeLinecap="round"
       />
     </svg>
-  )
+  );
 }
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false)
-  const toggleRef = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   /*
    * G16 — the pill sat flat on the page looking exactly as it does 4000px down, so it gains
@@ -111,23 +111,23 @@ export default function Navbar() {
    * scroll event. The shadow is CSS off `data-scrolled` (micro-motion.css) — nothing here
    * writes a style.
    */
-  const [scrolled, setScrolled] = useState(false)
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    let ticking = false
+    let ticking = false;
     const onScroll = () => {
-      if (ticking) return
-      ticking = true
+      if (ticking) {return;}
+      ticking = true;
       requestAnimationFrame(() => {
-        ticking = false
-        setScrolled(window.scrollY > SCROLLED_AT)
-      })
-    }
+        ticking = false;
+        setScrolled(window.scrollY > SCROLLED_AT);
+      });
+    };
 
-    onScroll() // a deep link or a restored position can start the page already scrolled
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    onScroll(); // a deep link or a restored position can start the page already scrolled
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () =>{  window.removeEventListener("scroll", onScroll); };
+  }, []);
 
   /*
    * HOW THE CURRENT PAGE IS MARKED, and it is not the same on both surfaces — checked against
@@ -168,26 +168,26 @@ export default function Navbar() {
    * rather than a resize listener: it fires once at the crossing instead of once a frame.
    */
   useEffect(() => {
-    if (!open) return
+    if (!open) {return;}
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      const panel = document.getElementById('site-nav-menu')
-      const inside = panel?.contains(document.activeElement)
-      setOpen(false)
-      if (inside) toggleRef.current?.focus()
-    }
+      if (e.key !== "Escape") {return;}
+      const panel = document.querySelector("#site-nav-menu");
+      const inside = panel?.contains(document.activeElement);
+      setOpen(false);
+      if (inside) {toggleRef.current?.focus();}
+    };
 
-    const wide = window.matchMedia(MENU_GONE_AT)
-    const onWide = () => wide.matches && setOpen(false)
+    const wide = window.matchMedia(MENU_GONE_AT);
+    const onWide = () => wide.matches && setOpen(false);
 
-    document.addEventListener('keydown', onKey)
-    wide.addEventListener('change', onWide)
+    document.addEventListener("keydown", onKey);
+    wide.addEventListener("change", onWide);
     return () => {
-      document.removeEventListener('keydown', onKey)
-      wide.removeEventListener('change', onWide)
-    }
-  }, [open])
+      document.removeEventListener("keydown", onKey);
+      wide.removeEventListener("change", onWide);
+    };
+  }, [open]);
 
   /*
    * A ROUTE CHANGE closes it too, which covers the two cases the links' own `onClick` cannot:
@@ -196,8 +196,8 @@ export default function Navbar() {
    * buttons. The `onClick`s stay as well, and are not redundant: tapping the link for the page
    * you are already on does not change `pathname`, so nothing here would fire.
    */
-  const { pathname } = useLocation()
-  useEffect(() => setOpen(false), [pathname])
+  const { pathname } = useLocation();
+  useEffect(() =>{  setOpen(false); }, [pathname]);
 
   return (
     /*
@@ -274,7 +274,7 @@ export default function Navbar() {
        */}
       <nav
         className={`site-nav pointer-events-auto relative mx-auto max-w-[1320px] bg-white py-4 pr-4 pl-[clamp(16px,2.3121387vw_+_6.7052023px,40px)] shadow-soft lg:rounded-[100px] ${
-          open ? 'rounded-[24px]' : 'rounded-[36px]'
+          open ? "rounded-[24px]" : "rounded-[36px]"
         }`}
       >
         {/*
@@ -348,17 +348,17 @@ export default function Navbar() {
                  * ramps and the geometry are untouched: this is colour only.
                  */}
                 <Link
-                    to={link.to}
-                    viewTransition
-                    className="mm-link mm-press fl-nav leading-[1.4] whitespace-nowrap hover:text-brand-red"
-                    activeProps={{
-                        className: 'font-semibold text-brand-red',
-                    }}
-                    inactiveProps={{
-                        className: 'font-normal text-ink',
-                    }}
-                    >
-                    {link.label}
+                  to={link.to}
+                  viewTransition
+                  className="mm-link mm-press fl-nav leading-[1.4] whitespace-nowrap hover:text-brand-red"
+                  activeProps={{
+                    className: "font-semibold text-brand-red",
+                  }}
+                  inactiveProps={{
+                    className: "font-normal text-ink",
+                  }}
+                >
+                  {link.label}
                 </Link>
               </li>
             ))}
@@ -408,7 +408,7 @@ export default function Navbar() {
             <button
               ref={toggleRef}
               type="button"
-              onClick={() => setOpen((v) => !v)}
+              onClick={() =>{  setOpen((v) => !v); }}
               aria-expanded={open}
               aria-controls="site-nav-menu"
               aria-label="เมนู"
@@ -462,7 +462,7 @@ export default function Navbar() {
           id="site-nav-menu"
           inert={!open}
           className={`grid overflow-clip transition-[grid-template-rows] duration-[var(--mm-base)] ease-[var(--mm-ease-out)] motion-reduce:transition-none lg:hidden ${
-            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
           }`}
         >
           <div className="min-h-0">
@@ -499,27 +499,27 @@ export default function Navbar() {
                   key={link.to}
                   style={
                     {
-                      '--reveal-delay': open ? `${i * REVEAL_STEP}ms` : '0ms',
+                      "--reveal-delay": open ? `${i * REVEAL_STEP}ms` : "0ms",
                     } as React.CSSProperties
                   }
                   className={`transition-[opacity,translate] delay-[var(--reveal-delay)] duration-[var(--mm-fast)] ease-[var(--mm-ease-out)] motion-reduce:translate-y-0 motion-reduce:transition-none ${
-                    open ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'
+                    open ? "translate-y-0 opacity-100" : "translate-y-1.5 opacity-0"
                   }`}
                 >
-                    <Link
-                        to={link.to}
-                        viewTransition
-                        onClick={() => setOpen(false)}
-                        className="mm-link mm-press flex min-h-[45px] origin-left items-center text-lg leading-[1.4] hover:text-brand-red"
-                        activeProps={{
-                            className: 'font-semibold text-brand-red',
-                        }}
-                        inactiveProps={{
-                            className: 'font-normal text-ink',
-                        }}
-                    >
-                        {link.label}
-                    </Link>
+                  <Link
+                    to={link.to}
+                    viewTransition
+                    onClick={() =>{  setOpen(false); }}
+                    className="mm-link mm-press flex min-h-[45px] origin-left items-center text-lg leading-[1.4] hover:text-brand-red"
+                    activeProps={{
+                      className: "font-semibold text-brand-red",
+                    }}
+                    inactiveProps={{
+                      className: "font-normal text-ink",
+                    }}
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -528,11 +528,11 @@ export default function Navbar() {
             <div
               style={
                 {
-                  '--reveal-delay': open ? `${NAV_LINKS.length * REVEAL_STEP}ms` : '0ms',
+                  "--reveal-delay": open ? `${NAV_LINKS.length * REVEAL_STEP}ms` : "0ms",
                 } as React.CSSProperties
               }
               className={`mt-[22px] transition-[opacity,translate] delay-[var(--reveal-delay)] duration-[var(--mm-fast)] ease-[var(--mm-ease-out)] motion-reduce:translate-y-0 motion-reduce:transition-none ${
-                open ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'
+                open ? "translate-y-0 opacity-100" : "translate-y-1.5 opacity-0"
               }`}
             >
               {/*
@@ -549,7 +549,7 @@ export default function Navbar() {
                */}
               <Link
                 to="/login"
-                onClick={() => setOpen(false)}
+                onClick={() =>{  setOpen(false); }}
                 className="mm-press block rounded-[16px] bg-brand-red px-6 py-3 text-center text-xl leading-[1.4] font-bold text-white hover:bg-[#b14f39]"
               >
                 สมัครเข้าแข่งขัน
@@ -559,5 +559,5 @@ export default function Navbar() {
         </div>
       </nav>
     </div>
-  )
+  );
 }

@@ -14,7 +14,7 @@ export default function RouteComponent() {
     /* The height of background frame 935:858 — see the note in Home.tsx; same defect, the
        tomatoes and pots were landing on the footer's link columns. */
     /* `overflow-x-clip`: see the note on the same class in Home.tsx. */
-    <div className="relative isolate overflow-x-clip lg:min-h-[4888px]">
+    <div className="relative isolate overflow-x-clip min-[1440px]:min-h-[4888px]">
       <AboutDecor />
       <ScopeSection />
       <CodernSection />

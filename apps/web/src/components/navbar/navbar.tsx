@@ -3,6 +3,16 @@ import { Link, useLocation } from "@tanstack/react-router";
 import ScrollEdgeEffect from "../scroll-edge-effect";
 import { NAV_LINKS } from "./data";
 
+/** React 19 closed off `CSSProperties`' index signature (see the type's own doc comment),
+ *  so a custom property has to be declared rather than cast in — this is that declaration
+ *  for the reveal stagger below, and it is what lets the two `style` props stay plain object
+ *  literals instead of unsafe `as React.CSSProperties` assertions. */
+declare module "react" {
+  interface CSSProperties {
+    "--reveal-delay"?: string;
+  }
+}
+
 /** Past this many px the nav is over content rather than over the top of the page. */
 const SCROLLED_AT = 24;
 
@@ -115,7 +125,7 @@ export default function Navbar() {
 
   useEffect(() => {
     let ticking = false;
-    const onScroll = () => {
+    function onScroll() {
       if (ticking) {
         return;
       }
@@ -124,9 +134,10 @@ export default function Navbar() {
         ticking = false;
         setScrolled(window.scrollY > SCROLLED_AT);
       });
-    };
+    }
 
-    onScroll(); // a deep link or a restored position can start the page already scrolled
+    // a deep link or a restored position can start the page already scrolled
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -173,23 +184,29 @@ export default function Navbar() {
    */
   useEffect(() => {
     if (!open) {
-      return;
+      return () => {
+        // no listeners were attached while closed, so there is nothing to tear down
+      };
     }
 
-    const onKey = (e: KeyboardEvent) => {
+    function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") {
         return;
       }
       const panel = document.querySelector("#site-nav-menu");
-      const inside = panel?.contains(document.activeElement);
+      const inside = panel?.contains(document.activeElement) ?? false;
       setOpen(false);
       if (inside) {
         toggleRef.current?.focus();
       }
-    };
+    }
 
     const wide = window.matchMedia(MENU_GONE_AT);
-    const onWide = () => wide.matches && setOpen(false);
+    function onWide() {
+      if (wide.matches) {
+        setOpen(false);
+      }
+    }
 
     document.addEventListener("keydown", onKey);
     wide.addEventListener("change", onWide);
@@ -205,11 +222,18 @@ export default function Navbar() {
    * menu is open used to navigate home and leave the menu standing) and the back/forward
    * buttons. The `onClick`s stay as well, and are not redundant: tapping the link for the page
    * you are already on does not change `pathname`, so nothing here would fire.
+   *
+   * Adjusted during render rather than in an effect — this is React's own pattern for
+   * resetting state in response to a prop change (`useLocation` is effectively a prop here):
+   * comparing against a mirrored `lastPathname` and calling `setOpen` inline bails out of the
+   * stale render immediately, so there is no extra commit/paint the way an effect would cause.
    */
   const { pathname } = useLocation();
-  useEffect(() => {
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   return (
     /*
@@ -511,11 +535,9 @@ export default function Navbar() {
                  */
                 <li
                   key={link.to}
-                  style={
-                    {
-                      "--reveal-delay": open ? `${i * REVEAL_STEP}ms` : "0ms",
-                    } as React.CSSProperties
-                  }
+                  style={{
+                    "--reveal-delay": open ? `${i * REVEAL_STEP}ms` : "0ms",
+                  }}
                   className={`transition-[opacity,translate] delay-[var(--reveal-delay)] duration-[var(--mm-fast)] ease-[var(--mm-ease-out)] motion-reduce:translate-y-0 motion-reduce:transition-none ${
                     open ? "translate-y-0 opacity-100" : "translate-y-1.5 opacity-0"
                   }`}
@@ -542,11 +564,9 @@ export default function Navbar() {
 
             {/* Last in the queue, so the block finishes filling at the button — 3 × 70ms. */}
             <div
-              style={
-                {
-                  "--reveal-delay": open ? `${NAV_LINKS.length * REVEAL_STEP}ms` : "0ms",
-                } as React.CSSProperties
-              }
+              style={{
+                "--reveal-delay": open ? `${NAV_LINKS.length * REVEAL_STEP}ms` : "0ms",
+              }}
               className={`mt-[22px] transition-[opacity,translate] delay-[var(--reveal-delay)] duration-[var(--mm-fast)] ease-[var(--mm-ease-out)] motion-reduce:translate-y-0 motion-reduce:transition-none ${
                 open ? "translate-y-0 opacity-100" : "translate-y-1.5 opacity-0"
               }`}

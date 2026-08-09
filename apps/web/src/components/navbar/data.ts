@@ -121,6 +121,11 @@ export const SOCIAL_LINKS = [
 ];
 
 export const FOOTER_ABOUT = {
+  /* Figma 708:376 sets this as three lines and phone `1190:1455` as ONE run, so unlike the
+   * title below the desktop breaks here are only wrapping — they are joined with a space and
+   * the paragraph is left to re-wrap to its column. */
+  body: "จัดโดย ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี (มจธ.) อาคารวิศววัฒนะ ชั้น 10–11 เลขที่ 126 ถ.ประชาอุทิศ แขวงบางมด เขตทุ่งครุ กรุงเทพฯ 10140",
+  copyright: "© 2026 Bangmod Hackathon, Department of Computer Engineering. All rights reserved.",
   /*
    * The project title, carried as LINES rather than one string — the same shape as
    * `HERO_LINES` above and `TIMELINE_STEPS[].lines`, and rendered the same way (one `<p>`,
@@ -142,9 +147,4 @@ export const FOOTER_ABOUT = {
     "โครงการแข่งขันแก้ไขปัญหาด้วยการเขียนโปรแกรมคอมพิวเตอร์ ประจำปี 2569",
     "(BangMod Hackathon 2026)",
   ],
-  /* Figma 708:376 sets this as three lines and phone `1190:1455` as ONE run, so unlike the
-   * title above the desktop breaks here are only wrapping — they are joined with a space and
-   * the paragraph is left to re-wrap to its column. */
-  body: "จัดโดย ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี (มจธ.) อาคารวิศววัฒนะ ชั้น 10–11 เลขที่ 126 ถ.ประชาอุทิศ แขวงบางมด เขตทุ่งครุ กรุงเทพฯ 10140",
-  copyright: "© 2026 Bangmod Hackathon, Department of Computer Engineering. All rights reserved.",
 };

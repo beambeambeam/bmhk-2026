@@ -67,6 +67,11 @@ export function createAuth(database: AuthDatabase = createDb()) {
     ],
     secret: env.BETTER_AUTH_SECRET,
     socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        prompt: "select_account",
+      },
       microsoft: {
         clientId: env.MICROSOFT_CLIENT_ID,
         clientSecret: env.MICROSOFT_CLIENT_SECRET,

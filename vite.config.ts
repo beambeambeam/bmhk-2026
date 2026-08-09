@@ -70,6 +70,8 @@ export default defineConfig({
       BETTER_AUTH_URL: "http://localhost:3000",
       CORS_ORIGIN: "http://localhost:3001,http://localhost:3002",
       DATABASE_URL: "postgresql://localhost/test",
+      GOOGLE_CLIENT_ID: "test-google-client-id",
+      GOOGLE_CLIENT_SECRET: "test-google-client-secret",
       MICROSOFT_CLIENT_ID: "test-client-id",
       MICROSOFT_CLIENT_SECRET: "test-client-secret",
       MICROSOFT_TENANT_ID: "organizations",

@@ -123,12 +123,11 @@ export default function Hero() {
          * The one link out of the marketing pages that should not be a cut: the sign-in
          * screen assembles itself on arrival, and it should arrive rather than replace.
          *
-         * `to="/login"` — this repo's auth screen lives at `/login` rather than the source
-         * site's `/signin`; the route changed, the CTA's behaviour did not.
+         * `to="/signin"` — this repo's auth screen lives at `/signin`.
          */}
         <Link
           className="hero-cta mm-press bg-brand-red font-bold text-white"
-          to="/login"
+          to="/signin"
           viewTransition
         >
           {/* `708:242` / `1190:671` — Figma shortened this from ลงทะเบียนเข้าร่วมการแข่งขัน,

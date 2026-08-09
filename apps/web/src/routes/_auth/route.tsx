@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_auth")({
     if (!session.data) {
       // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
       throw redirect({
-        to: "/login",
+        to: "/signin",
       });
     }
     return { session };

@@ -1,3 +1,4 @@
+import Navbar from "@/components/navbar/navbar";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_site")({
@@ -7,6 +8,7 @@ export const Route = createFileRoute("/_site")({
 function RouteComponent() {
   return (
     <div className="font-thai relative">
+      <Navbar />
       <main>
         <Outlet />
       </main>

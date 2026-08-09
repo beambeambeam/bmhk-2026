@@ -3,6 +3,10 @@ import { FOOTER_ABOUT, FOOTER_GROUPS, SOCIAL_LINKS } from "../data";
 import { useReveal } from "@/hooks/use-reveal";
 import { VERSION_LABEL } from "../version";
 
+interface RevealStyle extends React.CSSProperties {
+  "--reveal-delay"?: string;
+}
+
 const FOOTER_PAD: React.CSSProperties = {
   paddingBottom: "clamp(24px, 7.3217726vw - 5.433526px, 100px)",
   paddingInline: "clamp(24px, 3.4682081vw + 10.0578035px, 60px)",
@@ -133,7 +137,7 @@ export default function Footer() {
         </div>
         <div
           ref={linksRef}
-          style={{ "--reveal-delay": "70ms" }}
+          style={{ "--reveal-delay": "70ms" } as RevealStyle}
           className={`grid grid-cols-2 gap-x-6 gap-y-10 lg:w-[500px] lg:gap-0 ${linksCls}`}
         >
           {FOOTER_GROUPS.map((column, i) => (

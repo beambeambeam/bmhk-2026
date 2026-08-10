@@ -30,6 +30,8 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    AWS_SECRET_ACCESS_KEY=rustfssecret
    CORS_ORIGIN=http://localhost:3001,http://localhost:3002
    DATABASE_URL=postgresql://postgres:password@localhost:5432/bmhk-2026
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
    MICROSOFT_CLIENT_ID=your_microsoft_client_id
    MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret
    MICROSOFT_TENANT_ID=organizations
@@ -37,9 +39,11 @@ A monorepo for Bangmod Hackathon 2026, containing the website, server, and suppo
    PORT=3000
    ```
 
-   Configure the Microsoft redirect URI in Entra ID as:
+   Participants sign in with Google on the web app, staff sign in with Microsoft
+   on the staff app. Configure both redirect URIs as:
 
    ```text
+   http://localhost:3000/api/auth/callback/google
    http://localhost:3000/api/auth/callback/microsoft
    ```
 

@@ -109,12 +109,12 @@ export const FOOTER_GROUPS = [
 
 export const SOCIAL_LINKS = [
   {
-    href: "https://www.facebook.com/share/1HKM9eWJ13/?mibextid=wwXIfr",
+    href: "https://www.facebook.com/BangmodHackathon",
     icon: "/assets/figma/5c123061e989ef51ad620866b56d6b0d63f2dc8c.svg",
     label: "Facebook",
   },
   {
-    href: "https://www.instagram.com/bangmodhack.kmutt?igsh=Y2RncmFyODY3YThk&utm_source=qr",
+    href: "https://www.instagram.com/bangmodhack.kmutt",
     icon: "/assets/figma/ec7b502700ce8ac7dfcae9fe51fa39883e998853.svg",
     label: "Instagram",
   },

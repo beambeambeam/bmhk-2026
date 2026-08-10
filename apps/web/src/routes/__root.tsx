@@ -22,6 +22,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap",
         rel: "stylesheet",
       },
+      { href: "/favicon.png", rel: "icon" }, 
+      { href: "/apple-touch-icon.png", rel: "apple-touch-icon", sizes: "180x180" },
     ],
     meta: [
       {
@@ -32,7 +34,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "viewport",
       },
       {
-        title: "My App",
+        title: "BangMod Hackathon 2026",
       },
     ],
   }),

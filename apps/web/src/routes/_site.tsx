@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar/navbar";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import Footer from "@/components/footer";
 
 export const Route = createFileRoute("/_site")({
   component: RouteComponent,
@@ -12,6 +13,7 @@ function RouteComponent() {
       <main>
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }

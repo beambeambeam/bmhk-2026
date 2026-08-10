@@ -414,7 +414,7 @@ export default function Navbar() {
              * and `.mm-press:active` is the pressed state: 0.97 from the centre.
              */}
             <Link
-              to="/login"
+              to="/signin"
               className="mm-press fl-nav hidden rounded-[100px] bg-brand-red px-[calc(14px_+_26*var(--fl))] py-[calc(8px_+_4*var(--fl))] leading-[1.4] font-bold whitespace-nowrap text-white hover:bg-[#b14f39] lg:block"
             >
               {/* `708:418` — Figma renamed this from ลงทะเบียน, matching the hero CTA's own
@@ -584,7 +584,7 @@ export default function Navbar() {
                * rows — the label is centred, so a 3% squeeze moves it nowhere.
                */}
               <Link
-                to="/login"
+                to="/signin"
                 onClick={() => {
                   setOpen(false);
                 }}

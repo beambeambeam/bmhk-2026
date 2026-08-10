@@ -325,16 +325,21 @@
   }
 }
 
-/* ----------------------------------------------------- the 404's shrimp ring ----
+/* --------------------------------------------------------- the shrimp ring ----
 
    Structurally the third of the same object: eight shrimp ringed around the centre of
    their own 447.75x448.09 box, the way the shaker ring is eight shakers and the pan ring
    is nine pans. It was the only one of the three standing still, on the one page whose
    whole job is to soften a dead end — a page that does not move reads as broken twice.
 
+   Two pages draw it and both turn: the 404's centre glyph, and the second O of
+   /coming-soon's painted "COMING SOON", where Figma had flattened it into the word art.
+   One ring at three sizes — see components/shrimp-ring.tsx, which holds the table.
+
    Origin is the plain box centre, unlike either pan: the eight shrimp are laid out on a
-   circle about the middle of the box, so their mean *is* 50% / 50% (see the coordinate
-   table in pages/NotFound.tsx). Same `pan-turn`, same period token, same reason.
+   circle about the middle of the box, so their mean *is* 50% / 50%. Same `pan-turn`, same
+   period token, same reason — so the two pages' rings and every pan on the site are on one
+   clock and cannot drift against each other.
 
    The class goes on the ring GROUP, never on a shrimp: each shrimp box already carries its own
    `rotate(...) scaleY(-1)` inline, and an animation on `transform` would overwrite it and
@@ -346,7 +351,7 @@
    textual order applies scale first, and since `S·R(N) === R(−N)·S` that negates every angle —
    which turned this ring into a heap of prawns lying across each other. Anywhere a single
    `transform` string carries both a flip and a rotation, the rotation goes first. */
-.nf-shrimp-ring {
+.shrimp-ring {
   transform-origin: 50% 50%;
   animation: pan-turn var(--turn-period, 96s) linear infinite;
   /* eight PNGs under one transform — promote the group once, not eight layers per frame */
@@ -354,7 +359,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nf-shrimp-ring {
+  .shrimp-ring {
     animation: none;
     will-change: auto;
   }

@@ -41,6 +41,8 @@
  * over. Every browser this codebase already requires — it uses CSS `atan2()`, `dvh` and view
  * transitions — has supported WebP for years, so no PNG fallback is carried.
  */
+import { ShrimpRing } from "../../components/shrimp-ring";
+
 const A = "/assets/figma/";
 
 /**
@@ -241,6 +243,39 @@ const COPY_GAP = "calc(15.792px + 8.208 * var(--fl))";
 const LOGOS_W = "w-[min(81.8157vw,430px)] lg:w-[min(57.8028vw,832.36px)]";
 const WORDART_W = "w-[min(79.602vw,420px)] lg:w-[min(73.3958vw,1056.9px)]";
 
+/**
+ * The word art, in three layers, because its second O is the shrimp pinwheel and that turns.
+ *
+ * Figma flattens the whole thing into one drawing, and the first pass shipped it that way —
+ * so this page had a still copy of the one piece of art on the site that is defined by
+ * rotating (components/shrimp-ring.tsx; the 404 turns the same ring on the same 96s clock).
+ * Checked before splitting: 1419:2037 is the 404's ring times 0.337278 and 1423:2060 is it
+ * times 0.18, box for box and angle for angle — one drawing at three sizes, not three.
+ *
+ * The split is a layering fact, not a convenience. Figma's paint order inside 1419:2027 is
+ * COMING, then the O and the N of SOON, then the shrimp, then the S — so the ring sits OVER
+ * the O/N and UNDER the S, and its tails interleave with the S's right edge. A single letters
+ * image with the ring on either side of it gets one of those two wrong, and since the ring
+ * turns, a tail that should pass behind the S would sweep across it once a minute. Hence
+ * `back` (everything under the ring), the ring, then `s` on top.
+ *
+ * Every box below is a percentage of the word art's own frame, taken from Figma's render
+ * bounds, so all three layers scale as one with `WORDART_W`.
+ */
+const RING_BOX =
+  "[--x:26.2734%] [--y:53.782%] [--w:25.181%] [--h:45.6188%] " +
+  "lg:[--x:67.3148%] lg:[--y:1.5187%] lg:[--w:14.2871%] lg:[--h:102.6881%]";
+const S_BOX =
+  "[--x:17.6898%] [--y:55.4326%] [--w:12.7214%] lg:[--x:62.4447%] lg:[--y:5.2341%] lg:[--w:7.2178%]";
+/* the pair of boxes above resolve through these; height is left to the S's own aspect */
+const AT_XYWH = {
+  height: "var(--h)",
+  left: "var(--x)",
+  top: "var(--y)",
+  width: "var(--w)",
+};
+const AT_XYW = { left: "var(--x)", top: "var(--y)", width: "var(--w)" };
+
 /*
  * The word art's LAYOUT box, which is not its image.
  *
@@ -296,15 +331,33 @@ export default function ComingSoon() {
           <img src={`${A}coming-soon-logos-mobile.webp`} alt={LOGOS_ALT} className={LOGOS_W} />
         </picture>
 
-        {/* the box is the Figma frame; the shrimp spill past its bottom — see WORDART_BOX */}
+        {/* the box is the Figma frame; the ring spills past its bottom — see WORDART_BOX */}
         <div className={`relative ${WORDART_W} ${WORDART_BOX}`}>
+          {/* under the ring: COMING, and the O and N of SOON */}
           <picture>
-            <source media="(min-width: 1024px)" srcSet={`${A}coming-soon-wordart.webp`} />
+            <source media="(min-width: 1024px)" srcSet={`${A}coming-soon-wordart-back.webp`} />
             <img
-              src={`${A}coming-soon-wordart-mobile.webp`}
+              src={`${A}coming-soon-wordart-back-mobile.webp`}
               alt=""
               aria-hidden
-              className="absolute inset-x-0 top-0 block w-full"
+              className="absolute inset-0 block size-full"
+            />
+          </picture>
+
+          {/* the second O: the live pinwheel, at the box Figma's flattened copy occupied */}
+          <div className={`absolute ${RING_BOX}`} style={AT_XYWH}>
+            <ShrimpRing />
+          </div>
+
+          {/* over the ring: the S, whose right edge the shrimp tails pass behind */}
+          <picture>
+            <source media="(min-width: 1024px)" srcSet={`${A}coming-soon-wordart-s.webp`} />
+            <img
+              src={`${A}coming-soon-wordart-s-mobile.webp`}
+              alt=""
+              aria-hidden
+              className={`absolute block ${S_BOX}`}
+              style={AT_XYW}
             />
           </picture>
         </div>

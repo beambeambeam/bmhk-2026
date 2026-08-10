@@ -200,7 +200,7 @@
    * no tie left to lose. It is also the one place in this file where the shorthand's composition
    * order genuinely mattered: `scale(0.7) rotate(-90deg)` is S·R, and only because the scale is
    * UNIFORM does that happen to equal R·S. A non-uniform scale there would have negated the
-   * angle, which is the bug `.nf-shrimp-ring` documents in pasta-motion.css. */
+   * angle, which is the bug `.shrimp-ring` documents in pasta-motion.css. */
   .mm-swap-rotate[data-on="true"] .mm-swap-off {
     rotate: -90deg;
   }

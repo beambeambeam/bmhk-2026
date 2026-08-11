@@ -1,4 +1,5 @@
 import { createError } from "evlog";
+import type { TeamAccessContext } from "../../core/auth";
 
 import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
@@ -29,22 +30,26 @@ export interface TeamParticipantDocumentUploadResult {
 }
 
 export interface TeamParticipantService {
-  create: (userId: string, data: CreateTeamParticipantData) => Promise<TeamParticipant>;
-  get: (userId: string, teamId: string, index: number) => Promise<TeamParticipantDetails>;
-  list: (userId: string, teamId: string) => Promise<TeamParticipantDetails[]>;
+  create: (access: TeamAccessContext, data: CreateTeamParticipantData) => Promise<TeamParticipant>;
+  get: (
+    access: TeamAccessContext,
+    teamId: string,
+    index: number,
+  ) => Promise<TeamParticipantDetails>;
+  list: (access: TeamAccessContext, teamId: string) => Promise<TeamParticipantDetails[]>;
   update: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     index: number,
     data: UpdateTeamParticipantData,
   ) => Promise<TeamParticipant>;
   uploadDocument: (input: {
+    access: TeamAccessContext;
     documentType: TeamParticipantDocumentType;
     file: File;
     index: number;
     log: FileServiceLog;
     teamId: string;
-    userId: string;
   }) => Promise<TeamParticipantDocumentUploadResult>;
 }
 
@@ -105,24 +110,24 @@ export function createTeamParticipantService(
   fileRepository: FileRepository,
 ): TeamParticipantService {
   return {
-    create: async (userId, data) => {
-      const participant = await repository.create(userId, data);
+    create: async (access, data) => {
+      const participant = await repository.create(access, data);
       if (!participant) {
         throw createTeamNotFoundError();
       }
 
       return participant;
     },
-    get: async (userId, teamId, index) => {
-      const participant = await repository.findBySlot(userId, teamId, index);
+    get: async (access, teamId, index) => {
+      const participant = await repository.findBySlot(access, teamId, index);
       if (!participant) {
         throw createTeamParticipantNotFoundError();
       }
 
       return await toTeamParticipantDetails(participant, storage);
     },
-    list: async (userId, teamId) => {
-      const participants = await repository.listByTeamId(userId, teamId);
+    list: async (access, teamId) => {
+      const participants = await repository.listByTeamId(access, teamId);
       if (!participants) {
         throw createTeamNotFoundError();
       }
@@ -133,16 +138,16 @@ export function createTeamParticipantService(
         ),
       );
     },
-    update: async (userId, teamId, index, data) => {
-      const participant = await repository.update(userId, teamId, index, data);
+    update: async (access, teamId, index, data) => {
+      const participant = await repository.update(access, teamId, index, data);
       if (!participant) {
         throw createTeamParticipantNotFoundError();
       }
 
       return participant;
     },
-    uploadDocument: async ({ documentType, file, index, log, teamId, userId }) => {
-      const participant = await repository.findBySlot(userId, teamId, index);
+    uploadDocument: async ({ access, documentType, file, index, log, teamId }) => {
+      const participant = await repository.findBySlot(access, teamId, index);
       if (!participant) {
         throw createTeamParticipantNotFoundError();
       }
@@ -152,14 +157,14 @@ export function createTeamParticipantService(
         keyPrefix: `team-participants/${participant.id}/documents/${getTeamParticipantDocumentPath(documentType)}`,
         kind: documentType === "portraitPhoto" ? "image" : "pdf",
         storage,
-        uploadedBy: userId,
+        uploadedBy: access.actorId,
       });
       const replacement = await persistUploadedFile({
         data: storedFile,
         log,
         persist: async (data) => {
           const participantReplacement = await repository.replaceDocument(
-            userId,
+            access,
             teamId,
             index,
             documentType,
@@ -178,7 +183,7 @@ export function createTeamParticipantService(
         log,
         repository: fileRepository,
         storage,
-        userId,
+        userId: access.actorId,
       });
 
       return { file: storedFile, participant: replacement.participant };

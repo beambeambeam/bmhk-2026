@@ -3,6 +3,7 @@ import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { and, eq } from "drizzle-orm";
+import type { TeamAccessContext } from "../../core/auth";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import type {
@@ -15,12 +16,13 @@ import {
   createTeamConsentRepositoryError,
   teamConsentRepositoryError,
 } from "./team-consents.errors";
+import { createTeamAccessCondition } from "../teams/teams.repository";
 
 export interface TeamConsentRepository {
-  create: (userId: string, data: CreateTeamConsentData) => Promise<TeamConsent | null>;
-  findByTeamId: (userId: string, teamId: string) => Promise<TeamConsent | null>;
+  create: (access: TeamAccessContext, data: CreateTeamConsentData) => Promise<TeamConsent | null>;
+  findByTeamId: (access: TeamAccessContext, teamId: string) => Promise<TeamConsent | null>;
   update: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     data: UpdateTeamConsentData,
   ) => Promise<TeamConsent | null>;
@@ -32,13 +34,13 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
   const execute = createRepositoryExecutor(teamConsentRepositoryError);
 
   return {
-    create: async (userId, data) => {
+    create: async (access, data) => {
       try {
         return await database.transaction(async (transaction) => {
           const [team] = await transaction
             .select({ id: teams.id })
             .from(teams)
-            .where(and(eq(teams.id, data.teamId), eq(teams.userId, userId)))
+            .where(createTeamAccessCondition(access, data.teamId))
             .for("update")
             .limit(1);
 
@@ -63,18 +65,18 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
         return rethrowRepositoryError(error, teamConsentRepositoryError);
       }
     },
-    findByTeamId: async (userId, teamId) =>
+    findByTeamId: async (access, teamId) =>
       await execute(async () => {
         const [consent] = await database
           .select({ consent: teamConsents })
           .from(teamConsents)
           .innerJoin(teams, eq(teams.id, teamConsents.teamId))
-          .where(and(eq(teamConsents.teamId, teamId), eq(teams.userId, userId)))
+          .where(and(eq(teamConsents.teamId, teamId), createTeamAccessCondition(access, teamId)))
           .limit(1);
 
         return consent?.consent ?? null;
       }),
-    update: async (userId, teamId, data) =>
+    update: async (access, teamId, data) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -82,7 +84,9 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
               .select({ id: teamConsents.id })
               .from(teamConsents)
               .innerJoin(teams, eq(teams.id, teamConsents.teamId))
-              .where(and(eq(teamConsents.teamId, teamId), eq(teams.userId, userId)))
+              .where(
+                and(eq(teamConsents.teamId, teamId), createTeamAccessCondition(access, teamId)),
+              )
               .for("update")
               .limit(1);
 

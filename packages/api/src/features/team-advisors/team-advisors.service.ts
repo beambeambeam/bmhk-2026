@@ -1,4 +1,5 @@
 import { createError } from "evlog";
+import type { TeamAccessContext } from "../../core/auth";
 
 import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
@@ -26,15 +27,19 @@ export interface TeamAdvisorDocumentUploadResult {
 }
 
 export interface TeamAdvisorService {
-  create: (userId: string, data: CreateTeamAdvisorData) => Promise<TeamAdvisor>;
-  get: (userId: string, teamId: string) => Promise<TeamAdvisorDetails>;
-  update: (userId: string, teamId: string, data: UpdateTeamAdvisorData) => Promise<TeamAdvisor>;
+  create: (access: TeamAccessContext, data: CreateTeamAdvisorData) => Promise<TeamAdvisor>;
+  get: (access: TeamAccessContext, teamId: string) => Promise<TeamAdvisorDetails>;
+  update: (
+    access: TeamAccessContext,
+    teamId: string,
+    data: UpdateTeamAdvisorData,
+  ) => Promise<TeamAdvisor>;
   uploadDocument: (input: {
+    access: TeamAccessContext;
     documentType: TeamAdvisorDocumentType;
     file: File;
     log: FileServiceLog;
     teamId: string;
-    userId: string;
   }) => Promise<TeamAdvisorDocumentUploadResult>;
 }
 
@@ -58,16 +63,16 @@ export function createTeamAdvisorService(
   fileRepository: FileRepository,
 ): TeamAdvisorService {
   return {
-    create: async (userId, data) => {
-      const advisor = await repository.create(userId, data);
+    create: async (access, data) => {
+      const advisor = await repository.create(access, data);
       if (!advisor) {
         throw createTeamNotFoundError();
       }
 
       return advisor;
     },
-    get: async (userId, teamId) => {
-      const advisor = await repository.findByTeamId(userId, teamId);
+    get: async (access, teamId) => {
+      const advisor = await repository.findByTeamId(access, teamId);
       if (!advisor) {
         throw createTeamAdvisorNotFoundError();
       }
@@ -92,16 +97,16 @@ export function createTeamAdvisorService(
         teacherStatusDocument,
       };
     },
-    update: async (userId, teamId, data) => {
-      const advisor = await repository.update(userId, teamId, data);
+    update: async (access, teamId, data) => {
+      const advisor = await repository.update(access, teamId, data);
       if (!advisor) {
         throw createTeamAdvisorNotFoundError();
       }
 
       return advisor;
     },
-    uploadDocument: async ({ documentType, file, log, teamId, userId }) => {
-      const advisor = await repository.findByTeamId(userId, teamId);
+    uploadDocument: async ({ access, documentType, file, log, teamId }) => {
+      const advisor = await repository.findByTeamId(access, teamId);
       if (!advisor) {
         throw createTeamAdvisorNotFoundError();
       }
@@ -111,14 +116,14 @@ export function createTeamAdvisorService(
         keyPrefix: `team-advisors/${advisor.id}/documents/${getTeamAdvisorDocumentPath(documentType)}`,
         kind: "pdf",
         storage,
-        uploadedBy: userId,
+        uploadedBy: access.actorId,
       });
       const replacement = await persistUploadedFile({
         data: storedFile,
         log,
         persist: async (data) => {
           const advisorReplacement = await repository.replaceDocument(
-            userId,
+            access,
             teamId,
             documentType,
             data,
@@ -136,7 +141,7 @@ export function createTeamAdvisorService(
         log,
         repository: fileRepository,
         storage,
-        userId,
+        userId: access.actorId,
       });
 
       return { advisor: replacement.advisor, file: storedFile };

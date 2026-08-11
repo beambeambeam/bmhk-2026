@@ -5,9 +5,11 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, eq } from "drizzle-orm";
+import type { TeamAccessContext } from "../../core/auth";
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
+import { createTeamAccessCondition } from "../teams/teams.repository";
 import {
   createTeamParticipantAlreadyExistsError,
   createTeamParticipantRepositoryError,
@@ -32,24 +34,27 @@ export interface TeamParticipantDocumentReplacement {
 }
 
 export interface TeamParticipantRepository {
-  create: (userId: string, data: CreateTeamParticipantData) => Promise<TeamParticipant | null>;
+  create: (
+    access: TeamAccessContext,
+    data: CreateTeamParticipantData,
+  ) => Promise<TeamParticipant | null>;
   listByTeamId: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
   ) => Promise<TeamParticipantWithStoredDocuments[] | null>;
   findBySlot: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     index: number,
   ) => Promise<TeamParticipantWithStoredDocuments | null>;
   update: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     index: number,
     data: UpdateTeamParticipantData,
   ) => Promise<TeamParticipant | null>;
   replaceDocument: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     index: number,
     type: TeamParticipantDocumentType,
@@ -88,13 +93,17 @@ export function createTeamParticipantRepository(
 ): TeamParticipantRepository {
   const execute = createRepositoryExecutor(teamParticipantRepositoryError);
 
-  async function queryParticipantsWithDocuments(userId: string, teamId: string, index?: number) {
+  async function queryParticipantsWithDocuments(
+    access: TeamAccessContext,
+    teamId: string,
+    index?: number,
+  ) {
     const academic = alias(files, "team_participant_academic");
     const identity = alias(files, "team_participant_identity");
     const portrait = alias(files, "team_participant_portrait");
     const conditions = [
       eq(teamParticipants.teamId, teamId),
-      eq(teams.userId, userId),
+      createTeamAccessCondition(access, teamId),
       ...(index === undefined ? [] : [eq(teamParticipants.index, index)]),
     ];
 
@@ -106,32 +115,35 @@ export function createTeamParticipantRepository(
         academic,
         and(
           eq(academic.id, teamParticipants.academicRecordDocumentFileId),
-          eq(academic.uploadedBy, userId),
+          eq(academic.uploadedBy, access.actorId),
         ),
       )
       .leftJoin(
         identity,
         and(
           eq(identity.id, teamParticipants.identityDocumentFileId),
-          eq(identity.uploadedBy, userId),
+          eq(identity.uploadedBy, access.actorId),
         ),
       )
       .leftJoin(
         portrait,
-        and(eq(portrait.id, teamParticipants.portraitPhotoFileId), eq(portrait.uploadedBy, userId)),
+        and(
+          eq(portrait.id, teamParticipants.portraitPhotoFileId),
+          eq(portrait.uploadedBy, access.actorId),
+        ),
       )
       .where(and(...conditions))
       .orderBy(asc(teamParticipants.index));
   }
 
   return {
-    create: async (userId, data) => {
+    create: async (access, data) => {
       try {
         return await database.transaction(async (tx) => {
           const [team] = await tx
             .select({ id: teams.id })
             .from(teams)
-            .where(and(eq(teams.id, data.teamId), eq(teams.userId, userId)))
+            .where(createTeamAccessCondition(access, data.teamId))
             .for("update")
             .limit(1);
 
@@ -151,28 +163,28 @@ export function createTeamParticipantRepository(
         return rethrowRepositoryError(error, teamParticipantRepositoryError);
       }
     },
-    findBySlot: async (userId, teamId, index) =>
+    findBySlot: async (access, teamId, index) =>
       await execute(async () => {
-        const [row] = await queryParticipantsWithDocuments(userId, teamId, index);
+        const [row] = await queryParticipantsWithDocuments(access, teamId, index);
 
         return row ? toParticipantWithStoredDocuments(row) : null;
       }),
-    listByTeamId: async (userId, teamId) =>
+    listByTeamId: async (access, teamId) =>
       await execute(async () => {
         const [team] = await database
           .select({ id: teams.id })
           .from(teams)
-          .where(and(eq(teams.id, teamId), eq(teams.userId, userId)))
+          .where(createTeamAccessCondition(access, teamId))
           .limit(1);
 
         if (!team) {
           return null;
         }
 
-        const rows = await queryParticipantsWithDocuments(userId, teamId);
+        const rows = await queryParticipantsWithDocuments(access, teamId);
         return rows.map(toParticipantWithStoredDocuments);
       }),
-    replaceDocument: async (userId, teamId, index, type, file) =>
+    replaceDocument: async (access, teamId, index, type, file) =>
       await execute(
         async () =>
           await database.transaction(async (tx) => {
@@ -189,7 +201,7 @@ export function createTeamParticipantRepository(
                 and(
                   eq(teamParticipants.teamId, teamId),
                   eq(teamParticipants.index, index),
-                  eq(teams.userId, userId),
+                  createTeamAccessCondition(access, teamId),
                 ),
               )
               .for("update")
@@ -212,7 +224,7 @@ export function createTeamParticipantRepository(
               const [previousFile] = await tx
                 .select()
                 .from(files)
-                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, userId)))
+                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, access.actorId)))
                 .limit(1);
               previous = previousFile
                 ? toStoredFileOfKind(previousFile, type === "portraitPhoto" ? "image" : "pdf")
@@ -250,7 +262,7 @@ export function createTeamParticipantRepository(
             return { participant: row, previous };
           }),
       ),
-    update: async (userId, teamId, index, data) =>
+    update: async (access, teamId, index, data) =>
       await execute(
         async () =>
           await database.transaction(async (tx) => {
@@ -262,7 +274,7 @@ export function createTeamParticipantRepository(
                 and(
                   eq(teamParticipants.teamId, teamId),
                   eq(teamParticipants.index, index),
-                  eq(teams.userId, userId),
+                  createTeamAccessCondition(access, teamId),
                 ),
               )
               .for("update")

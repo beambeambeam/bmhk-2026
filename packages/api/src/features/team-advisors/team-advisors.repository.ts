@@ -5,6 +5,7 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { alias } from "drizzle-orm/pg-core";
 import { and, eq } from "drizzle-orm";
+import type { TeamAccessContext } from "../../core/auth";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import {
@@ -20,18 +21,22 @@ import type {
 } from "./team-advisors.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
+import { createTeamAccessCondition } from "../teams/teams.repository";
 
 export interface TeamAdvisorRepository {
-  create: (userId: string, data: CreateTeamAdvisorData) => Promise<TeamAdvisor | null>;
-  findByTeamId: (userId: string, teamId: string) => Promise<TeamAdvisorWithStoredDocuments | null>;
+  create: (access: TeamAccessContext, data: CreateTeamAdvisorData) => Promise<TeamAdvisor | null>;
+  findByTeamId: (
+    access: TeamAccessContext,
+    teamId: string,
+  ) => Promise<TeamAdvisorWithStoredDocuments | null>;
   replaceDocument: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     documentType: TeamAdvisorDocumentType,
     file: CreateStoredFileData,
   ) => Promise<TeamAdvisorDocumentReplacement | null>;
   update: (
-    userId: string,
+    access: TeamAccessContext,
     teamId: string,
     data: UpdateTeamAdvisorData,
   ) => Promise<TeamAdvisor | null>;
@@ -53,13 +58,13 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
   const execute = createRepositoryExecutor(teamAdvisorRepositoryError);
 
   return {
-    create: async (userId, data) => {
+    create: async (access, data) => {
       try {
         return await database.transaction(async (transaction) => {
           const [team] = await transaction
             .select({ id: teams.id })
             .from(teams)
-            .where(and(eq(teams.id, data.teamId), eq(teams.userId, userId)))
+            .where(createTeamAccessCondition(access, data.teamId))
             .for("update")
             .limit(1);
 
@@ -84,7 +89,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
         return rethrowRepositoryError(error, teamAdvisorRepositoryError);
       }
     },
-    findByTeamId: async (userId, teamId) =>
+    findByTeamId: async (access, teamId) =>
       await execute(async () => {
         const identityDocument = alias(files, "team_advisor_identity_document");
         const teacherStatusDocument = alias(files, "team_advisor_teacher_status_document");
@@ -100,17 +105,17 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
             identityDocument,
             and(
               eq(identityDocument.id, teamAdvisors.identityDocumentFileId),
-              eq(identityDocument.uploadedBy, userId),
+              eq(identityDocument.uploadedBy, access.actorId),
             ),
           )
           .leftJoin(
             teacherStatusDocument,
             and(
               eq(teacherStatusDocument.id, teamAdvisors.teacherStatusDocumentFileId),
-              eq(teacherStatusDocument.uploadedBy, userId),
+              eq(teacherStatusDocument.uploadedBy, access.actorId),
             ),
           )
-          .where(and(eq(teamAdvisors.teamId, teamId), eq(teams.userId, userId)))
+          .where(and(eq(teamAdvisors.teamId, teamId), createTeamAccessCondition(access, teamId)))
           .limit(1);
 
         if (!result) {
@@ -127,7 +132,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
             : null,
         };
       }),
-    replaceDocument: async (userId, teamId, documentType, file) =>
+    replaceDocument: async (access, teamId, documentType, file) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -139,7 +144,9 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
               })
               .from(teamAdvisors)
               .innerJoin(teams, eq(teams.id, teamAdvisors.teamId))
-              .where(and(eq(teamAdvisors.teamId, teamId), eq(teams.userId, userId)))
+              .where(
+                and(eq(teamAdvisors.teamId, teamId), createTeamAccessCondition(access, teamId)),
+              )
               .for("update")
               .limit(1);
 
@@ -156,7 +163,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
               const [previousFile] = await transaction
                 .select()
                 .from(files)
-                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, userId)))
+                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, access.actorId)))
                 .limit(1);
               previous = previousFile ? toStoredFileOfKind(previousFile, "pdf") : null;
             }
@@ -181,7 +188,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
             return { advisor: updatedAdvisor, previous };
           }),
       ),
-    update: async (userId, teamId, data) =>
+    update: async (access, teamId, data) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -189,7 +196,9 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
               .select({ id: teamAdvisors.id })
               .from(teamAdvisors)
               .innerJoin(teams, eq(teams.id, teamAdvisors.teamId))
-              .where(and(eq(teamAdvisors.teamId, teamId), eq(teams.userId, userId)))
+              .where(
+                and(eq(teamAdvisors.teamId, teamId), createTeamAccessCondition(access, teamId)),
+              )
               .for("update")
               .limit(1);
 

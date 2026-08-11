@@ -1,4 +1,5 @@
 import { createError } from "evlog";
+import type { TeamAccessContext } from "../../core/auth";
 
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamConsentRepository } from "./team-consents.repository";
@@ -9,9 +10,13 @@ import type {
 } from "./team-consents.schema";
 
 export interface TeamConsentService {
-  create: (userId: string, data: CreateTeamConsentData) => Promise<TeamConsent>;
-  get: (userId: string, teamId: string) => Promise<TeamConsent>;
-  update: (userId: string, teamId: string, data: UpdateTeamConsentData) => Promise<TeamConsent>;
+  create: (access: TeamAccessContext, data: CreateTeamConsentData) => Promise<TeamConsent>;
+  get: (access: TeamAccessContext, teamId: string) => Promise<TeamConsent>;
+  update: (
+    access: TeamAccessContext,
+    teamId: string,
+    data: UpdateTeamConsentData,
+  ) => Promise<TeamConsent>;
 }
 
 export function createTeamConsentNotFoundError() {
@@ -26,24 +31,24 @@ export function createTeamConsentNotFoundError() {
 
 export function createTeamConsentService(repository: TeamConsentRepository): TeamConsentService {
   return {
-    create: async (userId, data) => {
-      const consent = await repository.create(userId, data);
+    create: async (access, data) => {
+      const consent = await repository.create(access, data);
       if (!consent) {
         throw createTeamNotFoundError();
       }
 
       return consent;
     },
-    get: async (userId, teamId) => {
-      const consent = await repository.findByTeamId(userId, teamId);
+    get: async (access, teamId) => {
+      const consent = await repository.findByTeamId(access, teamId);
       if (!consent) {
         throw createTeamConsentNotFoundError();
       }
 
       return consent;
     },
-    update: async (userId, teamId, data) => {
-      const consent = await repository.update(userId, teamId, data);
+    update: async (access, teamId, data) => {
+      const consent = await repository.update(access, teamId, data);
       if (!consent) {
         throw createTeamConsentNotFoundError();
       }

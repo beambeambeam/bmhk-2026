@@ -1,4 +1,4 @@
-import type { ProtectedProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure } from "../../core/procedure";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamAdvisorService } from "./team-advisors.service";
 import {
@@ -12,22 +12,22 @@ import {
 import type { TeamAdvisorDocumentType } from "./team-advisors.schema";
 
 function createTeamAdvisorDocumentUploadProcedure(
-  protectedProcedure: ProtectedProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
   service: TeamAdvisorService,
   documentType: TeamAdvisorDocumentType,
 ) {
-  return protectedProcedure
+  return teamAccessProcedure
     .route({ method: "POST", tags: ["Team Advisor", "File"] })
     .input(teamAdvisorDocumentUploadSchema)
     .output(teamAdvisorSchema)
     .handler(async ({ context, input }) => {
       assertAllowedOrigin(context.headers);
       const { advisor, file } = await service.uploadDocument({
+        access: context.teamAccess,
         documentType,
         file: input.file,
         log: context.log,
         teamId: input.teamId,
-        userId: context.session.user.id,
       });
 
       context.log.set({
@@ -39,11 +39,11 @@ function createTeamAdvisorDocumentUploadProcedure(
 }
 
 export function createTeamAdvisorsRouter(
-  protectedProcedure: ProtectedProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
   service: TeamAdvisorService,
 ) {
   return {
-    create: protectedProcedure
+    create: teamAccessProcedure
       .route({
         method: "POST",
         tags: ["Team Advisor"],
@@ -51,12 +51,12 @@ export function createTeamAdvisorsRouter(
       .input(createTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.create(context.session.user.id, input);
+        const advisor = await service.create(context.teamAccess, input);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
-    get: protectedProcedure
+    get: teamAccessProcedure
       .route({
         method: "GET",
         tags: ["Team Advisor"],
@@ -64,22 +64,22 @@ export function createTeamAdvisorsRouter(
       .input(teamIdInputSchema)
       .output(teamAdvisorDetailsSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.get(context.session.user.id, input.teamId);
+        const advisor = await service.get(context.teamAccess, input.teamId);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
     identityDocument: createTeamAdvisorDocumentUploadProcedure(
-      protectedProcedure,
+      teamAccessProcedure,
       service,
       "identity",
     ),
     teacherStatusDocument: createTeamAdvisorDocumentUploadProcedure(
-      protectedProcedure,
+      teamAccessProcedure,
       service,
       "teacherStatus",
     ),
-    update: protectedProcedure
+    update: teamAccessProcedure
       .route({
         method: "PATCH",
         tags: ["Team Advisor"],
@@ -87,7 +87,7 @@ export function createTeamAdvisorsRouter(
       .input(updateTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.update(context.session.user.id, input.teamId, input.data);
+        const advisor = await service.update(context.teamAccess, input.teamId, input.data);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;

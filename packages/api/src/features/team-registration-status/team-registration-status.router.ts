@@ -1,4 +1,4 @@
-import type { ProtectedProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure } from "../../core/procedure";
 import type { TeamRegistrationStatusService } from "./team-registration-status.service";
 import {
   teamRegistrationStatusInputSchema,
@@ -6,16 +6,16 @@ import {
 } from "./team-registration-status.schema";
 
 export function createTeamRegistrationStatusRouter(
-  protectedProcedure: ProtectedProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
   service: TeamRegistrationStatusService,
 ) {
   return {
-    get: protectedProcedure
+    get: teamAccessProcedure
       .route({ method: "GET", tags: ["Team Registration Status"] })
       .input(teamRegistrationStatusInputSchema)
       .output(teamRegistrationStatusSchema)
-      .handler(async ({ context }) => {
-        const status = await service.get(context.session.user.id);
+      .handler(async ({ context, input }) => {
+        const status = await service.get(context.teamAccess, input.teamId);
         context.log.set({ teamRegistrationStatus: { teamId: status.teamId } });
 
         return status;

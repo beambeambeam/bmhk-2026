@@ -61,19 +61,19 @@ export function createAppRouter(dependencies: ApiDependencies) {
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
     teamAdvisors: createTeamAdvisorsRouter(
-      protectedProcedure,
+      teamAccessProcedure,
       createTeamAdvisorService(teamAdvisorRepository, fileStorage, fileRepository),
     ),
     teamConsents: createTeamConsentsRouter(
-      protectedProcedure,
+      teamAccessProcedure,
       createTeamConsentService(teamConsentRepository),
     ),
     teamParticipants: createTeamParticipantsRouter(
-      protectedProcedure,
+      teamAccessProcedure,
       createTeamParticipantService(teamParticipantRepository, fileStorage, fileRepository),
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
-      protectedProcedure,
+      teamAccessProcedure,
       createTeamRegistrationStatusService(teamRegistrationStatusRepository),
     ),
     teams: createTeamsRouter(

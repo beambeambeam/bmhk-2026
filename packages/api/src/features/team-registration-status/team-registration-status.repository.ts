@@ -3,9 +3,11 @@ import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { asc, eq } from "drizzle-orm";
+import type { TeamAccessContext } from "../../core/auth";
 
 import { createRepositoryExecutor } from "../../core/repository";
 import { teamRegistrationStatusRepositoryError } from "./team-registration-status.errors";
+import { createTeamAccessCondition } from "../teams/teams.repository";
 
 export interface TeamRegistrationStatusFacts {
   consent: {
@@ -32,7 +34,10 @@ export interface TeamRegistrationStatusFacts {
 }
 
 export interface TeamRegistrationStatusRepository {
-  find: (userId: string) => Promise<TeamRegistrationStatusFacts | null>;
+  findByTeamId: (
+    access: TeamAccessContext,
+    teamId: string,
+  ) => Promise<TeamRegistrationStatusFacts | null>;
 }
 
 type Database = typeof db;
@@ -43,7 +48,7 @@ export function createTeamRegistrationStatusRepository(
   const execute = createRepositoryExecutor(teamRegistrationStatusRepositoryError);
 
   return {
-    find: async (userId) =>
+    findByTeamId: async (access, teamId) =>
       await execute(
         async () =>
           await database.transaction(
@@ -71,7 +76,7 @@ export function createTeamRegistrationStatusRepository(
                 .from(teams)
                 .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
                 .leftJoin(teamConsents, eq(teamConsents.teamId, teams.id))
-                .where(eq(teams.userId, userId))
+                .where(createTeamAccessCondition(access, teamId))
                 .orderBy(asc(teamParticipants.index));
 
               const [firstRow] = rows;

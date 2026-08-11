@@ -6,6 +6,7 @@ import type {
   AuthReader,
   FileRepository,
   StoredFile,
+  TeamAccessContext,
   TeamAdvisor,
   TeamAdvisorRepository,
 } from "../../../index";
@@ -40,6 +41,7 @@ const ADVISOR_ID = "22222222-2222-4222-8222-222222222222";
 const IDENTITY_FILE_ID = "33333333-3333-4333-8333-333333333333";
 const TEACHER_STATUS_FILE_ID = "44444444-4444-4444-8444-444444444444";
 const createdAt = new Date("2026-01-01T00:00:00.000Z");
+const ownerAccess = { actorId: USER_ID, scope: "OWN_TEAM" } satisfies TeamAccessContext;
 
 const testAdvisor = {
   chronicConditionsAndFirstAidNotes: null,
@@ -148,6 +150,30 @@ function pdfFile(name = "document.pdf") {
 }
 
 describe("team advisors router", () => {
+  it("gives registration staff cross-team advisor access", async () => {
+    const repository = createTeamAdvisorRepository({
+      findByTeamId: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
+        return await Promise.resolve({
+          ...testAdvisor,
+          identityDocument: null,
+          teacherStatusDocument: null,
+        });
+      },
+    });
+    const router = createRouter(
+      repository,
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamAdvisors", "get"] }),
+    ).resolves.toMatchObject({ teamId: TEAM_ID });
+  });
+
   it("creates a draft advisor with required fields and null documents", async () => {
     const create = vi.fn<TeamAdvisorRepository["create"]>(
       async (_userId, data) => await Promise.resolve({ ...testAdvisor, ...data }),
@@ -158,7 +184,7 @@ describe("team advisors router", () => {
     await expect(
       call(router.create, createAdvisorInput(), { context, path: ["teamAdvisors", "create"] }),
     ).resolves.toStrictEqual(testAdvisor);
-    expect(create).toHaveBeenCalledWith(USER_ID, {
+    expect(create).toHaveBeenCalledWith(ownerAccess, {
       ...createAdvisorInput(),
       email: "advisor@example.com",
       firstNameEn: "Advisor",
@@ -285,7 +311,7 @@ describe("team advisors router", () => {
         { context, path: ["teamAdvisors", "update"] },
       ),
     ).resolves.toMatchObject({ email: "updated@example.com", foodAllergies: null });
-    expect(update).toHaveBeenCalledWith(USER_ID, TEAM_ID, {
+    expect(update).toHaveBeenCalledWith(ownerAccess, TEAM_ID, {
       email: "updated@example.com",
       foodAllergies: null,
     });
@@ -345,7 +371,7 @@ describe("team advisors router", () => {
       new RegExp(`team-advisors/${ADVISOR_ID}/documents/${segment}/[0-9a-f-]{36}`, "u"),
     );
     expect(replaceDocument).toHaveBeenCalledWith(
-      USER_ID,
+      ownerAccess,
       TEAM_ID,
       documentType,
       expect.objectContaining({ contentType: "application/pdf", uploadedBy: USER_ID }),

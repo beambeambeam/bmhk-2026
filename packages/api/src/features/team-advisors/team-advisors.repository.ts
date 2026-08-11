@@ -10,11 +10,12 @@ import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/rep
 import {
   createTeamAdvisorAlreadyExistsError,
   createTeamAdvisorRepositoryError,
-} from "./team-advisors.service";
-import type { TeamAdvisorDocumentType } from "./team-advisors.service";
+  teamAdvisorRepositoryError,
+} from "./team-advisors.errors";
 import type {
   CreateTeamAdvisorData,
   TeamAdvisor,
+  TeamAdvisorDocumentType,
   UpdateTeamAdvisorData,
 } from "./team-advisors.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
@@ -49,10 +50,7 @@ export interface TeamAdvisorDocumentReplacement {
 }
 
 export function createTeamAdvisorRepository(database: Database = db): TeamAdvisorRepository {
-  const execute = createRepositoryExecutor(
-    "TEAM_ADVISOR_REPOSITORY_ERROR",
-    createTeamAdvisorRepositoryError,
-  );
+  const execute = createRepositoryExecutor(teamAdvisorRepositoryError);
 
   return {
     create: async (userId, data) => {
@@ -83,11 +81,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
           throw createTeamAdvisorAlreadyExistsError();
         }
 
-        return rethrowRepositoryError(
-          error,
-          "TEAM_ADVISOR_REPOSITORY_ERROR",
-          createTeamAdvisorRepositoryError,
-        );
+        return rethrowRepositoryError(error, teamAdvisorRepositoryError);
       }
     },
     findByTeamId: async (userId, teamId) =>

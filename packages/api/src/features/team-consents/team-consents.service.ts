@@ -1,6 +1,5 @@
 import { createError } from "evlog";
 
-import { toError } from "../../core/errors";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamConsentRepository } from "./team-consents.repository";
 import type {
@@ -15,16 +14,6 @@ export interface TeamConsentService {
   update: (userId: string, teamId: string, data: UpdateTeamConsentData) => Promise<TeamConsent>;
 }
 
-export function createTeamConsentAlreadyExistsError() {
-  return createError({
-    code: "TEAM_CONSENT_ALREADY_EXISTS",
-    fix: "Use the existing team consent or update it instead",
-    message: "Team already has a consent record",
-    status: 409,
-    why: "Each team may have only one consent record",
-  });
-}
-
 export function createTeamConsentNotFoundError() {
   return createError({
     code: "TEAM_CONSENT_NOT_FOUND",
@@ -32,19 +21,6 @@ export function createTeamConsentNotFoundError() {
     message: "Team consent not found",
     status: 404,
     why: "No consent record owned by the current user matches this team",
-  });
-}
-
-export function createTeamConsentRepositoryError(
-  cause: unknown = new Error("Unknown team consent repository error"),
-) {
-  return createError({
-    cause: toError(cause, "Unknown team consent repository error"),
-    code: "TEAM_CONSENT_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message: "Team consent operation failed",
-    status: 500,
-    why: "The team consent repository could not complete the operation",
   });
 }
 

@@ -10,7 +10,7 @@ import {
   createUnusedFileRepository,
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
-import { createTeamRegistrationStatusRepositoryError } from "../team-registration-status.service";
+import { createTeamRegistrationStatusRepositoryError } from "../team-registration-status.errors";
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";

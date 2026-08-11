@@ -92,19 +92,6 @@ export function createFileNotFoundError() {
   });
 }
 
-export function createFileRepositoryError(
-  cause: unknown = new Error("Unknown file repository error"),
-) {
-  return createError({
-    cause: toError(cause, "Unknown file repository error"),
-    code: "FILE_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message: "File operation failed",
-    status: 500,
-    why: "The file repository could not complete the operation",
-  });
-}
-
 export function createFileStorageUnavailableError(cause: unknown) {
   return createError({
     cause:

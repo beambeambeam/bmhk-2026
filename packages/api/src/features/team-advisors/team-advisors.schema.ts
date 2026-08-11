@@ -57,3 +57,4 @@ export type TeamAdvisor = z.output<typeof teamAdvisorSchema>;
 export type TeamAdvisorDetails = z.output<typeof teamAdvisorDetailsSchema>;
 export type CreateTeamAdvisorData = z.output<typeof createTeamAdvisorSchema>;
 export type UpdateTeamAdvisorData = z.output<typeof updateTeamAdvisorDataSchema>;
+export type TeamAdvisorDocumentType = "identity" | "teacherStatus";

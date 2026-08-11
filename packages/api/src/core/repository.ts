@@ -2,27 +2,28 @@ import { hasErrorCode } from "./errors";
 
 type RepositoryErrorFactory = (cause: unknown) => Error;
 
+interface RepositoryErrorDescriptor {
+  code: string;
+  create: RepositoryErrorFactory;
+}
+
 export function rethrowRepositoryError(
   cause: unknown,
-  errorCode: string,
-  createRepositoryError: RepositoryErrorFactory,
+  descriptor: RepositoryErrorDescriptor,
 ): never {
-  if (hasErrorCode(cause, errorCode)) {
+  if (hasErrorCode(cause, descriptor.code)) {
     throw cause;
   }
 
-  throw createRepositoryError(cause);
+  throw descriptor.create(cause);
 }
 
-export function createRepositoryExecutor(
-  errorCode: string,
-  createRepositoryError: RepositoryErrorFactory,
-) {
+export function createRepositoryExecutor(descriptor: RepositoryErrorDescriptor) {
   return async <Result>(operation: () => Promise<Result>): Promise<Result> => {
     try {
       return await operation();
     } catch (error) {
-      return rethrowRepositoryError(error, errorCode, createRepositoryError);
+      return rethrowRepositoryError(error, descriptor);
     }
   };
 }

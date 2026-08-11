@@ -1,6 +1,5 @@
 import { createError } from "evlog";
 
-import { toError } from "../../core/errors";
 import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
@@ -20,13 +19,9 @@ import type {
   CreateTeamParticipantData,
   TeamParticipant,
   TeamParticipantDetails,
+  TeamParticipantDocumentType,
   UpdateTeamParticipantData,
 } from "./team-participants.schema";
-
-export type TeamParticipantDocumentType =
-  | "portraitPhoto"
-  | "identityDocument"
-  | "academicRecordDocument";
 
 export interface TeamParticipantDocumentUploadResult {
   file: CreateStoredFileData;
@@ -53,16 +48,6 @@ export interface TeamParticipantService {
   }) => Promise<TeamParticipantDocumentUploadResult>;
 }
 
-export function createTeamParticipantAlreadyExistsError() {
-  return createError({
-    code: "TEAM_PARTICIPANT_ALREADY_EXISTS",
-    fix: "Use another participant slot",
-    message: "Participant slot is already occupied",
-    status: 409,
-    why: "Each team participant slot may contain only one participant",
-  });
-}
-
 export function createTeamParticipantNotFoundError() {
   return createError({
     code: "TEAM_PARTICIPANT_NOT_FOUND",
@@ -70,19 +55,6 @@ export function createTeamParticipantNotFoundError() {
     message: "Team participant not found",
     status: 404,
     why: "No participant owned by the current user matches this team and slot",
-  });
-}
-
-export function createTeamParticipantRepositoryError(
-  cause: unknown = new Error("Unknown team participant repository error"),
-) {
-  return createError({
-    cause: toError(cause, "Unknown team participant repository error"),
-    code: "TEAM_PARTICIPANT_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message: "Team participant operation failed",
-    status: 500,
-    why: "The team participant repository could not complete the operation",
   });
 }
 

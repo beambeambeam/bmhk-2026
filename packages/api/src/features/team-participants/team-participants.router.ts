@@ -9,37 +9,50 @@ import {
   teamParticipantSlotSchema,
   updateTeamParticipantSchema,
 } from "./team-participants.schema";
+import type { TeamParticipantDocumentType } from "./team-participants.schema";
+
+function createTeamParticipantDocumentUploadProcedure(
+  protectedProcedure: ProtectedProcedure,
+  service: TeamParticipantService,
+  documentType: TeamParticipantDocumentType,
+) {
+  return protectedProcedure
+    .route({ method: "POST", tags: ["Team Participant", "File"] })
+    .input(teamParticipantDocumentUploadSchema)
+    .output(teamParticipantSchema)
+    .handler(async ({ context, input }) => {
+      assertAllowedOrigin(context.headers);
+      const { file, participant } = await service.uploadDocument({
+        documentType,
+        file: input.file,
+        index: input.index,
+        log: context.log,
+        teamId: input.teamId,
+        userId: context.session.user.id,
+      });
+
+      context.log.set({
+        file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
+        teamParticipant: {
+          id: participant.id,
+          index: participant.index,
+          teamId: participant.teamId,
+        },
+      });
+      return participant;
+    });
+}
 
 export function createTeamParticipantsRouter(
   protectedProcedure: ProtectedProcedure,
   service: TeamParticipantService,
 ) {
   return {
-    academicRecordDocument: protectedProcedure
-      .route({ method: "POST", tags: ["Team Participant", "File"] })
-      .input(teamParticipantDocumentUploadSchema)
-      .output(teamParticipantSchema)
-      .handler(async ({ context, input }) => {
-        assertAllowedOrigin(context.headers);
-        const { file, participant } = await service.uploadDocument({
-          documentType: "academicRecordDocument",
-          file: input.file,
-          index: input.index,
-          log: context.log,
-          teamId: input.teamId,
-          userId: context.session.user.id,
-        });
-
-        context.log.set({
-          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
-          teamParticipant: {
-            id: participant.id,
-            index: participant.index,
-            teamId: participant.teamId,
-          },
-        });
-        return participant;
-      }),
+    academicRecordDocument: createTeamParticipantDocumentUploadProcedure(
+      protectedProcedure,
+      service,
+      "academicRecordDocument",
+    ),
     create: protectedProcedure
       .route({ method: "POST", tags: ["Team Participant"] })
       .input(createTeamParticipantSchema)
@@ -61,31 +74,11 @@ export function createTeamParticipantsRouter(
         async ({ context, input }) =>
           await service.get(context.session.user.id, input.teamId, input.index),
       ),
-    identityDocument: protectedProcedure
-      .route({ method: "POST", tags: ["Team Participant", "File"] })
-      .input(teamParticipantDocumentUploadSchema)
-      .output(teamParticipantSchema)
-      .handler(async ({ context, input }) => {
-        assertAllowedOrigin(context.headers);
-        const { file, participant } = await service.uploadDocument({
-          documentType: "identityDocument",
-          file: input.file,
-          index: input.index,
-          log: context.log,
-          teamId: input.teamId,
-          userId: context.session.user.id,
-        });
-
-        context.log.set({
-          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
-          teamParticipant: {
-            id: participant.id,
-            index: participant.index,
-            teamId: participant.teamId,
-          },
-        });
-        return participant;
-      }),
+    identityDocument: createTeamParticipantDocumentUploadProcedure(
+      protectedProcedure,
+      service,
+      "identityDocument",
+    ),
     list: protectedProcedure
       .route({ method: "GET", tags: ["Team Participant"] })
       .input(teamParticipantSlotSchema.pick({ teamId: true }))
@@ -93,31 +86,11 @@ export function createTeamParticipantsRouter(
       .handler(
         async ({ context, input }) => await service.list(context.session.user.id, input.teamId),
       ),
-    portraitPhoto: protectedProcedure
-      .route({ method: "POST", tags: ["Team Participant", "File"] })
-      .input(teamParticipantDocumentUploadSchema)
-      .output(teamParticipantSchema)
-      .handler(async ({ context, input }) => {
-        assertAllowedOrigin(context.headers);
-        const { file, participant } = await service.uploadDocument({
-          documentType: "portraitPhoto",
-          file: input.file,
-          index: input.index,
-          log: context.log,
-          teamId: input.teamId,
-          userId: context.session.user.id,
-        });
-
-        context.log.set({
-          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
-          teamParticipant: {
-            id: participant.id,
-            index: participant.index,
-            teamId: participant.teamId,
-          },
-        });
-        return participant;
-      }),
+    portraitPhoto: createTeamParticipantDocumentUploadProcedure(
+      protectedProcedure,
+      service,
+      "portraitPhoto",
+    ),
     update: protectedProcedure
       .route({ method: "PATCH", tags: ["Team Participant"] })
       .input(updateTeamParticipantSchema)

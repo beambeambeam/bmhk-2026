@@ -1,6 +1,5 @@
 import { createError } from "evlog";
 
-import { toError } from "../../core/errors";
 import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
@@ -12,6 +11,7 @@ import {
 } from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
 import type { TeamRepository } from "./teams.repository";
+import { createTeamAlreadyExistsError } from "./teams.errors";
 import type {
   CreateTeamData,
   Team,
@@ -40,16 +40,6 @@ export interface TeamService {
   }) => Promise<TeamImageUploadResult>;
 }
 
-export function createTeamAlreadyExistsError() {
-  return createError({
-    code: "TEAM_ALREADY_EXISTS",
-    fix: "Use the existing team or delete it before creating another",
-    message: "User already owns a team",
-    status: 409,
-    why: "Each user may own only one team",
-  });
-}
-
 export function createTeamNotFoundError() {
   return createError({
     code: "TEAM_NOT_FOUND",
@@ -57,19 +47,6 @@ export function createTeamNotFoundError() {
     message: "Team not found",
     status: 404,
     why: "No team owned by the current user matches this ID",
-  });
-}
-
-export function createTeamRepositoryError(
-  cause: unknown = new Error("Unknown team repository error"),
-) {
-  return createError({
-    cause: toError(cause, "Unknown team repository error"),
-    code: "TEAM_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message: "Team operation failed",
-    status: 500,
-    why: "The team repository could not complete the operation",
   });
 }
 

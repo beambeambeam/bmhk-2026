@@ -9,6 +9,34 @@ import {
   teamIdInputSchema,
   updateTeamAdvisorSchema,
 } from "./team-advisors.schema";
+import type { TeamAdvisorDocumentType } from "./team-advisors.schema";
+
+function createTeamAdvisorDocumentUploadProcedure(
+  protectedProcedure: ProtectedProcedure,
+  service: TeamAdvisorService,
+  documentType: TeamAdvisorDocumentType,
+) {
+  return protectedProcedure
+    .route({ method: "POST", tags: ["Team Advisor", "File"] })
+    .input(teamAdvisorDocumentUploadSchema)
+    .output(teamAdvisorSchema)
+    .handler(async ({ context, input }) => {
+      assertAllowedOrigin(context.headers);
+      const { advisor, file } = await service.uploadDocument({
+        documentType,
+        file: input.file,
+        log: context.log,
+        teamId: input.teamId,
+        userId: context.session.user.id,
+      });
+
+      context.log.set({
+        file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
+        teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
+      });
+      return advisor;
+    });
+}
 
 export function createTeamAdvisorsRouter(
   protectedProcedure: ProtectedProcedure,
@@ -41,52 +69,16 @@ export function createTeamAdvisorsRouter(
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
-    identityDocument: protectedProcedure
-      .route({
-        method: "POST",
-        tags: ["Team Advisor", "File"],
-      })
-      .input(teamAdvisorDocumentUploadSchema)
-      .output(teamAdvisorSchema)
-      .handler(async ({ context, input }) => {
-        assertAllowedOrigin(context.headers);
-        const { advisor, file } = await service.uploadDocument({
-          documentType: "identity",
-          file: input.file,
-          log: context.log,
-          teamId: input.teamId,
-          userId: context.session.user.id,
-        });
-
-        context.log.set({
-          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
-          teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
-        });
-        return advisor;
-      }),
-    teacherStatusDocument: protectedProcedure
-      .route({
-        method: "POST",
-        tags: ["Team Advisor", "File"],
-      })
-      .input(teamAdvisorDocumentUploadSchema)
-      .output(teamAdvisorSchema)
-      .handler(async ({ context, input }) => {
-        assertAllowedOrigin(context.headers);
-        const { advisor, file } = await service.uploadDocument({
-          documentType: "teacherStatus",
-          file: input.file,
-          log: context.log,
-          teamId: input.teamId,
-          userId: context.session.user.id,
-        });
-
-        context.log.set({
-          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
-          teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
-        });
-        return advisor;
-      }),
+    identityDocument: createTeamAdvisorDocumentUploadProcedure(
+      protectedProcedure,
+      service,
+      "identity",
+    ),
+    teacherStatusDocument: createTeamAdvisorDocumentUploadProcedure(
+      protectedProcedure,
+      service,
+      "teacherStatus",
+    ),
     update: protectedProcedure
       .route({
         method: "PATCH",

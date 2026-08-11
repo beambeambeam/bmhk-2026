@@ -3,7 +3,7 @@ import { files } from "@bmhk-2026/db/schema/files";
 import { and, eq } from "drizzle-orm";
 
 import { createRepositoryExecutor } from "../../core/repository";
-import { createFileRepositoryError } from "./files.service";
+import { createFileRepositoryError, fileRepositoryError } from "./files.errors";
 import type { CreateStoredFileData, StoredFile } from "./files.schema";
 import { toStoredFile } from "./files.schema";
 
@@ -16,7 +16,7 @@ export interface FileRepository {
 type Database = typeof db;
 
 export function createFileRepository(database: Database = db): FileRepository {
-  const execute = createRepositoryExecutor("FILE_REPOSITORY_ERROR", createFileRepositoryError);
+  const execute = createRepositoryExecutor(fileRepositoryError);
 
   return {
     create: async (data) =>

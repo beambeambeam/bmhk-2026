@@ -5,7 +5,11 @@ import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, eq } from "drizzle-orm";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
-import { createTeamAlreadyExistsError, createTeamRepositoryError } from "./teams.service";
+import {
+  createTeamAlreadyExistsError,
+  createTeamRepositoryError,
+  teamRepositoryError,
+} from "./teams.errors";
 import type { CreateTeamData, Team, UpdateTeamData } from "./teams.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
@@ -34,7 +38,7 @@ export type TeamWithStoredImage = Omit<Team, "image"> & {
 };
 
 export function createTeamRepository(database: Database = db): TeamRepository {
-  const execute = createRepositoryExecutor("TEAM_REPOSITORY_ERROR", createTeamRepositoryError);
+  const execute = createRepositoryExecutor(teamRepositoryError);
 
   return {
     create: async (userId, data) => {
@@ -54,7 +58,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
           throw createTeamAlreadyExistsError();
         }
 
-        return rethrowRepositoryError(error, "TEAM_REPOSITORY_ERROR", createTeamRepositoryError);
+        return rethrowRepositoryError(error, teamRepositoryError);
       }
     },
     delete: async (userId, id) =>

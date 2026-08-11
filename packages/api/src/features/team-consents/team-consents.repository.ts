@@ -13,7 +13,8 @@ import type {
 import {
   createTeamConsentAlreadyExistsError,
   createTeamConsentRepositoryError,
-} from "./team-consents.service";
+  teamConsentRepositoryError,
+} from "./team-consents.errors";
 
 export interface TeamConsentRepository {
   create: (userId: string, data: CreateTeamConsentData) => Promise<TeamConsent | null>;
@@ -28,10 +29,7 @@ export interface TeamConsentRepository {
 type Database = typeof db;
 
 export function createTeamConsentRepository(database: Database = db): TeamConsentRepository {
-  const execute = createRepositoryExecutor(
-    "TEAM_CONSENT_REPOSITORY_ERROR",
-    createTeamConsentRepositoryError,
-  );
+  const execute = createRepositoryExecutor(teamConsentRepositoryError);
 
   return {
     create: async (userId, data) => {
@@ -62,11 +60,7 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
           throw createTeamConsentAlreadyExistsError();
         }
 
-        return rethrowRepositoryError(
-          error,
-          "TEAM_CONSENT_REPOSITORY_ERROR",
-          createTeamConsentRepositoryError,
-        );
+        return rethrowRepositoryError(error, teamConsentRepositoryError);
       }
     },
     findByTeamId: async (userId, teamId) =>

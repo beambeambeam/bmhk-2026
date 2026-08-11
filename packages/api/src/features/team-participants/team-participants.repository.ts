@@ -11,11 +11,12 @@ import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 import {
   createTeamParticipantAlreadyExistsError,
   createTeamParticipantRepositoryError,
-} from "./team-participants.service";
-import type { TeamParticipantDocumentType } from "./team-participants.service";
+  teamParticipantRepositoryError,
+} from "./team-participants.errors";
 import type {
   CreateTeamParticipantData,
   TeamParticipant,
+  TeamParticipantDocumentType,
   UpdateTeamParticipantData,
 } from "./team-participants.schema";
 
@@ -58,7 +59,7 @@ export interface TeamParticipantRepository {
 
 type Database = typeof db;
 
-function stored(
+function toStoredFileOrNull(
   file: typeof files.$inferSelect | null,
   expected: "pdf" | "image",
 ): StoredFile | null {
@@ -68,7 +69,7 @@ function stored(
 
   return toStoredFileOfKind(file, expected);
 }
-function map(row: {
+function toParticipantWithStoredDocuments(row: {
   participant: typeof teamParticipants.$inferSelect;
   academic: typeof files.$inferSelect | null;
   identity: typeof files.$inferSelect | null;
@@ -76,21 +77,18 @@ function map(row: {
 }): TeamParticipantWithStoredDocuments {
   return {
     ...row.participant,
-    academicRecordDocument: stored(row.academic, "pdf"),
-    identityDocument: stored(row.identity, "pdf"),
-    portraitPhoto: stored(row.portrait, "image"),
+    academicRecordDocument: toStoredFileOrNull(row.academic, "pdf"),
+    identityDocument: toStoredFileOrNull(row.identity, "pdf"),
+    portraitPhoto: toStoredFileOrNull(row.portrait, "image"),
   };
 }
 
 export function createTeamParticipantRepository(
   database: Database = db,
 ): TeamParticipantRepository {
-  const execute = createRepositoryExecutor(
-    "TEAM_PARTICIPANT_REPOSITORY_ERROR",
-    createTeamParticipantRepositoryError,
-  );
+  const execute = createRepositoryExecutor(teamParticipantRepositoryError);
 
-  async function query(userId: string, teamId: string, index?: number) {
+  async function queryParticipantsWithDocuments(userId: string, teamId: string, index?: number) {
     const academic = alias(files, "team_participant_academic");
     const identity = alias(files, "team_participant_identity");
     const portrait = alias(files, "team_participant_portrait");
@@ -150,18 +148,14 @@ export function createTeamParticipantRepository(
           throw createTeamParticipantAlreadyExistsError();
         }
 
-        return rethrowRepositoryError(
-          error,
-          "TEAM_PARTICIPANT_REPOSITORY_ERROR",
-          createTeamParticipantRepositoryError,
-        );
+        return rethrowRepositoryError(error, teamParticipantRepositoryError);
       }
     },
     findBySlot: async (userId, teamId, index) =>
       await execute(async () => {
-        const [row] = await query(userId, teamId, index);
+        const [row] = await queryParticipantsWithDocuments(userId, teamId, index);
 
-        return row ? map(row) : null;
+        return row ? toParticipantWithStoredDocuments(row) : null;
       }),
     listByTeamId: async (userId, teamId) =>
       await execute(async () => {
@@ -175,8 +169,8 @@ export function createTeamParticipantRepository(
           return null;
         }
 
-        const rows = await query(userId, teamId);
-        return rows.map(map);
+        const rows = await queryParticipantsWithDocuments(userId, teamId);
+        return rows.map(toParticipantWithStoredDocuments);
       }),
     replaceDocument: async (userId, teamId, index, type, file) =>
       await execute(

@@ -1,6 +1,5 @@
 import { createError } from "evlog";
 
-import { toError } from "../../core/errors";
 import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
@@ -17,10 +16,9 @@ import type {
   CreateTeamAdvisorData,
   TeamAdvisor,
   TeamAdvisorDetails,
+  TeamAdvisorDocumentType,
   UpdateTeamAdvisorData,
 } from "./team-advisors.schema";
-
-export type TeamAdvisorDocumentType = "identity" | "teacherStatus";
 
 export interface TeamAdvisorDocumentUploadResult {
   advisor: TeamAdvisor;
@@ -40,16 +38,6 @@ export interface TeamAdvisorService {
   }) => Promise<TeamAdvisorDocumentUploadResult>;
 }
 
-export function createTeamAdvisorAlreadyExistsError() {
-  return createError({
-    code: "TEAM_ADVISOR_ALREADY_EXISTS",
-    fix: "Use the existing team advisor or update it instead",
-    message: "Team already has an advisor",
-    status: 409,
-    why: "Each team may have only one advisor",
-  });
-}
-
 export function createTeamAdvisorNotFoundError() {
   return createError({
     code: "TEAM_ADVISOR_NOT_FOUND",
@@ -57,19 +45,6 @@ export function createTeamAdvisorNotFoundError() {
     message: "Team advisor not found",
     status: 404,
     why: "No advisor owned by the current user matches this team",
-  });
-}
-
-export function createTeamAdvisorRepositoryError(
-  cause: unknown = new Error("Unknown team advisor repository error"),
-) {
-  return createError({
-    cause: toError(cause, "Unknown team advisor repository error"),
-    code: "TEAM_ADVISOR_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message: "Team advisor operation failed",
-    status: 500,
-    why: "The team advisor repository could not complete the operation",
   });
 }
 

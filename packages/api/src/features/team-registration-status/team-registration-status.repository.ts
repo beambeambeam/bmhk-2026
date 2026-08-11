@@ -5,7 +5,7 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { asc, eq } from "drizzle-orm";
 
 import { createRepositoryExecutor } from "../../core/repository";
-import { createTeamRegistrationStatusRepositoryError } from "./team-registration-status.service";
+import { teamRegistrationStatusRepositoryError } from "./team-registration-status.errors";
 
 export interface TeamRegistrationStatusFacts {
   consent: {
@@ -40,10 +40,7 @@ type Database = typeof db;
 export function createTeamRegistrationStatusRepository(
   database: Database = db,
 ): TeamRegistrationStatusRepository {
-  const execute = createRepositoryExecutor(
-    "TEAM_REGISTRATION_STATUS_REPOSITORY_ERROR",
-    createTeamRegistrationStatusRepositoryError,
-  );
+  const execute = createRepositoryExecutor(teamRegistrationStatusRepositoryError);
 
   return {
     find: async (userId) =>

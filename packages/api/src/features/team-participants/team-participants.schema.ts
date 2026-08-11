@@ -65,3 +65,7 @@ export type TeamParticipant = z.output<typeof teamParticipantSchema>;
 export type TeamParticipantDetails = z.output<typeof teamParticipantDetailsSchema>;
 export type CreateTeamParticipantData = z.output<typeof createTeamParticipantSchema>;
 export type UpdateTeamParticipantData = z.output<typeof updateTeamParticipantSchema>["data"];
+export type TeamParticipantDocumentType =
+  | "portraitPhoto"
+  | "identityDocument"
+  | "academicRecordDocument";

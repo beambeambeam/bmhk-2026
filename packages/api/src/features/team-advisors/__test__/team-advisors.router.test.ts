@@ -18,7 +18,7 @@ import {
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
 import type { TeamAdvisorWithStoredDocuments } from "../team-advisors.repository";
-import { createTeamAdvisorAlreadyExistsError } from "../team-advisors.service";
+import { createTeamAdvisorAlreadyExistsError } from "../team-advisors.errors";
 
 const s3Mocks = vi.hoisted(() => ({
   deleteObject: vi.fn<(input: DeleteObjectInput) => Promise<void>>(async () => {

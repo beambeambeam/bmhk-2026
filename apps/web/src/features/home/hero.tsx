@@ -37,7 +37,10 @@ export default function Hero() {
          * the lockup: no gap, no reflow, nothing measured moves. The string is the lockup's own
          * content, not new copy.
          */}
-        <h1 className="sr-only">BangMod Hackathon 2026</h1>
+        <h1 className="sr-only">
+          BangMod Hackathon 2026 — การแข่งขันแก้ไขปัญหาด้วยการเขียนโปรแกรมคอมพิวเตอร์
+          ระดับมัธยมศึกษาตอนปลายและอาชีวศึกษา
+        </h1>
 
         {/*
          * One box, two aspect ratios and two max-widths. The arrangement itself switches at

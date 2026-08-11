@@ -1,3 +1,8 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Disallow: /signin
+Disallow: /dashboard
+Disallow: /coming-soon
+Disallow: /status
+
+Sitemap: https://bangmodhackathon.com/sitemap.xml

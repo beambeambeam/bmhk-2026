@@ -11,6 +11,9 @@ import { STACKED_ASPECT, StackedLockup } from "@/components/lockup";
 
 export const Route = createFileRoute("/signin")({
   component: SignInRoute,
+  head: () => ({
+    meta: [{ content: "noindex, nofollow", name: "robots" }],
+  }),
 });
 
 let entrancePlayed = false;
@@ -108,10 +111,10 @@ function SignInRoute() {
               className="auth-rise auth-rise-sm flex w-full flex-col gap-[calc(5.844px_+_6.156*var(--fl))]"
             >
               <h1 className="w-full text-[calc(23.792px_+_8.208*var(--fl))] leading-[normal] font-semibold tracking-[0.374px] md:font-bold">
-                ลงทะเบียนเข้าแข่งขัน
+                สมัครเข้าแข่งขัน
               </h1>
               <p className="w-full text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] text-gray-2">
-                กรุณาใช้บัญชี Google ในการลงทะเบียนเข้าแข่งขัน
+                กรุณาใช้บัญชี Google ในการสมัครเข้าแข่งขัน
               </p>
             </div>
 

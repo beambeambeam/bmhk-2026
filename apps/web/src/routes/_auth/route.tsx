@@ -14,6 +14,9 @@ export const Route = createFileRoute("/_auth")({
     return { session };
   },
   component: AuthLayout,
+  head: () => ({
+    meta: [{ content: "noindex, nofollow", name: "robots" }],
+  }),
   ssr: false,
 });
 

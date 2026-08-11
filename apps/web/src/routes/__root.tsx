@@ -18,11 +18,13 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     links: [
       { href: appCss, rel: "stylesheet" },
+      { href: "https://fonts.googleapis.com", rel: "preconnect" },
+      { crossOrigin: "anonymous", href: "https://fonts.gstatic.com", rel: "preconnect" },
       {
         href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap",
         rel: "stylesheet",
       },
-      { href: "/favicon.png", rel: "icon" }, 
+      { href: "/favicon.png", rel: "icon" },
       { href: "/apple-touch-icon.png", rel: "apple-touch-icon", sizes: "180x180" },
     ],
     meta: [
@@ -42,7 +44,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en" className="light">
+    <html lang="th" className="light">
       <head>
         <HeadContent />
       </head>

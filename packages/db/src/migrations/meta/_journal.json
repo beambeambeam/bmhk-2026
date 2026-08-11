@@ -120,6 +120,13 @@
       "when": 1786460717381,
       "tag": "0016_remarkable_human_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786466968285,
+      "tag": "0017_green_sprite",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "registration_submitted_at" timestamp;

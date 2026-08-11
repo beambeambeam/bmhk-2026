@@ -34,6 +34,7 @@ export const teams = pgTable(
     index: serial("index").notNull(),
     memberCount: integer("member_count").default(0).notNull(),
     name: text("team_name").notNull(),
+    registrationSubmittedAt: timestamp("registration_submitted_at"),
     school: text("school_name").notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

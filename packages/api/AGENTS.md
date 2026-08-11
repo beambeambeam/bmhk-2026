@@ -28,6 +28,17 @@
 - Convert expected failures to structured `evlog` errors with stable `code`,
   `fix`, `message`, `status`, and `why` fields. Do not leak raw provider errors,
   secrets, session tokens, or database details to callers.
+- Audit only high-consequence operations: authorization or security changes,
+  legal consent, sensitive personal-data or document access/replacement,
+  destructive or irreversible actions, and final business decisions such as
+  submission, approval, rejection, or award. Use normal structured logs for
+  routine reads, CRUD, media changes, and debugging.
+- For every audited operation, define the action in
+  `src/features/audit/audit.actions.ts`, choose severity from business impact,
+  and run the operation through `executeAudited`. Record stable actor, target,
+  outcome, and minimal safe changes; cover applicable success, denied, and
+  failure outcomes with behavior tests. Never record raw sensitive values,
+  private notes, secrets, tokens, or provider errors in audit fields.
 - Keep `src/index.ts` as the package boundary. Export only contracts and
   intentionally supported factories/types; consumers must not deep-import
   `src/core` or feature implementation files.

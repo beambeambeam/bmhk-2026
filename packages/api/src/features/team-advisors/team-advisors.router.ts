@@ -2,7 +2,6 @@ import type { TeamAccessProcedure } from "../../core/procedure";
 import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
-import { auditTeamMutation } from "../teams/teams.audit";
 import type { TeamAdvisorService } from "./team-advisors.service";
 import {
   createTeamAdvisorSchema,
@@ -78,7 +77,6 @@ export function createTeamAdvisorsRouter(
       .handler(async ({ context, input }) => {
         const advisor = await service.create(context.teamAccess, input);
 
-        auditTeamMutation(context.log, context.teamAccess, "team-advisor.create", advisor.teamId);
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
@@ -115,7 +113,6 @@ export function createTeamAdvisorsRouter(
       .handler(async ({ context, input }) => {
         const advisor = await service.update(context.teamAccess, input.teamId, input.data);
 
-        auditTeamMutation(context.log, context.teamAccess, "team-advisor.update", advisor.teamId);
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),

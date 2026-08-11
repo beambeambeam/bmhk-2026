@@ -2,7 +2,6 @@ import type { TeamAccessProcedure } from "../../core/procedure";
 import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
-import { auditTeamMutation } from "../teams/teams.audit";
 import type { TeamParticipantService } from "./team-participants.service";
 import {
   createTeamParticipantSchema,
@@ -88,12 +87,6 @@ function createTeamParticipantDocumentUploadProcedure(
         teamId: input.teamId,
       });
 
-      auditTeamMutation(
-        context.log,
-        context.teamAccess,
-        "team-participant.document.replace",
-        participant.teamId,
-      );
       context.log.set({
         file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
         teamParticipant: {
@@ -123,12 +116,6 @@ export function createTeamParticipantsRouter(
       .handler(async ({ context, input }) => {
         const result = await service.create(context.teamAccess, input);
 
-        auditTeamMutation(
-          context.log,
-          context.teamAccess,
-          "team-participant.create",
-          result.teamId,
-        );
         context.log.set({
           teamParticipant: { id: result.id, index: result.index, teamId: result.teamId },
         });
@@ -168,12 +155,6 @@ export function createTeamParticipantsRouter(
           input.teamId,
           input.index,
           input.data,
-        );
-        auditTeamMutation(
-          context.log,
-          context.teamAccess,
-          "team-participant.update",
-          participant.teamId,
         );
         return participant;
       }),

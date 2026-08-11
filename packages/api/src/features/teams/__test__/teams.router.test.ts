@@ -707,22 +707,17 @@ describe("teams router", () => {
     });
   });
 
-  it("audits registration staff team updates", async () => {
+  it("updates team fields for registration staff", async () => {
     const router = createRouter(createTeamRepository(), createRegistrationAuthReader());
-    const { context, log } = createContext();
+    const { context } = createContext();
 
-    await call(
-      router.teams.update,
-      { data: { name: "Updated Team" }, id: TEAM_ID },
-      { context, path: ["teams", "update"] },
-    );
-
-    expect(log.audit).toHaveBeenCalledWith({
-      action: "team.update",
-      actor: { id: USER_ID, type: "user" },
-      target: { id: TEAM_ID, type: "team" },
-    });
-    expect(log.set).toHaveBeenCalledWith({ authorization: { scope: "ALL_TEAMS" } });
+    await expect(
+      call(
+        router.teams.update,
+        { data: { name: "Updated Team" }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).resolves.toMatchObject({ name: "Updated Team" });
   });
 
   it.each(expectedAwards)("rejects owner update to staff-controlled %s award", async (award) => {

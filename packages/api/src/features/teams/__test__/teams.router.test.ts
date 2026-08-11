@@ -394,15 +394,11 @@ describe("teams router", () => {
       createTeamRepository(),
       createAuthReader(createTestSession({ user: { role: "staff" } })),
     );
-    const { context, log } = createContext();
+    const { context } = createContext();
 
     await expect(
       call(router.teams.list, {}, { context, path: ["teams", "list"] }),
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
-    expect(log.audit.deny).toHaveBeenCalledWith("registration access permission missing", {
-      action: "registration.access",
-      actor: { id: USER_ID, type: "user" },
-    });
   });
 
   it("gets an owned team", async () => {

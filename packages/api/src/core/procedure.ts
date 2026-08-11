@@ -73,6 +73,13 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
 
   const protectedProcedure = base.use(evlog()).use(requireAuth);
+  const teamOwnerProcedure = protectedProcedure.use(async ({ context, next }) => {
+    const teamAccess: TeamAccessContext = {
+      actorId: context.session.user.id,
+      scope: "OWN_TEAM",
+    };
+    return await next({ context: { teamAccess } });
+  });
   const teamAccessProcedure = protectedProcedure.use(async ({ context, next }) => {
     const scope: TeamAccessContext["scope"] = hasRegistrationAccess(context.session.user.role)
       ? "ALL_TEAMS"
@@ -87,14 +94,35 @@ export function createProcedures(dependencies: ProcedureDependencies) {
       },
     });
   });
+  const registrationProcedure = protectedProcedure.use(async ({ context, next }) => {
+    if (!hasRegistrationAccess(context.session.user.role)) {
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for registration access",
+        message: "Registration access required",
+        status: 403,
+        why: "The authenticated user lacks registration access permission",
+      });
+    }
+
+    const teamAccess: TeamAccessContext = {
+      actorId: context.session.user.id,
+      scope: "ALL_TEAMS",
+    };
+    return await next({ context: { teamAccess } });
+  });
 
   return {
     protectedProcedure,
     publicProcedure: base.use(evlog()),
+    registrationProcedure,
     teamAccessProcedure,
+    teamOwnerProcedure,
   };
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
+export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
+export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];

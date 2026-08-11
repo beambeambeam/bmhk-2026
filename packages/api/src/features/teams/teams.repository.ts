@@ -11,7 +11,7 @@ import {
   createTeamRepositoryError,
   teamRepositoryError,
 } from "./teams.errors";
-import type { CreateTeamData, Team, UpdateTeamData } from "./teams.schema";
+import type { CreateTeamData, Team, TeamAward, UpdateTeamData } from "./teams.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 
@@ -24,7 +24,11 @@ export interface TeamRepository {
     access: TeamAccessContext,
     pagination: { limit: number; offset: number },
   ) => Promise<{ data: Team[]; total: number }>;
-  update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team | null>;
+  update: (
+    access: TeamAccessContext,
+    id: string,
+    data: UpdateTeamData | { award: TeamAward },
+  ) => Promise<Team | null>;
   replaceImage: (
     access: TeamAccessContext,
     id: string,

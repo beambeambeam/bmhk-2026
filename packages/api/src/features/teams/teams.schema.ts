@@ -20,11 +20,10 @@ export const teamDetailsSchema = teamSchema
   .extend({ image: fileWithUrlSchema.nullable() })
   .strict();
 const createTeamFieldsSchema = teamInsertSchema
-  .pick({ award: true, memberCount: true, name: true, school: true })
+  .pick({ memberCount: true, name: true, school: true })
   .strict();
 export const createTeamSchema = createTeamFieldsSchema
   .extend({
-    award: createTeamFieldsSchema.shape.award.default("NO_ACHIEVEMENT"),
     memberCount: createTeamFieldsSchema.shape.memberCount.default(0),
   })
   .strict();
@@ -38,12 +37,15 @@ export const listTeamsSchema = z
 export const teamIdInputSchema = teamSchema.pick({ id: true }).strict();
 export const deleteTeamResultSchema = teamIdInputSchema;
 export const updateTeamDataSchema = teamUpdateSchema
-  .pick({ award: true, memberCount: true, name: true, school: true })
+  .pick({ memberCount: true, name: true, school: true })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one team field is required",
   });
 export const updateTeamSchema = teamIdInputSchema.extend({ data: updateTeamDataSchema }).strict();
+export const setTeamAwardSchema = teamIdInputSchema
+  .extend({ award: teamSchema.shape.award })
+  .strict();
 export const teamListPaginationSchema = z
   .object({
     currentPage: z.int().positive(),

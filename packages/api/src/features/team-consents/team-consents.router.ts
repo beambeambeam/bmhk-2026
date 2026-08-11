@@ -1,4 +1,4 @@
-import type { TeamAccessProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure, TeamOwnerProcedure } from "../../core/procedure";
 import type { TeamConsentService } from "./team-consents.service";
 import {
   createTeamConsentSchema,
@@ -9,10 +9,11 @@ import {
 
 export function createTeamConsentsRouter(
   teamAccessProcedure: TeamAccessProcedure,
+  teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamConsentService,
 ) {
   return {
-    create: teamAccessProcedure
+    create: teamOwnerProcedure
       .route({ method: "POST", tags: ["Team Consent"] })
       .input(createTeamConsentSchema)
       .output(teamConsentSchema)
@@ -32,7 +33,7 @@ export function createTeamConsentsRouter(
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;
       }),
-    update: teamAccessProcedure
+    update: teamOwnerProcedure
       .route({ method: "PATCH", tags: ["Team Consent"] })
       .input(updateTeamConsentSchema)
       .output(teamConsentSchema)

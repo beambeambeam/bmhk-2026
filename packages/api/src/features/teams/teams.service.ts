@@ -16,6 +16,7 @@ import { createTeamAlreadyExistsError } from "./teams.errors";
 import type {
   CreateTeamData,
   Team,
+  TeamAward,
   TeamDetails,
   TeamListPagination,
   TeamListResult,
@@ -35,6 +36,7 @@ export interface TeamService {
     access: TeamAccessContext,
     pagination: { limit: number; offset: number },
   ) => Promise<TeamListResult>;
+  setAward: (access: TeamAccessContext, id: string, award: TeamAward) => Promise<Team>;
   update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team>;
   uploadImage: (input: {
     access: TeamAccessContext;
@@ -116,6 +118,14 @@ export function createTeamService(
           total: result.total,
         }),
       };
+    },
+    setAward: async (access, id, award) => {
+      const team = await repository.update(access, id, { award });
+      if (!team) {
+        throw createTeamNotFoundError();
+      }
+
+      return team;
     },
     update: async (access, id, data) => {
       const team = await repository.update(access, id, data);

@@ -44,8 +44,13 @@ export interface ApiDependencies {
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
-  const { protectedProcedure, publicProcedure, teamAccessProcedure } =
-    createProcedures(dependencies);
+  const {
+    protectedProcedure,
+    publicProcedure,
+    registrationProcedure,
+    teamAccessProcedure,
+    teamOwnerProcedure,
+  } = createProcedures(dependencies);
   const teamAdvisorRepository = dependencies.teamAdvisors ?? createTeamAdvisorRepository();
   const teamRepository = dependencies.teams ?? createTeamRepository();
   const teamParticipantRepository =
@@ -66,6 +71,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamConsents: createTeamConsentsRouter(
       teamAccessProcedure,
+      teamOwnerProcedure,
       createTeamConsentService(teamConsentRepository),
     ),
     teamParticipants: createTeamParticipantsRouter(
@@ -78,7 +84,9 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teams: createTeamsRouter(
       protectedProcedure,
+      registrationProcedure,
       teamAccessProcedure,
+      teamOwnerProcedure,
       createTeamService(teamRepository, fileStorage, fileRepository),
     ),
   };

@@ -100,6 +100,10 @@ function createRouter(
   return createAppRouter({ auth, files: fileRepository, teams: repository });
 }
 
+function createRegistrationAuthReader(): AuthReader {
+  return createAuthReader(createTestSession({ user: { role: "registrationStaff" } }));
+}
+
 describe("teams router", () => {
   it("requires authentication before creating a team", async () => {
     const repository = createTeamRepository();
@@ -188,23 +192,27 @@ describe("teams router", () => {
     ).resolves.toMatchObject({ name: "Replacement Team", school: "Test School" });
   });
 
-  it.each(expectedAwards)("accepts the %s award when creating a team", async (award) => {
-    const repository = createTeamRepository();
-    const router = createRouter(repository);
-    const { context } = createContext();
+  it.each(expectedAwards)(
+    "rejects staff-controlled %s award when creating a team",
+    async (award) => {
+      const repository = createTeamRepository();
+      const router = createRouter(repository);
+      const { context } = createContext();
 
-    await expect(
-      call(
-        router.teams.create,
-        {
-          award,
-          name: "Team One",
-          school: "Test School",
-        },
-        { context, path: ["teams", "create"] },
-      ),
-    ).resolves.toMatchObject({ award });
-  });
+      await expect(
+        call(
+          router.teams.create,
+          {
+            // @ts-expect-error -- award is controlled by registration staff
+            award,
+            name: "Team One",
+            school: "Test School",
+          },
+          { context, path: ["teams", "create"] },
+        ),
+      ).rejects.toBeInstanceOf(Error);
+    },
+  );
 
   it("rejects an arbitrary award when creating a team", async () => {
     const repository = createTeamRepository();
@@ -332,7 +340,7 @@ describe("teams router", () => {
       input: { limit: 25, offset: 100 },
       total: 60,
     },
-  ])("returns owner-scoped pagination metadata", async ({ expected, input, total }) => {
+  ])("returns registration-team pagination metadata", async ({ expected, input, total }) => {
     async function list(
       _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
@@ -341,7 +349,7 @@ describe("teams router", () => {
     }
 
     const repository = createTeamRepository({ list });
-    const router = createRouter(repository);
+    const router = createRouter(repository, createRegistrationAuthReader());
     const { context } = createContext();
 
     const result = await call(router.teams.list, input, {
@@ -363,7 +371,7 @@ describe("teams router", () => {
     }
 
     const repository = createTeamRepository({ list });
-    const router = createRouter(repository);
+    const router = createRouter(repository, createRegistrationAuthReader());
     const { context } = createContext();
 
     await expect(
@@ -372,6 +380,18 @@ describe("teams router", () => {
       code: "INTERNAL_SERVER_ERROR",
       message: "Output validation failed",
     });
+  });
+
+  it("requires registration permission to list teams", async () => {
+    const router = createRouter(
+      createTeamRepository(),
+      createAuthReader(createTestSession({ user: { role: "staff" } })),
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.list, {}, { context, path: ["teams", "list"] }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
   });
 
   it("gets an owned team", async () => {
@@ -676,7 +696,7 @@ describe("teams router", () => {
     });
   });
 
-  it.each(expectedAwards)("updates an owned team to the %s award", async (award) => {
+  it.each(expectedAwards)("rejects owner update to staff-controlled %s award", async (award) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
     const { context } = createContext();
@@ -684,9 +704,28 @@ describe("teams router", () => {
     await expect(
       call(
         router.teams.update,
-        { data: { award }, id: TEAM_ID },
+        {
+          // @ts-expect-error -- award is controlled by registration staff
+          data: { award },
+          id: TEAM_ID,
+        },
         { context, path: ["teams", "update"] },
       ),
+    ).rejects.toBeInstanceOf(Error);
+  });
+
+  it.each(expectedAwards)("lets registration staff set the %s award", async (award) => {
+    const repository = createTeamRepository({
+      update: async (access, _id, data) => {
+        expect(access).toStrictEqual({ actorId: USER_ID, scope: "ALL_TEAMS" });
+        return await Promise.resolve({ ...testTeam, ...data });
+      },
+    });
+    const router = createRouter(repository, createRegistrationAuthReader());
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.setAward, { award, id: TEAM_ID }, { context, path: ["teams", "setAward"] }),
     ).resolves.toMatchObject({ award });
   });
 
@@ -776,6 +815,26 @@ describe("teams router", () => {
     await expect(
       call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
     ).resolves.toStrictEqual({ id: TEAM_ID });
+  });
+
+  it("does not let registration staff delete another user's team", async () => {
+    const repository = createTeamRepository({
+      delete: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
+        return await Promise.resolve(false);
+      },
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
+    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
   });
 
   it("rejects an invalid team ID before deleting", async () => {

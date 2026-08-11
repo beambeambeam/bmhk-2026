@@ -220,6 +220,28 @@ describe("team consents router", () => {
     });
   });
 
+  it("does not let registration staff change another team's legal consent", async () => {
+    const update = vi.fn<TeamConsentRepository["update"]>(async (access) => {
+      expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
+      return null;
+    });
+    const router = createRouter(
+      createRepository({ update }),
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.update,
+        { data: { privacyPolicyAccepted: true }, teamId: TEAM_ID },
+        { context, path: ["teamConsents", "update"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_CONSENT_NOT_FOUND", status: 404 });
+  });
+
   it("rejects empty and unknown updates before repository invocation", async () => {
     const update = vi.fn<TeamConsentRepository["update"]>(async () => consent);
     const router = createRouter(createRepository({ update }));

@@ -1,11 +1,17 @@
 import { z } from "zod";
-import type { ProtectedProcedure, TeamAccessProcedure } from "../../core/procedure";
+import type {
+  ProtectedProcedure,
+  RegistrationProcedure,
+  TeamAccessProcedure,
+  TeamOwnerProcedure,
+} from "../../core/procedure";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamService } from "./teams.service";
 import {
   createTeamSchema,
   deleteTeamResultSchema,
   listTeamsSchema,
+  setTeamAwardSchema,
   teamDetailsSchema,
   teamIdInputSchema,
   teamListResultSchema,
@@ -17,7 +23,9 @@ const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
 
 export function createTeamsRouter(
   protectedProcedure: ProtectedProcedure,
+  registrationProcedure: RegistrationProcedure,
   teamAccessProcedure: TeamAccessProcedure,
+  teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamService,
 ) {
   return {
@@ -33,7 +41,7 @@ export function createTeamsRouter(
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    delete: teamAccessProcedure
+    delete: teamOwnerProcedure
       .route({
         method: "DELETE",
         tags: ["Team"],
@@ -79,7 +87,7 @@ export function createTeamsRouter(
 
         return team;
       }),
-    list: teamAccessProcedure
+    list: registrationProcedure
       .route({
         method: "GET",
         tags: ["Team"],
@@ -87,6 +95,15 @@ export function createTeamsRouter(
       .input(listTeamsSchema)
       .output(teamListResultSchema)
       .handler(async ({ context, input }) => await service.list(context.teamAccess, input)),
+    setAward: registrationProcedure
+      .route({ method: "PATCH", tags: ["Team"] })
+      .input(setTeamAwardSchema)
+      .output(teamSchema)
+      .handler(async ({ context, input }) => {
+        const team = await service.setAward(context.teamAccess, input.id, input.award);
+        context.log.set({ team: { id: team.id } });
+        return team;
+      }),
     update: teamAccessProcedure
       .route({
         method: "PATCH",

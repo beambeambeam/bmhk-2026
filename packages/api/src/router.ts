@@ -92,6 +92,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
       teamAccessProcedure,
+      teamOwnerProcedure,
       createTeamRegistrationStatusService(teamRegistrationStatusRepository),
     ),
     teams: createTeamsRouter(

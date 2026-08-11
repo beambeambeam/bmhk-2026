@@ -57,6 +57,7 @@ const testTeam = {
   index: 1,
   memberCount: 0,
   name: "Team One",
+  registrationSubmittedAt: null,
   school: "Test School",
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   userId: USER_ID,

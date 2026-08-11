@@ -51,6 +51,7 @@ const completeTwoPersonFacts = {
     memberCount: 2,
     name: "Team One",
     school: "School One",
+    submittedAt: null,
   },
 } satisfies StatusFacts;
 
@@ -63,6 +64,7 @@ const completeThreePersonFacts = {
     memberCount: 3,
     name: "Team One",
     school: "School One",
+    submittedAt: null,
   },
 } satisfies StatusFacts;
 
@@ -81,22 +83,214 @@ function createRepository(
   return {
     findByTeamId:
       overrides.findByTeamId ?? (async () => await Promise.resolve(completeTwoPersonFacts)),
+    submit: overrides.submit ?? (async () => await Promise.resolve("SUBMITTED")),
   };
 }
 
 function createRouter(
-  repository: TeamRegistrationStatusRepository,
+  repository: Partial<TeamRegistrationStatusRepository>,
   auth: AuthReader = createTestAuthReader(createTestSession()),
 ) {
   return createAppRouter({
     auth,
     files: createUnusedFileRepository(),
-    teamRegistrationStatus: repository,
+    teamRegistrationStatus: createRepository(repository),
     teams: createUnusedTeamRepository(),
   }).teamRegistrationStatus;
 }
 
 describe("team registration status router", () => {
+  it("lets a Team Owner submit a complete registration once and audits the decision", async () => {
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async (access, teamId, date) => {
+        expect(access).toStrictEqual(ownerAccess);
+        expect(teamId).toBe(TEAM_ID);
+        expect(date).toBeInstanceOf(Date);
+        return await Promise.resolve("SUBMITTED");
+      },
+    );
+    const router = createRouter({ submit });
+    const { context, log } = createTestContext();
+
+    const result = await call(
+      router.submit,
+      { teamId: TEAM_ID },
+      { context, path: ["teamRegistrationStatus", "submit"] },
+    );
+
+    expect(result).toMatchObject({
+      isComplete: true,
+      submissionState: "SUBMITTED",
+      teamId: TEAM_ID,
+    });
+    expect(result.submittedAt).toBeInstanceOf(Date);
+    expect(submit).toHaveBeenCalledOnce();
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { submissionState: "SUBMITTED", submittedAt: result.submittedAt },
+        before: { submissionState: "DRAFT", submittedAt: null },
+      },
+      outcome: "success",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("reports persisted submission state", async () => {
+    const submittedAt = new Date("2026-08-11T06:00:00.000Z");
+    const router = createRouter({
+      findByTeamId: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          team: { ...completeTwoPersonFacts.team, submittedAt },
+        }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      submissionState: "SUBMITTED",
+      submittedAt,
+    });
+  });
+
+  it("denies another submission after registration is submitted", async () => {
+    const submittedAt = new Date("2026-08-11T06:00:00.000Z");
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async () => await Promise.resolve("SUBMITTED"),
+    );
+    const router = createRouter({
+      findByTeamId: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          team: { ...completeTwoPersonFacts.team, submittedAt },
+        }),
+      submit,
+    });
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_REGISTRATION_ALREADY_SUBMITTED", status: 409 });
+    expect(submit).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_REGISTRATION_ALREADY_SUBMITTED",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("allows only one submission when two requests race", async () => {
+    const router = createRouter({
+      submit: async () => await Promise.resolve("ALREADY_SUBMITTED"),
+    });
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_REGISTRATION_ALREADY_SUBMITTED", status: 409 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_REGISTRATION_ALREADY_SUBMITTED",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("denies final submission while registration is incomplete", async () => {
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async () => await Promise.resolve("SUBMITTED"),
+    );
+    const router = createRouter({
+      findByTeamId: async () => await Promise.resolve(incompleteThreePersonFacts),
+      submit,
+    });
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_REGISTRATION_INCOMPLETE", status: 409 });
+    expect(submit).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_REGISTRATION_INCOMPLETE",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("does not let a Registration Operator submit another Team's registration", async () => {
+    const findByTeamId = vi.fn<TeamRegistrationStatusRepository["findByTeamId"]>(async (access) => {
+      expect(access).toStrictEqual({ actorId: "operator-1", scope: "OWN_TEAM" });
+      return await Promise.resolve(null);
+    });
+    const router = createRouter(
+      { findByTeamId },
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: "operator-1", type: "user" },
+      outcome: "denied",
+      reason: "TEAM_NOT_FOUND",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("audits submission dependency failures without leaking details", async () => {
+    const router = createRouter({
+      findByTeamId: async () => await Promise.reject(createTeamRegistrationStatusRepositoryError()),
+    });
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({
+      code: "TEAM_REGISTRATION_STATUS_REPOSITORY_ERROR",
+      status: 500,
+    });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "TEAM_REGISTRATION_STATUS_REPOSITORY_ERROR",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
   it("gives registration staff cross-team status access", async () => {
     const findByTeamId = vi.fn<TeamRegistrationStatusRepository["findByTeamId"]>(async (access) => {
       expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
@@ -143,6 +337,8 @@ describe("team registration status router", () => {
       participant1: "COMPLETED",
       participant2: "COMPLETED",
       participant3: "NOT_APPLICABLE",
+      submissionState: "DRAFT",
+      submittedAt: null,
       team: "COMPLETED",
       teamId: TEAM_ID,
       termsAndConditions: "COMPLETED",
@@ -167,6 +363,8 @@ describe("team registration status router", () => {
       participant1: "COMPLETED",
       participant2: "COMPLETED",
       participant3: "COMPLETED",
+      submissionState: "DRAFT",
+      submittedAt: null,
       team: "COMPLETED",
       teamId: TEAM_ID,
       termsAndConditions: "COMPLETED",
@@ -205,6 +403,8 @@ describe("team registration status router", () => {
       participant1: "COMPLETED",
       participant2: "COMPLETED",
       participant3: "IN_PROGRESS",
+      submissionState: "DRAFT",
+      submittedAt: null,
       team: "COMPLETED",
       teamId: TEAM_ID,
       termsAndConditions: "COMPLETED",
@@ -226,6 +426,8 @@ describe("team registration status router", () => {
       participant1: "NOT_STARTED",
       participant2: "NOT_STARTED",
       participant3: "NOT_APPLICABLE",
+      submissionState: "DRAFT",
+      submittedAt: null,
       team: "COMPLETED",
       teamId: TEAM_ID,
       termsAndConditions: "COMPLETED",

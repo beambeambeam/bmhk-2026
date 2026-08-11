@@ -1,4 +1,5 @@
 import type { RouterClient } from "@orpc/server";
+import type { Temporal } from "temporal-polyfill";
 
 import type { AuthReader } from "./core/auth";
 import { createProcedures } from "./core/procedure";
@@ -9,6 +10,8 @@ import { createFileService } from "./features/files/files.service";
 import type { FileStorage } from "./features/files/files.storage";
 import { createS3FileStorage } from "./features/files/files.storage";
 import { createPrivateDataRouter } from "./features/private-data/private-data.router";
+import { createFeatureFlagsRouter } from "./features/feature-flags/feature-flags.router";
+import { createFeatureFlagService } from "./features/feature-flags/feature-flags.service";
 import type { FileRepository } from "./features/files/files.repository";
 import type { TeamRepository } from "./features/teams/teams.repository";
 import { createTeamRepository } from "./features/teams/teams.repository";
@@ -37,6 +40,7 @@ import { createTeamRegistrationReviewService } from "./features/team-registratio
 
 export interface ApiDependencies {
   auth: AuthReader;
+  featureFlagClock?: () => Temporal.Instant;
   fileStorage?: FileStorage;
   /** Optional overrides keep feature tests isolated; production uses API-owned repositories. */
   files?: FileRepository;
@@ -69,6 +73,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
   const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
 
   return {
+    featureFlags: createFeatureFlagsRouter(
+      publicProcedure,
+      createFeatureFlagService(dependencies.featureFlagClock),
+    ),
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),

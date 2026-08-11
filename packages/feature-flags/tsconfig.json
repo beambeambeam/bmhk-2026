@@ -1,0 +1,4 @@
+{
+  "extends": "@bmhk-2026/config/tsconfig.base.json",
+  "include": ["src/**/*.ts"]
+}

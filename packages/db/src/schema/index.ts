@@ -5,4 +5,5 @@ export * from "./files";
 export * from "./team-advisors";
 export * from "./team-consents";
 export * from "./team-participants";
+export * from "./team-registration-reviews";
 export * from "./teams";

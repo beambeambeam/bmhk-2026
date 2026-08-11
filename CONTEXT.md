@@ -16,6 +16,14 @@ _Avoid_: Team member, creator
 A staff user permitted to inspect and maintain registration information across Teams.
 _Avoid_: Registration staff role, admin
 
+**Team Registration Review**:
+A Registration Operator's pre-competition assessment of a Team's Registration Information. Review findings are private to Registration Operators, and a completed review remains authoritative when Registration Information later changes.
+_Avoid_: Round 1 verification, staff verification
+
+**Review Issue**:
+A coded finding recorded against a Team Advisor or Participant slot during a Team Registration Review. Review Issues are not visible to Team Owners.
+_Avoid_: Problem, validation error
+
 **Team Access**:
 Authority arising from either Team ownership or Registration Operator permission.
 _Avoid_: Membership

@@ -25,17 +25,24 @@ const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
 const CONSENT_ID = "22222222-2222-4222-8222-222222222222";
 const createdAt = new Date("2026-01-01T00:00:00.000Z");
+const signedAt = new Date("2026-01-02T00:00:00.000Z");
 const ownerAccess = { actorId: USER_ID, scope: "OWN_TEAM" } satisfies TeamAccessContext;
 
 const consent = {
   codernTermsAccepted: false,
+  codernTermsAcceptedAt: null,
   competitionRulesAccepted: false,
+  competitionRulesAcceptedAt: null,
   createdAt,
   guardianConsentObtained: false,
+  guardianConsentObtainedAt: null,
   healthDataConsent: false,
+  healthDataConsentAt: null,
   id: CONSENT_ID,
   privacyPolicyAccepted: false,
+  privacyPolicyAcceptedAt: null,
   publicityMediaConsent: false,
+  publicityMediaConsentAt: null,
   teamId: TEAM_ID,
   updatedAt: createdAt,
 } satisfies TeamConsent;
@@ -107,13 +114,85 @@ describe("team consents router", () => {
     });
     expect(create).toHaveBeenCalledWith(ownerAccess, {
       codernTermsAccepted: false,
+      codernTermsAcceptedAt: null,
       competitionRulesAccepted: false,
+      competitionRulesAcceptedAt: null,
       guardianConsentObtained: false,
+      guardianConsentObtainedAt: null,
       healthDataConsent: false,
+      healthDataConsentAt: null,
       privacyPolicyAccepted: false,
+      privacyPolicyAcceptedAt: null,
       publicityMediaConsent: false,
+      publicityMediaConsentAt: null,
       teamId: TEAM_ID,
     });
+  });
+
+  it("tracks a server-assigned signing time for each consent", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(signedAt);
+    const create = vi.fn<TeamConsentRepository["create"]>(async (_userId, data) => ({
+      ...consent,
+      ...data,
+    }));
+    const router = createRouter(createRepository({ create }));
+    const { context } = createTestContext();
+
+    try {
+      await expect(
+        call(
+          router.create,
+          {
+            codernTermsAccepted: true,
+            privacyPolicyAccepted: true,
+            teamId: TEAM_ID,
+          },
+          { context, path: ["teamConsents", "create"] },
+        ),
+      ).resolves.toMatchObject({
+        codernTermsAcceptedAt: signedAt,
+        competitionRulesAcceptedAt: null,
+        guardianConsentObtainedAt: null,
+        healthDataConsentAt: null,
+        privacyPolicyAcceptedAt: signedAt,
+        publicityMediaConsentAt: null,
+      });
+      expect(create).toHaveBeenCalledWith(ownerAccess, {
+        codernTermsAccepted: true,
+        codernTermsAcceptedAt: signedAt,
+        competitionRulesAccepted: false,
+        competitionRulesAcceptedAt: null,
+        guardianConsentObtained: false,
+        guardianConsentObtainedAt: null,
+        healthDataConsent: false,
+        healthDataConsentAt: null,
+        privacyPolicyAccepted: true,
+        privacyPolicyAcceptedAt: signedAt,
+        publicityMediaConsent: false,
+        publicityMediaConsentAt: null,
+        teamId: TEAM_ID,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects a client-supplied signing time", async () => {
+    const create = vi.fn<TeamConsentRepository["create"]>(async (_userId, data) => ({
+      ...consent,
+      ...data,
+    }));
+    const router = createRouter(createRepository({ create }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.create, { codernTermsAcceptedAt: signedAt, teamId: TEAM_ID } as never, {
+        context,
+        path: ["teamConsents", "create"],
+      }),
+    ).rejects.toBeInstanceOf(Error);
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("creates consent with explicit flag values and logs its identity", async () => {
@@ -234,6 +313,8 @@ describe("team consents router", () => {
   });
 
   it("updates partial flags and audits their safe values", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(signedAt);
     const update = vi.fn<TeamConsentRepository["update"]>(async (_userId, _teamId, data) => ({
       consent: { ...consent, ...data },
       previous: consent,
@@ -241,38 +322,49 @@ describe("team consents router", () => {
     const router = createRouter(createRepository({ update }));
     const { context, log } = createTestContext();
 
-    await expect(
-      call(
-        router.update,
-        {
-          data: { healthDataConsent: false, publicityMediaConsent: true },
-          teamId: TEAM_ID,
+    try {
+      await expect(
+        call(
+          router.update,
+          {
+            data: { healthDataConsent: false, publicityMediaConsent: true },
+            teamId: TEAM_ID,
+          },
+          { context, path: ["teamConsents", "update"] },
+        ),
+      ).resolves.toMatchObject({
+        healthDataConsent: false,
+        healthDataConsentAt: null,
+        publicityMediaConsent: true,
+        publicityMediaConsentAt: signedAt,
+      });
+      expect(update).toHaveBeenCalledWith(ownerAccess, TEAM_ID, {
+        healthDataConsent: false,
+        healthDataConsentAt: null,
+        publicityMediaConsent: true,
+        publicityMediaConsentAt: signedAt,
+      });
+      expect(log.set).toHaveBeenCalledWith({
+        teamConsent: { id: CONSENT_ID, teamId: TEAM_ID },
+      });
+      expect(log.audit).toHaveBeenCalledWith({
+        action: "legal-consent.updated",
+        actor: { id: USER_ID, type: "user" },
+        changes: {
+          after: { healthDataConsent: false, publicityMediaConsent: true },
+          before: { healthDataConsent: false, publicityMediaConsent: false },
         },
-        { context, path: ["teamConsents", "update"] },
-      ),
-    ).resolves.toMatchObject({ healthDataConsent: false, publicityMediaConsent: true });
-    expect(update).toHaveBeenCalledWith(ownerAccess, TEAM_ID, {
-      healthDataConsent: false,
-      publicityMediaConsent: true,
-    });
-    expect(log.set).toHaveBeenCalledWith({
-      teamConsent: { id: CONSENT_ID, teamId: TEAM_ID },
-    });
-    expect(log.audit).toHaveBeenCalledWith({
-      action: "legal-consent.updated",
-      actor: { id: USER_ID, type: "user" },
-      changes: {
-        after: { healthDataConsent: false, publicityMediaConsent: true },
-        before: { healthDataConsent: false, publicityMediaConsent: false },
-      },
-      outcome: "success",
-      target: {
-        consentId: CONSENT_ID,
-        id: TEAM_ID,
-        teamId: TEAM_ID,
-        type: "legal-consent",
-      },
-    });
+        outcome: "success",
+        target: {
+          consentId: CONSENT_ID,
+          id: TEAM_ID,
+          teamId: TEAM_ID,
+          type: "legal-consent",
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("audits withdrawal when accepted consent changes to false", async () => {
@@ -352,7 +444,7 @@ describe("team consents router", () => {
       ),
     ).rejects.toBeInstanceOf(Error);
     await expect(
-      call(router.update, { data: { acceptedAt: true }, teamId: TEAM_ID } as never, {
+      call(router.update, { data: { healthDataConsentAt: signedAt }, teamId: TEAM_ID } as never, {
         context,
         path: ["teamConsents", "update"],
       }),

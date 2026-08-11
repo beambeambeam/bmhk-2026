@@ -52,7 +52,7 @@ export function createTeamNotFoundError() {
     fix: "Check the team ID and try again",
     message: "Team not found",
     status: 404,
-    why: "No team owned by the current user matches this ID",
+    why: "No team accessible to the current user matches this ID",
   });
 }
 

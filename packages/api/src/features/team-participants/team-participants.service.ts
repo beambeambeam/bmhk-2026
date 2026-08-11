@@ -59,7 +59,7 @@ export function createTeamParticipantNotFoundError() {
     fix: "Check the team and participant slot",
     message: "Team participant not found",
     status: 404,
-    why: "No participant owned by the current user matches this team and slot",
+    why: "No participant accessible to the current user matches this team and slot",
   });
 }
 

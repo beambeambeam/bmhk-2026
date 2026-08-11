@@ -49,7 +49,7 @@ export function createTeamAdvisorNotFoundError() {
     fix: "Check the team ID and try again",
     message: "Team advisor not found",
     status: 404,
-    why: "No advisor owned by the current user matches this team",
+    why: "No advisor accessible to the current user matches this team",
   });
 }
 

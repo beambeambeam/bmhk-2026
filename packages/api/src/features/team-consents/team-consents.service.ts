@@ -25,7 +25,7 @@ export function createTeamConsentNotFoundError() {
     fix: "Check the team ID and try again",
     message: "Team consent not found",
     status: 404,
-    why: "No consent record owned by the current user matches this team",
+    why: "No consent record accessible to the current user matches this team",
   });
 }
 

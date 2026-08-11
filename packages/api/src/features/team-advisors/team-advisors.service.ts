@@ -141,7 +141,6 @@ export function createTeamAdvisorService(
         log,
         repository: fileRepository,
         storage,
-        userId: access.actorId,
       });
 
       return { advisor: replacement.advisor, file: storedFile };

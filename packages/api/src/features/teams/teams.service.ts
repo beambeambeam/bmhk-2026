@@ -156,7 +156,6 @@ export function createTeamService(
         log,
         repository: fileRepository,
         storage,
-        userId: access.actorId,
       });
 
       return { file: storedFile, team: result.team };

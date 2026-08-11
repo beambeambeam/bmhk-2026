@@ -310,8 +310,8 @@ describe("team participants router", () => {
         previous: identityDocument,
       }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => true);
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(async () => true);
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(
       repository,
       createTestAuthReader(createTestSession()),
@@ -331,7 +331,7 @@ describe("team participants router", () => {
       bucket: identityDocument.bucket,
       key: identityDocument.objectKey,
     });
-    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, identityDocument.id);
+    expect(deleteMetadata).toHaveBeenCalledWith(identityDocument.id);
   });
 
   it("requires authentication", async () => {

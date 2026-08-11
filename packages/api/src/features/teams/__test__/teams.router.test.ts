@@ -500,8 +500,10 @@ describe("teams router", () => {
           team: { ...testTeam, image: file.id },
         }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(repository, createAuthReader(), fileRepository);
     const { context } = createContext();
     const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
@@ -516,7 +518,37 @@ describe("teams router", () => {
       bucket: testImage.bucket,
       key: testImage.objectKey,
     });
-    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, testImage.id);
+    expect(deleteMetadata).toHaveBeenCalledWith(testImage.id);
+  });
+
+  it("cleans up an owner-uploaded image replaced by registration staff", async () => {
+    const repository = createTeamRepository({
+      replaceImage: async (_access, _id, file) =>
+        await Promise.resolve({
+          previous: testImage,
+          team: { ...testTeam, image: file.id },
+        }),
+    });
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
+    const router = createRouter(
+      repository,
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+      fileRepository,
+    );
+    const { context } = createContext();
+    const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
+      type: "image/png",
+    });
+
+    await expect(
+      call(router.teams.image, { file: image, id: TEAM_ID }, { context, path: ["teams", "image"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
+    expect(deleteMetadata).toHaveBeenCalledWith(testImage.id);
   });
 
   it("keeps a successful image replacement when old-image cleanup fails", async () => {
@@ -527,8 +559,10 @@ describe("teams router", () => {
           team: { ...testTeam, image: file.id },
         }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(repository, createAuthReader(), fileRepository);
     const { context, log } = createContext();
     const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {

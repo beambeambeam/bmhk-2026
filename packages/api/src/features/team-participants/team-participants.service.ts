@@ -183,7 +183,6 @@ export function createTeamParticipantService(
         log,
         repository: fileRepository,
         storage,
-        userId: access.actorId,
       });
 
       return { file: storedFile, participant: replacement.participant };

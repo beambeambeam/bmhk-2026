@@ -101,19 +101,10 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
           })
           .from(teamAdvisors)
           .innerJoin(teams, eq(teams.id, teamAdvisors.teamId))
-          .leftJoin(
-            identityDocument,
-            and(
-              eq(identityDocument.id, teamAdvisors.identityDocumentFileId),
-              eq(identityDocument.uploadedBy, access.actorId),
-            ),
-          )
+          .leftJoin(identityDocument, eq(identityDocument.id, teamAdvisors.identityDocumentFileId))
           .leftJoin(
             teacherStatusDocument,
-            and(
-              eq(teacherStatusDocument.id, teamAdvisors.teacherStatusDocumentFileId),
-              eq(teacherStatusDocument.uploadedBy, access.actorId),
-            ),
+            eq(teacherStatusDocument.id, teamAdvisors.teacherStatusDocumentFileId),
           )
           .where(and(eq(teamAdvisors.teamId, teamId), createTeamAccessCondition(access, teamId)))
           .limit(1);
@@ -163,7 +154,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
               const [previousFile] = await transaction
                 .select()
                 .from(files)
-                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, access.actorId)))
+                .where(eq(files.id, previousFileId))
                 .limit(1);
               previous = previousFile ? toStoredFileOfKind(previousFile, "pdf") : null;
             }

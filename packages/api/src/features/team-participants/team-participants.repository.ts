@@ -111,27 +111,9 @@ export function createTeamParticipantRepository(
       .select({ academic, identity, participant: teamParticipants, portrait })
       .from(teamParticipants)
       .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-      .leftJoin(
-        academic,
-        and(
-          eq(academic.id, teamParticipants.academicRecordDocumentFileId),
-          eq(academic.uploadedBy, access.actorId),
-        ),
-      )
-      .leftJoin(
-        identity,
-        and(
-          eq(identity.id, teamParticipants.identityDocumentFileId),
-          eq(identity.uploadedBy, access.actorId),
-        ),
-      )
-      .leftJoin(
-        portrait,
-        and(
-          eq(portrait.id, teamParticipants.portraitPhotoFileId),
-          eq(portrait.uploadedBy, access.actorId),
-        ),
-      )
+      .leftJoin(academic, eq(academic.id, teamParticipants.academicRecordDocumentFileId))
+      .leftJoin(identity, eq(identity.id, teamParticipants.identityDocumentFileId))
+      .leftJoin(portrait, eq(portrait.id, teamParticipants.portraitPhotoFileId))
       .where(and(...conditions))
       .orderBy(asc(teamParticipants.index));
   }
@@ -224,7 +206,7 @@ export function createTeamParticipantRepository(
               const [previousFile] = await tx
                 .select()
                 .from(files)
-                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, access.actorId)))
+                .where(eq(files.id, previousFileId))
                 .limit(1);
               previous = previousFile
                 ? toStoredFileOfKind(previousFile, type === "portraitPhoto" ? "image" : "pdf")

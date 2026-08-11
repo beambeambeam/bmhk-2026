@@ -83,7 +83,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
         const [result] = await database
           .select({ image: files, team: teams })
           .from(teams)
-          .leftJoin(files, and(eq(files.id, teams.image), eq(files.uploadedBy, access.actorId)))
+          .leftJoin(files, eq(files.id, teams.image))
           .where(createTeamAccessCondition(access, id))
           .limit(1);
 
@@ -148,7 +148,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               const [oldFile] = await transaction
                 .select()
                 .from(files)
-                .where(and(eq(files.id, current.image), eq(files.uploadedBy, access.actorId)))
+                .where(eq(files.id, current.image))
                 .limit(1);
               previous = oldFile ? toStoredFileOfKind(oldFile, "image") : null;
             }

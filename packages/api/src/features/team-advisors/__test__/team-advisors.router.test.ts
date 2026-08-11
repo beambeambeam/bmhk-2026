@@ -424,8 +424,10 @@ describe("team advisors router", () => {
           previous: identityFile,
         }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(
       repository,
       createTestAuthReader(createTestSession()),
@@ -444,7 +446,7 @@ describe("team advisors router", () => {
       bucket: identityFile.bucket,
       key: identityFile.objectKey,
     });
-    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, identityFile.id);
+    expect(deleteMetadata).toHaveBeenCalledWith(identityFile.id);
   });
 
   it("requires authentication before creating an advisor", async () => {

@@ -1,9 +1,11 @@
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
+import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
 import {
+  cleanupReplacedFile,
   persistUploadedFile,
   storeUploadedFile,
   toPublicFileWithUrl,
@@ -78,6 +80,7 @@ export function getTeamAdvisorDocumentPath(documentType: TeamAdvisorDocumentType
 export function createTeamAdvisorService(
   repository: TeamAdvisorRepository,
   storage: FileStorage,
+  fileRepository: FileRepository,
 ): TeamAdvisorService {
   return {
     create: async (userId, data) => {
@@ -135,7 +138,7 @@ export function createTeamAdvisorService(
         storage,
         uploadedBy: userId,
       });
-      const updatedAdvisor = await persistUploadedFile({
+      const replacement = await persistUploadedFile({
         data: storedFile,
         log,
         persist: async (data) => {
@@ -153,8 +156,15 @@ export function createTeamAdvisorService(
         },
         storage,
       });
+      await cleanupReplacedFile({
+        file: replacement.previous,
+        log,
+        repository: fileRepository,
+        storage,
+        userId,
+      });
 
-      return { advisor: updatedAdvisor, file: storedFile };
+      return { advisor: replacement.advisor, file: storedFile };
     },
   };
 }

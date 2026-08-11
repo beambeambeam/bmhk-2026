@@ -2,7 +2,14 @@ import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthReader, StoredFile, Team, TeamAward, TeamRepository } from "../../../index";
+import type {
+  AuthReader,
+  FileRepository,
+  StoredFile,
+  Team,
+  TeamAward,
+  TeamRepository,
+} from "../../../index";
 import { createAppRouter } from "../../../index";
 import type { TeamWithStoredImage } from "../teams.repository";
 import {
@@ -70,7 +77,6 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
       overrides.create ??
       (async (userId, data) => await Promise.resolve({ ...testTeam, ...data, userId })),
     delete: overrides.delete ?? (async () => await Promise.resolve(true)),
-    deleteFile: overrides.deleteFile ?? (async () => await Promise.resolve(true)),
     findById: overrides.findById ?? (async () => await Promise.resolve(testTeam)),
     findByUserId: overrides.findByUserId ?? (async () => await Promise.resolve(null)),
     list: overrides.list ?? (async () => await Promise.resolve({ data: [testTeam], total: 1 })),
@@ -84,8 +90,12 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
   };
 }
 
-function createRouter(repository: TeamRepository, auth: AuthReader = createAuthReader()) {
-  return createAppRouter({ auth, files: createUnusedFileRepository(), teams: repository });
+function createRouter(
+  repository: TeamRepository,
+  auth: AuthReader = createAuthReader(),
+  fileRepository: FileRepository = createUnusedFileRepository(),
+) {
+  return createAppRouter({ auth, files: fileRepository, teams: repository });
 }
 
 describe("teams router", () => {
@@ -456,6 +466,66 @@ describe("teams router", () => {
     expect(rollbackLog).toMatchObject({
       event: "file.upload.rollback_failed",
       file: { bucket: "uploads" },
+    });
+    expect(log.error).toHaveBeenCalledWith(cleanupError);
+  });
+
+  it("deletes the previous image after a successful replacement", async () => {
+    const repository = createTeamRepository({
+      replaceImage: async (_userId, _id, file) =>
+        await Promise.resolve({
+          previous: testImage,
+          team: { ...testTeam, image: file.id },
+        }),
+    });
+    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
+    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const router = createRouter(repository, createAuthReader(), fileRepository);
+    const { context } = createContext();
+    const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
+      type: "image/png",
+    });
+    deleteObject.mockClear();
+
+    await expect(
+      call(router.teams.image, { file: image, id: TEAM_ID }, { context, path: ["teams", "image"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
+    expect(deleteObject).toHaveBeenCalledWith({
+      bucket: testImage.bucket,
+      key: testImage.objectKey,
+    });
+    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, testImage.id);
+  });
+
+  it("keeps a successful image replacement when old-image cleanup fails", async () => {
+    const repository = createTeamRepository({
+      replaceImage: async (_userId, _id, file) =>
+        await Promise.resolve({
+          previous: testImage,
+          team: { ...testTeam, image: file.id },
+        }),
+    });
+    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
+    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const router = createRouter(repository, createAuthReader(), fileRepository);
+    const { context, log } = createContext();
+    const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
+      type: "image/png",
+    });
+    const cleanupError = new Error("storage cleanup failed");
+    deleteObject.mockRejectedValueOnce(cleanupError);
+
+    await expect(
+      call(router.teams.image, { file: image, id: TEAM_ID }, { context, path: ["teams", "image"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
+    expect(deleteMetadata).not.toHaveBeenCalled();
+    expect(log.set).toHaveBeenCalledWith({
+      event: "file.replacement.cleanup_failed",
+      file: {
+        bucket: testImage.bucket,
+        id: testImage.id,
+        objectKey: testImage.objectKey,
+      },
     });
     expect(log.error).toHaveBeenCalledWith(cleanupError);
   });

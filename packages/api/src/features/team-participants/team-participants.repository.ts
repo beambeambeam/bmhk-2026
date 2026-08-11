@@ -25,6 +25,11 @@ export type TeamParticipantWithStoredDocuments = TeamParticipant & {
   portraitPhoto: StoredFile | null;
 };
 
+export interface TeamParticipantDocumentReplacement {
+  participant: TeamParticipant;
+  previous: StoredFile | null;
+}
+
 export interface TeamParticipantRepository {
   create: (userId: string, data: CreateTeamParticipantData) => Promise<TeamParticipant | null>;
   listByTeamId: (
@@ -48,7 +53,7 @@ export interface TeamParticipantRepository {
     index: number,
     type: TeamParticipantDocumentType,
     file: CreateStoredFileData,
-  ) => Promise<TeamParticipant | null>;
+  ) => Promise<TeamParticipantDocumentReplacement | null>;
 }
 
 type Database = typeof db;
@@ -178,7 +183,12 @@ export function createTeamParticipantRepository(
         async () =>
           await database.transaction(async (tx) => {
             const [current] = await tx
-              .select({ id: teamParticipants.id })
+              .select({
+                academicRecordDocumentFileId: teamParticipants.academicRecordDocumentFileId,
+                id: teamParticipants.id,
+                identityDocumentFileId: teamParticipants.identityDocumentFileId,
+                portraitPhotoFileId: teamParticipants.portraitPhotoFileId,
+              })
               .from(teamParticipants)
               .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
               .where(
@@ -193,6 +203,26 @@ export function createTeamParticipantRepository(
 
             if (!current) {
               return null;
+            }
+
+            let previousFileId: string | null;
+            if (type === "portraitPhoto") {
+              previousFileId = current.portraitPhotoFileId;
+            } else if (type === "identityDocument") {
+              previousFileId = current.identityDocumentFileId;
+            } else {
+              previousFileId = current.academicRecordDocumentFileId;
+            }
+            let previous: StoredFile | null = null;
+            if (previousFileId !== null) {
+              const [previousFile] = await tx
+                .select()
+                .from(files)
+                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, userId)))
+                .limit(1);
+              previous = previousFile
+                ? toStoredFileOfKind(previousFile, type === "portraitPhoto" ? "image" : "pdf")
+                : null;
             }
 
             await tx.insert(files).values(file);
@@ -217,7 +247,13 @@ export function createTeamParticipantRepository(
               .where(eq(teamParticipants.id, current.id))
               .returning();
 
-            return row ?? null;
+            if (!row) {
+              throw createTeamParticipantRepositoryError(
+                new Error("Team participant document update returned no row"),
+              );
+            }
+
+            return { participant: row, previous };
           }),
       ),
     update: async (userId, teamId, index, data) =>

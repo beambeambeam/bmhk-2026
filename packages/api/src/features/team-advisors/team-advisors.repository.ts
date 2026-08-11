@@ -28,7 +28,7 @@ export interface TeamAdvisorRepository {
     teamId: string,
     documentType: TeamAdvisorDocumentType,
     file: CreateStoredFileData,
-  ) => Promise<TeamAdvisor | null>;
+  ) => Promise<TeamAdvisorDocumentReplacement | null>;
   update: (
     userId: string,
     teamId: string,
@@ -42,6 +42,11 @@ export type TeamAdvisorWithStoredDocuments = TeamAdvisor & {
   identityDocument: StoredFile | null;
   teacherStatusDocument: StoredFile | null;
 };
+
+export interface TeamAdvisorDocumentReplacement {
+  advisor: TeamAdvisor;
+  previous: StoredFile | null;
+}
 
 export function createTeamAdvisorRepository(database: Database = db): TeamAdvisorRepository {
   const execute = createRepositoryExecutor(
@@ -133,7 +138,11 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
         async () =>
           await database.transaction(async (transaction) => {
             const [advisor] = await transaction
-              .select({ id: teamAdvisors.id })
+              .select({
+                id: teamAdvisors.id,
+                identityDocumentFileId: teamAdvisors.identityDocumentFileId,
+                teacherStatusDocumentFileId: teamAdvisors.teacherStatusDocumentFileId,
+              })
               .from(teamAdvisors)
               .innerJoin(teams, eq(teams.id, teamAdvisors.teamId))
               .where(and(eq(teamAdvisors.teamId, teamId), eq(teams.userId, userId)))
@@ -142,6 +151,20 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
 
             if (!advisor) {
               return null;
+            }
+
+            const previousFileId =
+              documentType === "identity"
+                ? advisor.identityDocumentFileId
+                : advisor.teacherStatusDocumentFileId;
+            let previous: StoredFile | null = null;
+            if (previousFileId !== null) {
+              const [previousFile] = await transaction
+                .select()
+                .from(files)
+                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, userId)))
+                .limit(1);
+              previous = previousFile ? toStoredFileOfKind(previousFile, "pdf") : null;
             }
 
             await transaction.insert(files).values(file);
@@ -161,7 +184,7 @@ export function createTeamAdvisorRepository(database: Database = db): TeamAdviso
               );
             }
 
-            return updatedAdvisor;
+            return { advisor: updatedAdvisor, previous };
           }),
       ),
     update: async (userId, teamId, data) =>

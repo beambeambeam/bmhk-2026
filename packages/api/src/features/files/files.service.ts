@@ -422,6 +422,38 @@ export async function persistUploadedFile<Result>({
   }
 }
 
+export async function cleanupReplacedFile({
+  file,
+  log,
+  repository,
+  storage,
+  userId,
+}: {
+  file: StoredFile | null;
+  log: FileServiceLog;
+  repository: FileRepository;
+  storage: FileStorage;
+  userId: string;
+}): Promise<void> {
+  if (!file) {
+    return;
+  }
+
+  try {
+    await storage.delete({ bucket: file.bucket, objectKey: file.objectKey });
+    const metadataDeleted = await repository.delete(userId, file.id);
+    if (!metadataDeleted) {
+      throw new Error("Replaced file metadata was not found");
+    }
+  } catch (error) {
+    log.set({
+      event: "file.replacement.cleanup_failed",
+      file: { bucket: file.bucket, id: file.id, objectKey: file.objectKey },
+    });
+    log.error(toError(error, "Unknown replaced file cleanup error"));
+  }
+}
+
 export function createFileService(repository: FileRepository, storage: FileStorage): FileService {
   return {
     get: async (userId, id) => {

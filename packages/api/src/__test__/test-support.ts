@@ -95,6 +95,7 @@ function createUnusedMethod(repository: string, method: string): () => Promise<n
 export function createUnusedFileRepository(): FileRepository {
   return {
     create: createUnusedMethod("FileRepository", "create"),
+    delete: createUnusedMethod("FileRepository", "delete"),
     findById: createUnusedMethod("FileRepository", "findById"),
   };
 }
@@ -103,7 +104,6 @@ export function createUnusedTeamRepository(): TeamRepository {
   return {
     create: createUnusedMethod("TeamRepository", "create"),
     delete: createUnusedMethod("TeamRepository", "delete"),
-    deleteFile: createUnusedMethod("TeamRepository", "deleteFile"),
     findById: createUnusedMethod("TeamRepository", "findById"),
     findByUserId: createUnusedMethod("TeamRepository", "findByUserId"),
     list: createUnusedMethod("TeamRepository", "list"),

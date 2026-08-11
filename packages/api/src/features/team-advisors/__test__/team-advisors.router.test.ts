@@ -2,7 +2,13 @@ import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthReader, StoredFile, TeamAdvisor, TeamAdvisorRepository } from "../../../index";
+import type {
+  AuthReader,
+  FileRepository,
+  StoredFile,
+  TeamAdvisor,
+  TeamAdvisorRepository,
+} from "../../../index";
 import { createAppRouter } from "../../../index";
 import {
   createTestAuthReader,
@@ -96,10 +102,13 @@ function createTeamAdvisorRepository(
       overrides.replaceDocument ??
       (async (_userId, _teamId, documentType, file) =>
         await Promise.resolve({
-          ...testAdvisor,
-          ...(documentType === "identity"
-            ? { identityDocumentFileId: file.id }
-            : { teacherStatusDocumentFileId: file.id }),
+          advisor: {
+            ...testAdvisor,
+            ...(documentType === "identity"
+              ? { identityDocumentFileId: file.id }
+              : { teacherStatusDocumentFileId: file.id }),
+          },
+          previous: null,
         })),
     update:
       overrides.update ??
@@ -110,10 +119,11 @@ function createTeamAdvisorRepository(
 function createRouter(
   repository: TeamAdvisorRepository,
   auth: AuthReader = createTestAuthReader(createTestSession()),
+  fileRepository: FileRepository = createUnusedFileRepository(),
 ) {
   return createAppRouter({
     auth,
-    files: createUnusedFileRepository(),
+    files: fileRepository,
     teamAdvisors: repository,
     teams: createUnusedTeamRepository(),
   }).teamAdvisors;
@@ -305,10 +315,13 @@ describe("team advisors router", () => {
     const replaceDocument = vi.fn<TeamAdvisorRepository["replaceDocument"]>(
       async (_userId, _teamId, type, file) =>
         await Promise.resolve({
-          ...testAdvisor,
-          ...(type === "identity"
-            ? { identityDocumentFileId: file.id }
-            : { teacherStatusDocumentFileId: file.id }),
+          advisor: {
+            ...testAdvisor,
+            ...(type === "identity"
+              ? { identityDocumentFileId: file.id }
+              : { teacherStatusDocumentFileId: file.id }),
+          },
+          previous: null,
         }),
     );
     const router = createRouter(createTeamAdvisorRepository({ replaceDocument }));
@@ -375,6 +388,37 @@ describe("team advisors router", () => {
     expect(deleteInput?.key).toMatch(
       new RegExp(`^team-advisors/${ADVISOR_ID}/documents/identity/[0-9a-f-]{36}$`, "u"),
     );
+  });
+
+  it("deletes the previous advisor document after replacement", async () => {
+    const repository = createTeamAdvisorRepository({
+      replaceDocument: async (_userId, _teamId, _documentType, file) =>
+        await Promise.resolve({
+          advisor: { ...testAdvisor, identityDocumentFileId: file.id },
+          previous: identityFile,
+        }),
+    });
+    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
+    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const router = createRouter(
+      repository,
+      createTestAuthReader(createTestSession()),
+      fileRepository,
+    );
+    const { context } = createTestContext();
+    s3Mocks.deleteObject.mockClear();
+
+    const updatedAdvisor = await call(
+      router.identityDocument,
+      { file: pdfFile(), teamId: TEAM_ID },
+      { context, path: ["teamAdvisors", "identityDocument"] },
+    );
+    expect(updatedAdvisor.identityDocumentFileId).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(s3Mocks.deleteObject).toHaveBeenCalledWith({
+      bucket: identityFile.bucket,
+      key: identityFile.objectKey,
+    });
+    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, identityFile.id);
   });
 
   it("requires authentication before creating an advisor", async () => {

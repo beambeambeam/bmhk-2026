@@ -25,7 +25,6 @@ export interface TeamRepository {
     id: string,
     file: CreateStoredFileData,
   ) => Promise<{ previous: StoredFile | null; team: Team } | null>;
-  deleteFile: (userId: string, id: string) => Promise<boolean>;
 }
 
 type Database = typeof db;
@@ -66,14 +65,6 @@ export function createTeamRepository(database: Database = db): TeamRepository {
           .returning({ id: teams.id });
 
         return team !== undefined;
-      }),
-    deleteFile: async (userId, id) =>
-      await execute(async () => {
-        const deleted = await database
-          .delete(files)
-          .where(and(eq(files.id, id), eq(files.uploadedBy, userId)))
-          .returning({ id: files.id });
-        return deleted.length > 0;
       }),
     findById: async (userId, id) =>
       await execute(async () => {
@@ -145,7 +136,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               const [oldFile] = await transaction
                 .select()
                 .from(files)
-                .where(eq(files.id, current.image))
+                .where(and(eq(files.id, current.image), eq(files.uploadedBy, userId)))
                 .limit(1);
               previous = oldFile ? toStoredFileOfKind(oldFile, "image") : null;
             }

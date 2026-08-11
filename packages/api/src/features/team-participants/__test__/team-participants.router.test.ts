@@ -4,6 +4,7 @@ import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk
 import { describe, expect, it, vi } from "vitest";
 import type {
   AuthReader,
+  FileRepository,
   StoredFile,
   TeamParticipant,
   TeamParticipantRepository,
@@ -59,6 +60,17 @@ const participant = {
   updatedAt: createdAt,
 } satisfies TeamParticipant;
 
+const identityDocument = {
+  bucket: "uploads",
+  contentType: "application/pdf",
+  id: "33333333-3333-4333-8333-333333333333",
+  objectKey: `team-participants/${PARTICIPANT_ID}/documents/identity/33333333-3333-4333-8333-333333333333`,
+  originalName: "identity.pdf",
+  sizeBytes: 10,
+  uploadedAt: createdAt,
+  uploadedBy: USER_ID,
+} satisfies StoredFile;
+
 function createRepository(
   overrides: Partial<TeamParticipantRepository> = {},
 ): TeamParticipantRepository {
@@ -85,12 +97,15 @@ function createRepository(
     replaceDocument:
       overrides.replaceDocument ??
       (async (_userId, _teamId, _index, type, file) => ({
-        ...participant,
-        ...(type === "portraitPhoto"
-          ? { portraitPhotoFileId: file.id }
-          : type === "identityDocument"
-            ? { identityDocumentFileId: file.id }
-            : { academicRecordDocumentFileId: file.id }),
+        participant: {
+          ...participant,
+          ...(type === "portraitPhoto"
+            ? { portraitPhotoFileId: file.id }
+            : type === "identityDocument"
+              ? { identityDocumentFileId: file.id }
+              : { academicRecordDocumentFileId: file.id }),
+        },
+        previous: null,
       })),
     update:
       overrides.update ?? (async (_userId, _teamId, _index, data) => ({ ...participant, ...data })),
@@ -100,10 +115,11 @@ function createRepository(
 function createRouter(
   repository: TeamParticipantRepository,
   auth: AuthReader = createTestAuthReader(createTestSession()),
+  fileRepository: FileRepository = createUnusedFileRepository(),
 ) {
   return createAppRouter({
     auth,
-    files: createUnusedFileRepository(),
+    files: fileRepository,
     teamParticipants: repository,
     teams: createUnusedTeamRepository(),
   }).teamParticipants;
@@ -263,6 +279,37 @@ describe("team participants router", () => {
     expect(deleteInput?.key).toMatch(
       new RegExp(`^team-participants/${PARTICIPANT_ID}/documents/identity/[0-9a-f-]{36}$`, "u"),
     );
+  });
+
+  it("deletes the previous participant document after replacement", async () => {
+    const repository = createRepository({
+      replaceDocument: async (_userId, _teamId, _index, _type, file) => ({
+        participant: { ...participant, identityDocumentFileId: file.id },
+        previous: identityDocument,
+      }),
+    });
+    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => true);
+    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const router = createRouter(
+      repository,
+      createTestAuthReader(createTestSession()),
+      fileRepository,
+    );
+    const { context } = createTestContext();
+    const document = new File(["%PDF-1.7\n"], "identity.pdf", { type: "application/pdf" });
+    s3Mocks.deleteObject.mockClear();
+
+    const updatedParticipant = await call(
+      router.identityDocument,
+      { file: document, index: 1, teamId: TEAM_ID },
+      { context, path: ["teamParticipants", "identityDocument"] },
+    );
+    expect(updatedParticipant.identityDocumentFileId).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(s3Mocks.deleteObject).toHaveBeenCalledWith({
+      bucket: identityDocument.bucket,
+      key: identityDocument.objectKey,
+    });
+    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, identityDocument.id);
   });
 
   it("requires authentication", async () => {

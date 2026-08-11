@@ -61,7 +61,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     privateData: createPrivateDataRouter(protectedProcedure),
     teamAdvisors: createTeamAdvisorsRouter(
       protectedProcedure,
-      createTeamAdvisorService(teamAdvisorRepository, fileStorage),
+      createTeamAdvisorService(teamAdvisorRepository, fileStorage, fileRepository),
     ),
     teamConsents: createTeamConsentsRouter(
       protectedProcedure,
@@ -69,13 +69,16 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamParticipants: createTeamParticipantsRouter(
       protectedProcedure,
-      createTeamParticipantService(teamParticipantRepository, fileStorage),
+      createTeamParticipantService(teamParticipantRepository, fileStorage, fileRepository),
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
       protectedProcedure,
       createTeamRegistrationStatusService(teamRegistrationStatusRepository),
     ),
-    teams: createTeamsRouter(protectedProcedure, createTeamService(teamRepository, fileStorage)),
+    teams: createTeamsRouter(
+      protectedProcedure,
+      createTeamService(teamRepository, fileStorage, fileRepository),
+    ),
   };
 }
 

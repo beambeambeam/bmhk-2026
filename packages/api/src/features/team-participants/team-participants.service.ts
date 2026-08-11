@@ -1,9 +1,11 @@
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
+import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
 import {
+  cleanupReplacedFile,
   persistUploadedFile,
   storeUploadedFile,
   toPublicFileWithUrl,
@@ -128,6 +130,7 @@ async function toTeamParticipantDetails(
 export function createTeamParticipantService(
   repository: TeamParticipantRepository,
   storage: FileStorage,
+  fileRepository: FileRepository,
 ): TeamParticipantService {
   return {
     create: async (userId, data) => {
@@ -179,7 +182,7 @@ export function createTeamParticipantService(
         storage,
         uploadedBy: userId,
       });
-      const updatedParticipant = await persistUploadedFile({
+      const replacement = await persistUploadedFile({
         data: storedFile,
         log,
         persist: async (data) => {
@@ -198,8 +201,15 @@ export function createTeamParticipantService(
         },
         storage,
       });
+      await cleanupReplacedFile({
+        file: replacement.previous,
+        log,
+        repository: fileRepository,
+        storage,
+        userId,
+      });
 
-      return { file: storedFile, participant: updatedParticipant };
+      return { file: storedFile, participant: replacement.participant };
     },
   };
 }

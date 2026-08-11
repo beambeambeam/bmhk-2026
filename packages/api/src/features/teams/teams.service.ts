@@ -1,9 +1,11 @@
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
+import type { FileRepository } from "../files/files.repository";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
 import {
+  cleanupReplacedFile,
   persistUploadedFile,
   storeUploadedFile,
   toPublicFileWithUrl,
@@ -91,7 +93,11 @@ export function createTeamListPagination({
   };
 }
 
-export function createTeamService(repository: TeamRepository, storage: FileStorage): TeamService {
+export function createTeamService(
+  repository: TeamRepository,
+  storage: FileStorage,
+  fileRepository: FileRepository,
+): TeamService {
   return {
     create: async (userId, data) => {
       const existingTeam = await repository.findByUserId(userId);
@@ -163,6 +169,13 @@ export function createTeamService(repository: TeamRepository, storage: FileStora
           return replacement;
         },
         storage,
+      });
+      await cleanupReplacedFile({
+        file: result.previous,
+        log,
+        repository: fileRepository,
+        storage,
+        userId,
       });
 
       return { file: storedFile, team: result.team };

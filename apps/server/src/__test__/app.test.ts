@@ -65,7 +65,7 @@ function createTestFileRepository(): FileRepository {
   return {
     create: async () =>
       await Promise.reject(new Error("file repository is unused in server app tests")),
-    delete: async () => await Promise.resolve(false),
+    deleteById: async () => await Promise.resolve(false),
     findById: async () => await Promise.resolve(null),
   };
 }

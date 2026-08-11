@@ -1,10 +1,15 @@
 {
   "version": 1,
   "skills": {
+    "build-audit-logs": {
+      "source": "evlog.dev",
+      "sourceType": "well-known",
+      "computedHash": "d2836433a45d3763403a87803f48df7a48f6c2c52355dfca3c3e29238e5b7cf5"
+    },
     "review-logging-patterns": {
       "source": "evlog.dev",
       "sourceType": "well-known",
-      "computedHash": "16e0e91b358067492201f82c113269bc42936a02d1150bece06b106d1601b458"
+      "computedHash": "ec2a14dfb5c6cc8eacfef4bbcd35a8bb02a7de16c801083f14024137c22b5cc9"
     },
     "shadcn": {
       "source": "shadcn/ui",

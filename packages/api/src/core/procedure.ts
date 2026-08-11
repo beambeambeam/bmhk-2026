@@ -1,8 +1,9 @@
 import { os } from "@orpc/server";
+import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
-import type { ApiSession, AuthReader } from "./auth";
+import type { ApiSession, AuthReader, TeamAccessContext } from "./auth";
 import type { ApiContext } from "./context";
 
 export interface ProcedureDependencies {
@@ -71,11 +72,61 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     return await next({ context: { session } });
   });
 
+  const protectedProcedure = base.use(evlog()).use(requireAuth);
+  const teamOwnerProcedure = protectedProcedure.use(async ({ context, next }) => {
+    const teamAccess: TeamAccessContext = {
+      actorId: context.session.user.id,
+      scope: "OWN_TEAM",
+    };
+    return await next({ context: { teamAccess } });
+  });
+  const teamAccessProcedure = protectedProcedure.use(async ({ context, next }) => {
+    const scope: TeamAccessContext["scope"] = hasRegistrationAccess(context.session.user.role)
+      ? "ALL_TEAMS"
+      : "OWN_TEAM";
+
+    return await next({
+      context: {
+        teamAccess: {
+          actorId: context.session.user.id,
+          scope,
+        },
+      },
+    });
+  });
+  const registrationProcedure = protectedProcedure.use(async ({ context, next }) => {
+    if (!hasRegistrationAccess(context.session.user.role)) {
+      context.log.audit.deny("registration access permission missing", {
+        action: "registration.access",
+        actor: { id: context.session.user.id, type: "user" },
+      });
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for registration access",
+        message: "Registration access required",
+        status: 403,
+        why: "The authenticated user lacks registration access permission",
+      });
+    }
+
+    const teamAccess: TeamAccessContext = {
+      actorId: context.session.user.id,
+      scope: "ALL_TEAMS",
+    };
+    return await next({ context: { teamAccess } });
+  });
+
   return {
-    protectedProcedure: base.use(evlog()).use(requireAuth),
+    protectedProcedure,
     publicProcedure: base.use(evlog()),
+    registrationProcedure,
+    teamAccessProcedure,
+    teamOwnerProcedure,
   };
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
+export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
+export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
+export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];

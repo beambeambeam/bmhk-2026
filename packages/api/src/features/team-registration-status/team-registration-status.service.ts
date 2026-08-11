@@ -1,4 +1,5 @@
 import { createTeamNotFoundError } from "../teams/teams.service";
+import type { TeamAccessContext } from "../../core/auth";
 import type {
   TeamRegistrationItemStatus,
   TeamRegistrationStatus,
@@ -9,7 +10,7 @@ import type {
 } from "./team-registration-status.repository";
 
 export interface TeamRegistrationStatusService {
-  get: (userId: string) => Promise<TeamRegistrationStatus>;
+  get: (access: TeamAccessContext, teamId: string) => Promise<TeamRegistrationStatus>;
 }
 
 const COMPLETED: TeamRegistrationItemStatus = "COMPLETED";
@@ -114,8 +115,8 @@ export function createTeamRegistrationStatusService(
   repository: TeamRegistrationStatusRepository,
 ): TeamRegistrationStatusService {
   return {
-    get: async (userId) => {
-      const facts = await repository.find(userId);
+    get: async (access, teamId) => {
+      const facts = await repository.findByTeamId(access, teamId);
       if (!facts) {
         throw createTeamNotFoundError();
       }

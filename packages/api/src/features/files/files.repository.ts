@@ -9,7 +9,7 @@ import { toStoredFile } from "./files.schema";
 
 export interface FileRepository {
   create: (data: CreateStoredFileData) => Promise<StoredFile>;
-  delete: (userId: string, id: string) => Promise<boolean>;
+  deleteById: (id: string) => Promise<boolean>;
   findById: (userId: string, id: string) => Promise<StoredFile | null>;
 }
 
@@ -29,11 +29,11 @@ export function createFileRepository(database: Database = db): FileRepository {
 
         return toStoredFile(file);
       }),
-    delete: async (userId, id) =>
+    deleteById: async (id) =>
       await execute(async () => {
         const deleted = await database
           .delete(files)
-          .where(and(eq(files.id, id), eq(files.uploadedBy, userId)))
+          .where(eq(files.id, id))
           .returning({ id: files.id });
 
         return deleted.length > 0;

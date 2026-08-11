@@ -1,5 +1,6 @@
-import type { ProtectedProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure } from "../../core/procedure";
 import { assertAllowedOrigin } from "../files/files.service";
+import { auditTeamMutation } from "../teams/teams.audit";
 import type { TeamAdvisorService } from "./team-advisors.service";
 import {
   createTeamAdvisorSchema,
@@ -12,24 +13,30 @@ import {
 import type { TeamAdvisorDocumentType } from "./team-advisors.schema";
 
 function createTeamAdvisorDocumentUploadProcedure(
-  protectedProcedure: ProtectedProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
   service: TeamAdvisorService,
   documentType: TeamAdvisorDocumentType,
 ) {
-  return protectedProcedure
+  return teamAccessProcedure
     .route({ method: "POST", tags: ["Team Advisor", "File"] })
     .input(teamAdvisorDocumentUploadSchema)
     .output(teamAdvisorSchema)
     .handler(async ({ context, input }) => {
       assertAllowedOrigin(context.headers);
       const { advisor, file } = await service.uploadDocument({
+        access: context.teamAccess,
         documentType,
         file: input.file,
         log: context.log,
         teamId: input.teamId,
-        userId: context.session.user.id,
       });
 
+      auditTeamMutation(
+        context.log,
+        context.teamAccess,
+        "team-advisor.document.replace",
+        advisor.teamId,
+      );
       context.log.set({
         file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
         teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
@@ -39,11 +46,11 @@ function createTeamAdvisorDocumentUploadProcedure(
 }
 
 export function createTeamAdvisorsRouter(
-  protectedProcedure: ProtectedProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
   service: TeamAdvisorService,
 ) {
   return {
-    create: protectedProcedure
+    create: teamAccessProcedure
       .route({
         method: "POST",
         tags: ["Team Advisor"],
@@ -51,12 +58,13 @@ export function createTeamAdvisorsRouter(
       .input(createTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.create(context.session.user.id, input);
+        const advisor = await service.create(context.teamAccess, input);
 
+        auditTeamMutation(context.log, context.teamAccess, "team-advisor.create", advisor.teamId);
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
-    get: protectedProcedure
+    get: teamAccessProcedure
       .route({
         method: "GET",
         tags: ["Team Advisor"],
@@ -64,22 +72,22 @@ export function createTeamAdvisorsRouter(
       .input(teamIdInputSchema)
       .output(teamAdvisorDetailsSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.get(context.session.user.id, input.teamId);
+        const advisor = await service.get(context.teamAccess, input.teamId);
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
     identityDocument: createTeamAdvisorDocumentUploadProcedure(
-      protectedProcedure,
+      teamAccessProcedure,
       service,
       "identity",
     ),
     teacherStatusDocument: createTeamAdvisorDocumentUploadProcedure(
-      protectedProcedure,
+      teamAccessProcedure,
       service,
       "teacherStatus",
     ),
-    update: protectedProcedure
+    update: teamAccessProcedure
       .route({
         method: "PATCH",
         tags: ["Team Advisor"],
@@ -87,8 +95,9 @@ export function createTeamAdvisorsRouter(
       .input(updateTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.update(context.session.user.id, input.teamId, input.data);
+        const advisor = await service.update(context.teamAccess, input.teamId, input.data);
 
+        auditTeamMutation(context.log, context.teamAccess, "team-advisor.update", advisor.teamId);
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),

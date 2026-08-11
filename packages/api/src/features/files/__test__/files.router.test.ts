@@ -44,7 +44,7 @@ const testFile: StoredFile = {
 function createRepository(overrides: Partial<FileRepository> = {}): FileRepository {
   return {
     create: overrides.create ?? (async (data) => await Promise.resolve({ ...testFile, ...data })),
-    delete: overrides.delete ?? (async () => await Promise.resolve(true)),
+    deleteById: overrides.deleteById ?? (async () => await Promise.resolve(true)),
     findById: overrides.findById ?? (async () => await Promise.resolve(testFile)),
   };
 }

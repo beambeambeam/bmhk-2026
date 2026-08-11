@@ -7,6 +7,7 @@ import type {
   FileRepository,
   StoredFile,
   Team,
+  TeamAccessContext,
   TeamAward,
   TeamRepository,
 } from "../../../index";
@@ -15,6 +16,7 @@ import type { TeamWithStoredImage } from "../teams.repository";
 import {
   createTestAuthReader as createAuthReader,
   createTestContext as createContext,
+  createTestSession,
   createUnusedFileRepository,
 } from "../../../__test__/test-support";
 
@@ -96,6 +98,10 @@ function createRouter(
   fileRepository: FileRepository = createUnusedFileRepository(),
 ) {
   return createAppRouter({ auth, files: fileRepository, teams: repository });
+}
+
+function createRegistrationAuthReader(): AuthReader {
+  return createAuthReader(createTestSession({ user: { role: "registrationStaff" } }));
 }
 
 describe("teams router", () => {
@@ -186,23 +192,27 @@ describe("teams router", () => {
     ).resolves.toMatchObject({ name: "Replacement Team", school: "Test School" });
   });
 
-  it.each(expectedAwards)("accepts the %s award when creating a team", async (award) => {
-    const repository = createTeamRepository();
-    const router = createRouter(repository);
-    const { context } = createContext();
+  it.each(expectedAwards)(
+    "rejects staff-controlled %s award when creating a team",
+    async (award) => {
+      const repository = createTeamRepository();
+      const router = createRouter(repository);
+      const { context } = createContext();
 
-    await expect(
-      call(
-        router.teams.create,
-        {
-          award,
-          name: "Team One",
-          school: "Test School",
-        },
-        { context, path: ["teams", "create"] },
-      ),
-    ).resolves.toMatchObject({ award });
-  });
+      await expect(
+        call(
+          router.teams.create,
+          {
+            // @ts-expect-error -- award is controlled by registration staff
+            award,
+            name: "Team One",
+            school: "Test School",
+          },
+          { context, path: ["teams", "create"] },
+        ),
+      ).rejects.toBeInstanceOf(Error);
+    },
+  );
 
   it("rejects an arbitrary award when creating a team", async () => {
     const repository = createTeamRepository();
@@ -330,16 +340,16 @@ describe("teams router", () => {
       input: { limit: 25, offset: 100 },
       total: 60,
     },
-  ])("returns owner-scoped pagination metadata", async ({ expected, input, total }) => {
+  ])("returns registration-team pagination metadata", async ({ expected, input, total }) => {
     async function list(
-      _userId: string,
+      _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
     ): Promise<{ data: Team[]; total: number }> {
       return await Promise.resolve({ data: total > 0 ? [testTeam] : [], total });
     }
 
     const repository = createTeamRepository({ list });
-    const router = createRouter(repository);
+    const router = createRouter(repository, createRegistrationAuthReader());
     const { context } = createContext();
 
     const result = await call(router.teams.list, input, {
@@ -354,14 +364,14 @@ describe("teams router", () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as Team;
     async function list(
-      _userId: string,
+      _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
     ): Promise<{ data: Team[]; total: number }> {
       return await Promise.resolve({ data: [malformedTeam], total: 1 });
     }
 
     const repository = createTeamRepository({ list });
-    const router = createRouter(repository);
+    const router = createRouter(repository, createRegistrationAuthReader());
     const { context } = createContext();
 
     await expect(
@@ -369,6 +379,22 @@ describe("teams router", () => {
     ).rejects.toMatchObject({
       code: "INTERNAL_SERVER_ERROR",
       message: "Output validation failed",
+    });
+  });
+
+  it("requires registration permission to list teams", async () => {
+    const router = createRouter(
+      createTeamRepository(),
+      createAuthReader(createTestSession({ user: { role: "staff" } })),
+    );
+    const { context, log } = createContext();
+
+    await expect(
+      call(router.teams.list, {}, { context, path: ["teams", "list"] }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+    expect(log.audit.deny).toHaveBeenCalledWith("registration access permission missing", {
+      action: "registration.access",
+      actor: { id: USER_ID, type: "user" },
     });
   });
 
@@ -382,6 +408,26 @@ describe("teams router", () => {
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
     ).resolves.toStrictEqual(testTeam);
     expect(getPresigned).not.toHaveBeenCalled();
+  });
+
+  it("gives registration staff cross-team access", async () => {
+    const repository = createTeamRepository({
+      findById: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
+        return await Promise.resolve(testTeam);
+      },
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
   });
 
   it("returns an owned team with public image metadata and URL", async () => {
@@ -478,8 +524,10 @@ describe("teams router", () => {
           team: { ...testTeam, image: file.id },
         }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(repository, createAuthReader(), fileRepository);
     const { context } = createContext();
     const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
@@ -494,7 +542,37 @@ describe("teams router", () => {
       bucket: testImage.bucket,
       key: testImage.objectKey,
     });
-    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, testImage.id);
+    expect(deleteMetadata).toHaveBeenCalledWith(testImage.id);
+  });
+
+  it("cleans up an owner-uploaded image replaced by registration staff", async () => {
+    const repository = createTeamRepository({
+      replaceImage: async (_access, _id, file) =>
+        await Promise.resolve({
+          previous: testImage,
+          team: { ...testTeam, image: file.id },
+        }),
+    });
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
+    const router = createRouter(
+      repository,
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+      fileRepository,
+    );
+    const { context } = createContext();
+    const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
+      type: "image/png",
+    });
+
+    await expect(
+      call(router.teams.image, { file: image, id: TEAM_ID }, { context, path: ["teams", "image"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
+    expect(deleteMetadata).toHaveBeenCalledWith(testImage.id);
   });
 
   it("keeps a successful image replacement when old-image cleanup fails", async () => {
@@ -505,8 +583,10 @@ describe("teams router", () => {
           team: { ...testTeam, image: file.id },
         }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => await Promise.resolve(true));
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(
+      async () => await Promise.resolve(true),
+    );
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(repository, createAuthReader(), fileRepository);
     const { context, log } = createContext();
     const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
@@ -543,7 +623,10 @@ describe("teams router", () => {
   it("rejects malformed team output", async () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as TeamWithStoredImage;
-    async function findById(_userId: string, _id: string): Promise<TeamWithStoredImage | null> {
+    async function findById(
+      _access: TeamAccessContext,
+      _id: string,
+    ): Promise<TeamWithStoredImage | null> {
       return await Promise.resolve(malformedTeam);
     }
 
@@ -578,8 +661,12 @@ describe("teams router", () => {
     { name: "foreign-owned", team: { ...testTeam, userId: "other-user" } },
   ])("returns the same not-found error for a $name team", async ({ team }) => {
     const repository = createTeamRepository({
-      findById: async (userId) =>
-        await Promise.resolve(team?.userId === userId ? { ...team, image: null } : null),
+      findById: async (access) =>
+        await Promise.resolve(
+          team && (access.scope === "ALL_TEAMS" || team.userId === access.actorId)
+            ? { ...team, image: null }
+            : null,
+        ),
     });
     const router = createRouter(repository);
     const { context } = createContext();
@@ -613,7 +700,25 @@ describe("teams router", () => {
     });
   });
 
-  it.each(expectedAwards)("updates an owned team to the %s award", async (award) => {
+  it("audits registration staff team updates", async () => {
+    const router = createRouter(createTeamRepository(), createRegistrationAuthReader());
+    const { context, log } = createContext();
+
+    await call(
+      router.teams.update,
+      { data: { name: "Updated Team" }, id: TEAM_ID },
+      { context, path: ["teams", "update"] },
+    );
+
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.update",
+      actor: { id: USER_ID, type: "user" },
+      target: { id: TEAM_ID, type: "team" },
+    });
+    expect(log.set).toHaveBeenCalledWith({ authorization: { scope: "ALL_TEAMS" } });
+  });
+
+  it.each(expectedAwards)("rejects owner update to staff-controlled %s award", async (award) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
     const { context } = createContext();
@@ -621,9 +726,28 @@ describe("teams router", () => {
     await expect(
       call(
         router.teams.update,
-        { data: { award }, id: TEAM_ID },
+        {
+          // @ts-expect-error -- award is controlled by registration staff
+          data: { award },
+          id: TEAM_ID,
+        },
         { context, path: ["teams", "update"] },
       ),
+    ).rejects.toBeInstanceOf(Error);
+  });
+
+  it.each(expectedAwards)("lets registration staff set the %s award", async (award) => {
+    const repository = createTeamRepository({
+      update: async (access, _id, data) => {
+        expect(access).toStrictEqual({ actorId: USER_ID, scope: "ALL_TEAMS" });
+        return await Promise.resolve({ ...testTeam, ...data });
+      },
+    });
+    const router = createRouter(repository, createRegistrationAuthReader());
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.setAward, { award, id: TEAM_ID }, { context, path: ["teams", "setAward"] }),
     ).resolves.toMatchObject({ award });
   });
 
@@ -713,6 +837,26 @@ describe("teams router", () => {
     await expect(
       call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
     ).resolves.toStrictEqual({ id: TEAM_ID });
+  });
+
+  it("does not let registration staff delete another user's team", async () => {
+    const repository = createTeamRepository({
+      delete: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
+        return await Promise.resolve(false);
+      },
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
+    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
   });
 
   it("rejects an invalid team ID before deleting", async () => {

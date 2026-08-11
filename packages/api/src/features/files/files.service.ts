@@ -414,13 +414,11 @@ export async function cleanupReplacedFile({
   log,
   repository,
   storage,
-  userId,
 }: {
   file: StoredFile | null;
   log: FileServiceLog;
   repository: FileRepository;
   storage: FileStorage;
-  userId: string;
 }): Promise<void> {
   if (!file) {
     return;
@@ -428,7 +426,7 @@ export async function cleanupReplacedFile({
 
   try {
     await storage.delete({ bucket: file.bucket, objectKey: file.objectKey });
-    const metadataDeleted = await repository.delete(userId, file.id);
+    const metadataDeleted = await repository.deleteById(file.id);
     if (!metadataDeleted) {
       throw new Error("Replaced file metadata was not found");
     }

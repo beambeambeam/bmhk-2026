@@ -2,7 +2,12 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthReader, TeamConsent, TeamConsentRepository } from "../../../index";
+import type {
+  AuthReader,
+  TeamAccessContext,
+  TeamConsent,
+  TeamConsentRepository,
+} from "../../../index";
 import { createAppRouter } from "../../../index";
 import {
   createTestAuthReader,
@@ -20,6 +25,7 @@ const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
 const CONSENT_ID = "22222222-2222-4222-8222-222222222222";
 const createdAt = new Date("2026-01-01T00:00:00.000Z");
+const ownerAccess = { actorId: USER_ID, scope: "OWN_TEAM" } satisfies TeamAccessContext;
 
 const consent = {
   codernTermsAccepted: false,
@@ -55,6 +61,26 @@ function createRouter(
 }
 
 describe("team consents router", () => {
+  it("gives registration staff cross-team consent access", async () => {
+    const repository = createRepository({
+      findByTeamId: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
+        return consent;
+      },
+    });
+    const router = createRouter(
+      repository,
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, { teamId: TEAM_ID }, { context, path: ["teamConsents", "get"] }),
+    ).resolves.toMatchObject({ teamId: TEAM_ID });
+  });
+
   it("creates consent with false defaults and authenticated ownership", async () => {
     const create = vi.fn<TeamConsentRepository["create"]>(async (_userId, data) => ({
       ...consent,
@@ -74,7 +100,7 @@ describe("team consents router", () => {
       publicityMediaConsent: false,
       teamId: TEAM_ID,
     });
-    expect(create).toHaveBeenCalledWith(USER_ID, {
+    expect(create).toHaveBeenCalledWith(ownerAccess, {
       codernTermsAccepted: false,
       competitionRulesAccepted: false,
       guardianConsentObtained: false,
@@ -152,7 +178,7 @@ describe("team consents router", () => {
     await expect(
       call(router.get, { teamId: TEAM_ID }, { context, path: ["teamConsents", "get"] }),
     ).resolves.toStrictEqual(consent);
-    expect(findByTeamId).toHaveBeenCalledWith(USER_ID, TEAM_ID);
+    expect(findByTeamId).toHaveBeenCalledWith(ownerAccess, TEAM_ID);
     expect(log.set).toHaveBeenCalledWith({
       teamConsent: { id: CONSENT_ID, teamId: TEAM_ID },
     });
@@ -185,13 +211,35 @@ describe("team consents router", () => {
         { context, path: ["teamConsents", "update"] },
       ),
     ).resolves.toMatchObject({ healthDataConsent: false, publicityMediaConsent: true });
-    expect(update).toHaveBeenCalledWith(USER_ID, TEAM_ID, {
+    expect(update).toHaveBeenCalledWith(ownerAccess, TEAM_ID, {
       healthDataConsent: false,
       publicityMediaConsent: true,
     });
     expect(log.set).toHaveBeenCalledWith({
       teamConsent: { id: CONSENT_ID, teamId: TEAM_ID },
     });
+  });
+
+  it("does not let registration staff change another team's legal consent", async () => {
+    const update = vi.fn<TeamConsentRepository["update"]>(async (access) => {
+      expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
+      return null;
+    });
+    const router = createRouter(
+      createRepository({ update }),
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.update,
+        { data: { privacyPolicyAccepted: true }, teamId: TEAM_ID },
+        { context, path: ["teamConsents", "update"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_CONSENT_NOT_FOUND", status: 404 });
   });
 
   it("rejects empty and unknown updates before repository invocation", async () => {

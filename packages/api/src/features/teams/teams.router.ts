@@ -1,11 +1,18 @@
 import { z } from "zod";
-import type { ProtectedProcedure } from "../../core/procedure";
+import type {
+  ProtectedProcedure,
+  RegistrationProcedure,
+  TeamAccessProcedure,
+  TeamOwnerProcedure,
+} from "../../core/procedure";
 import { assertAllowedOrigin } from "../files/files.service";
+import { auditTeamMutation } from "./teams.audit";
 import type { TeamService } from "./teams.service";
 import {
   createTeamSchema,
   deleteTeamResultSchema,
   listTeamsSchema,
+  setTeamAwardSchema,
   teamDetailsSchema,
   teamIdInputSchema,
   teamListResultSchema,
@@ -15,7 +22,13 @@ import {
 
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
 
-export function createTeamsRouter(protectedProcedure: ProtectedProcedure, service: TeamService) {
+export function createTeamsRouter(
+  protectedProcedure: ProtectedProcedure,
+  registrationProcedure: RegistrationProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
+  teamOwnerProcedure: TeamOwnerProcedure,
+  service: TeamService,
+) {
   return {
     create: protectedProcedure
       .route({
@@ -26,10 +39,16 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .output(teamSchema)
       .handler(async ({ context, input }) => {
         const team = await service.create(context.session.user.id, input);
+        auditTeamMutation(
+          context.log,
+          { actorId: context.session.user.id, scope: "OWN_TEAM" },
+          "team.create",
+          team.id,
+        );
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    delete: protectedProcedure
+    delete: teamOwnerProcedure
       .route({
         method: "DELETE",
         tags: ["Team"],
@@ -37,12 +56,13 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .input(teamIdInputSchema)
       .output(deleteTeamResultSchema)
       .handler(async ({ context, input }) => {
-        const result = await service.delete(context.session.user.id, input.id);
+        const result = await service.delete(context.teamAccess, input.id);
 
+        auditTeamMutation(context.log, context.teamAccess, "team.delete", input.id);
         context.log.set({ team: { id: input.id } });
         return result;
       }),
-    get: protectedProcedure
+    get: teamAccessProcedure
       .route({
         method: "GET",
         tags: ["Team"],
@@ -50,24 +70,25 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .input(teamIdInputSchema)
       .output(teamDetailsSchema)
       .handler(async ({ context, input }) => {
-        const team = await service.get(context.session.user.id, input.id);
+        const team = await service.get(context.teamAccess, input.id);
 
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    image: protectedProcedure
+    image: teamAccessProcedure
       .route({ method: "POST", tags: ["Team", "File"] })
       .input(imageSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
         assertAllowedOrigin(context.headers);
         const { file, team } = await service.uploadImage({
+          access: context.teamAccess,
           file: input.file,
           id: input.id,
           log: context.log,
-          userId: context.session.user.id,
         });
 
+        auditTeamMutation(context.log, context.teamAccess, "team.image.replace", input.id);
         context.log.set({
           file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
           team: { id: input.id },
@@ -75,15 +96,25 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
 
         return team;
       }),
-    list: protectedProcedure
+    list: registrationProcedure
       .route({
         method: "GET",
         tags: ["Team"],
       })
       .input(listTeamsSchema)
       .output(teamListResultSchema)
-      .handler(async ({ context, input }) => await service.list(context.session.user.id, input)),
-    update: protectedProcedure
+      .handler(async ({ context, input }) => await service.list(context.teamAccess, input)),
+    setAward: registrationProcedure
+      .route({ method: "PATCH", tags: ["Team"] })
+      .input(setTeamAwardSchema)
+      .output(teamSchema)
+      .handler(async ({ context, input }) => {
+        const team = await service.setAward(context.teamAccess, input.id, input.award);
+        auditTeamMutation(context.log, context.teamAccess, "team.award.set", team.id);
+        context.log.set({ team: { id: team.id } });
+        return team;
+      }),
+    update: teamAccessProcedure
       .route({
         method: "PATCH",
         tags: ["Team"],
@@ -91,8 +122,9 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .input(updateTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
-        const team = await service.update(context.session.user.id, input.id, input.data);
+        const team = await service.update(context.teamAccess, input.id, input.data);
 
+        auditTeamMutation(context.log, context.teamAccess, "team.update", team.id);
         context.log.set({ team: { id: team.id } });
         return team;
       }),

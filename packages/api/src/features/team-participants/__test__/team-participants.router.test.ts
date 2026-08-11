@@ -6,6 +6,7 @@ import type {
   AuthReader,
   FileRepository,
   StoredFile,
+  TeamAccessContext,
   TeamParticipant,
   TeamParticipantRepository,
 } from "../../../index";
@@ -32,6 +33,7 @@ const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
 const PARTICIPANT_ID = "22222222-2222-4222-8222-222222222222";
 const createdAt = new Date("2026-01-01T00:00:00.000Z");
+const ownerAccess = { actorId: USER_ID, scope: "OWN_TEAM" } satisfies TeamAccessContext;
 
 const participant = {
   academicRecordDocumentFileId: null,
@@ -142,6 +144,26 @@ function input() {
 }
 
 describe("team participants router", () => {
+  it("gives registration staff cross-team participant access", async () => {
+    const repository = createRepository({
+      listByTeamId: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
+        return [];
+      },
+    });
+    const router = createRouter(
+      repository,
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.list, { teamId: TEAM_ID }, { context, path: ["teamParticipants", "list"] }),
+    ).resolves.toStrictEqual([]);
+  });
+
   it("creates participant and normalizes input", async () => {
     const create = vi.fn<TeamParticipantRepository["create"]>(async (_userId, data) => ({
       ...participant,
@@ -152,7 +174,7 @@ describe("team participants router", () => {
     await expect(
       call(router.create, input(), { context, path: ["teamParticipants", "create"] }),
     ).resolves.toMatchObject({ email: "student@example.com", firstNameEn: "Student", index: 1 });
-    expect(create).toHaveBeenCalledWith(USER_ID, {
+    expect(create).toHaveBeenCalledWith(ownerAccess, {
       ...input(),
       email: "student@example.com",
       firstNameEn: "Student",
@@ -172,7 +194,7 @@ describe("team participants router", () => {
     await expect(
       call(router.list, { teamId: TEAM_ID }, { context, path: ["teamParticipants", "list"] }),
     ).resolves.toStrictEqual([]);
-    expect(listByTeamId).toHaveBeenCalledWith(USER_ID, TEAM_ID);
+    expect(listByTeamId).toHaveBeenCalledWith(ownerAccess, TEAM_ID);
   });
 
   it("gets participant with signed document URLs", async () => {
@@ -288,8 +310,8 @@ describe("team participants router", () => {
         previous: identityDocument,
       }),
     });
-    const deleteMetadata = vi.fn<FileRepository["delete"]>(async () => true);
-    const fileRepository = { ...createUnusedFileRepository(), delete: deleteMetadata };
+    const deleteMetadata = vi.fn<FileRepository["deleteById"]>(async () => true);
+    const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(
       repository,
       createTestAuthReader(createTestSession()),
@@ -309,7 +331,7 @@ describe("team participants router", () => {
       bucket: identityDocument.bucket,
       key: identityDocument.objectKey,
     });
-    expect(deleteMetadata).toHaveBeenCalledWith(USER_ID, identityDocument.id);
+    expect(deleteMetadata).toHaveBeenCalledWith(identityDocument.id);
   });
 
   it("requires authentication", async () => {

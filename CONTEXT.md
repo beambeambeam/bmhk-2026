@@ -43,3 +43,7 @@ _Avoid_: Registration setting
 **Award**:
 An organizer-controlled competition outcome assigned to a Team.
 _Avoid_: Team achievement field
+
+**Feature Flag**:
+A named competition capability that becomes available at a scheduled start and may remain available forever or until a scheduled end. It is not a manual toggle or targeted rollout.
+_Avoid_: Feature Availability Window, rollout, toggle

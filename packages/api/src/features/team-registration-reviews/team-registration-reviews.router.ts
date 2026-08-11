@@ -1,9 +1,10 @@
-import type { RegistrationProcedure } from "../../core/procedure";
+import type { RegistrationProcedure, TeamOwnerProcedure } from "../../core/procedure";
 import { teamRegistrationReviewChangedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import type { TeamRegistrationReviewService } from "./team-registration-reviews.service";
 import {
   saveTeamRegistrationReviewSchema,
+  teamRegistrationReviewFeedbackSchema,
   teamRegistrationReviewSchema,
   teamRegistrationReviewTeamInputSchema,
 } from "./team-registration-reviews.schema";
@@ -21,9 +22,19 @@ function toAuditedReview(review: TeamRegistrationReview) {
 
 export function createTeamRegistrationReviewsRouter(
   registrationProcedure: RegistrationProcedure,
+  teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamRegistrationReviewService,
 ) {
   return {
+    feedback: teamOwnerProcedure
+      .route({ method: "GET", tags: ["Team Registration Review"] })
+      .input(teamRegistrationReviewTeamInputSchema)
+      .output(teamRegistrationReviewFeedbackSchema)
+      .handler(async ({ context, input }) => {
+        const feedback = await service.getFeedback(context.teamAccess, input.teamId);
+        context.log.set({ teamRegistrationReviewFeedback: { teamId: input.teamId } });
+        return feedback;
+      }),
     get: registrationProcedure
       .route({ method: "GET", tags: ["Team Registration Review"] })
       .input(teamRegistrationReviewTeamInputSchema)

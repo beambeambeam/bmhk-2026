@@ -87,6 +87,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamRegistrationReviews: createTeamRegistrationReviewsRouter(
       registrationProcedure,
+      teamOwnerProcedure,
       createTeamRegistrationReviewService(teamRegistrationReviewRepository),
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(

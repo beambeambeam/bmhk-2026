@@ -1,4 +1,7 @@
-import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
+import {
+  teamRegistrationReviews,
+  teamRegistrationReviewStatusValues,
+} from "@bmhk-2026/db/schema/team-registration-reviews";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,6 +16,19 @@ const issueCodesSchema = z
 export const teamRegistrationReviewSchema = createSelectSchema(teamRegistrationReviews).strict();
 
 export const teamRegistrationReviewTeamInputSchema = z.object({ teamId: z.uuid() }).strict();
+
+const teamRegistrationReviewFeedbackStatusSchema = z.enum(teamRegistrationReviewStatusValues);
+
+export const teamRegistrationReviewFeedbackSchema = z
+  .object({
+    advisor: teamRegistrationReviewFeedbackStatusSchema,
+    participant1: teamRegistrationReviewFeedbackStatusSchema,
+    participant2: teamRegistrationReviewFeedbackStatusSchema,
+    participant3: teamRegistrationReviewFeedbackStatusSchema,
+    status: teamRegistrationReviewFeedbackStatusSchema,
+    statusUpdatedAt: z.date().nullable(),
+  })
+  .strict();
 
 export const saveTeamRegistrationReviewDataSchema = z
   .object({
@@ -51,6 +67,7 @@ export const saveTeamRegistrationReviewSchema = teamRegistrationReviewTeamInputS
   .strict();
 
 export type TeamRegistrationReview = z.output<typeof teamRegistrationReviewSchema>;
+export type TeamRegistrationReviewFeedback = z.output<typeof teamRegistrationReviewFeedbackSchema>;
 export type TeamRegistrationReviewStatus = TeamRegistrationReview["status"];
 export type SaveTeamRegistrationReviewData = z.output<typeof saveTeamRegistrationReviewDataSchema>;
 export { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";

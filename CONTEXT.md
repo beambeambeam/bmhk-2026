@@ -24,6 +24,10 @@ _Avoid_: Round 1 verification, staff verification
 A coded finding recorded against a Team Advisor or Participant slot during a Team Registration Review. Review Issues are not visible to Team Owners.
 _Avoid_: Problem, validation error
 
+**Review Feedback**:
+A Team Owner-visible status summary derived from a Team Registration Review. It reports the outcome for each Team Advisor or Participant slot without exposing Review Issues or internal notes.
+_Avoid_: Review details, problem list
+
 **Team Access**:
 Authority arising from either Team ownership or Registration Operator permission.
 _Avoid_: Membership

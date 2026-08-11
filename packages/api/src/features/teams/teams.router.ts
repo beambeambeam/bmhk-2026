@@ -1,18 +1,7 @@
-import { env } from "@bmhk-2026/env/server";
 import { z } from "zod";
 import type { ProtectedProcedure } from "../../core/procedure";
-import {
-  assertAllowedOrigin,
-  createStoredFileData,
-  toPublicFileWithUrl,
-  uploadValidatedFile,
-  validateUploadedImage,
-} from "../files/files.service";
-import {
-  createTeamAlreadyExistsError,
-  createTeamListPagination,
-  createTeamNotFoundError,
-} from "./teams.service";
+import { assertAllowedOrigin } from "../files/files.service";
+import type { TeamService } from "./teams.service";
 import {
   createTeamSchema,
   deleteTeamResultSchema,
@@ -23,14 +12,10 @@ import {
   teamSchema,
   updateTeamSchema,
 } from "./teams.schema";
-import type { TeamRepository } from "./teams.repository";
 
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
 
-export function createTeamsRouter(
-  protectedProcedure: ProtectedProcedure,
-  repository: TeamRepository,
-) {
+export function createTeamsRouter(protectedProcedure: ProtectedProcedure, service: TeamService) {
   return {
     create: protectedProcedure
       .route({
@@ -40,12 +25,7 @@ export function createTeamsRouter(
       .input(createTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
-        const existingTeam = await repository.findByUserId(context.session.user.id);
-        if (existingTeam) {
-          throw createTeamAlreadyExistsError();
-        }
-
-        const team = await repository.create(context.session.user.id, input);
+        const team = await service.create(context.session.user.id, input);
         context.log.set({ team: { id: team.id } });
         return team;
       }),
@@ -57,13 +37,10 @@ export function createTeamsRouter(
       .input(teamIdInputSchema)
       .output(deleteTeamResultSchema)
       .handler(async ({ context, input }) => {
-        const deleted = await repository.delete(context.session.user.id, input.id);
-        if (!deleted) {
-          throw createTeamNotFoundError();
-        }
+        const result = await service.delete(context.session.user.id, input.id);
 
         context.log.set({ team: { id: input.id } });
-        return { id: input.id };
+        return result;
       }),
     get: protectedProcedure
       .route({
@@ -73,17 +50,10 @@ export function createTeamsRouter(
       .input(teamIdInputSchema)
       .output(teamDetailsSchema)
       .handler(async ({ context, input }) => {
-        const team = await repository.findById(context.session.user.id, input.id);
-        if (!team) {
-          throw createTeamNotFoundError();
-        }
+        const team = await service.get(context.session.user.id, input.id);
 
-        const publicImage = team.image === null ? null : await toPublicFileWithUrl(team.image);
         context.log.set({ team: { id: team.id } });
-        return {
-          ...team,
-          image: publicImage,
-        };
+        return team;
       }),
     image: protectedProcedure
       .route({ method: "POST", tags: ["Team", "File"] })
@@ -91,38 +61,19 @@ export function createTeamsRouter(
       .output(teamSchema)
       .handler(async ({ context, input }) => {
         assertAllowedOrigin(context.headers);
-        const existing = await repository.findById(context.session.user.id, input.id);
-
-        if (!existing) {
-          throw createTeamNotFoundError();
-        }
-
-        const validated = await validateUploadedImage(input.file);
-        const id = crypto.randomUUID();
-        const bucket = env.AWS_S3_BUCKET;
-        const objectKey = `teams/${input.id}/images/${id}`;
-
-        await uploadValidatedFile({ bucket, file: validated, objectKey });
-        const file = createStoredFileData({
-          bucket,
-          file: validated,
-          id,
-          objectKey,
-          uploadedBy: context.session.user.id,
+        const { file, team } = await service.uploadImage({
+          file: input.file,
+          id: input.id,
+          log: context.log,
+          userId: context.session.user.id,
         });
 
-        const result = await repository.replaceImage(context.session.user.id, input.id, file);
-
-        if (result === null) {
-          throw createTeamNotFoundError();
-        }
-
         context.log.set({
-          file: { contentType: file.contentType, id, sizeBytes: file.sizeBytes },
+          file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
           team: { id: input.id },
         });
 
-        return result.team;
+        return team;
       }),
     list: protectedProcedure
       .route({
@@ -131,17 +82,7 @@ export function createTeamsRouter(
       })
       .input(listTeamsSchema)
       .output(teamListResultSchema)
-      .handler(async ({ context, input }) => {
-        const result = await repository.list(context.session.user.id, input);
-        return {
-          data: result.data,
-          pagination: createTeamListPagination({
-            limit: input.limit,
-            offset: input.offset,
-            total: result.total,
-          }),
-        };
-      }),
+      .handler(async ({ context, input }) => await service.list(context.session.user.id, input)),
     update: protectedProcedure
       .route({
         method: "PATCH",
@@ -150,10 +91,7 @@ export function createTeamsRouter(
       .input(updateTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
-        const team = await repository.update(context.session.user.id, input.id, input.data);
-        if (!team) {
-          throw createTeamNotFoundError();
-        }
+        const team = await service.update(context.session.user.id, input.id, input.data);
 
         context.log.set({ team: { id: team.id } });
         return team;

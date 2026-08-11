@@ -1,25 +1,21 @@
-import { createError } from "evlog";
-
+import { createTeamNotFoundError } from "../teams/teams.service";
 import type {
   TeamRegistrationItemStatus,
   TeamRegistrationStatus,
 } from "./team-registration-status.schema";
-import type { TeamRegistrationStatusFacts } from "./team-registration-status.repository";
+import type {
+  TeamRegistrationStatusFacts,
+  TeamRegistrationStatusRepository,
+} from "./team-registration-status.repository";
+
+export interface TeamRegistrationStatusService {
+  get: (userId: string) => Promise<TeamRegistrationStatus>;
+}
 
 const COMPLETED: TeamRegistrationItemStatus = "COMPLETED";
 const IN_PROGRESS: TeamRegistrationItemStatus = "IN_PROGRESS";
 const NOT_APPLICABLE: TeamRegistrationItemStatus = "NOT_APPLICABLE";
 const NOT_STARTED: TeamRegistrationItemStatus = "NOT_STARTED";
-
-export function createTeamRegistrationStatusRepositoryError() {
-  return createError({
-    code: "TEAM_REGISTRATION_STATUS_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message: "Team registration status operation failed",
-    status: 500,
-    why: "The team registration status repository could not satisfy an internal invariant",
-  });
-}
 
 function participantStatus(
   participant: TeamRegistrationStatusFacts["participants"][number] | undefined,
@@ -111,5 +107,20 @@ export function calculateTeamRegistrationStatus(
     team,
     teamId: facts.team.id,
     termsAndConditions,
+  };
+}
+
+export function createTeamRegistrationStatusService(
+  repository: TeamRegistrationStatusRepository,
+): TeamRegistrationStatusService {
+  return {
+    get: async (userId) => {
+      const facts = await repository.find(userId);
+      if (!facts) {
+        throw createTeamNotFoundError();
+      }
+
+      return calculateTeamRegistrationStatus(facts);
+    },
   };
 }

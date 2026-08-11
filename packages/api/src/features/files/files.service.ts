@@ -1,7 +1,7 @@
 import { env } from "@bmhk-2026/env/server";
-import { deleteObject, getPresigned, putObject } from "@bmhk-2026/s3";
 import { createError } from "evlog";
 
+import { toError } from "../../core/errors";
 import { allowedFileContentTypes, MAX_FILE_SIZE_BYTES } from "./files.schema";
 import type {
   CreateStoredFileData,
@@ -9,6 +9,18 @@ import type {
   PublicFileWithUrl,
   StoredFile,
 } from "./files.schema";
+import type { FileRepository } from "./files.repository";
+import type { FileStorage } from "./files.storage";
+
+export interface FileServiceLog {
+  error: (error: Error) => void;
+  set: (entry: Record<string, unknown>) => void;
+}
+
+export interface FileService {
+  get: (userId: string, id: string) => Promise<PublicFileWithUrl>;
+  upload: (input: { file: File; log: FileServiceLog; userId: string }) => Promise<PublicFile>;
+}
 
 export function createFileEmptyError() {
   return createError({
@@ -80,16 +92,6 @@ export function createFileNotFoundError() {
   });
 }
 
-export function createFileRepositoryError(message: string) {
-  return createError({
-    code: "FILE_REPOSITORY_ERROR",
-    fix: "Try again or contact support",
-    message,
-    status: 500,
-    why: "The file repository could not satisfy an internal invariant",
-  });
-}
-
 export function createFileStorageUnavailableError(cause: unknown) {
   return createError({
     cause:
@@ -145,6 +147,8 @@ export interface ValidatedUpload {
   contentType: StoredFile["contentType"];
   originalName: string;
 }
+
+export type StoredUploadKind = "file" | "image" | "pdf";
 
 function startsWithBytes(bytes: Uint8Array, signature: Uint8Array): boolean {
   return (
@@ -247,14 +251,16 @@ export function toPublicFile(file: StoredFile): PublicFile {
   };
 }
 
-export async function toPublicFileWithUrl(file: StoredFile): Promise<PublicFileWithUrl> {
+export async function toPublicFileWithUrl(
+  file: StoredFile,
+  storage: FileStorage,
+): Promise<PublicFileWithUrl> {
   let url: string;
   try {
-    url = await getPresigned({
+    url = await storage.getDownloadUrl({
       bucket: file.bucket,
       contentType: file.contentType,
-      key: file.objectKey,
-      method: "GET",
+      objectKey: file.objectKey,
       originalName: file.originalName,
     });
   } catch (error) {
@@ -267,17 +273,19 @@ export async function uploadValidatedFile({
   bucket,
   file,
   objectKey,
+  storage,
 }: {
   bucket: string;
   file: ValidatedUpload;
   objectKey: string;
+  storage: FileStorage;
 }): Promise<void> {
   try {
-    await putObject({
+    await storage.upload({
       body: file.body,
       bucket,
       contentType: file.contentType,
-      key: objectKey,
+      objectKey,
       originalName: file.originalName,
     });
   } catch (error) {
@@ -309,28 +317,83 @@ export function createStoredFileData({
   };
 }
 
+export async function storeUploadedFile({
+  file,
+  keyPrefix,
+  kind,
+  storage,
+  uploadedBy,
+}: {
+  file: File;
+  keyPrefix: string;
+  kind: StoredUploadKind;
+  storage: FileStorage;
+  uploadedBy: string;
+}): Promise<CreateStoredFileData> {
+  let validated: ValidatedUpload;
+
+  if (kind === "image") {
+    validated = await validateUploadedImage(file);
+  } else if (kind === "pdf") {
+    validated = await validateUploadedPdf(file);
+  } else {
+    validated = await validateUploadedFile(file);
+  }
+
+  const id = crypto.randomUUID();
+  const { bucket } = storage;
+  const objectKey = `${keyPrefix}/${id}`;
+
+  await uploadValidatedFile({ bucket, file: validated, objectKey, storage });
+  return createStoredFileData({
+    bucket,
+    file: validated,
+    id,
+    objectKey,
+    uploadedBy,
+  });
+}
+
 export async function saveFileMetadata({
   create,
   data,
-  context,
+  log,
+  storage,
 }: {
   create: (data: CreateStoredFileData) => Promise<StoredFile>;
   data: CreateStoredFileData;
-  context: {
-    log: { error: (error: Error) => void; set: (entry: Record<string, unknown>) => void };
-  };
+  log: FileServiceLog;
+  storage: FileStorage;
 }): Promise<StoredFile> {
   try {
-    return await create(data);
+    return await persistUploadedFile({ data, log, persist: create, storage });
+  } catch (error) {
+    throw createFileMetadataSaveError(error);
+  }
+}
+
+export async function persistUploadedFile<Result>({
+  data,
+  log,
+  persist,
+  storage,
+}: {
+  data: CreateStoredFileData;
+  log: FileServiceLog;
+  persist: (data: CreateStoredFileData) => Promise<Result>;
+  storage: FileStorage;
+}): Promise<Result> {
+  try {
+    return await persist(data);
   } catch (error) {
     try {
-      await deleteObject({ bucket: data.bucket, key: data.objectKey });
+      await storage.delete({ bucket: data.bucket, objectKey: data.objectKey });
     } catch (cleanupError) {
-      context.log.set({
+      log.set({
         event: "file.upload.rollback_failed",
         file: { bucket: data.bucket, id: data.id, objectKey: data.objectKey },
       });
-      context.log.error(
+      log.error(
         cleanupError instanceof Error
           ? cleanupError
           : createError({
@@ -342,6 +405,67 @@ export async function saveFileMetadata({
             }),
       );
     }
-    throw createFileMetadataSaveError(error);
+    throw error;
   }
+}
+
+export async function cleanupReplacedFile({
+  file,
+  log,
+  repository,
+  storage,
+  userId,
+}: {
+  file: StoredFile | null;
+  log: FileServiceLog;
+  repository: FileRepository;
+  storage: FileStorage;
+  userId: string;
+}): Promise<void> {
+  if (!file) {
+    return;
+  }
+
+  try {
+    await storage.delete({ bucket: file.bucket, objectKey: file.objectKey });
+    const metadataDeleted = await repository.delete(userId, file.id);
+    if (!metadataDeleted) {
+      throw new Error("Replaced file metadata was not found");
+    }
+  } catch (error) {
+    log.set({
+      event: "file.replacement.cleanup_failed",
+      file: { bucket: file.bucket, id: file.id, objectKey: file.objectKey },
+    });
+    log.error(toError(error, "Unknown replaced file cleanup error"));
+  }
+}
+
+export function createFileService(repository: FileRepository, storage: FileStorage): FileService {
+  return {
+    get: async (userId, id) => {
+      const file = await repository.findById(userId, id);
+      if (!file) {
+        throw createFileNotFoundError();
+      }
+
+      return await toPublicFileWithUrl(file, storage);
+    },
+    upload: async ({ file, log, userId }) => {
+      const storedFile = await saveFileMetadata({
+        create: repository.create,
+        data: await storeUploadedFile({
+          file,
+          keyPrefix: "files",
+          kind: "file",
+          storage,
+          uploadedBy: userId,
+        }),
+        log,
+        storage,
+      });
+
+      return toPublicFile(storedFile);
+    },
+  };
 }

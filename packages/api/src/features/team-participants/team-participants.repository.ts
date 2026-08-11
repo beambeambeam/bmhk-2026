@@ -2,18 +2,21 @@ import { db } from "@bmhk-2026/db";
 import { files } from "@bmhk-2026/db/schema/files";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
+import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, eq } from "drizzle-orm";
-import { toStoredFile } from "../files/files.schema";
+import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
+import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 import {
   createTeamParticipantAlreadyExistsError,
   createTeamParticipantRepositoryError,
-} from "./team-participants.service";
-import type { TeamParticipantDocumentType } from "./team-participants.service";
+  teamParticipantRepositoryError,
+} from "./team-participants.errors";
 import type {
   CreateTeamParticipantData,
   TeamParticipant,
+  TeamParticipantDocumentType,
   UpdateTeamParticipantData,
 } from "./team-participants.schema";
 
@@ -22,6 +25,11 @@ export type TeamParticipantWithStoredDocuments = TeamParticipant & {
   identityDocument: StoredFile | null;
   portraitPhoto: StoredFile | null;
 };
+
+export interface TeamParticipantDocumentReplacement {
+  participant: TeamParticipant;
+  previous: StoredFile | null;
+}
 
 export interface TeamParticipantRepository {
   create: (userId: string, data: CreateTeamParticipantData) => Promise<TeamParticipant | null>;
@@ -46,12 +54,12 @@ export interface TeamParticipantRepository {
     index: number,
     type: TeamParticipantDocumentType,
     file: CreateStoredFileData,
-  ) => Promise<TeamParticipant | null>;
+  ) => Promise<TeamParticipantDocumentReplacement | null>;
 }
 
 type Database = typeof db;
 
-function stored(
+function toStoredFileOrNull(
   file: typeof files.$inferSelect | null,
   expected: "pdf" | "image",
 ): StoredFile | null {
@@ -59,18 +67,9 @@ function stored(
     return null;
   }
 
-  const result = toStoredFile(file);
-
-  if (
-    (expected === "pdf" && result.contentType !== "application/pdf") ||
-    (expected === "image" && result.contentType === "application/pdf")
-  ) {
-    throw createTeamParticipantRepositoryError("Unsupported stored team participant document");
-  }
-
-  return result;
+  return toStoredFileOfKind(file, expected);
 }
-function map(row: {
+function toParticipantWithStoredDocuments(row: {
   participant: typeof teamParticipants.$inferSelect;
   academic: typeof files.$inferSelect | null;
   identity: typeof files.$inferSelect | null;
@@ -78,27 +77,18 @@ function map(row: {
 }): TeamParticipantWithStoredDocuments {
   return {
     ...row.participant,
-    academicRecordDocument: stored(row.academic, "pdf"),
-    identityDocument: stored(row.identity, "pdf"),
-    portraitPhoto: stored(row.portrait, "image"),
+    academicRecordDocument: toStoredFileOrNull(row.academic, "pdf"),
+    identityDocument: toStoredFileOrNull(row.identity, "pdf"),
+    portraitPhoto: toStoredFileOrNull(row.portrait, "image"),
   };
-}
-
-function unique(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "23505" &&
-    "constraint" in error &&
-    error.constraint === "team_participants_team_id_index_unique"
-  );
 }
 
 export function createTeamParticipantRepository(
   database: Database = db,
 ): TeamParticipantRepository {
-  async function query(userId: string, teamId: string, index?: number) {
+  const execute = createRepositoryExecutor(teamParticipantRepositoryError);
+
+  async function queryParticipantsWithDocuments(userId: string, teamId: string, index?: number) {
     const academic = alias(files, "team_participant_academic");
     const identity = alias(files, "team_participant_identity");
     const portrait = alias(files, "team_participant_portrait");
@@ -154,105 +144,142 @@ export function createTeamParticipantRepository(
           return row ?? null;
         });
       } catch (error) {
-        if (unique(error)) {
+        if (isPostgresUniqueViolation(error, "team_participants_team_id_index_unique")) {
           throw createTeamParticipantAlreadyExistsError();
         }
 
-        throw createTeamParticipantRepositoryError(
-          error instanceof Error ? error.message : "Unknown team participant repository error",
-        );
+        return rethrowRepositoryError(error, teamParticipantRepositoryError);
       }
     },
-    findBySlot: async (userId, teamId, index) => {
-      const [row] = await query(userId, teamId, index);
+    findBySlot: async (userId, teamId, index) =>
+      await execute(async () => {
+        const [row] = await queryParticipantsWithDocuments(userId, teamId, index);
 
-      return row ? map(row) : null;
-    },
-    listByTeamId: async (userId, teamId) => {
-      const [team] = await database
-        .select({ id: teams.id })
-        .from(teams)
-        .where(and(eq(teams.id, teamId), eq(teams.userId, userId)))
-        .limit(1);
+        return row ? toParticipantWithStoredDocuments(row) : null;
+      }),
+    listByTeamId: async (userId, teamId) =>
+      await execute(async () => {
+        const [team] = await database
+          .select({ id: teams.id })
+          .from(teams)
+          .where(and(eq(teams.id, teamId), eq(teams.userId, userId)))
+          .limit(1);
 
-      if (!team) {
-        return null;
-      }
+        if (!team) {
+          return null;
+        }
 
-      const rows = await query(userId, teamId);
-      return rows.map(map);
-    },
+        const rows = await queryParticipantsWithDocuments(userId, teamId);
+        return rows.map(toParticipantWithStoredDocuments);
+      }),
     replaceDocument: async (userId, teamId, index, type, file) =>
-      await database.transaction(async (tx) => {
-        const [current] = await tx
-          .select({ id: teamParticipants.id })
-          .from(teamParticipants)
-          .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-          .where(
-            and(
-              eq(teamParticipants.teamId, teamId),
-              eq(teamParticipants.index, index),
-              eq(teams.userId, userId),
-            ),
-          )
-          .for("update")
-          .limit(1);
+      await execute(
+        async () =>
+          await database.transaction(async (tx) => {
+            const [current] = await tx
+              .select({
+                academicRecordDocumentFileId: teamParticipants.academicRecordDocumentFileId,
+                id: teamParticipants.id,
+                identityDocumentFileId: teamParticipants.identityDocumentFileId,
+                portraitPhotoFileId: teamParticipants.portraitPhotoFileId,
+              })
+              .from(teamParticipants)
+              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+              .where(
+                and(
+                  eq(teamParticipants.teamId, teamId),
+                  eq(teamParticipants.index, index),
+                  eq(teams.userId, userId),
+                ),
+              )
+              .for("update")
+              .limit(1);
 
-        if (!current) {
-          return null;
-        }
+            if (!current) {
+              return null;
+            }
 
-        await tx.insert(files).values(file);
+            let previousFileId: string | null;
+            if (type === "portraitPhoto") {
+              previousFileId = current.portraitPhotoFileId;
+            } else if (type === "identityDocument") {
+              previousFileId = current.identityDocumentFileId;
+            } else {
+              previousFileId = current.academicRecordDocumentFileId;
+            }
+            let previous: StoredFile | null = null;
+            if (previousFileId !== null) {
+              const [previousFile] = await tx
+                .select()
+                .from(files)
+                .where(and(eq(files.id, previousFileId), eq(files.uploadedBy, userId)))
+                .limit(1);
+              previous = previousFile
+                ? toStoredFileOfKind(previousFile, type === "portraitPhoto" ? "image" : "pdf")
+                : null;
+            }
 
-        let update: {
-          academicRecordDocumentFileId?: string;
-          identityDocumentFileId?: string;
-          portraitPhotoFileId?: string;
-        };
+            await tx.insert(files).values(file);
 
-        if (type === "portraitPhoto") {
-          update = { portraitPhotoFileId: file.id };
-        } else if (type === "identityDocument") {
-          update = { identityDocumentFileId: file.id };
-        } else {
-          update = { academicRecordDocumentFileId: file.id };
-        }
+            let update: {
+              academicRecordDocumentFileId?: string;
+              identityDocumentFileId?: string;
+              portraitPhotoFileId?: string;
+            };
 
-        const [row] = await tx
-          .update(teamParticipants)
-          .set(update)
-          .where(eq(teamParticipants.id, current.id))
-          .returning();
+            if (type === "portraitPhoto") {
+              update = { portraitPhotoFileId: file.id };
+            } else if (type === "identityDocument") {
+              update = { identityDocumentFileId: file.id };
+            } else {
+              update = { academicRecordDocumentFileId: file.id };
+            }
 
-        return row ?? null;
-      }),
+            const [row] = await tx
+              .update(teamParticipants)
+              .set(update)
+              .where(eq(teamParticipants.id, current.id))
+              .returning();
+
+            if (!row) {
+              throw createTeamParticipantRepositoryError(
+                new Error("Team participant document update returned no row"),
+              );
+            }
+
+            return { participant: row, previous };
+          }),
+      ),
     update: async (userId, teamId, index, data) =>
-      await database.transaction(async (tx) => {
-        const [current] = await tx
-          .select({ id: teamParticipants.id })
-          .from(teamParticipants)
-          .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-          .where(
-            and(
-              eq(teamParticipants.teamId, teamId),
-              eq(teamParticipants.index, index),
-              eq(teams.userId, userId),
-            ),
-          )
-          .for("update")
-          .limit(1);
+      await execute(
+        async () =>
+          await database.transaction(async (tx) => {
+            const [current] = await tx
+              .select({ id: teamParticipants.id })
+              .from(teamParticipants)
+              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+              .where(
+                and(
+                  eq(teamParticipants.teamId, teamId),
+                  eq(teamParticipants.index, index),
+                  eq(teams.userId, userId),
+                ),
+              )
+              .for("update")
+              .limit(1);
 
-        if (!current) {
-          return null;
-        }
+            if (!current) {
+              return null;
+            }
 
-        const [row] = await tx
-          .update(teamParticipants)
-          .set(data)
-          .where(eq(teamParticipants.id, current.id))
-          .returning();
+            const [row] = await tx
+              .update(teamParticipants)
+              .set(data)
+              .where(eq(teamParticipants.id, current.id))
+              .returning();
 
-        return row ?? null;
-      }),
+            return row ?? null;
+          }),
+      ),
   };
 }

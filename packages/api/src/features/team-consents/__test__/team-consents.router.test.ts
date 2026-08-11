@@ -14,7 +14,7 @@ import {
 import {
   createTeamConsentAlreadyExistsError,
   createTeamConsentRepositoryError,
-} from "../team-consents.service";
+} from "../team-consents.errors";
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";

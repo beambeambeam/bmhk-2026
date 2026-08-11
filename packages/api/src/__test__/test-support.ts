@@ -108,6 +108,7 @@ export function createUnusedTeamRepository(): TeamRepository {
     findByUserId: createUnusedMethod("TeamRepository", "findByUserId"),
     list: createUnusedMethod("TeamRepository", "list"),
     replaceImage: createUnusedMethod("TeamRepository", "replaceImage"),
+    setAward: createUnusedMethod("TeamRepository", "setAward"),
     update: createUnusedMethod("TeamRepository", "update"),
   };
 }

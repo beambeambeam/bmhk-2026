@@ -44,7 +44,12 @@ function createRepository(overrides: Partial<TeamConsentRepository> = {}): TeamC
   return {
     create: overrides.create ?? (async (_userId, data) => ({ ...consent, ...data })),
     findByTeamId: overrides.findByTeamId ?? (async () => consent),
-    update: overrides.update ?? (async (_userId, _teamId, data) => ({ ...consent, ...data })),
+    update:
+      overrides.update ??
+      (async (_userId, _teamId, data) => ({
+        consent: { ...consent, ...data },
+        previous: consent,
+      })),
   };
 }
 
@@ -144,15 +149,43 @@ describe("team consents router", () => {
     expect(log.set).toHaveBeenCalledWith({
       teamConsent: { id: CONSENT_ID, teamId: TEAM_ID },
     });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "legal-consent.created",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+        },
+      },
+      outcome: "success",
+      target: {
+        consentId: CONSENT_ID,
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "legal-consent",
+      },
+    });
   });
 
   it("returns team not found when creating for an inaccessible team", async () => {
     const router = createRouter(createRepository({ create: async () => null }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(router.create, { teamId: TEAM_ID }, { context, path: ["teamConsents", "create"] }),
     ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "legal-consent.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_NOT_FOUND",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "legal-consent" },
+    });
   });
 
   it("returns conflict when team already has consent", async () => {
@@ -163,11 +196,18 @@ describe("team consents router", () => {
         },
       }),
     );
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(router.create, { teamId: TEAM_ID }, { context, path: ["teamConsents", "create"] }),
     ).rejects.toMatchObject({ code: "TEAM_CONSENT_ALREADY_EXISTS", status: 409 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "legal-consent.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "TEAM_CONSENT_ALREADY_EXISTS",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "legal-consent" },
+    });
   });
 
   it("gets owned consent and forwards authenticated ownership", async () => {
@@ -193,10 +233,10 @@ describe("team consents router", () => {
     ).rejects.toMatchObject({ code: "TEAM_CONSENT_NOT_FOUND", status: 404 });
   });
 
-  it("updates partial flags, including withdrawal, and logs its identity", async () => {
+  it("updates partial flags and audits their safe values", async () => {
     const update = vi.fn<TeamConsentRepository["update"]>(async (_userId, _teamId, data) => ({
-      ...consent,
-      ...data,
+      consent: { ...consent, ...data },
+      previous: consent,
     }));
     const router = createRouter(createRepository({ update }));
     const { context, log } = createTestContext();
@@ -218,6 +258,53 @@ describe("team consents router", () => {
     expect(log.set).toHaveBeenCalledWith({
       teamConsent: { id: CONSENT_ID, teamId: TEAM_ID },
     });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "legal-consent.updated",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { healthDataConsent: false, publicityMediaConsent: true },
+        before: { healthDataConsent: false, publicityMediaConsent: false },
+      },
+      outcome: "success",
+      target: {
+        consentId: CONSENT_ID,
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "legal-consent",
+      },
+    });
+  });
+
+  it("audits withdrawal when accepted consent changes to false", async () => {
+    const previous = { ...consent, healthDataConsent: true };
+    const update = vi.fn<TeamConsentRepository["update"]>(async () => ({
+      consent: { ...previous, healthDataConsent: false },
+      previous,
+    }));
+    const router = createRouter(createRepository({ update }));
+    const { context, log } = createTestContext();
+
+    await call(
+      router.update,
+      { data: { healthDataConsent: false }, teamId: TEAM_ID },
+      { context, path: ["teamConsents", "update"] },
+    );
+
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "legal-consent.withdrawn",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { healthDataConsent: false },
+        before: { healthDataConsent: true },
+      },
+      outcome: "success",
+      target: {
+        consentId: CONSENT_ID,
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "legal-consent",
+      },
+    });
   });
 
   it("does not let registration staff change another team's legal consent", async () => {
@@ -231,7 +318,7 @@ describe("team consents router", () => {
         createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
       ),
     );
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(
@@ -240,10 +327,20 @@ describe("team consents router", () => {
         { context, path: ["teamConsents", "update"] },
       ),
     ).rejects.toMatchObject({ code: "TEAM_CONSENT_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "legal-consent.updated",
+      actor: { id: "staff-user", type: "user" },
+      outcome: "denied",
+      reason: "TEAM_CONSENT_NOT_FOUND",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "legal-consent" },
+    });
   });
 
   it("rejects empty and unknown updates before repository invocation", async () => {
-    const update = vi.fn<TeamConsentRepository["update"]>(async () => consent);
+    const update = vi.fn<TeamConsentRepository["update"]>(async () => ({
+      consent,
+      previous: consent,
+    }));
     const router = createRouter(createRepository({ update }));
     const { context } = createTestContext();
 

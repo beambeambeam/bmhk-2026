@@ -25,7 +25,12 @@ export interface TeamConsentRepository {
     access: TeamAccessContext,
     teamId: string,
     data: UpdateTeamConsentData,
-  ) => Promise<TeamConsent | null>;
+  ) => Promise<TeamConsentUpdateResult | null>;
+}
+
+export interface TeamConsentUpdateResult {
+  consent: TeamConsent;
+  previous: TeamConsent;
 }
 
 type Database = typeof db;
@@ -81,7 +86,7 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
         async () =>
           await database.transaction(async (transaction) => {
             const [current] = await transaction
-              .select({ id: teamConsents.id })
+              .select({ consent: teamConsents })
               .from(teamConsents)
               .innerJoin(teams, eq(teams.id, teamConsents.teamId))
               .where(
@@ -97,7 +102,7 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
             const [consent] = await transaction
               .update(teamConsents)
               .set(data)
-              .where(eq(teamConsents.id, current.id))
+              .where(eq(teamConsents.id, current.consent.id))
               .returning();
 
             if (!consent) {
@@ -106,7 +111,7 @@ export function createTeamConsentRepository(database: Database = db): TeamConsen
               );
             }
 
-            return consent;
+            return { consent, previous: current.consent };
           }),
       ),
   };

@@ -3,6 +3,7 @@ export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { ApiRole, ApiSession, ApiUser, AuthReader, TeamAccessContext } from "./core/auth";
 export type { ApiContext } from "./core/context";
+export type { FeatureFlags } from "./features/feature-flags/feature-flags.schema";
 export type { TeamRepository } from "./features/teams/teams.repository";
 export type { FileRepository } from "./features/files/files.repository";
 export type { FileStorage } from "./features/files/files.storage";

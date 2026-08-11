@@ -3,6 +3,7 @@
   "type": "module",
   "exports": {
     "./auth-client": "./src/auth-client.ts",
+    "./feature-flags": "./src/feature-flags.ts",
     "./orpc": "./src/orpc.ts"
   },
   "scripts": {
@@ -11,6 +12,7 @@
   "dependencies": {
     "@bmhk-2026/api": "workspace:*",
     "@bmhk-2026/env": "workspace:*",
+    "@bmhk-2026/feature-flags": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "^1.14.6",
     "@tanstack/react-query": "^5.101.2",
@@ -19,7 +21,10 @@
   },
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react-dom": "catalog:",
     "typescript": "catalog:"
   },
   "peerDependencies": {

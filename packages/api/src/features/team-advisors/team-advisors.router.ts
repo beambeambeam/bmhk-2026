@@ -1,4 +1,6 @@
 import type { TeamAccessProcedure } from "../../core/procedure";
+import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
+import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import { auditTeamMutation } from "../teams/teams.audit";
 import type { TeamAdvisorService } from "./team-advisors.service";
@@ -22,21 +24,37 @@ function createTeamAdvisorDocumentUploadProcedure(
     .input(teamAdvisorDocumentUploadSchema)
     .output(teamAdvisorSchema)
     .handler(async ({ context, input }) => {
-      assertAllowedOrigin(context.headers);
-      const { advisor, file } = await service.uploadDocument({
-        access: context.teamAccess,
-        documentType,
-        file: input.file,
+      const auditDocumentType = documentType === "identity" ? "identity" : "teacher-status";
+      const { advisor, file } = await executeAudited({
+        audit: registrationDocumentReplacedAudit({
+          actor: { id: context.teamAccess.actorId, type: "user" },
+          target: {
+            documentType: auditDocumentType,
+            id: input.teamId,
+            teamId: input.teamId,
+            type: "registration-document",
+          },
+        }),
+        deniedErrorCodes: ["TEAM_ADVISOR_NOT_FOUND"],
+        execute: async () => {
+          assertAllowedOrigin(context.headers);
+          return await service.uploadDocument({
+            access: context.teamAccess,
+            documentType,
+            file: input.file,
+            log: context.log,
+            teamId: input.teamId,
+          });
+        },
         log: context.log,
-        teamId: input.teamId,
+        onSuccess: (result) => ({
+          changes: {
+            after: { fileId: result.file.id },
+            before: { fileId: result.previousFileId },
+          },
+        }),
       });
 
-      auditTeamMutation(
-        context.log,
-        context.teamAccess,
-        "team-advisor.document.replace",
-        advisor.teamId,
-      );
       context.log.set({
         file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
         teamAdvisor: { id: advisor.id, teamId: advisor.teamId },

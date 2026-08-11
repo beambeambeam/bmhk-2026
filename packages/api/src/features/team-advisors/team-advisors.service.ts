@@ -24,6 +24,7 @@ import type {
 export interface TeamAdvisorDocumentUploadResult {
   advisor: TeamAdvisor;
   file: CreateStoredFileData;
+  previousFileId: string | null;
 }
 
 export interface TeamAdvisorService {
@@ -143,7 +144,11 @@ export function createTeamAdvisorService(
         storage,
       });
 
-      return { advisor: replacement.advisor, file: storedFile };
+      return {
+        advisor: replacement.advisor,
+        file: storedFile,
+        previousFileId: replacement.previous?.id ?? null,
+      };
     },
   };
 }

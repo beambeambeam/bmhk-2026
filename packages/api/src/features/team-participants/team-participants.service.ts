@@ -27,6 +27,7 @@ import type {
 export interface TeamParticipantDocumentUploadResult {
   file: CreateStoredFileData;
   participant: TeamParticipant;
+  previousFileId: string | null;
 }
 
 export interface TeamParticipantService {
@@ -185,7 +186,11 @@ export function createTeamParticipantService(
         storage,
       });
 
-      return { file: storedFile, participant: replacement.participant };
+      return {
+        file: storedFile,
+        participant: replacement.participant,
+        previousFileId: replacement.previous?.id ?? null,
+      };
     },
   };
 }

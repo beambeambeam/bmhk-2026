@@ -351,7 +351,7 @@ describe("team advisors router", () => {
         }),
     );
     const router = createRouter(createTeamAdvisorRepository({ replaceDocument }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     s3Mocks.putObject.mockClear();
 
     const result = await call(
@@ -376,12 +376,32 @@ describe("team advisors router", () => {
       documentType,
       expect.objectContaining({ contentType: "application/pdf", uploadedBy: USER_ID }),
     );
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: {
+          fileId:
+            result[
+              documentType === "identity" ? "identityDocumentFileId" : "teacherStatusDocumentFileId"
+            ],
+        },
+        before: { fileId: null },
+      },
+      outcome: "success",
+      target: {
+        documentType: documentType === "identity" ? "identity" : "teacher-status",
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
   });
 
   it("rejects non-PDF advisor documents before storage", async () => {
     const replaceDocument = vi.fn<TeamAdvisorRepository["replaceDocument"]>();
     const router = createRouter(createTeamAdvisorRepository({ replaceDocument }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(
@@ -392,6 +412,18 @@ describe("team advisors router", () => {
     ).rejects.toMatchObject({ code: "FILE_TYPE_NOT_ALLOWED", status: 415 });
     expect(s3Mocks.putObject).not.toHaveBeenCalled();
     expect(replaceDocument).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "FILE_TYPE_NOT_ALLOWED",
+      target: {
+        documentType: "identity",
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
   });
 
   it("deletes an uploaded document when the advisor disappears before replacement", async () => {
@@ -399,7 +431,7 @@ describe("team advisors router", () => {
       replaceDocument: async () => await Promise.resolve(null),
     });
     const router = createRouter(repository);
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     s3Mocks.deleteObject.mockClear();
 
     await expect(
@@ -414,6 +446,18 @@ describe("team advisors router", () => {
     expect(deleteInput?.key).toMatch(
       new RegExp(`^team-advisors/${ADVISOR_ID}/documents/identity/[0-9a-f-]{36}$`, "u"),
     );
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_ADVISOR_NOT_FOUND",
+      target: {
+        documentType: "identity",
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
   });
 
   it("deletes the previous advisor document after replacement", async () => {

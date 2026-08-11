@@ -21,6 +21,8 @@ export const env = createEnv({
   emptyStringAsUndefined: true,
   runtimeEnv: process.env,
   server: {
+    AUDIT_HMAC_KEY_ID: z.string().trim().min(1),
+    AUDIT_HMAC_SECRET: z.string().min(32),
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_ENDPOINT_URL_S3: z.url(),
     AWS_REGION: z.string().min(1),

@@ -285,7 +285,7 @@ describe("team participants router", () => {
       },
     });
     const router = createRouter(repository);
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     const document = new File(["%PDF-1.7\n"], "identity.pdf", { type: "application/pdf" });
     s3Mocks.deleteObject.mockClear();
 
@@ -301,6 +301,19 @@ describe("team participants router", () => {
     expect(deleteInput?.key).toMatch(
       new RegExp(`^team-participants/${PARTICIPANT_ID}/documents/identity/[0-9a-f-]{36}$`, "u"),
     );
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "UNKNOWN_FAILURE",
+      target: {
+        documentType: "identity",
+        id: TEAM_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
   });
 
   it("deletes the previous participant document after replacement", async () => {
@@ -317,7 +330,7 @@ describe("team participants router", () => {
       createTestAuthReader(createTestSession()),
       fileRepository,
     );
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     const document = new File(["%PDF-1.7\n"], "identity.pdf", { type: "application/pdf" });
     s3Mocks.deleteObject.mockClear();
 
@@ -332,6 +345,82 @@ describe("team participants router", () => {
       key: identityDocument.objectKey,
     });
     expect(deleteMetadata).toHaveBeenCalledWith(identityDocument.id);
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { fileId: updatedParticipant.identityDocumentFileId },
+        before: { fileId: identityDocument.id },
+      },
+      outcome: "success",
+      target: {
+        documentType: "identity",
+        id: TEAM_ID,
+        participantId: PARTICIPANT_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
+  });
+
+  it("audits academic-record document replacement", async () => {
+    const router = createRouter(createRepository());
+    const { context, log } = createTestContext();
+    const document = new File(["%PDF-1.7\n"], "academic-record.pdf", {
+      type: "application/pdf",
+    });
+
+    const updatedParticipant = await call(
+      router.academicRecordDocument,
+      { file: document, index: 1, teamId: TEAM_ID },
+      { context, path: ["teamParticipants", "academicRecordDocument"] },
+    );
+
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { fileId: updatedParticipant.academicRecordDocumentFileId },
+        before: { fileId: null },
+      },
+      outcome: "success",
+      target: {
+        documentType: "academic-record",
+        id: TEAM_ID,
+        participantId: PARTICIPANT_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
+  });
+
+  it("audits denied participant document replacement", async () => {
+    const router = createRouter(createRepository({ findBySlot: async () => null }));
+    const { context, log } = createTestContext();
+    const document = new File(["%PDF-1.7\n"], "identity.pdf", { type: "application/pdf" });
+
+    await expect(
+      call(
+        router.identityDocument,
+        { file: document, index: 1, teamId: TEAM_ID },
+        { context, path: ["teamParticipants", "identityDocument"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_PARTICIPANT_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-document.replaced",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_PARTICIPANT_NOT_FOUND",
+      target: {
+        documentType: "identity",
+        id: TEAM_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-document",
+      },
+    });
   });
 
   it("requires authentication", async () => {

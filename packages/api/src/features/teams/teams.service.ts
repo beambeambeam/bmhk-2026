@@ -11,7 +11,7 @@ import {
   toPublicFileWithUrl,
 } from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
-import type { TeamRepository } from "./teams.repository";
+import type { TeamAwardChange, TeamRepository } from "./teams.repository";
 import { createTeamAlreadyExistsError } from "./teams.errors";
 import type {
   CreateTeamData,
@@ -36,7 +36,7 @@ export interface TeamService {
     access: TeamAccessContext,
     pagination: { limit: number; offset: number },
   ) => Promise<TeamListResult>;
-  setAward: (access: TeamAccessContext, id: string, award: TeamAward) => Promise<Team>;
+  setAward: (access: TeamAccessContext, id: string, award: TeamAward) => Promise<TeamAwardChange>;
   update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team>;
   uploadImage: (input: {
     access: TeamAccessContext;
@@ -120,12 +120,12 @@ export function createTeamService(
       };
     },
     setAward: async (access, id, award) => {
-      const team = await repository.update(access, id, { award });
-      if (!team) {
+      const result = await repository.setAward(access, id, award);
+      if (!result) {
         throw createTeamNotFoundError();
       }
 
-      return team;
+      return result;
     },
     update: async (access, id, data) => {
       const team = await repository.update(access, id, data);

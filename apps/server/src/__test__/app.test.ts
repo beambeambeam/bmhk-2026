@@ -79,6 +79,7 @@ function createTestTeamRepository(): TeamRepository {
     findByUserId: async () => await Promise.resolve(null),
     list: async () => await Promise.resolve({ data: [], total: 0 }),
     replaceImage: async () => await Promise.resolve(null),
+    setAward: async () => await Promise.resolve(null),
     update: async () => await Promise.resolve(null),
   };
 }

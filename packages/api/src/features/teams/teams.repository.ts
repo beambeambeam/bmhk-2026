@@ -34,6 +34,16 @@ export interface TeamRepository {
     id: string,
     file: CreateStoredFileData,
   ) => Promise<{ previous: StoredFile | null; team: Team } | null>;
+  setAward: (
+    access: TeamAccessContext,
+    id: string,
+    award: TeamAward,
+  ) => Promise<TeamAwardChange | null>;
+}
+
+export interface TeamAwardChange {
+  previous: Team;
+  team: Team;
 }
 
 type Database = typeof db;
@@ -165,6 +175,32 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             if (!team) {
               throw createTeamRepositoryError(new Error("Team image update returned no row"));
             }
+            return { previous, team };
+          }),
+      ),
+    setAward: async (access, id, award) =>
+      await execute(
+        async () =>
+          await database.transaction(async (transaction) => {
+            const [previous] = await transaction
+              .select()
+              .from(teams)
+              .where(createTeamAccessCondition(access, id))
+              .for("update")
+              .limit(1);
+            if (!previous) {
+              return null;
+            }
+
+            const [team] = await transaction
+              .update(teams)
+              .set({ award })
+              .where(eq(teams.id, previous.id))
+              .returning();
+            if (!team) {
+              throw createTeamRepositoryError(new Error("Team award update returned no row"));
+            }
+
             return { previous, team };
           }),
       ),

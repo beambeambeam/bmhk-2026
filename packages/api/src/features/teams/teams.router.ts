@@ -5,8 +5,9 @@ import type {
   TeamAccessProcedure,
   TeamOwnerProcedure,
 } from "../../core/procedure";
+import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
+import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
-import { auditTeamMutation } from "./teams.audit";
 import type { TeamService } from "./teams.service";
 import {
   createTeamSchema,
@@ -39,12 +40,6 @@ export function createTeamsRouter(
       .output(teamSchema)
       .handler(async ({ context, input }) => {
         const team = await service.create(context.session.user.id, input);
-        auditTeamMutation(
-          context.log,
-          { actorId: context.session.user.id, scope: "OWN_TEAM" },
-          "team.create",
-          team.id,
-        );
         context.log.set({ team: { id: team.id } });
         return team;
       }),
@@ -56,9 +51,16 @@ export function createTeamsRouter(
       .input(teamIdInputSchema)
       .output(deleteTeamResultSchema)
       .handler(async ({ context, input }) => {
-        const result = await service.delete(context.teamAccess, input.id);
+        const result = await executeAudited({
+          audit: teamDeletedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: { id: input.id, teamId: input.id },
+          }),
+          deniedErrorCodes: ["TEAM_NOT_FOUND"],
+          execute: async () => await service.delete(context.teamAccess, input.id),
+          log: context.log,
+        });
 
-        auditTeamMutation(context.log, context.teamAccess, "team.delete", input.id);
         context.log.set({ team: { id: input.id } });
         return result;
       }),
@@ -88,7 +90,6 @@ export function createTeamsRouter(
           log: context.log,
         });
 
-        auditTeamMutation(context.log, context.teamAccess, "team.image.replace", input.id);
         context.log.set({
           file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
           team: { id: input.id },
@@ -109,8 +110,20 @@ export function createTeamsRouter(
       .input(setTeamAwardSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
-        const team = await service.setAward(context.teamAccess, input.id, input.award);
-        auditTeamMutation(context.log, context.teamAccess, "team.award.set", team.id);
+        const { team } = await executeAudited({
+          audit: awardChangedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: { id: input.id, teamId: input.id },
+          }),
+          execute: async () => await service.setAward(context.teamAccess, input.id, input.award),
+          log: context.log,
+          onSuccess: ({ previous, team: changedTeam }) => ({
+            changes: {
+              after: { award: changedTeam.award },
+              before: { award: previous.award },
+            },
+          }),
+        });
         context.log.set({ team: { id: team.id } });
         return team;
       }),
@@ -124,7 +137,6 @@ export function createTeamsRouter(
       .handler(async ({ context, input }) => {
         const team = await service.update(context.teamAccess, input.id, input.data);
 
-        auditTeamMutation(context.log, context.teamAccess, "team.update", team.id);
         context.log.set({ team: { id: team.id } });
         return team;
       }),

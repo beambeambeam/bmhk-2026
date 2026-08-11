@@ -2,7 +2,7 @@ import { createError } from "evlog";
 import type { TeamAccessContext } from "../../core/auth";
 
 import { createTeamNotFoundError } from "../teams/teams.service";
-import type { TeamConsentRepository } from "./team-consents.repository";
+import type { TeamConsentRepository, TeamConsentUpdateResult } from "./team-consents.repository";
 import type {
   CreateTeamConsentData,
   TeamConsent,
@@ -16,7 +16,7 @@ export interface TeamConsentService {
     access: TeamAccessContext,
     teamId: string,
     data: UpdateTeamConsentData,
-  ) => Promise<TeamConsent>;
+  ) => Promise<TeamConsentUpdateResult>;
 }
 
 export function createTeamConsentNotFoundError() {
@@ -48,12 +48,12 @@ export function createTeamConsentService(repository: TeamConsentRepository): Tea
       return consent;
     },
     update: async (access, teamId, data) => {
-      const consent = await repository.update(access, teamId, data);
-      if (!consent) {
+      const result = await repository.update(access, teamId, data);
+      if (!result) {
         throw createTeamConsentNotFoundError();
       }
 
-      return consent;
+      return result;
     },
   };
 }

@@ -86,6 +86,13 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
       overrides.replaceImage ??
       (async (_userId, _id, file) =>
         await Promise.resolve({ previous: null, team: { ...testTeam, image: file.id } })),
+    setAward:
+      overrides.setAward ??
+      (async (_access, _id, award) =>
+        await Promise.resolve({
+          previous: testTeam,
+          team: { ...testTeam, award },
+        })),
     update:
       overrides.update ??
       (async (_userId, _id, data) => await Promise.resolve({ ...testTeam, ...data })),
@@ -387,15 +394,11 @@ describe("teams router", () => {
       createTeamRepository(),
       createAuthReader(createTestSession({ user: { role: "staff" } })),
     );
-    const { context, log } = createContext();
+    const { context } = createContext();
 
     await expect(
       call(router.teams.list, {}, { context, path: ["teams", "list"] }),
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
-    expect(log.audit.deny).toHaveBeenCalledWith("registration access permission missing", {
-      action: "registration.access",
-      actor: { id: USER_ID, type: "user" },
-    });
   });
 
   it("gets an owned team", async () => {
@@ -700,22 +703,17 @@ describe("teams router", () => {
     });
   });
 
-  it("audits registration staff team updates", async () => {
+  it("updates team fields for registration staff", async () => {
     const router = createRouter(createTeamRepository(), createRegistrationAuthReader());
-    const { context, log } = createContext();
+    const { context } = createContext();
 
-    await call(
-      router.teams.update,
-      { data: { name: "Updated Team" }, id: TEAM_ID },
-      { context, path: ["teams", "update"] },
-    );
-
-    expect(log.audit).toHaveBeenCalledWith({
-      action: "team.update",
-      actor: { id: USER_ID, type: "user" },
-      target: { id: TEAM_ID, type: "team" },
-    });
-    expect(log.set).toHaveBeenCalledWith({ authorization: { scope: "ALL_TEAMS" } });
+    await expect(
+      call(
+        router.teams.update,
+        { data: { name: "Updated Team" }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).resolves.toMatchObject({ name: "Updated Team" });
   });
 
   it.each(expectedAwards)("rejects owner update to staff-controlled %s award", async (award) => {
@@ -738,17 +736,53 @@ describe("teams router", () => {
 
   it.each(expectedAwards)("lets registration staff set the %s award", async (award) => {
     const repository = createTeamRepository({
-      update: async (access, _id, data) => {
+      setAward: async (access, _id, nextAward) => {
         expect(access).toStrictEqual({ actorId: USER_ID, scope: "ALL_TEAMS" });
-        return await Promise.resolve({ ...testTeam, ...data });
+        return await Promise.resolve({
+          previous: testTeam,
+          team: { ...testTeam, award: nextAward },
+        });
       },
     });
     const router = createRouter(repository, createRegistrationAuthReader());
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(router.teams.setAward, { award, id: TEAM_ID }, { context, path: ["teams", "setAward"] }),
     ).resolves.toMatchObject({ award });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.award.changed",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { award },
+        before: { award: "NO_ACHIEVEMENT" },
+      },
+      outcome: "success",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
+  });
+
+  it("audits a failed award change", async () => {
+    const repository = createTeamRepository({
+      setAward: async () => await Promise.resolve(null),
+    });
+    const router = createRouter(repository, createRegistrationAuthReader());
+    const { context, log } = createContext();
+
+    await expect(
+      call(
+        router.teams.setAward,
+        { award: "FIRST_PLACE", id: TEAM_ID },
+        { context, path: ["teams", "setAward"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.award.changed",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "TEAM_NOT_FOUND",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
   });
 
   it("rejects empty and immutable update data", async () => {
@@ -832,11 +866,17 @@ describe("teams router", () => {
   it("deletes an owned team", async () => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
     ).resolves.toStrictEqual({ id: TEAM_ID });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.deleted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "success",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
   });
 
   it("does not let registration staff delete another user's team", async () => {
@@ -852,11 +892,18 @@ describe("teams router", () => {
         createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
       ),
     );
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
     ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.deleted",
+      actor: { id: "staff-user", type: "user" },
+      outcome: "denied",
+      reason: "TEAM_NOT_FOUND",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
   });
 
   it("rejects an invalid team ID before deleting", async () => {
@@ -874,13 +921,20 @@ describe("teams router", () => {
       delete: async () => await Promise.resolve(false),
     });
     const router = createRouter(repository);
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
     ).rejects.toMatchObject({
       code: "TEAM_NOT_FOUND",
       status: 404,
+    });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.deleted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_NOT_FOUND",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
     });
   });
 });

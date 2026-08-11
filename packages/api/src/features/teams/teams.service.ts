@@ -2,7 +2,12 @@ import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
-import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
+import type { FileServiceLog } from "../files/files.service";
+import {
+  persistUploadedFile,
+  storeUploadedFile,
+  toPublicFileWithUrl,
+} from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
 import type { TeamRepository } from "./teams.repository";
 import type {
@@ -28,6 +33,7 @@ export interface TeamService {
   uploadImage: (input: {
     file: File;
     id: string;
+    log: FileServiceLog;
     userId: string;
   }) => Promise<TeamImageUploadResult>;
 }
@@ -132,7 +138,7 @@ export function createTeamService(repository: TeamRepository, storage: FileStora
 
       return team;
     },
-    uploadImage: async ({ file, id, userId }) => {
+    uploadImage: async ({ file, id, log, userId }) => {
       const existingTeam = await repository.findById(userId, id);
       if (!existingTeam) {
         throw createTeamNotFoundError();
@@ -145,11 +151,19 @@ export function createTeamService(repository: TeamRepository, storage: FileStora
         storage,
         uploadedBy: userId,
       });
-      const result = await repository.replaceImage(userId, id, storedFile);
+      const result = await persistUploadedFile({
+        data: storedFile,
+        log,
+        persist: async (data) => {
+          const replacement = await repository.replaceImage(userId, id, data);
+          if (replacement === null) {
+            throw createTeamNotFoundError();
+          }
 
-      if (result === null) {
-        throw createTeamNotFoundError();
-      }
+          return replacement;
+        },
+        storage,
+      });
 
       return { file: storedFile, team: result.team };
     },

@@ -379,7 +379,25 @@ export async function saveFileMetadata({
   storage: FileStorage;
 }): Promise<StoredFile> {
   try {
-    return await create(data);
+    return await persistUploadedFile({ data, log, persist: create, storage });
+  } catch (error) {
+    throw createFileMetadataSaveError(error);
+  }
+}
+
+export async function persistUploadedFile<Result>({
+  data,
+  log,
+  persist,
+  storage,
+}: {
+  data: CreateStoredFileData;
+  log: FileServiceLog;
+  persist: (data: CreateStoredFileData) => Promise<Result>;
+  storage: FileStorage;
+}): Promise<Result> {
+  try {
+    return await persist(data);
   } catch (error) {
     try {
       await storage.delete({ bucket: data.bucket, objectKey: data.objectKey });
@@ -400,7 +418,7 @@ export async function saveFileMetadata({
             }),
       );
     }
-    throw createFileMetadataSaveError(error);
+    throw error;
   }
 }
 

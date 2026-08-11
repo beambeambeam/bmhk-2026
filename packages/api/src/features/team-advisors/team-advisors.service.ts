@@ -2,7 +2,12 @@ import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
-import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
+import type { FileServiceLog } from "../files/files.service";
+import {
+  persistUploadedFile,
+  storeUploadedFile,
+  toPublicFileWithUrl,
+} from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamAdvisorRepository } from "./team-advisors.repository";
@@ -27,6 +32,7 @@ export interface TeamAdvisorService {
   uploadDocument: (input: {
     documentType: TeamAdvisorDocumentType;
     file: File;
+    log: FileServiceLog;
     teamId: string;
     userId: string;
   }) => Promise<TeamAdvisorDocumentUploadResult>;
@@ -116,7 +122,7 @@ export function createTeamAdvisorService(
 
       return advisor;
     },
-    uploadDocument: async ({ documentType, file, teamId, userId }) => {
+    uploadDocument: async ({ documentType, file, log, teamId, userId }) => {
       const advisor = await repository.findByTeamId(userId, teamId);
       if (!advisor) {
         throw createTeamAdvisorNotFoundError();
@@ -129,16 +135,24 @@ export function createTeamAdvisorService(
         storage,
         uploadedBy: userId,
       });
-      const updatedAdvisor = await repository.replaceDocument(
-        userId,
-        teamId,
-        documentType,
-        storedFile,
-      );
+      const updatedAdvisor = await persistUploadedFile({
+        data: storedFile,
+        log,
+        persist: async (data) => {
+          const advisorReplacement = await repository.replaceDocument(
+            userId,
+            teamId,
+            documentType,
+            data,
+          );
+          if (!advisorReplacement) {
+            throw createTeamAdvisorNotFoundError();
+          }
 
-      if (!updatedAdvisor) {
-        throw createTeamAdvisorNotFoundError();
-      }
+          return advisorReplacement;
+        },
+        storage,
+      });
 
       return { advisor: updatedAdvisor, file: storedFile };
     },

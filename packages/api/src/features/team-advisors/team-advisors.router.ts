@@ -53,6 +53,7 @@ export function createTeamAdvisorsRouter(
         const { advisor, file } = await service.uploadDocument({
           documentType: "identity",
           file: input.file,
+          log: context.log,
           teamId: input.teamId,
           userId: context.session.user.id,
         });
@@ -75,6 +76,7 @@ export function createTeamAdvisorsRouter(
         const { advisor, file } = await service.uploadDocument({
           documentType: "teacherStatus",
           file: input.file,
+          log: context.log,
           teamId: input.teamId,
           userId: context.session.user.id,
         });

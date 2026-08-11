@@ -64,6 +64,7 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
         const { file, team } = await service.uploadImage({
           file: input.file,
           id: input.id,
+          log: context.log,
           userId: context.session.user.id,
         });
 

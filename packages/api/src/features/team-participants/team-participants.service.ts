@@ -2,7 +2,12 @@ import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
-import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
+import type { FileServiceLog } from "../files/files.service";
+import {
+  persistUploadedFile,
+  storeUploadedFile,
+  toPublicFileWithUrl,
+} from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type {
@@ -40,6 +45,7 @@ export interface TeamParticipantService {
     documentType: TeamParticipantDocumentType;
     file: File;
     index: number;
+    log: FileServiceLog;
     teamId: string;
     userId: string;
   }) => Promise<TeamParticipantDocumentUploadResult>;
@@ -160,7 +166,7 @@ export function createTeamParticipantService(
 
       return participant;
     },
-    uploadDocument: async ({ documentType, file, index, teamId, userId }) => {
+    uploadDocument: async ({ documentType, file, index, log, teamId, userId }) => {
       const participant = await repository.findBySlot(userId, teamId, index);
       if (!participant) {
         throw createTeamParticipantNotFoundError();
@@ -173,17 +179,25 @@ export function createTeamParticipantService(
         storage,
         uploadedBy: userId,
       });
-      const updatedParticipant = await repository.replaceDocument(
-        userId,
-        teamId,
-        index,
-        documentType,
-        storedFile,
-      );
+      const updatedParticipant = await persistUploadedFile({
+        data: storedFile,
+        log,
+        persist: async (data) => {
+          const participantReplacement = await repository.replaceDocument(
+            userId,
+            teamId,
+            index,
+            documentType,
+            data,
+          );
+          if (!participantReplacement) {
+            throw createTeamParticipantNotFoundError();
+          }
 
-      if (!updatedParticipant) {
-        throw createTeamParticipantNotFoundError();
-      }
+          return participantReplacement;
+        },
+        storage,
+      });
 
       return { file: storedFile, participant: updatedParticipant };
     },

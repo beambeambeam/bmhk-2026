@@ -1,6 +1,6 @@
 /* oxlint-disable require-await, no-nested-ternary, typescript/no-unsafe-assignment */
 import { call } from "@orpc/server";
-import type { GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
+import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { describe, expect, it, vi } from "vitest";
 import type {
   AuthReader,
@@ -19,6 +19,7 @@ import {
 import type { TeamParticipantWithStoredDocuments } from "../team-participants.repository";
 
 const s3Mocks = vi.hoisted(() => ({
+  deleteObject: vi.fn<(input: DeleteObjectInput) => Promise<void>>(async () => {}),
   getPresigned: vi.fn<(input: GetPresignedInput) => Promise<string>>(
     async () => "https://storage.test/file",
   ),
@@ -237,6 +238,31 @@ describe("team participants router", () => {
         { context, path: ["teamParticipants", "identityDocument"] },
       ),
     ).rejects.toMatchObject({ code: "FILE_TYPE_NOT_ALLOWED", status: 415 });
+  });
+
+  it("deletes an uploaded document when participant persistence fails", async () => {
+    const repository = createRepository({
+      replaceDocument: async () => {
+        throw new Error("database offline");
+      },
+    });
+    const router = createRouter(repository);
+    const { context } = createTestContext();
+    const document = new File(["%PDF-1.7\n"], "identity.pdf", { type: "application/pdf" });
+    s3Mocks.deleteObject.mockClear();
+
+    await expect(
+      call(
+        router.identityDocument,
+        { file: document, index: 1, teamId: TEAM_ID },
+        { context, path: ["teamParticipants", "identityDocument"] },
+      ),
+    ).rejects.toThrow("database offline");
+    const deleteInput = s3Mocks.deleteObject.mock.calls[0]?.[0];
+    expect(deleteInput?.bucket).toBe("uploads");
+    expect(deleteInput?.key).toMatch(
+      new RegExp(`^team-participants/${PARTICIPANT_ID}/documents/identity/[0-9a-f-]{36}$`, "u"),
+    );
   });
 
   it("requires authentication", async () => {

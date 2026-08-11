@@ -25,6 +25,7 @@ export function createTeamParticipantsRouter(
           documentType: "academicRecordDocument",
           file: input.file,
           index: input.index,
+          log: context.log,
           teamId: input.teamId,
           userId: context.session.user.id,
         });
@@ -70,6 +71,7 @@ export function createTeamParticipantsRouter(
           documentType: "identityDocument",
           file: input.file,
           index: input.index,
+          log: context.log,
           teamId: input.teamId,
           userId: context.session.user.id,
         });
@@ -101,6 +103,7 @@ export function createTeamParticipantsRouter(
           documentType: "portraitPhoto",
           file: input.file,
           index: input.index,
+          log: context.log,
           teamId: input.teamId,
           userId: context.session.user.id,
         });

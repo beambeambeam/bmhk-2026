@@ -1,5 +1,5 @@
 import { call } from "@orpc/server";
-import type { GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
+import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthReader, StoredFile, TeamAdvisor, TeamAdvisorRepository } from "../../../index";
@@ -15,6 +15,9 @@ import type { TeamAdvisorWithStoredDocuments } from "../team-advisors.repository
 import { createTeamAdvisorAlreadyExistsError } from "../team-advisors.service";
 
 const s3Mocks = vi.hoisted(() => ({
+  deleteObject: vi.fn<(input: DeleteObjectInput) => Promise<void>>(async () => {
+    await Promise.resolve();
+  }),
   getPresigned: vi.fn<(input: GetPresignedInput) => Promise<string>>(
     async () => await Promise.resolve("https://storage.test/document"),
   ),
@@ -350,6 +353,28 @@ describe("team advisors router", () => {
     ).rejects.toMatchObject({ code: "FILE_TYPE_NOT_ALLOWED", status: 415 });
     expect(s3Mocks.putObject).not.toHaveBeenCalled();
     expect(replaceDocument).not.toHaveBeenCalled();
+  });
+
+  it("deletes an uploaded document when the advisor disappears before replacement", async () => {
+    const repository = createTeamAdvisorRepository({
+      replaceDocument: async () => await Promise.resolve(null),
+    });
+    const router = createRouter(repository);
+    const { context } = createTestContext();
+    s3Mocks.deleteObject.mockClear();
+
+    await expect(
+      call(
+        router.identityDocument,
+        { file: pdfFile(), teamId: TEAM_ID },
+        { context, path: ["teamAdvisors", "identityDocument"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_ADVISOR_NOT_FOUND", status: 404 });
+    const deleteInput = s3Mocks.deleteObject.mock.calls[0]?.[0];
+    expect(deleteInput?.bucket).toBe("uploads");
+    expect(deleteInput?.key).toMatch(
+      new RegExp(`^team-advisors/${ADVISOR_ID}/documents/identity/[0-9a-f-]{36}$`, "u"),
+    );
   });
 
   it("requires authentication before creating an advisor", async () => {

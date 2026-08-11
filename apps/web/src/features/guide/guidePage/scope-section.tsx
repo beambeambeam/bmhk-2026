@@ -130,8 +130,8 @@ export default function ScopeSection() {
               <p className="fl-lead leading-[1.5] font-light">{SCOPE_INTRO}</p>
             </div>
             <a
-              href="/"
-              download=""
+              href="/bangmod-hackathon-2026-competition-handbook.pdf"
+              download="bangmod-hackathon-2026-competition-handbook.pdf"
               className="mm-press mm-pdf-cta flex shrink-0 items-center gap-[calc(12px_+_8*var(--fl))] self-start rounded-[100px] bg-brand-red py-[calc(9.844px_+_6.156*var(--fl))] pr-[calc(24px_+_12*var(--fl))] pl-[calc(16px_+_8*var(--fl))] text-white lg:self-auto"
             >
               {/* a download arrow leans the way it points on hover */}

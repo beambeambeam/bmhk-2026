@@ -5,6 +5,9 @@ import { orpc } from "@bmhk-2026/client/orpc";
 
 export const Route = createFileRoute("/_site/status")({
   component: HomeComponent,
+  head: () => ({
+    meta: [{ content: "noindex, nofollow", name: "robots" }],
+  }),
 });
 
 function HomeComponent() {

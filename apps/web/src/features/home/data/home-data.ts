@@ -7,7 +7,7 @@ export const HERO_LINES = [
  * `1235:77` / `1297:2051` — a single line Figma now sets 20px BELOW the hero CTA (not
  * between the paragraph and the pill), in Gray 02 rather than the paragraph's ink.
  */
-export const HERO_FREE_NOTE = "สมัครฟรี ไม่มีค่าใช้จ่าย";
+export const HERO_FREE_NOTE = "เปิดรับสมัคร 17 ส.ค. – 20 ก.ย. 2569 · ไม่มีค่าใช้จ่ายในการสมัคร";
 
 /** Gradient highlight cards in the calendar section. */
 export const TIMELINE_HIGHLIGHTS = [
@@ -34,7 +34,7 @@ export const STEP_CARDS = [
   },
   {
     body: "ทุกทีมต้องมีอาจารย์ที่ปรึกษาประจำทีม จำนวน 1 คน ซึ่งต้องเป็นอาจารย์จากสถานศึกษาเดียวกันกับผู้เข้าแข่งขัน ทั้งนี้ แต่ละสถานศึกษาส่งทีมเข้าร่วมการแข่งขันได้ไม่เกิน 2 ทีม",
-    title: "อาจารย์ที่ปรึกษา",
+    title: "แต่งตั้งอาจารย์ที่ปรึกษาประจำทีม",
   },
 ];
 

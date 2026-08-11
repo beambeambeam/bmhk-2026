@@ -86,13 +86,13 @@ export const FOOTER_GROUPS = [
       heading: "หน้าหลัก",
       links: [
         { label: "ปฏิทินการแข่งขัน", to: "/#calendar" },
-        { label: "ขั้นตอนสมัครเข้าแข่งขัน", to: "/#steps" },
+        { label: "ขั้นตอนการสมัคร", to: "/#steps" },
         { label: "รางวัลของการแข่งขัน", to: "/#prizes" },
       ],
     },
     {
       heading: "หอเกียรติยศ",
-      links: [{ label: "เกี่ยวกับการแข่งขัน", to: "/hall-of-fame" }],
+      links: [{ label: "ทำเนียบผู้ได้รับรางวัล", to: "/hall-of-fame" }],
     },
   ],
   [
@@ -122,7 +122,8 @@ export const SOCIAL_LINKS = [
 
 export const FOOTER_ABOUT = {
   body: "จัดโดย ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี (มจธ.) อาคารวิศววัฒนะ ชั้น 10–11 เลขที่ 126 ถ.ประชาอุทิศ แขวงบางมด เขตทุ่งครุ กรุงเทพฯ 10140",
-  copyright: "© 2026 Bangmod Hackathon, Department of Computer Engineering. All rights reserved.",
+  copyright:
+    "© 2026 BangMod Hackathon, Department of Computer Engineering, KMUTT. All rights reserved.",
   /*
    * The project title, carried as LINES rather than one string — the same shape as
    * `HERO_LINES` above and `TIMELINE_STEPS[].lines`, and rendered the same way (one `<p>`,

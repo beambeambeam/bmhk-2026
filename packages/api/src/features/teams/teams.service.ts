@@ -3,6 +3,7 @@ import { createError } from "evlog";
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
 import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
+import type { FileStorage } from "../files/files.storage";
 import type { TeamRepository } from "./teams.repository";
 import type {
   CreateTeamData,
@@ -84,7 +85,7 @@ export function createTeamListPagination({
   };
 }
 
-export function createTeamService(repository: TeamRepository): TeamService {
+export function createTeamService(repository: TeamRepository, storage: FileStorage): TeamService {
   return {
     create: async (userId, data) => {
       const existingTeam = await repository.findByUserId(userId);
@@ -110,7 +111,7 @@ export function createTeamService(repository: TeamRepository): TeamService {
 
       return {
         ...team,
-        image: team.image === null ? null : await toPublicFileWithUrl(team.image),
+        image: team.image === null ? null : await toPublicFileWithUrl(team.image, storage),
       };
     },
     list: async (userId, pagination) => {
@@ -141,6 +142,7 @@ export function createTeamService(repository: TeamRepository): TeamService {
         file,
         keyPrefix: `teams/${id}/images`,
         kind: "image",
+        storage,
         uploadedBy: userId,
       });
       const result = await repository.replaceImage(userId, id, storedFile);

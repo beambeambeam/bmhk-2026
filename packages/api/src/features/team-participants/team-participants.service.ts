@@ -3,6 +3,7 @@ import { createError } from "evlog";
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
 import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
+import type { FileStorage } from "../files/files.storage";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type {
   TeamParticipantRepository,
@@ -89,13 +90,16 @@ export function getTeamParticipantDocumentPath(type: TeamParticipantDocumentType
 
 async function toTeamParticipantDetails(
   participant: TeamParticipantWithStoredDocuments,
+  storage: FileStorage,
 ): Promise<TeamParticipantDetails> {
   const [academicRecordDocument, identityDocument, portraitPhoto] = await Promise.all([
     participant.academicRecordDocument
-      ? toPublicFileWithUrl(participant.academicRecordDocument)
+      ? toPublicFileWithUrl(participant.academicRecordDocument, storage)
       : null,
-    participant.identityDocument ? toPublicFileWithUrl(participant.identityDocument) : null,
-    participant.portraitPhoto ? toPublicFileWithUrl(participant.portraitPhoto) : null,
+    participant.identityDocument
+      ? toPublicFileWithUrl(participant.identityDocument, storage)
+      : null,
+    participant.portraitPhoto ? toPublicFileWithUrl(participant.portraitPhoto, storage) : null,
   ]);
   const {
     academicRecordDocument: _academicRecordDocument,
@@ -117,6 +121,7 @@ async function toTeamParticipantDetails(
 
 export function createTeamParticipantService(
   repository: TeamParticipantRepository,
+  storage: FileStorage,
 ): TeamParticipantService {
   return {
     create: async (userId, data) => {
@@ -133,7 +138,7 @@ export function createTeamParticipantService(
         throw createTeamParticipantNotFoundError();
       }
 
-      return await toTeamParticipantDetails(participant);
+      return await toTeamParticipantDetails(participant, storage);
     },
     list: async (userId, teamId) => {
       const participants = await repository.listByTeamId(userId, teamId);
@@ -141,7 +146,11 @@ export function createTeamParticipantService(
         throw createTeamNotFoundError();
       }
 
-      return await Promise.all(participants.map(toTeamParticipantDetails));
+      return await Promise.all(
+        participants.map(
+          async (participant) => await toTeamParticipantDetails(participant, storage),
+        ),
+      );
     },
     update: async (userId, teamId, index, data) => {
       const participant = await repository.update(userId, teamId, index, data);
@@ -161,6 +170,7 @@ export function createTeamParticipantService(
         file,
         keyPrefix: `team-participants/${participant.id}/documents/${getTeamParticipantDocumentPath(documentType)}`,
         kind: documentType === "portraitPhoto" ? "image" : "pdf",
+        storage,
         uploadedBy: userId,
       });
       const updatedParticipant = await repository.replaceDocument(

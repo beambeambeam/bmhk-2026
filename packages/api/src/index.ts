@@ -5,6 +5,7 @@ export type { ApiRole, ApiSession, ApiUser, AuthReader } from "./core/auth";
 export type { ApiContext } from "./core/context";
 export type { TeamRepository } from "./features/teams/teams.repository";
 export type { FileRepository } from "./features/files/files.repository";
+export type { FileStorage } from "./features/files/files.storage";
 export type { TeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
 export type { TeamConsentRepository } from "./features/team-consents/team-consents.repository";
 export { allowedFileContentTypes, MAX_FILE_SIZE_BYTES } from "./features/files/files.schema";

@@ -6,6 +6,8 @@ import { createHealthRouter } from "./features/health/health.router";
 import { createFileRepository } from "./features/files/files.repository";
 import { createFilesRouter } from "./features/files/files.router";
 import { createFileService } from "./features/files/files.service";
+import type { FileStorage } from "./features/files/files.storage";
+import { createS3FileStorage } from "./features/files/files.storage";
 import { createPrivateDataRouter } from "./features/private-data/private-data.router";
 import type { FileRepository } from "./features/files/files.repository";
 import type { TeamRepository } from "./features/teams/teams.repository";
@@ -31,6 +33,7 @@ import { createTeamRegistrationStatusService } from "./features/team-registratio
 
 export interface ApiDependencies {
   auth: AuthReader;
+  fileStorage?: FileStorage;
   /** Optional overrides keep feature tests isolated; production uses API-owned repositories. */
   files?: FileRepository;
   teams?: TeamRepository;
@@ -50,14 +53,15 @@ export function createAppRouter(dependencies: ApiDependencies) {
   const teamRegistrationStatusRepository =
     dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository();
   const fileRepository = dependencies.files ?? createFileRepository();
+  const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
 
   return {
-    files: createFilesRouter(protectedProcedure, createFileService(fileRepository)),
+    files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
     teamAdvisors: createTeamAdvisorsRouter(
       protectedProcedure,
-      createTeamAdvisorService(teamAdvisorRepository),
+      createTeamAdvisorService(teamAdvisorRepository, fileStorage),
     ),
     teamConsents: createTeamConsentsRouter(
       protectedProcedure,
@@ -65,13 +69,13 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamParticipants: createTeamParticipantsRouter(
       protectedProcedure,
-      createTeamParticipantService(teamParticipantRepository),
+      createTeamParticipantService(teamParticipantRepository, fileStorage),
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
       protectedProcedure,
       createTeamRegistrationStatusService(teamRegistrationStatusRepository),
     ),
-    teams: createTeamsRouter(protectedProcedure, createTeamService(teamRepository)),
+    teams: createTeamsRouter(protectedProcedure, createTeamService(teamRepository, fileStorage)),
   };
 }
 

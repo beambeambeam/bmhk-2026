@@ -3,6 +3,7 @@ import { createError } from "evlog";
 import { toError } from "../../core/errors";
 import type { CreateStoredFileData } from "../files/files.schema";
 import { storeUploadedFile, toPublicFileWithUrl } from "../files/files.service";
+import type { FileStorage } from "../files/files.storage";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamAdvisorRepository } from "./team-advisors.repository";
 import type {
@@ -68,7 +69,10 @@ export function getTeamAdvisorDocumentPath(documentType: TeamAdvisorDocumentType
   return documentType === "identity" ? "identity" : "teacher-status";
 }
 
-export function createTeamAdvisorService(repository: TeamAdvisorRepository): TeamAdvisorService {
+export function createTeamAdvisorService(
+  repository: TeamAdvisorRepository,
+  storage: FileStorage,
+): TeamAdvisorService {
   return {
     create: async (userId, data) => {
       const advisor = await repository.create(userId, data);
@@ -85,8 +89,10 @@ export function createTeamAdvisorService(repository: TeamAdvisorRepository): Tea
       }
 
       const [identityDocument, teacherStatusDocument] = await Promise.all([
-        advisor.identityDocument ? toPublicFileWithUrl(advisor.identityDocument) : null,
-        advisor.teacherStatusDocument ? toPublicFileWithUrl(advisor.teacherStatusDocument) : null,
+        advisor.identityDocument ? toPublicFileWithUrl(advisor.identityDocument, storage) : null,
+        advisor.teacherStatusDocument
+          ? toPublicFileWithUrl(advisor.teacherStatusDocument, storage)
+          : null,
       ]);
       const {
         identityDocument: _identityDocument,
@@ -120,6 +126,7 @@ export function createTeamAdvisorService(repository: TeamAdvisorRepository): Tea
         file,
         keyPrefix: `team-advisors/${advisor.id}/documents/${getTeamAdvisorDocumentPath(documentType)}`,
         kind: "pdf",
+        storage,
         uploadedBy: userId,
       });
       const updatedAdvisor = await repository.replaceDocument(

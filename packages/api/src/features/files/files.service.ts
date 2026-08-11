@@ -1,5 +1,4 @@
 import { env } from "@bmhk-2026/env/server";
-import { deleteObject, getPresigned, putObject } from "@bmhk-2026/s3";
 import { createError } from "evlog";
 
 import { toError } from "../../core/errors";
@@ -11,6 +10,7 @@ import type {
   StoredFile,
 } from "./files.schema";
 import type { FileRepository } from "./files.repository";
+import type { FileStorage } from "./files.storage";
 
 export interface FileServiceLog {
   error: (error: Error) => void;
@@ -264,14 +264,16 @@ export function toPublicFile(file: StoredFile): PublicFile {
   };
 }
 
-export async function toPublicFileWithUrl(file: StoredFile): Promise<PublicFileWithUrl> {
+export async function toPublicFileWithUrl(
+  file: StoredFile,
+  storage: FileStorage,
+): Promise<PublicFileWithUrl> {
   let url: string;
   try {
-    url = await getPresigned({
+    url = await storage.getDownloadUrl({
       bucket: file.bucket,
       contentType: file.contentType,
-      key: file.objectKey,
-      method: "GET",
+      objectKey: file.objectKey,
       originalName: file.originalName,
     });
   } catch (error) {
@@ -284,17 +286,19 @@ export async function uploadValidatedFile({
   bucket,
   file,
   objectKey,
+  storage,
 }: {
   bucket: string;
   file: ValidatedUpload;
   objectKey: string;
+  storage: FileStorage;
 }): Promise<void> {
   try {
-    await putObject({
+    await storage.upload({
       body: file.body,
       bucket,
       contentType: file.contentType,
-      key: objectKey,
+      objectKey,
       originalName: file.originalName,
     });
   } catch (error) {
@@ -330,11 +334,13 @@ export async function storeUploadedFile({
   file,
   keyPrefix,
   kind,
+  storage,
   uploadedBy,
 }: {
   file: File;
   keyPrefix: string;
   kind: StoredUploadKind;
+  storage: FileStorage;
   uploadedBy: string;
 }): Promise<CreateStoredFileData> {
   let validated: ValidatedUpload;
@@ -348,10 +354,10 @@ export async function storeUploadedFile({
   }
 
   const id = crypto.randomUUID();
-  const bucket = env.AWS_S3_BUCKET;
+  const { bucket } = storage;
   const objectKey = `${keyPrefix}/${id}`;
 
-  await uploadValidatedFile({ bucket, file: validated, objectKey });
+  await uploadValidatedFile({ bucket, file: validated, objectKey, storage });
   return createStoredFileData({
     bucket,
     file: validated,
@@ -365,16 +371,18 @@ export async function saveFileMetadata({
   create,
   data,
   log,
+  storage,
 }: {
   create: (data: CreateStoredFileData) => Promise<StoredFile>;
   data: CreateStoredFileData;
   log: FileServiceLog;
+  storage: FileStorage;
 }): Promise<StoredFile> {
   try {
     return await create(data);
   } catch (error) {
     try {
-      await deleteObject({ bucket: data.bucket, key: data.objectKey });
+      await storage.delete({ bucket: data.bucket, objectKey: data.objectKey });
     } catch (cleanupError) {
       log.set({
         event: "file.upload.rollback_failed",
@@ -396,7 +404,7 @@ export async function saveFileMetadata({
   }
 }
 
-export function createFileService(repository: FileRepository): FileService {
+export function createFileService(repository: FileRepository, storage: FileStorage): FileService {
   return {
     get: async (userId, id) => {
       const file = await repository.findById(userId, id);
@@ -404,7 +412,7 @@ export function createFileService(repository: FileRepository): FileService {
         throw createFileNotFoundError();
       }
 
-      return await toPublicFileWithUrl(file);
+      return await toPublicFileWithUrl(file, storage);
     },
     upload: async ({ file, log, userId }) => {
       const storedFile = await saveFileMetadata({
@@ -413,9 +421,11 @@ export function createFileService(repository: FileRepository): FileService {
           file,
           keyPrefix: "files",
           kind: "file",
+          storage,
           uploadedBy: userId,
         }),
         log,
+        storage,
       });
 
       return toPublicFile(storedFile);

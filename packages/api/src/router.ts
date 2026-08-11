@@ -30,6 +30,10 @@ import type { TeamRegistrationStatusRepository } from "./features/team-registrat
 import { createTeamRegistrationStatusRepository } from "./features/team-registration-status/team-registration-status.repository";
 import { createTeamRegistrationStatusRouter } from "./features/team-registration-status/team-registration-status.router";
 import { createTeamRegistrationStatusService } from "./features/team-registration-status/team-registration-status.service";
+import type { TeamRegistrationReviewRepository } from "./features/team-registration-reviews/team-registration-reviews.repository";
+import { createTeamRegistrationReviewRepository } from "./features/team-registration-reviews/team-registration-reviews.repository";
+import { createTeamRegistrationReviewsRouter } from "./features/team-registration-reviews/team-registration-reviews.router";
+import { createTeamRegistrationReviewService } from "./features/team-registration-reviews/team-registration-reviews.service";
 
 export interface ApiDependencies {
   auth: AuthReader;
@@ -41,6 +45,7 @@ export interface ApiDependencies {
   teamConsents?: TeamConsentRepository;
   teamParticipants?: TeamParticipantRepository;
   teamRegistrationStatus?: TeamRegistrationStatusRepository;
+  teamRegistrationReviews?: TeamRegistrationReviewRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -58,6 +63,8 @@ export function createAppRouter(dependencies: ApiDependencies) {
   const teamConsentRepository = dependencies.teamConsents ?? createTeamConsentRepository();
   const teamRegistrationStatusRepository =
     dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository();
+  const teamRegistrationReviewRepository =
+    dependencies.teamRegistrationReviews ?? createTeamRegistrationReviewRepository();
   const fileRepository = dependencies.files ?? createFileRepository();
   const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
 
@@ -77,6 +84,11 @@ export function createAppRouter(dependencies: ApiDependencies) {
     teamParticipants: createTeamParticipantsRouter(
       teamAccessProcedure,
       createTeamParticipantService(teamParticipantRepository, fileStorage, fileRepository),
+    ),
+    teamRegistrationReviews: createTeamRegistrationReviewsRouter(
+      registrationProcedure,
+      teamOwnerProcedure,
+      createTeamRegistrationReviewService(teamRegistrationReviewRepository),
     ),
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
       teamAccessProcedure,

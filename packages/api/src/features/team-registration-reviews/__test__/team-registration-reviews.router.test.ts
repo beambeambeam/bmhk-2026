@@ -33,6 +33,14 @@ const approvedReview = {
   updatedAt: REVIEWED_AT,
 } satisfies TeamRegistrationReview;
 
+const changeRequestedReview = {
+  ...approvedReview,
+  advisorIssueCodes: ["IDENTITY_DOCUMENT_UNREADABLE"],
+  internalNotes: "Advisor and participant 2 documents need attention",
+  participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
+  status: "CHANGES_REQUESTED",
+} satisfies TeamRegistrationReview;
+
 function createRouter(repository: TeamRegistrationReviewRepository, auth: AuthReader) {
   return createAppRouter({
     auth,
@@ -41,6 +49,122 @@ function createRouter(repository: TeamRegistrationReviewRepository, auth: AuthRe
 }
 
 describe("team registration reviews router", () => {
+  it("shows a Team Owner only per-subject Review Feedback for their Team", async () => {
+    const findByTeamId = vi.fn<TeamRegistrationReviewRepository["findByTeamId"]>(async (access) => {
+      expect(access).toStrictEqual({ actorId: "user-1", scope: "OWN_TEAM" });
+      return await Promise.resolve({ review: changeRequestedReview, teamId: TEAM_ID });
+    });
+    const router = createRouter(
+      {
+        findByTeamId,
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.feedback,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationReviews", "feedback"] },
+      ),
+    ).resolves.toStrictEqual({
+      advisor: "CHANGES_REQUESTED",
+      participant1: "APPROVED",
+      participant2: "CHANGES_REQUESTED",
+      participant3: "APPROVED",
+      status: "CHANGES_REQUESTED",
+      statusUpdatedAt: REVIEWED_AT,
+    });
+    expect(log.audit).not.toHaveBeenCalled();
+  });
+
+  it("shows every subject as pending before the Team has a review", async () => {
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve({ review: null, teamId: TEAM_ID }),
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.feedback,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationReviews", "feedback"] },
+      ),
+    ).resolves.toStrictEqual({
+      advisor: "PENDING_REVIEW",
+      participant1: "PENDING_REVIEW",
+      participant2: "PENDING_REVIEW",
+      participant3: "PENDING_REVIEW",
+      status: "PENDING_REVIEW",
+      statusUpdatedAt: null,
+    });
+  });
+
+  it("shows every subject as approved when the whole review is approved", async () => {
+    const router = createRouter(
+      {
+        findByTeamId: async () =>
+          await Promise.resolve({
+            review: {
+              ...approvedReview,
+              advisorIssueCodes: ["STALE_ISSUE_MUST_NOT_LEAK"],
+              participant1IssueCodes: ["STALE_ISSUE_MUST_NOT_LEAK"],
+              participant2IssueCodes: ["STALE_ISSUE_MUST_NOT_LEAK"],
+              participant3IssueCodes: ["STALE_ISSUE_MUST_NOT_LEAK"],
+            },
+            teamId: TEAM_ID,
+          }),
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.feedback,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationReviews", "feedback"] },
+      ),
+    ).resolves.toStrictEqual({
+      advisor: "APPROVED",
+      participant1: "APPROVED",
+      participant2: "APPROVED",
+      participant3: "APPROVED",
+      status: "APPROVED",
+      statusUpdatedAt: REVIEWED_AT,
+    });
+  });
+
+  it("does not expose Review Feedback for a Team the owner does not own", async () => {
+    const findByTeamId = vi.fn<TeamRegistrationReviewRepository["findByTeamId"]>(async (access) => {
+      expect(access).toStrictEqual({ actorId: "user-1", scope: "OWN_TEAM" });
+      return await Promise.resolve(null);
+    });
+    const router = createRouter(
+      {
+        findByTeamId,
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.feedback,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationReviews", "feedback"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+  });
+
   it("keeps reviews private from Team Owners", async () => {
     const findByTeamId = vi.fn<TeamRegistrationReviewRepository["findByTeamId"]>(
       async () => await Promise.resolve({ review: approvedReview, teamId: TEAM_ID }),

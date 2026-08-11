@@ -1,0 +1,1 @@
+ALTER TABLE "team_consents" ADD COLUMN "signed_at" timestamp with time zone DEFAULT now() NOT NULL;

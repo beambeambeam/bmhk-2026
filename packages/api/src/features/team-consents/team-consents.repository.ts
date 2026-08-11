@@ -19,14 +19,31 @@ import {
 import { createTeamAccessCondition } from "../teams/teams.repository";
 
 export interface TeamConsentRepository {
-  create: (access: TeamAccessContext, data: CreateTeamConsentData) => Promise<TeamConsent | null>;
+  create: (
+    access: TeamAccessContext,
+    data: CreateTeamConsentRecordData,
+  ) => Promise<TeamConsent | null>;
   findByTeamId: (access: TeamAccessContext, teamId: string) => Promise<TeamConsent | null>;
   update: (
     access: TeamAccessContext,
     teamId: string,
-    data: UpdateTeamConsentData,
+    data: UpdateTeamConsentRecordData,
   ) => Promise<TeamConsentUpdateResult | null>;
 }
+
+export type TeamConsentTimestampData = Pick<
+  TeamConsent,
+  | "codernTermsAcceptedAt"
+  | "competitionRulesAcceptedAt"
+  | "guardianConsentObtainedAt"
+  | "healthDataConsentAt"
+  | "privacyPolicyAcceptedAt"
+  | "publicityMediaConsentAt"
+>;
+
+export type CreateTeamConsentRecordData = CreateTeamConsentData & TeamConsentTimestampData;
+
+export type UpdateTeamConsentRecordData = UpdateTeamConsentData & Partial<TeamConsentTimestampData>;
 
 export interface TeamConsentUpdateResult {
   consent: TeamConsent;

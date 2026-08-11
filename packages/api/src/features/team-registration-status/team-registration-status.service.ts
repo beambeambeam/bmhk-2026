@@ -8,9 +8,14 @@ import type {
   TeamRegistrationStatusFacts,
   TeamRegistrationStatusRepository,
 } from "./team-registration-status.repository";
+import {
+  createTeamRegistrationAlreadySubmittedError,
+  createTeamRegistrationIncompleteError,
+} from "./team-registration-status.errors";
 
 export interface TeamRegistrationStatusService {
   get: (access: TeamAccessContext, teamId: string) => Promise<TeamRegistrationStatus>;
+  submit: (access: TeamAccessContext, teamId: string) => Promise<TeamRegistrationStatus>;
 }
 
 const COMPLETED: TeamRegistrationItemStatus = "COMPLETED";
@@ -105,6 +110,8 @@ export function calculateTeamRegistrationStatus(
     participant1,
     participant2,
     participant3,
+    submissionState: facts.team.submittedAt === null ? "DRAFT" : "SUBMITTED",
+    submittedAt: facts.team.submittedAt,
     team,
     teamId: facts.team.id,
     termsAndConditions,
@@ -113,6 +120,7 @@ export function calculateTeamRegistrationStatus(
 
 export function createTeamRegistrationStatusService(
   repository: TeamRegistrationStatusRepository,
+  now: () => Date = () => new Date(),
 ): TeamRegistrationStatusService {
   return {
     get: async (access, teamId) => {
@@ -122,6 +130,35 @@ export function createTeamRegistrationStatusService(
       }
 
       return calculateTeamRegistrationStatus(facts);
+    },
+    submit: async (access, teamId) => {
+      const facts = await repository.findByTeamId(access, teamId);
+      if (!facts) {
+        throw createTeamNotFoundError();
+      }
+
+      const status = calculateTeamRegistrationStatus(facts);
+      if (status.submissionState === "SUBMITTED") {
+        throw createTeamRegistrationAlreadySubmittedError();
+      }
+      if (!status.isComplete) {
+        throw createTeamRegistrationIncompleteError();
+      }
+
+      const submittedAt = now();
+      const result = await repository.submit(access, teamId, submittedAt);
+      if (result === "NOT_FOUND") {
+        throw createTeamNotFoundError();
+      }
+      if (result === "ALREADY_SUBMITTED") {
+        throw createTeamRegistrationAlreadySubmittedError();
+      }
+
+      return {
+        ...status,
+        submissionState: "SUBMITTED",
+        submittedAt,
+      };
     },
   };
 }

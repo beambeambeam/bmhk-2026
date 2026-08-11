@@ -30,6 +30,7 @@ export interface TeamRegistrationStatusFacts {
     memberCount: number;
     name: string;
     school: string;
+    submittedAt: Date | null;
   };
 }
 
@@ -38,7 +39,14 @@ export interface TeamRegistrationStatusRepository {
     access: TeamAccessContext,
     teamId: string,
   ) => Promise<TeamRegistrationStatusFacts | null>;
+  submit: (
+    access: TeamAccessContext,
+    teamId: string,
+    submittedAt: Date,
+  ) => Promise<TeamRegistrationSubmissionResult>;
 }
+
+export type TeamRegistrationSubmissionResult = "ALREADY_SUBMITTED" | "NOT_FOUND" | "SUBMITTED";
 
 type Database = typeof db;
 
@@ -72,6 +80,7 @@ export function createTeamRegistrationStatusRepository(
                   teamMemberCount: teams.memberCount,
                   teamName: teams.name,
                   teamSchool: teams.school,
+                  teamSubmittedAt: teams.registrationSubmittedAt,
                 })
                 .from(teams)
                 .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
@@ -120,11 +129,41 @@ export function createTeamRegistrationStatusRepository(
                   memberCount: firstRow.teamMemberCount,
                   name: firstRow.teamName,
                   school: firstRow.teamSchool,
+                  submittedAt: firstRow.teamSubmittedAt,
                 },
               };
             },
             { accessMode: "read only", isolationLevel: "repeatable read" },
           ),
+      ),
+    submit: async (access, teamId, submittedAt) =>
+      await execute(
+        async () =>
+          await database.transaction(async (transaction) => {
+            const [team] = await transaction
+              .select({ submittedAt: teams.registrationSubmittedAt })
+              .from(teams)
+              .where(createTeamAccessCondition(access, teamId))
+              .for("update")
+              .limit(1);
+            if (!team) {
+              return "NOT_FOUND";
+            }
+            if (team.submittedAt !== null) {
+              return "ALREADY_SUBMITTED";
+            }
+
+            const [submittedTeam] = await transaction
+              .update(teams)
+              .set({ registrationSubmittedAt: submittedAt })
+              .where(createTeamAccessCondition(access, teamId))
+              .returning({ id: teams.id });
+            if (!submittedTeam) {
+              throw new Error("Team registration submission update returned no row");
+            }
+
+            return "SUBMITTED";
+          }),
       ),
   };
 }

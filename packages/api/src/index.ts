@@ -40,11 +40,13 @@ export type { TeamAdvisorDocumentType } from "./features/team-advisors/team-advi
 export type { TeamParticipantRepository } from "./features/team-participants/team-participants.repository";
 export type { TeamParticipantDocumentType } from "./features/team-participants/team-participants.schema";
 export type {
+  TeamRegistrationSubmissionResult,
   TeamRegistrationStatusFacts,
   TeamRegistrationStatusRepository,
 } from "./features/team-registration-status/team-registration-status.repository";
 export type {
   TeamRegistrationItemStatus,
+  TeamRegistrationSubmissionState,
   TeamRegistrationStatus,
 } from "./features/team-registration-status/team-registration-status.schema";
 export type { TeamRegistrationReviewRepository } from "./features/team-registration-reviews/team-registration-reviews.repository";
@@ -56,6 +58,7 @@ export type {
 } from "./features/team-registration-reviews/team-registration-reviews.schema";
 export { teamRegistrationReviewStatusValues } from "./features/team-registration-reviews/team-registration-reviews.schema";
 export { teamRegistrationItemStatusValues } from "./features/team-registration-status/team-registration-status.schema";
+export { teamRegistrationSubmissionStateValues } from "./features/team-registration-status/team-registration-status.schema";
 export type {
   CreateTeamParticipantData,
   TeamParticipant,

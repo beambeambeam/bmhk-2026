@@ -1,6 +1,7 @@
 import { createError } from "evlog";
 
 import type { FileRepository } from "../files/files.repository";
+import type { TeamAccessContext } from "../../core/auth";
 import type { CreateStoredFileData } from "../files/files.schema";
 import type { FileServiceLog } from "../files/files.service";
 import {
@@ -28,15 +29,18 @@ export interface TeamImageUploadResult {
 
 export interface TeamService {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
-  delete: (userId: string, id: string) => Promise<{ id: string }>;
-  get: (userId: string, id: string) => Promise<TeamDetails>;
-  list: (userId: string, pagination: { limit: number; offset: number }) => Promise<TeamListResult>;
-  update: (userId: string, id: string, data: UpdateTeamData) => Promise<Team>;
+  delete: (access: TeamAccessContext, id: string) => Promise<{ id: string }>;
+  get: (access: TeamAccessContext, id: string) => Promise<TeamDetails>;
+  list: (
+    access: TeamAccessContext,
+    pagination: { limit: number; offset: number },
+  ) => Promise<TeamListResult>;
+  update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team>;
   uploadImage: (input: {
+    access: TeamAccessContext;
     file: File;
     id: string;
     log: FileServiceLog;
-    userId: string;
   }) => Promise<TeamImageUploadResult>;
 }
 
@@ -84,16 +88,16 @@ export function createTeamService(
 
       return await repository.create(userId, data);
     },
-    delete: async (userId, id) => {
-      const deleted = await repository.delete(userId, id);
+    delete: async (access, id) => {
+      const deleted = await repository.delete(access, id);
       if (!deleted) {
         throw createTeamNotFoundError();
       }
 
       return { id };
     },
-    get: async (userId, id) => {
-      const team = await repository.findById(userId, id);
+    get: async (access, id) => {
+      const team = await repository.findById(access, id);
       if (!team) {
         throw createTeamNotFoundError();
       }
@@ -103,8 +107,8 @@ export function createTeamService(
         image: team.image === null ? null : await toPublicFileWithUrl(team.image, storage),
       };
     },
-    list: async (userId, pagination) => {
-      const result = await repository.list(userId, pagination);
+    list: async (access, pagination) => {
+      const result = await repository.list(access, pagination);
       return {
         data: result.data,
         pagination: createTeamListPagination({
@@ -113,16 +117,16 @@ export function createTeamService(
         }),
       };
     },
-    update: async (userId, id, data) => {
-      const team = await repository.update(userId, id, data);
+    update: async (access, id, data) => {
+      const team = await repository.update(access, id, data);
       if (!team) {
         throw createTeamNotFoundError();
       }
 
       return team;
     },
-    uploadImage: async ({ file, id, log, userId }) => {
-      const existingTeam = await repository.findById(userId, id);
+    uploadImage: async ({ access, file, id, log }) => {
+      const existingTeam = await repository.findById(access, id);
       if (!existingTeam) {
         throw createTeamNotFoundError();
       }
@@ -132,13 +136,13 @@ export function createTeamService(
         keyPrefix: `teams/${id}/images`,
         kind: "image",
         storage,
-        uploadedBy: userId,
+        uploadedBy: access.actorId,
       });
       const result = await persistUploadedFile({
         data: storedFile,
         log,
         persist: async (data) => {
-          const replacement = await repository.replaceImage(userId, id, data);
+          const replacement = await repository.replaceImage(access, id, data);
           if (replacement === null) {
             throw createTeamNotFoundError();
           }
@@ -152,7 +156,7 @@ export function createTeamService(
         log,
         repository: fileRepository,
         storage,
-        userId,
+        userId: access.actorId,
       });
 
       return { file: storedFile, team: result.team };

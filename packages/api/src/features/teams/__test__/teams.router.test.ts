@@ -7,6 +7,7 @@ import type {
   FileRepository,
   StoredFile,
   Team,
+  TeamAccessContext,
   TeamAward,
   TeamRepository,
 } from "../../../index";
@@ -15,6 +16,7 @@ import type { TeamWithStoredImage } from "../teams.repository";
 import {
   createTestAuthReader as createAuthReader,
   createTestContext as createContext,
+  createTestSession,
   createUnusedFileRepository,
 } from "../../../__test__/test-support";
 
@@ -332,7 +334,7 @@ describe("teams router", () => {
     },
   ])("returns owner-scoped pagination metadata", async ({ expected, input, total }) => {
     async function list(
-      _userId: string,
+      _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
     ): Promise<{ data: Team[]; total: number }> {
       return await Promise.resolve({ data: total > 0 ? [testTeam] : [], total });
@@ -354,7 +356,7 @@ describe("teams router", () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as Team;
     async function list(
-      _userId: string,
+      _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
     ): Promise<{ data: Team[]; total: number }> {
       return await Promise.resolve({ data: [malformedTeam], total: 1 });
@@ -382,6 +384,26 @@ describe("teams router", () => {
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
     ).resolves.toStrictEqual(testTeam);
     expect(getPresigned).not.toHaveBeenCalled();
+  });
+
+  it("gives registration staff cross-team access", async () => {
+    const repository = createTeamRepository({
+      findById: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
+        return await Promise.resolve(testTeam);
+      },
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
   });
 
   it("returns an owned team with public image metadata and URL", async () => {
@@ -543,7 +565,10 @@ describe("teams router", () => {
   it("rejects malformed team output", async () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as TeamWithStoredImage;
-    async function findById(_userId: string, _id: string): Promise<TeamWithStoredImage | null> {
+    async function findById(
+      _access: TeamAccessContext,
+      _id: string,
+    ): Promise<TeamWithStoredImage | null> {
       return await Promise.resolve(malformedTeam);
     }
 
@@ -578,8 +603,12 @@ describe("teams router", () => {
     { name: "foreign-owned", team: { ...testTeam, userId: "other-user" } },
   ])("returns the same not-found error for a $name team", async ({ team }) => {
     const repository = createTeamRepository({
-      findById: async (userId) =>
-        await Promise.resolve(team?.userId === userId ? { ...team, image: null } : null),
+      findById: async (access) =>
+        await Promise.resolve(
+          team && (access.scope === "ALL_TEAMS" || team.userId === access.actorId)
+            ? { ...team, image: null }
+            : null,
+        ),
     });
     const router = createRouter(repository);
     const { context } = createContext();

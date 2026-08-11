@@ -44,7 +44,8 @@ export interface ApiDependencies {
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
-  const { protectedProcedure, publicProcedure } = createProcedures(dependencies);
+  const { protectedProcedure, publicProcedure, teamAccessProcedure } =
+    createProcedures(dependencies);
   const teamAdvisorRepository = dependencies.teamAdvisors ?? createTeamAdvisorRepository();
   const teamRepository = dependencies.teams ?? createTeamRepository();
   const teamParticipantRepository =
@@ -77,6 +78,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teams: createTeamsRouter(
       protectedProcedure,
+      teamAccessProcedure,
       createTeamService(teamRepository, fileStorage, fileRepository),
     ),
   };

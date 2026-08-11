@@ -1,8 +1,9 @@
 import { os } from "@orpc/server";
+import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
-import type { ApiSession, AuthReader } from "./auth";
+import type { ApiSession, AuthReader, TeamAccessContext } from "./auth";
 import type { ApiContext } from "./context";
 
 export interface ProcedureDependencies {
@@ -71,11 +72,29 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     return await next({ context: { session } });
   });
 
+  const protectedProcedure = base.use(evlog()).use(requireAuth);
+  const teamAccessProcedure = protectedProcedure.use(async ({ context, next }) => {
+    const scope: TeamAccessContext["scope"] = hasRegistrationAccess(context.session.user.role)
+      ? "ALL_TEAMS"
+      : "OWN_TEAM";
+
+    return await next({
+      context: {
+        teamAccess: {
+          actorId: context.session.user.id,
+          scope,
+        },
+      },
+    });
+  });
+
   return {
-    protectedProcedure: base.use(evlog()).use(requireAuth),
+    protectedProcedure,
     publicProcedure: base.use(evlog()),
+    teamAccessProcedure,
   };
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
+export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];

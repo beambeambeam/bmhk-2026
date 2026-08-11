@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ProtectedProcedure } from "../../core/procedure";
+import type { ProtectedProcedure, TeamAccessProcedure } from "../../core/procedure";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamService } from "./teams.service";
 import {
@@ -15,7 +15,11 @@ import {
 
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
 
-export function createTeamsRouter(protectedProcedure: ProtectedProcedure, service: TeamService) {
+export function createTeamsRouter(
+  protectedProcedure: ProtectedProcedure,
+  teamAccessProcedure: TeamAccessProcedure,
+  service: TeamService,
+) {
   return {
     create: protectedProcedure
       .route({
@@ -29,7 +33,7 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    delete: protectedProcedure
+    delete: teamAccessProcedure
       .route({
         method: "DELETE",
         tags: ["Team"],
@@ -37,12 +41,12 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .input(teamIdInputSchema)
       .output(deleteTeamResultSchema)
       .handler(async ({ context, input }) => {
-        const result = await service.delete(context.session.user.id, input.id);
+        const result = await service.delete(context.teamAccess, input.id);
 
         context.log.set({ team: { id: input.id } });
         return result;
       }),
-    get: protectedProcedure
+    get: teamAccessProcedure
       .route({
         method: "GET",
         tags: ["Team"],
@@ -50,22 +54,22 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .input(teamIdInputSchema)
       .output(teamDetailsSchema)
       .handler(async ({ context, input }) => {
-        const team = await service.get(context.session.user.id, input.id);
+        const team = await service.get(context.teamAccess, input.id);
 
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    image: protectedProcedure
+    image: teamAccessProcedure
       .route({ method: "POST", tags: ["Team", "File"] })
       .input(imageSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
         assertAllowedOrigin(context.headers);
         const { file, team } = await service.uploadImage({
+          access: context.teamAccess,
           file: input.file,
           id: input.id,
           log: context.log,
-          userId: context.session.user.id,
         });
 
         context.log.set({
@@ -75,15 +79,15 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
 
         return team;
       }),
-    list: protectedProcedure
+    list: teamAccessProcedure
       .route({
         method: "GET",
         tags: ["Team"],
       })
       .input(listTeamsSchema)
       .output(teamListResultSchema)
-      .handler(async ({ context, input }) => await service.list(context.session.user.id, input)),
-    update: protectedProcedure
+      .handler(async ({ context, input }) => await service.list(context.teamAccess, input)),
+    update: teamAccessProcedure
       .route({
         method: "PATCH",
         tags: ["Team"],
@@ -91,7 +95,7 @@ export function createTeamsRouter(protectedProcedure: ProtectedProcedure, servic
       .input(updateTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
-        const team = await service.update(context.session.user.id, input.id, input.data);
+        const team = await service.update(context.teamAccess, input.id, input.data);
 
         context.log.set({ team: { id: team.id } });
         return team;

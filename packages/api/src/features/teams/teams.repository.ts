@@ -3,6 +3,7 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, eq } from "drizzle-orm";
+import type { TeamAccessContext } from "../../core/auth";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import {
@@ -16,16 +17,16 @@ import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
-  delete: (userId: string, id: string) => Promise<boolean>;
-  findById: (userId: string, id: string) => Promise<TeamWithStoredImage | null>;
+  delete: (access: TeamAccessContext, id: string) => Promise<boolean>;
+  findById: (access: TeamAccessContext, id: string) => Promise<TeamWithStoredImage | null>;
   findByUserId: (userId: string) => Promise<Team | null>;
   list: (
-    userId: string,
+    access: TeamAccessContext,
     pagination: { limit: number; offset: number },
   ) => Promise<{ data: Team[]; total: number }>;
-  update: (userId: string, id: string, data: UpdateTeamData) => Promise<Team | null>;
+  update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team | null>;
   replaceImage: (
-    userId: string,
+    access: TeamAccessContext,
     id: string,
     file: CreateStoredFileData,
   ) => Promise<{ previous: StoredFile | null; team: Team } | null>;
@@ -36,6 +37,13 @@ type Database = typeof db;
 export type TeamWithStoredImage = Omit<Team, "image"> & {
   image: StoredFile | null;
 };
+
+export function createTeamAccessCondition(access: TeamAccessContext, teamId: string) {
+  const targetTeam = eq(teams.id, teamId);
+  return access.scope === "ALL_TEAMS"
+    ? targetTeam
+    : and(targetTeam, eq(teams.userId, access.actorId));
+}
 
 export function createTeamRepository(database: Database = db): TeamRepository {
   const execute = createRepositoryExecutor(teamRepositoryError);
@@ -61,22 +69,22 @@ export function createTeamRepository(database: Database = db): TeamRepository {
         return rethrowRepositoryError(error, teamRepositoryError);
       }
     },
-    delete: async (userId, id) =>
+    delete: async (access, id) =>
       await execute(async () => {
         const [team] = await database
           .delete(teams)
-          .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+          .where(createTeamAccessCondition(access, id))
           .returning({ id: teams.id });
 
         return team !== undefined;
       }),
-    findById: async (userId, id) =>
+    findById: async (access, id) =>
       await execute(async () => {
         const [result] = await database
           .select({ image: files, team: teams })
           .from(teams)
-          .leftJoin(files, and(eq(files.id, teams.image), eq(files.uploadedBy, userId)))
-          .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+          .leftJoin(files, and(eq(files.id, teams.image), eq(files.uploadedBy, access.actorId)))
+          .where(createTeamAccessCondition(access, id))
           .limit(1);
 
         if (!result) {
@@ -94,7 +102,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
 
         return team ?? null;
       }),
-    list: async (userId, { limit, offset }) =>
+    list: async (access, { limit, offset }) =>
       await execute(
         async () =>
           await database.transaction(
@@ -102,11 +110,11 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               const [totalResult] = await transaction
                 .select({ value: count() })
                 .from(teams)
-                .where(eq(teams.userId, userId));
+                .where(access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId));
               const data = await transaction
                 .select()
                 .from(teams)
-                .where(eq(teams.userId, userId))
+                .where(access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId))
                 .orderBy(asc(teams.index))
                 .limit(limit)
                 .offset(offset);
@@ -122,14 +130,14 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             },
           ),
       ),
-    replaceImage: async (userId, id, file) =>
+    replaceImage: async (access, id, file) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
             const [current] = await transaction
               .select()
               .from(teams)
-              .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+              .where(createTeamAccessCondition(access, id))
               .for("update")
               .limit(1);
             if (!current) {
@@ -140,7 +148,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               const [oldFile] = await transaction
                 .select()
                 .from(files)
-                .where(and(eq(files.id, current.image), eq(files.uploadedBy, userId)))
+                .where(and(eq(files.id, current.image), eq(files.uploadedBy, access.actorId)))
                 .limit(1);
               previous = oldFile ? toStoredFileOfKind(oldFile, "image") : null;
             }
@@ -148,7 +156,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             const [team] = await transaction
               .update(teams)
               .set({ image: file.id })
-              .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+              .where(createTeamAccessCondition(access, id))
               .returning();
             if (!team) {
               throw createTeamRepositoryError(new Error("Team image update returned no row"));
@@ -156,12 +164,12 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             return { previous, team };
           }),
       ),
-    update: async (userId, id, data) =>
+    update: async (access, id, data) =>
       await execute(async () => {
         const [team] = await database
           .update(teams)
           .set(data)
-          .where(and(eq(teams.id, id), eq(teams.userId, userId)))
+          .where(createTeamAccessCondition(access, id))
           .returning();
 
         return team ?? null;

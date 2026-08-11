@@ -387,11 +387,15 @@ describe("teams router", () => {
       createTeamRepository(),
       createAuthReader(createTestSession({ user: { role: "staff" } })),
     );
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(router.teams.list, {}, { context, path: ["teams", "list"] }),
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+    expect(log.audit.deny).toHaveBeenCalledWith("registration access permission missing", {
+      action: "registration.access",
+      actor: { id: USER_ID, type: "user" },
+    });
   });
 
   it("gets an owned team", async () => {
@@ -694,6 +698,24 @@ describe("teams router", () => {
       memberCount: 12,
       name: "Updated Team",
     });
+  });
+
+  it("audits registration staff team updates", async () => {
+    const router = createRouter(createTeamRepository(), createRegistrationAuthReader());
+    const { context, log } = createContext();
+
+    await call(
+      router.teams.update,
+      { data: { name: "Updated Team" }, id: TEAM_ID },
+      { context, path: ["teams", "update"] },
+    );
+
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.update",
+      actor: { id: USER_ID, type: "user" },
+      target: { id: TEAM_ID, type: "team" },
+    });
+    expect(log.set).toHaveBeenCalledWith({ authorization: { scope: "ALL_TEAMS" } });
   });
 
   it.each(expectedAwards)("rejects owner update to staff-controlled %s award", async (award) => {

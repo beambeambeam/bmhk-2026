@@ -96,6 +96,10 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
   const registrationProcedure = protectedProcedure.use(async ({ context, next }) => {
     if (!hasRegistrationAccess(context.session.user.role)) {
+      context.log.audit.deny("registration access permission missing", {
+        action: "registration.access",
+        actor: { id: context.session.user.id, type: "user" },
+      });
       throw createError({
         code: "FORBIDDEN",
         fix: "Ask an administrator for registration access",

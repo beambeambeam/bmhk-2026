@@ -1,4 +1,5 @@
 import type { TeamAccessProcedure, TeamOwnerProcedure } from "../../core/procedure";
+import { auditTeamMutation } from "../teams/teams.audit";
 import type { TeamConsentService } from "./team-consents.service";
 import {
   createTeamConsentSchema,
@@ -20,6 +21,7 @@ export function createTeamConsentsRouter(
       .handler(async ({ context, input }) => {
         const consent = await service.create(context.teamAccess, input);
 
+        auditTeamMutation(context.log, context.teamAccess, "team-consent.create", consent.teamId);
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;
       }),
@@ -40,6 +42,7 @@ export function createTeamConsentsRouter(
       .handler(async ({ context, input }) => {
         const consent = await service.update(context.teamAccess, input.teamId, input.data);
 
+        auditTeamMutation(context.log, context.teamAccess, "team-consent.update", consent.teamId);
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;
       }),

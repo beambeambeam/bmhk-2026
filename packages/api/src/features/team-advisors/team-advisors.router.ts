@@ -1,5 +1,6 @@
 import type { TeamAccessProcedure } from "../../core/procedure";
 import { assertAllowedOrigin } from "../files/files.service";
+import { auditTeamMutation } from "../teams/teams.audit";
 import type { TeamAdvisorService } from "./team-advisors.service";
 import {
   createTeamAdvisorSchema,
@@ -30,6 +31,12 @@ function createTeamAdvisorDocumentUploadProcedure(
         teamId: input.teamId,
       });
 
+      auditTeamMutation(
+        context.log,
+        context.teamAccess,
+        "team-advisor.document.replace",
+        advisor.teamId,
+      );
       context.log.set({
         file: { contentType: file.contentType, id: file.id, sizeBytes: file.sizeBytes },
         teamAdvisor: { id: advisor.id, teamId: advisor.teamId },
@@ -53,6 +60,7 @@ export function createTeamAdvisorsRouter(
       .handler(async ({ context, input }) => {
         const advisor = await service.create(context.teamAccess, input);
 
+        auditTeamMutation(context.log, context.teamAccess, "team-advisor.create", advisor.teamId);
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),
@@ -89,6 +97,7 @@ export function createTeamAdvisorsRouter(
       .handler(async ({ context, input }) => {
         const advisor = await service.update(context.teamAccess, input.teamId, input.data);
 
+        auditTeamMutation(context.log, context.teamAccess, "team-advisor.update", advisor.teamId);
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
       }),

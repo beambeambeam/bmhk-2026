@@ -61,6 +61,8 @@ export default defineConfig({
   test: {
     clearMocks: true,
     env: {
+      AUDIT_HMAC_KEY_ID: "test-audit-key",
+      AUDIT_HMAC_SECRET: "test-audit-secret-that-is-at-least-32-characters",
       AWS_ACCESS_KEY_ID: "test-access-key",
       AWS_ENDPOINT_URL_S3: "http://localhost:9000",
       AWS_REGION: "us-east-1",

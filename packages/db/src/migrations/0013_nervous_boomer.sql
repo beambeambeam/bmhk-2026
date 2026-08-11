@@ -1,0 +1,1 @@
+ALTER TABLE "audit_events" ADD COLUMN "signature_key_id" text;

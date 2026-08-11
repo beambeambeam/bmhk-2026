@@ -45,6 +45,7 @@ export const auditEvents = pgTable(
     outcome: auditOutcomeEnum("outcome").notNull(),
     reason: text("reason"),
     signature: text("signature"),
+    signatureKeyId: text("signature_key_id"),
     target: jsonb("target").$type<StoredAuditTarget>(),
     targetId: text("target_id"),
     targetType: text("target_type"),

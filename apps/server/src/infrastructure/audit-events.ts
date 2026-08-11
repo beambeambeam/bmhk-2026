@@ -1,8 +1,9 @@
 import { db } from "@bmhk-2026/db";
 import { auditEvents } from "@bmhk-2026/db/schema/audit-events";
 import type { NewAuditEvent } from "@bmhk-2026/db/schema/audit-events";
-import { auditOnly } from "evlog";
+import { auditEnricher, auditOnly, auditRedactPreset, signed } from "evlog";
 import type { AuditFields, AuditTarget, DrainFn } from "evlog";
+import type { EvlogElysiaOptions } from "evlog/elysia";
 
 export interface AuditEventWriter {
   write: (event: NewAuditEvent) => Promise<void>;
@@ -49,6 +50,7 @@ function toAuditEvent(timestamp: string, audit: AuditFields): NewAuditEvent {
     outcome: audit.outcome,
     reason: audit.reason ?? null,
     signature: audit.signature ?? null,
+    signatureKeyId: null,
     target: audit.target,
     targetId: audit.target?.id ?? null,
     targetType: audit.target?.type ?? null,
@@ -57,14 +59,44 @@ function toAuditEvent(timestamp: string, audit: AuditFields): NewAuditEvent {
   };
 }
 
+function createAuditWriteDrain(writer: AuditEventWriter, signatureKeyId: string | null): DrainFn {
+  return async ({ event }) => {
+    if (!event.audit) {
+      return;
+    }
+    await writer.write({
+      ...toAuditEvent(event.timestamp, event.audit),
+      signatureKeyId,
+    });
+  };
+}
+
 export function createAuditEventDrain(writer: AuditEventWriter): DrainFn {
-  return auditOnly(
-    async ({ event }) => {
-      if (!event.audit) {
-        return;
-      }
-      await writer.write(toAuditEvent(event.timestamp, event.audit));
+  return auditOnly(createAuditWriteDrain(writer, null), { await: true });
+}
+
+export interface AuditObservabilityOptions {
+  hmacKeyId: string;
+  hmacSecret: string;
+  writer: AuditEventWriter;
+}
+
+export function createAuditObservabilityOptions({
+  hmacKeyId,
+  hmacSecret,
+  writer,
+}: AuditObservabilityOptions): EvlogElysiaOptions {
+  const signedDrain = signed(createAuditWriteDrain(writer, hmacKeyId), {
+    secret: hmacSecret,
+    strategy: "hmac",
+  });
+
+  return {
+    drain: auditOnly(signedDrain, { await: true }),
+    enrich: auditEnricher(),
+    redact: {
+      ...auditRedactPreset,
+      paths: [...(auditRedactPreset.paths ?? [])],
     },
-    { await: true },
-  );
+  };
 }

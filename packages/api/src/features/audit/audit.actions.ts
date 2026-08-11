@@ -43,3 +43,13 @@ export const teamDeletedAudit = defineAuditAction("team.deleted", {
   severity: "critical",
   target: "team",
 });
+
+export const teamRegistrationReviewChangedAudit = defineAuditAction(
+  "team-registration-review.changed",
+  {
+    description: "A Registration Operator changed a Team Registration Review",
+    requiresChanges: true,
+    severity: "critical",
+    target: "team-registration-review",
+  },
+);

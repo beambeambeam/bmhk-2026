@@ -47,6 +47,13 @@ export type {
   TeamRegistrationItemStatus,
   TeamRegistrationStatus,
 } from "./features/team-registration-status/team-registration-status.schema";
+export type { TeamRegistrationReviewRepository } from "./features/team-registration-reviews/team-registration-reviews.repository";
+export type {
+  SaveTeamRegistrationReviewData,
+  TeamRegistrationReview,
+  TeamRegistrationReviewStatus,
+} from "./features/team-registration-reviews/team-registration-reviews.schema";
+export { teamRegistrationReviewStatusValues } from "./features/team-registration-reviews/team-registration-reviews.schema";
 export { teamRegistrationItemStatusValues } from "./features/team-registration-status/team-registration-status.schema";
 export type {
   CreateTeamParticipantData,

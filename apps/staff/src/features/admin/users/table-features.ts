@@ -1,12 +1,19 @@
-import { metaHelper, rowPaginationFeature, tableFeatures } from "@tanstack/react-table";
+import {
+  columnFilteringFeature,
+  metaHelper,
+  rowPaginationFeature,
+  rowSortingFeature,
+  tableFeatures,
+} from "@tanstack/react-table";
 
-import type { AuthRole, StaffUser } from "./types";
+import type { AdminUser, AuthRole } from "./types";
 
 interface AdminUsersTableMeta {
   readonly roleDrafts: Readonly<Record<string, AuthRole>>;
+  readonly roles: readonly AuthRole[];
   readonly updatingUserId?: string;
   readonly onRoleDraftChange: (userId: string, role: AuthRole) => void;
-  readonly onUpdateRole: (user: StaffUser) => void;
+  readonly onUpdateRole: (user: AdminUser) => void;
 }
 
 interface AdminUsersColumnMeta {
@@ -15,8 +22,10 @@ interface AdminUsersColumnMeta {
 }
 
 const adminUsersTableFeatures = tableFeatures({
+  columnFilteringFeature,
   columnMeta: metaHelper<AdminUsersColumnMeta>(),
   rowPaginationFeature,
+  rowSortingFeature,
   tableMeta: metaHelper<AdminUsersTableMeta>(),
 });
 

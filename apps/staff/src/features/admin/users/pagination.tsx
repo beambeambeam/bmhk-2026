@@ -3,10 +3,10 @@ import type { ReactTable } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { AdminUsersTableFeatures } from "./table-features";
-import type { StaffUser } from "./types";
+import type { AdminUser } from "./types";
 
 interface AdminUsersPaginationProps {
-  readonly table: ReactTable<AdminUsersTableFeatures, StaffUser>;
+  readonly table: ReactTable<AdminUsersTableFeatures, AdminUser>;
   readonly visibleRowCount: number;
 }
 

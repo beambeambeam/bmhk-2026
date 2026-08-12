@@ -1,24 +1,48 @@
 import { Button } from "@/components/button";
+import { Field, FieldLabel } from "@/components/field";
+import { NativeSelect, NativeSelectOption } from "@/components/native-select";
 import { createColumnHelper } from "@tanstack/react-table";
-import { Loader2, Pencil } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil } from "lucide-react";
 
-import { STAFF_ROLES, getUserRole, isAuthRole } from "./types";
+import { isAuthRole } from "./types";
 import type { AdminUsersTableFeatures } from "./table-features";
-import type { StaffUser } from "./types";
+import type { AdminUser } from "./types";
 
-const columnHelper = createColumnHelper<AdminUsersTableFeatures, StaffUser>();
+const columnHelper = createColumnHelper<AdminUsersTableFeatures, AdminUser>();
+
+function getSortIcon(direction: false | "asc" | "desc") {
+  if (direction === "asc") {
+    return <ArrowUp aria-hidden="true" data-icon="inline-end" />;
+  }
+
+  if (direction === "desc") {
+    return <ArrowDown aria-hidden="true" data-icon="inline-end" />;
+  }
+
+  return <ArrowUpDown aria-hidden="true" data-icon="inline-end" />;
+}
 
 const adminUsersColumns = columnHelper.columns([
   columnHelper.accessor("email", {
     cell: ({ getValue }) => getValue(),
-    header: "Email",
+    header: ({ column }) => (
+      <Button type="button" size="sm" variant="ghost" onClick={column.getToggleSortingHandler()}>
+        Email
+        {getSortIcon(column.getIsSorted())}
+      </Button>
+    ),
     meta: {
       cellClassName: "font-medium",
     },
   }),
   columnHelper.accessor("name", {
     cell: ({ getValue }) => getValue() || "Unnamed user",
-    header: "Name",
+    header: ({ column }) => (
+      <Button type="button" size="sm" variant="ghost" onClick={column.getToggleSortingHandler()}>
+        Name
+        {getSortIcon(column.getIsSorted())}
+      </Button>
+    ),
   }),
   columnHelper.accessor("role", {
     cell: ({ row, table }) => {
@@ -26,39 +50,46 @@ const adminUsersColumns = columnHelper.columns([
       const user = row.original;
 
       if (!meta) {
-        return getUserRole(user);
+        return user.role;
       }
 
-      const currentRole = getUserRole(user);
+      const currentRole = user.role;
       const selectedRole = meta.roleDrafts[user.id] ?? currentRole;
       const isUpdatingRole = meta.updatingUserId === user.id;
 
       return (
-        <label className="block w-44" htmlFor={`role-${user.id}`}>
-          <span className="sr-only">Role for {user.email}</span>
-          <select
+        <Field className="w-44 gap-0">
+          <FieldLabel className="sr-only" htmlFor={`role-${user.id}`}>
+            Role for {user.email}
+          </FieldLabel>
+          <NativeSelect
             id={`role-${user.id}`}
-            className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isUpdatingRole}
+            className="w-full"
+            disabled={isUpdatingRole || meta.roles.length === 0}
             value={selectedRole}
             onChange={(event) => {
               const nextRole = event.target.value;
 
-              if (isAuthRole(nextRole)) {
+              if (isAuthRole(nextRole, meta.roles)) {
                 meta.onRoleDraftChange(user.id, nextRole);
               }
             }}
           >
-            {STAFF_ROLES.map((role) => (
-              <option key={role} value={role}>
+            {meta.roles.map((role) => (
+              <NativeSelectOption key={role} value={role}>
                 {role}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Field>
       );
     },
-    header: "Role",
+    header: ({ column }) => (
+      <Button type="button" size="sm" variant="ghost" onClick={column.getToggleSortingHandler()}>
+        Role
+        {getSortIcon(column.getIsSorted())}
+      </Button>
+    ),
   }),
   columnHelper.display({
     cell: ({ row, table }) => {
@@ -69,7 +100,7 @@ const adminUsersColumns = columnHelper.columns([
       }
 
       const user = row.original;
-      const currentRole = getUserRole(user);
+      const currentRole = user.role;
       const selectedRole = meta.roleDrafts[user.id] ?? currentRole;
       const isUpdatingRole = meta.updatingUserId === user.id;
 

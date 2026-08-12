@@ -4,8 +4,8 @@ import { createElement } from "react";
 import type { ReactNode } from "react";
 import type { FeatureFlags } from "@bmhk-2026/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useFeatureFlag, useFeatureFlags } from "../feature-flags";
 
@@ -20,6 +20,14 @@ const availableRegistration: FeatureFlags = {
   qualifyingResultsAnnouncement: false,
   qualifyingRound: false,
   registration: true,
+};
+
+const unavailableFeatureFlags: FeatureFlags = {
+  eligibleTeamsAnnouncement: false,
+  finalRound: false,
+  qualifyingResultsAnnouncement: false,
+  qualifyingRound: false,
+  registration: false,
 };
 
 // oxlint-disable-next-line vitest/prefer-import-in-mock -- This boundary fake intentionally supplies only the RPC query used by the hooks.
@@ -43,6 +51,10 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 describe(useFeatureFlags, () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("returns feature availability received from the backend", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(featureFlagsQueryOptions.queryKey, availableRegistration);
@@ -93,5 +105,31 @@ describe(useFeatureFlags, () => {
       qualifyingRound: false,
       registration: false,
     });
+  });
+
+  it("refreshes when a scheduled feature boundary passes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-16T16:59:58.000Z"));
+    featureFlagsQueryOptions.queryFn
+      .mockResolvedValueOnce(unavailableFeatureFlags)
+      .mockResolvedValueOnce(availableRegistration);
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useFeatureFlags(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.registration).toBeFalsy();
+      expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledOnce();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    await waitFor(() => {
+      expect(result.current.registration).toBeTruthy();
+    });
+    expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledTimes(2);
   });
 });

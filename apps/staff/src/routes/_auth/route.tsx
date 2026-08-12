@@ -6,7 +6,7 @@ import { authClient } from "@bmhk-2026/client/auth-client";
 const STAFF_EMAIL_DOMAIN = "@kmutt.ac.th";
 
 export const Route = createFileRoute("/_auth")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ context }) => {
     const session = await authClient.getSession();
     const email = session.data?.user.email.toLowerCase();
     const isStaffEmail = email?.endsWith(STAFF_EMAIL_DOMAIN) === true;
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/_auth")({
     if (!isStaffEmail) {
       if (session.data) {
         await authClient.signOut();
+        context.queryClient.clear();
       }
 
       // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally

@@ -2,14 +2,16 @@ import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { authClient } from "@bmhk-2026/client/auth-client";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Loader2, Pencil, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const STAFF_ROLES = ["admin", "registrationStaff", "staff", "user"] as const;
+const STAFF_ADMIN_USERS_QUERY_KEY = ["staff-admin-users"] as const;
 const TABLE_USER_PAGE_SIZE = 10;
+const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_FIELDS = ["email", "name"] as const;
 
 type AuthRole = (typeof STAFF_ROLES)[number];
@@ -99,8 +101,9 @@ function getUsersQuery(input: FetchUsersPageInput) {
   return query;
 }
 
-async function fetchUsersPage(input: FetchUsersPageInput): Promise<UsersPage> {
+async function fetchUsersPage(input: FetchUsersPageInput, signal: AbortSignal): Promise<UsersPage> {
   const response = await authClient.admin.listUsers({
+    fetchOptions: { signal },
     query: getUsersQuery(input),
   });
 
@@ -111,6 +114,25 @@ async function fetchUsersPage(input: FetchUsersPageInput): Promise<UsersPage> {
   const { total, users } = response.data;
 
   return { total, users };
+}
+
+async function removeUser(userId: string): Promise<void> {
+  const response = await authClient.admin.removeUser({ userId });
+
+  if (response.error) {
+    throw new Error(response.error.message ?? response.error.statusText);
+  }
+}
+
+async function setUserRole(input: {
+  readonly role: AuthRole;
+  readonly userId: string;
+}): Promise<void> {
+  const response = await authClient.admin.setRole(input);
+
+  if (response.error) {
+    throw new Error(response.error.message ?? response.error.statusText);
+  }
 }
 
 export const Route = createFileRoute("/_auth/admin")({
@@ -129,19 +151,53 @@ export const Route = createFileRoute("/_auth/admin")({
 
 function AdminPage() {
   const { session } = Route.useRouteContext();
+  const queryClient = useQueryClient();
   const currentUserId = session.data?.user.id;
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchField, setSearchField] = useState<SearchField>("email");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
-  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [confirmingDeleteUserId, setConfirmingDeleteUserId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setCurrentPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [search]);
+
   const usersQuery = useQuery({
-    queryFn: async () =>
-      await fetchUsersPage({ page: currentPage, roleFilter, search, searchField }),
-    queryKey: ["staff-admin-users", currentPage, roleFilter, search, searchField],
+    placeholderData: keepPreviousData,
+    queryFn: async ({ signal }) =>
+      await fetchUsersPage(
+        { page: currentPage, roleFilter, search: debouncedSearch, searchField },
+        signal,
+      ),
+    queryKey: [
+      ...STAFF_ADMIN_USERS_QUERY_KEY,
+      currentPage,
+      roleFilter,
+      debouncedSearch,
+      searchField,
+    ],
+  });
+
+  async function invalidateUsers(): Promise<void> {
+    await queryClient.invalidateQueries({ queryKey: STAFF_ADMIN_USERS_QUERY_KEY });
+  }
+  const updateRoleMutation = useMutation({
+    mutationFn: setUserRole,
+    onSuccess: invalidateUsers,
+  });
+  const deleteUserMutation = useMutation({
+    mutationFn: removeUser,
+    onSuccess: invalidateUsers,
   });
 
   const totalUsers = usersQuery.data?.total ?? 0;
@@ -151,13 +207,10 @@ function AdminPage() {
   const firstVisibleUserNumber = totalUsers === 0 ? 0 : getPageOffset(visiblePage) + 1;
   const lastVisibleUserNumber = Math.min(getPageOffset(visiblePage) + users.length, totalUsers);
 
-  async function refetchAfterRowRemoval(): Promise<void> {
+  function moveBackAfterLastRowRemoval(): void {
     if (users.length === 1 && currentPage > 1) {
       setCurrentPage((page) => page - 1);
-      return;
     }
-
-    await usersQuery.refetch();
   }
 
   async function updateRole(user: StaffUser) {
@@ -167,30 +220,16 @@ function AdminPage() {
       return;
     }
 
-    setPendingUserId(user.id);
-
     try {
-      const response = await authClient.admin.setRole({
-        role,
-        userId: user.id,
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message ?? response.error.statusText);
-      }
+      await updateRoleMutation.mutateAsync({ role, userId: user.id });
 
       toast.success("Role updated");
       setRoleDrafts(({ [user.id]: _updatedUserRole, ...drafts }) => drafts);
       if (roleFilter !== "all" && role !== roleFilter) {
-        await refetchAfterRowRemoval();
-        return;
+        moveBackAfterLastRowRemoval();
       }
-
-      await usersQuery.refetch();
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setPendingUserId(null);
     }
   }
 
@@ -205,24 +244,14 @@ function AdminPage() {
       return;
     }
 
-    setPendingUserId(user.id);
-
     try {
-      const response = await authClient.admin.removeUser({
-        userId: user.id,
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message ?? response.error.statusText);
-      }
+      await deleteUserMutation.mutateAsync(user.id);
 
       toast.success("User deleted");
       setConfirmingDeleteUserId(null);
-      await refetchAfterRowRemoval();
+      moveBackAfterLastRowRemoval();
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
-      setPendingUserId(null);
     }
   }
 
@@ -249,7 +278,6 @@ function AdminPage() {
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
-                setCurrentPage(1);
               }}
             />
           </label>
@@ -333,7 +361,11 @@ function AdminPage() {
             {users.map((user) => {
               const currentRole = getUserRole(user);
               const selectedRole = roleDrafts[user.id] ?? currentRole;
-              const isPending = pendingUserId === user.id;
+              const isUpdatingRole =
+                updateRoleMutation.isPending && updateRoleMutation.variables?.userId === user.id;
+              const isDeleting =
+                deleteUserMutation.isPending && deleteUserMutation.variables === user.id;
+              const isPending = isUpdatingRole || isDeleting;
               const hasRoleChange = selectedRole !== currentRole;
 
               return (
@@ -380,7 +412,7 @@ function AdminPage() {
                           void updateRole(user);
                         }}
                       >
-                        {isPending && hasRoleChange ? (
+                        {isUpdatingRole ? (
                           <Loader2 aria-hidden="true" className="animate-spin" />
                         ) : (
                           <Pencil aria-hidden="true" />
@@ -396,7 +428,7 @@ function AdminPage() {
                           void deleteUser(user);
                         }}
                       >
-                        {isPending && !hasRoleChange ? (
+                        {isDeleting ? (
                           <Loader2 aria-hidden="true" className="animate-spin" />
                         ) : (
                           <Trash2 aria-hidden="true" />

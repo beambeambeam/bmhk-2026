@@ -79,6 +79,7 @@ export default defineConfig({
       MICROSOFT_TENANT_ID: "organizations",
       NODE_ENV: "test",
       PORT: "3000",
+      VITE_SERVER_URL: "http://localhost:3000",
     },
     environment: "node",
     exclude: ["**/node_modules/**", "**/dist/**", "**/.vinxi/**", "**/.tanstack/**"],

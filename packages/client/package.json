@@ -4,7 +4,9 @@
   "exports": {
     "./auth-client": "./src/auth-client.ts",
     "./feature-flags": "./src/feature-flags.ts",
-    "./orpc": "./src/orpc.ts"
+    "./orpc": "./src/orpc.ts",
+    "./query-client": "./src/query-client.ts",
+    "./query-options": "./src/query-options.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"
@@ -16,8 +18,8 @@
     "@orpc/client": "catalog:",
     "@orpc/tanstack-query": "^1.14.6",
     "@tanstack/react-query": "^5.101.2",
-    "better-auth": "catalog:",
-    "sonner": "catalog:"
+    "@tanstack/react-start": "^1.168.27",
+    "better-auth": "catalog:"
   },
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",

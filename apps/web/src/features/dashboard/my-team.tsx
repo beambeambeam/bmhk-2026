@@ -1,12 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 
 import ScrollEdgeEffect from "@/components/scroll-edge-effect";
+import Loader from "@/components/loader";
+import { orpc } from "@bmhk-2026/client/orpc";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
 import PersonDetails from "./components/person-details";
 import ResultModal from "./components/result-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
 import TeamDecor from "./components/team-decor";
-import { MEMBERS, QUALIFIED_MODAL, REJECTED_MODAL, STATUS_VARIANTS, TEAM } from "./team-data";
+import { getBaseMembers, QUALIFIED_MODAL, REJECTED_MODAL, STATUS_VARIANTS } from "./team-data";
 import type { TeamStatus } from "./team-data";
 
 const COPY = "/assets/figma/85282b0baf589ceb0eb17e9e2d027684e76a4e8b.svg";
@@ -21,34 +25,7 @@ const BAR_W = 100;
 
 /** How long the copy button holds its tick before returning to the copy glyph. */
 const COPIED_MS = 1600;
-
-/**
- * The copy affordance's box, on both anchors: `1297:1140` is 16 on the 402 dashboard,
- * `708:2326` 20 at 1440. `size-[20px]` was the 1440 figure held flat — a 20px control between a
- * 14px "รหัสทีม" label and its value on a phone. Lands on 20.000 at `--fl` = 1.
- *
- * One constant for the button, the glyph and the tick, so the swap's two layers can never
- * disagree about the box they share.
- */
 const COPY_BOX = "size-[calc(15.896px_+_4.104*var(--fl))]";
-
-/**
- * The team lockup's own ranks, both anchors measured, and all three were the 1440 value held
- * flat — the same class of defect PersonDetails' header block already records.
- *
- *   รหัสทีม / สถานศึกษา type   14/400 @402 (`1297:1138`, `1297:1143`, lh 19.6)
- *                              18/400 @1440 (`708:2324`, `708:2329`, lh 25.2)   was `fl-18` (16@402)
- *   those rows' inline gap      8 @402 (`1297:1137`, `1297:1142`)
- *                              12 @1440 (`708:2323`, `708:2328`)                was flat 12
- *   title → code → school gap   8 @402 (`1297:1135`)
- *                              16 @1440 (`708:2321`)                            was flat 16
- *
- * The title itself is NOT in this list: `1297:1136` is 20/500 and `708:2322` 24/500, which is
- * exactly `fl-24`'s own 20 → 24 ramp, so it already lands on both anchors.
- *
- * Weight is 400 at both anchors on every line here, i.e. the inherited body weight, so nothing
- * below carries a weight class and nothing becomes a breakpoint.
- */
 const LOCKUP_14_18 = "text-[calc(13.896px_+_4.104*var(--fl))]";
 const LOCKUP_ROW_GAP_8_12 = "gap-[calc(7.896px_+_4.104*var(--fl))]";
 const LOCKUP_STACK_GAP_8_16 = "gap-[calc(7.792px_+_8.208*var(--fl))]";
@@ -106,24 +83,64 @@ const PANES = [
 
 type Pane = (typeof PANES)[number]["key"];
 
-export default function MyTeam() {
-  const search = useSearch({ from: "/_auth/my-team" }) as Record<string, unknown>;
-  const statusParam = typeof search.status === "string" ? search.status : null;
-  const status: TeamStatus = isStatus(statusParam) ? statusParam : "reviewing";
+interface StatusData {
+  submissionState: string;
+}
+interface ReviewFeedback {
+  status: string;
+}
 
-  const [pane, setPane] = useState<Pane>("team");
-  const paneTabs = useRef<HTMLDivElement>(null);
+function getMappedStatus(
+  statusParam: string | null,
+  statusData: StatusData | null | undefined,
+  reviewFeedback: ReviewFeedback | null | undefined,
+): TeamStatus {
+  if (isStatus(statusParam)) {
+    return statusParam;
+  }
+  if (statusData === undefined || statusData === null) {
+    return "reviewing";
+  }
+  if (statusData.submissionState === "DRAFT") {
+    return "reviewing";
+  }
+  if (
+    statusData.submissionState === "SUBMITTED" &&
+    reviewFeedback !== undefined &&
+    reviewFeedback !== null
+  ) {
+    if (reviewFeedback.status === "PENDING_REVIEW") {
+      return "reviewing";
+    }
+    if (reviewFeedback.status === "CHANGES_REQUESTED") {
+      return "issue";
+    }
+    if (reviewFeedback.status === "APPROVED") {
+      return "qualified";
+    }
+  }
+  return "reviewing";
+}
 
-  const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
-  const initialModal = typeof search.modal === "string" ? search.modal : null;
-  const [modal, setModal] = useState<string | null>(initialModal);
+function getDisplayTeam(team: { id: string; name: string; school: string } | undefined | null) {
+  if (team === undefined || team === null) {
+    return { code: "", name: "", school: "" };
+  }
+  return { code: team.id.slice(0, 8).toUpperCase(), name: team.name, school: team.school };
+}
 
-  const modalOpen = modal === "qualified" || modal === "rejected";
-  const [copiedAt, setCopiedAt] = useState(0);
-  const copied = copiedAt !== 0;
+function formatName(first: string, middle: string | null | undefined, last: string) {
+  return [first, middle, last].filter(Boolean).join(" ");
+}
 
-  const person = MEMBERS[active];
+function formatSize(bytes: number | null | undefined): string {
+  if (bytes === null || bytes === undefined || bytes === 0) {
+    return "0 MB";
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
+function useTabsIndicator(active: number) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const [bar, setBar] = useState<{ x: number; y: number; w: number } | null>(null);
 
@@ -156,6 +173,220 @@ export default function MyTeam() {
     return cleanup;
   }, [active]);
 
+  return { bar, tabsRef };
+}
+
+function MyTeamModals({
+  modal,
+  setModal,
+}: {
+  modal: string | null;
+  setModal: (val: string | null) => void;
+}) {
+  return (
+    <>
+      <ResultModal
+        open={modal === "qualified"}
+        {...QUALIFIED_MODAL}
+        onClose={() => {
+          setModal(null);
+        }}
+        actions={
+          <ModalButton
+            href="#"
+            className="bg-[#5865f2] text-white"
+            icon={<DiscordGlyph size={32} src={DISCORD_32} />}
+          >
+            รับรหัสเข้าร่วม Discord{" "}
+          </ModalButton>
+        }
+      />
+
+      <ResultModal
+        open={modal === "rejected"}
+        {...REJECTED_MODAL}
+        titleClassName="text-brand-red"
+        onClose={() => {
+          setModal(null);
+        }}
+      />
+    </>
+  );
+}
+
+function useMyTeamData() {
+  const search = useSearch({ from: "/_auth/my-team" }) as Record<string, unknown>;
+
+  const { data: teamsData, isPending: isTeamsPending } = useQuery(
+    orpc.teams.list.queryOptions({ input: { limit: 1 } }),
+  );
+  const team = teamsData?.data?.[0];
+  const teamId = team?.id;
+
+  const { data: statusData, isPending: isStatusPending } = useQuery({
+    ...orpc.teamRegistrationStatus.get.queryOptions({ input: { teamId: teamId ?? "" } }),
+    enabled: Boolean(teamId),
+  });
+
+  const { data: reviewFeedback, isPending: isReviewPending } = useQuery({
+    ...orpc.teamRegistrationReviews.feedback.queryOptions({ input: { teamId: teamId ?? "" } }),
+    enabled: Boolean(teamId),
+  });
+
+  const { data: participants, isPending: isParticipantsPending } = useQuery({
+    ...orpc.teamParticipants.list.queryOptions({ input: { teamId: teamId ?? "" } }),
+    enabled: Boolean(teamId),
+  });
+
+  const { data: advisor, isPending: isAdvisorPending } = useQuery({
+    ...orpc.teamAdvisors.get.queryOptions({ input: { teamId: teamId ?? "" } }),
+    enabled: Boolean(teamId),
+  });
+
+  const { data: featureFlags, isPending: isFeatureFlagsPending } = useQuery({
+    ...orpc.featureFlags.getAll.queryOptions(),
+  });
+
+  const isLoading =
+    isTeamsPending ||
+    isFeatureFlagsPending ||
+    (teamId !== undefined && isStatusPending) ||
+    (teamId !== undefined && isReviewPending) ||
+    (teamId !== undefined && isParticipantsPending) ||
+    (teamId !== undefined && isAdvisorPending);
+
+  return {
+    advisor,
+    featureFlags,
+    isLoading,
+    participants,
+    reviewFeedback,
+    search,
+    statusData,
+    team,
+  };
+}
+
+type ParticipantType = NonNullable<ReturnType<typeof useMyTeamData>["participants"]>[number];
+type AdvisorType = NonNullable<ReturnType<typeof useMyTeamData>["advisor"]>;
+type MockMemberType = ReturnType<typeof getBaseMembers>[number];
+
+function mapParticipant(p: ParticipantType | undefined, mockMember: MockMemberType) {
+  if (!p) {
+    return mockMember;
+  }
+  return {
+    ...mockMember,
+    birthDate: p.dateOfBirth,
+    documents: [
+      {
+        file: p.portraitPhoto?.originalName ?? "ไม่มีไฟล์",
+        label: "รูปถ่ายนักเรียนหน้าตรง ขนาด 1.5 นิ้ว",
+        size: formatSize(p.portraitPhoto?.sizeBytes),
+        url: p.portraitPhoto?.url,
+      },
+      {
+        file: p.identityDocument?.originalName ?? "ไม่มีไฟล์",
+        label:
+          "สำเนาบัตรประจำตัวประชาชน หรือบัตรประจำตัวสำหรับ บุคคลที่ไม่ใช่สัญชาติไทย พร้อมเซ็นสำเนาถูกต้อง (เฉพาะด้านหน้า)",
+        size: formatSize(p.identityDocument?.sizeBytes),
+        url: p.identityDocument?.url,
+      },
+      {
+        file: p.academicRecordDocument?.originalName ?? "ไม่มีไฟล์",
+        label: "สำเนา ปพ.7 (ระเบียนแสดงผลการเรียน) ของผู้เข้าแข่งขัน พร้อมเซ็นสำเนาถูกต้อง",
+        size: formatSize(p.academicRecordDocument?.sizeBytes),
+        url: p.academicRecordDocument?.url,
+      },
+    ],
+    email: p.email,
+    enName: formatName(p.firstNameEn, p.middleNameEn, p.lastNameEn),
+    enPrefix: p.titleEn,
+    lineId: p.lineId ?? "-",
+    phone: p.phone,
+    thaiName: formatName(p.firstNameTh, p.middleNameTh, p.lastNameTh),
+    thaiPrefix: p.titleTh,
+  };
+}
+
+function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMemberType) {
+  if (!advisor) {
+    return mockMember;
+  }
+  return {
+    ...mockMember,
+    documents: [
+      {
+        file: advisor.identityDocument?.originalName ?? "ไม่มีไฟล์",
+        label:
+          "สำเนาบัตรประจำตัวประชาชน หรือบัตรประจำตัวสำหรับ บุคคลที่ไม่ใช่สัญชาติไทย พร้อมเซ็นสำเนาถูกต้อง (เฉพาะด้านหน้า)",
+        size: formatSize(advisor.identityDocument?.sizeBytes),
+        url: advisor.identityDocument?.url,
+      },
+      {
+        file: advisor.teacherStatusDocument?.originalName ?? "ไม่มีไฟล์",
+        label: "หนังสือรับรองความเป็นครู",
+        size: formatSize(advisor.teacherStatusDocument?.sizeBytes),
+        url: advisor.teacherStatusDocument?.url,
+      },
+    ],
+    email: advisor.email,
+    enName: formatName(advisor.firstNameEn, advisor.middleNameEn, advisor.lastNameEn),
+    enPrefix: advisor.titleEn,
+    lineId: advisor.lineId ?? "-",
+    phone: advisor.phone,
+    thaiName: formatName(advisor.firstNameTh, advisor.middleNameTh, advisor.lastNameTh),
+    thaiPrefix: advisor.titleTh,
+  };
+}
+
+function useMappedMembers(
+  participants: ReturnType<typeof useMyTeamData>["participants"],
+  advisor: ReturnType<typeof useMyTeamData>["advisor"],
+) {
+  const rawMembers = getBaseMembers();
+  return rawMembers.map((mockMember, i) => {
+    if (i < 3) {
+      return mapParticipant(participants?.[i], mockMember);
+    }
+    return mapAdvisor(advisor, mockMember);
+  });
+}
+
+export default function MyTeam() {
+  const {
+    advisor,
+    featureFlags,
+    isLoading,
+    participants,
+    reviewFeedback,
+    search,
+    statusData,
+    team,
+  } = useMyTeamData();
+
+  const MEMBERS = useMappedMembers(participants, advisor);
+
+  // --- Status Mapping ---
+  const statusParam = typeof search.status === "string" ? search.status : null;
+  const status = getMappedStatus(statusParam, statusData, reviewFeedback);
+
+  const [pane, setPane] = useState<Pane>("team");
+  const paneTabs = useRef<HTMLDivElement>(null);
+
+  const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
+  const initialModal = typeof search.modal === "string" ? search.modal : null;
+  const [modal, setModal] = useState<string | null>(initialModal);
+
+  const showModal = featureFlags?.eligibleTeamsAnnouncement === true ? modal : null;
+
+  const [copiedAt, setCopiedAt] = useState(0);
+  const copied = copiedAt !== 0;
+
+  const person = MEMBERS[active];
+
+  const { bar, tabsRef } = useTabsIndicator(active);
+
   // the tick is a confirmation, not a mode — it hands the copy glyph back on its own
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -170,16 +401,20 @@ export default function MyTeam() {
     return cleanup;
   }, [copiedAt]);
 
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  const displayTeam = getDisplayTeam(team);
+
   return (
     <div className="relative min-h-dvh overflow-clip bg-[#fefdfc]" data-auth-entrance>
       <TeamDecor />
       <ScrollEdgeEffect className="absolute inset-x-0 top-0 z-10 h-[calc(106px_+_54*var(--fl))]" />
       <div
-        data-recede={modalOpen}
+        data-recede={showModal === "qualified" || showModal === "rejected"}
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
-        {/* Navbar ใหม่ตรงนี้จ้า */}
-
         <div className="flex w-full flex-col items-start gap-6 lg:flex-row">
           <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-8 rounded-[20px] bg-white p-4 shadow-soft">
             <div
@@ -243,16 +478,16 @@ export default function MyTeam() {
                 <div
                   className={`flex min-w-0 flex-1 flex-col items-center ${LOCKUP_STACK_GAP_8_16} sm:items-start`}
                 >
-                  <h1 className="fl-24 leading-[1.4] font-medium">{TEAM.name}</h1>
+                  <h1 className="fl-24 leading-[1.4] font-medium">{displayTeam.name}</h1>
                   <p
                     className={`flex items-center ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}
                   >
                     <span className="text-gray-2">รหัสทีม</span>
-                    <span>{TEAM.code}</span>
+                    <span>{displayTeam.code}</span>
                     <button
                       type="button"
                       onClick={() => {
-                        void navigator.clipboard?.writeText(TEAM.code);
+                        void navigator.clipboard?.writeText(displayTeam.code);
                         setCopiedAt(Date.now());
                       }}
                       aria-label={copied ? "คัดลอกรหัสทีมแล้ว" : "คัดลอกรหัสทีม"}
@@ -267,7 +502,7 @@ export default function MyTeam() {
                     className={`flex flex-wrap items-start ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}
                   >
                     <span className="text-gray-2">สถานศึกษา</span>
-                    <span>{TEAM.school}</span>
+                    <span>{displayTeam.school}</span>
                   </p>
                 </div>
               </div>
@@ -278,6 +513,7 @@ export default function MyTeam() {
                 className="auth-rise relative flex w-full flex-nowrap items-center gap-2 overflow-x-auto overflow-y-clip [overscroll-behavior-x:contain]"
                 data-rise="2"
               >
+                {/* Member tab */}
                 {MEMBERS.map((member, i) => {
                   const on = i === active;
                   return (
@@ -314,12 +550,15 @@ export default function MyTeam() {
                   />
                 )}
               </div>
+              {/* ข้อมูลแต่ละคน */}
               <div className="auth-rise auth-rise-sm w-full" data-rise="3">
                 <div key={active} className="mm-panel w-full">
                   <PersonDetails person={person} />
                 </div>
               </div>
             </div>
+
+            {/* Status */}
             <div
               role="tabpanel"
               id="pane-status"
@@ -332,6 +571,7 @@ export default function MyTeam() {
                   showDiscord={status === "qualified"}
                   heading={false}
                   card={false}
+                  members={MEMBERS}
                 />
               )}
             </div>
@@ -340,36 +580,12 @@ export default function MyTeam() {
             className="auth-rise hidden shrink-0 lg:block lg:w-[calc(241.5px_+_158.5*var(--fl))]"
             data-rise="4"
           >
-            <StatusPanel status={status} showDiscord={status === "qualified"} />
+            <StatusPanel status={status} showDiscord={status === "qualified"} members={MEMBERS} />
           </div>
         </div>
       </div>
 
-      <ResultModal
-        open={modal === "qualified"}
-        {...QUALIFIED_MODAL}
-        onClose={() => {
-          setModal(null);
-        }}
-        actions={
-          <ModalButton
-            href="#"
-            className="bg-[#5865f2] text-white"
-            icon={<DiscordGlyph size={32} src={DISCORD_32} />}
-          >
-            รับรหัสเข้าร่วม Discord{" "}
-          </ModalButton>
-        }
-      />
-
-      <ResultModal
-        open={modal === "rejected"}
-        {...REJECTED_MODAL}
-        titleClassName="text-brand-red"
-        onClose={() => {
-          setModal(null);
-        }}
-      />
+      <MyTeamModals modal={showModal} setModal={setModal} />
     </div>
   );
 }

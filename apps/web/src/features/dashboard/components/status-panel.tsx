@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { SOCIAL_LINKS } from "@/data";
-import { DISCORD_CARD, STATUS_STEPS, TEAM } from "../team-data";
-import type { StatusStep, StepTone, TeamStatus } from "../team-data";
+import { DISCORD_CARD, getStatusSteps, TEAM } from "../team-data";
+import type { Person, StatusStep, StepTone, TeamStatus } from "../team-data";
 
 /**
  * ── Size ramps, both anchors measured ──────────────────────────────────────────────────────
@@ -325,10 +325,12 @@ export default function StatusPanel({
   showDiscord = false,
   heading = true,
   card = true,
+  members,
 }: {
   status: TeamStatus;
   /** The qualified dashboard also carries the Discord join card. */
   showDiscord?: boolean;
+  members: Person[];
   /**
    * Whether the panel draws its own white card.
    *
@@ -372,7 +374,7 @@ export default function StatusPanel({
           </div>
 
           {/* the ladder tops out at 7, which is the last delay auth-motion.css defines */}
-          {STATUS_STEPS[status].map((step, i) => (
+          {getStatusSteps(members)[status].map((step, i) => (
             <Step key={step.title} step={step} rise={Math.min(i + 3, 7)} />
           ))}
         </div>

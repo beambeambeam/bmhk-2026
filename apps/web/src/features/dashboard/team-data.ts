@@ -67,49 +67,51 @@ const ADVISOR_DOCUMENTS = [
   },
 ];
 
-const SHARED = {
-  email: "abcd.cpe@kmutt.ac.th",
-  enName: "Natasha Dejdumrong",
-  enPrefix: "Mrs.",
-  lineId: "abcd",
-  phone: "0912345678",
-  thaiName: "ณัฐชา  เดชดำรง",
-  thaiPrefix: "นางสาว",
+export const EMPTY_SHARED = {
+  email: "-",
+  enName: "-",
+  enPrefix: "",
+  lineId: "-",
+  phone: "-",
+  thaiName: "-",
+  thaiPrefix: "",
 };
 
-export const MEMBERS: Person[] = [
-  {
-    birthDate: "26 กรกฎาคม 2551",
-    documents: ENTRANT_DOCUMENTS,
-    heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 1",
-    icon: USER_ICON,
-    tab: "ผู้เข้าแข่งขันคนที่ 1",
-    ...SHARED,
-  },
-  {
-    birthDate: "26 กรกฎาคม 2551",
-    documents: ENTRANT_DOCUMENTS,
-    heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 2",
-    icon: USER_ICON,
-    tab: "ผู้เข้าแข่งขันคนที่ 2",
-    ...SHARED,
-  },
-  {
-    birthDate: "26 กรกฎาคม 2551",
-    documents: ENTRANT_DOCUMENTS,
-    heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 3",
-    icon: USER_ICON,
-    tab: "ผู้เข้าแข่งขันคนที่ 3",
-    ...SHARED,
-  },
-  {
-    documents: ADVISOR_DOCUMENTS,
-    heading: "1. ข้อมูลอาจารย์",
-    icon: MORTARBOARD_ICON,
-    tab: "อาจารย์",
-    ...SHARED,
-  },
-];
+export function getBaseMembers(): Person[] {
+  return [
+    {
+      birthDate: "-",
+      documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
+      heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 1",
+      icon: USER_ICON,
+      tab: "ผู้เข้าแข่งขันคนที่ 1",
+      ...EMPTY_SHARED,
+    },
+    {
+      birthDate: "-",
+      documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
+      heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 2",
+      icon: USER_ICON,
+      tab: "ผู้เข้าแข่งขันคนที่ 2",
+      ...EMPTY_SHARED,
+    },
+    {
+      birthDate: "-",
+      documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
+      heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 3",
+      icon: USER_ICON,
+      tab: "ผู้เข้าแข่งขันคนที่ 3",
+      ...EMPTY_SHARED,
+    },
+    {
+      documents: ADVISOR_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
+      heading: "1. ข้อมูลอาจารย์",
+      icon: MORTARBOARD_ICON,
+      tab: "อาจารย์",
+      ...EMPTY_SHARED,
+    },
+  ];
+}
 
 export type StepTone = "ok" | "pending" | "alert" | "failed";
 
@@ -146,66 +148,70 @@ const DOCS_OK: StatusStep = { label: "ตรวจสอบสำเร็จ", 
 function person(title: string, label: string, tone: StepTone) {
   return { label, title, tone };
 }
-export const STATUS_STEPS: Record<TeamStatus, StatusStep[]> = {
-  issue: [
-    REGISTERED,
-    {
-      contact: true,
-      rows: [
-        ...MEMBERS.slice(0, 3).map((m) => person(m.tab, "ตรวจสอบสำเร็จ", "ok")),
-        person("อาจารย์", "เอกสารมีปัญหา", "alert"),
-      ],
-      title: "ตรวจสอบเอกสาร",
-      tone: "alert",
-    },
-  ],
-  qualified: [
-    REGISTERED,
-    DOCS_OK,
-    { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
-  ],
-  reviewing: [
-    REGISTERED,
-    {
-      rows: MEMBERS.map((m) => person(m.tab, "กำลังตรวจสอบ", "pending")),
-      title: "ตรวจสอบเอกสาร",
-      tone: "pending",
-    },
-  ],
-  "selection-failed": [
-    REGISTERED,
-    DOCS_OK,
-    {
-      compact: true,
-      label: "ไม่ผ่านการคัดเลือก",
-      title: "การเข้าแข่งขันรอบคัดเลือก",
-      tone: "failed",
-    },
-  ],
-  "selection-pending": [
-    REGISTERED,
-    DOCS_OK,
-    { label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "pending" },
-  ],
-  "semifinal-failed": [
-    REGISTERED,
-    DOCS_OK,
-    { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
-    { label: "ไม่ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "failed" },
-  ],
-  "semifinal-pending": [
-    REGISTERED,
-    DOCS_OK,
-    { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
-    { label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
-  ],
-  "semifinal-qualified": [
-    REGISTERED,
-    DOCS_OK,
-    { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
-    { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "ok" },
-  ],
-};
+
+export function getStatusSteps(members: Person[]): Record<TeamStatus, StatusStep[]> {
+  const participantCount = members.length - 1;
+  return {
+    issue: [
+      REGISTERED,
+      {
+        contact: true,
+        rows: [
+          ...members.slice(0, participantCount).map((m) => person(m.tab, "ตรวจสอบสำเร็จ", "ok")),
+          person("อาจารย์", "เอกสารมีปัญหา", "alert"),
+        ],
+        title: "ตรวจสอบเอกสาร",
+        tone: "alert",
+      },
+    ],
+    qualified: [
+      REGISTERED,
+      DOCS_OK,
+      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
+    ],
+    reviewing: [
+      REGISTERED,
+      {
+        rows: members.map((m) => person(m.tab, "กำลังตรวจสอบ", "pending")),
+        title: "ตรวจสอบเอกสาร",
+        tone: "pending",
+      },
+    ],
+    "selection-failed": [
+      REGISTERED,
+      DOCS_OK,
+      {
+        compact: true,
+        label: "ไม่ผ่านการคัดเลือก",
+        title: "การเข้าแข่งขันรอบคัดเลือก",
+        tone: "failed",
+      },
+    ],
+    "selection-pending": [
+      REGISTERED,
+      DOCS_OK,
+      { label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "pending" },
+    ],
+    "semifinal-failed": [
+      REGISTERED,
+      DOCS_OK,
+      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
+      { label: "ไม่ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "failed" },
+    ],
+    "semifinal-pending": [
+      REGISTERED,
+      DOCS_OK,
+      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
+      { label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
+    ],
+    "semifinal-qualified": [
+      REGISTERED,
+      DOCS_OK,
+      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
+      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "ok" },
+    ],
+  };
+}
 
 export const DISCORD_CARD = {
   action: "รับรหัสเข้าร่วม",

@@ -71,6 +71,9 @@ function AdminUsersFilter({
   );
   const selectedRole =
     roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
+  const selectedEmailDomain =
+    emailDomainOptions.find((option) => option.value === emailDomainFilter) ??
+    emailDomainOptions[0];
 
   return (
     <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
@@ -97,7 +100,7 @@ function AdminUsersFilter({
           }}
         >
           <SelectTrigger id="admin-user-email-domain" className="w-full">
-            <SelectValue />
+            <SelectValue>{selectedEmailDomain.label}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>

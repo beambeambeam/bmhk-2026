@@ -13,7 +13,7 @@ describe("admin users filter", () => {
     const onNameChange = vi.fn<(value: string) => void>();
     const onRoleChange = vi.fn<(value: RoleFilter) => void>();
 
-    render(
+    const { rerender } = render(
       <AdminUsersFilter
         email=""
         emailDomainFilter="all"
@@ -33,12 +33,31 @@ describe("admin users filter", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Name" }), {
       target: { value: "Beam" },
     });
+    expect(screen.getByRole("combobox", { name: "Email domain" }).textContent).toContain(
+      "All Email",
+    );
     fireEvent.click(screen.getByRole("combobox", { name: "Email domain" }));
     const emailDomainOption = await screen.findByRole("option", {
       name: "End with @kmutt.ac.th",
     });
     fireEvent.pointerDown(emailDomainOption);
     fireEvent.click(emailDomainOption);
+    rerender(
+      <AdminUsersFilter
+        email=""
+        emailDomainFilter="kmutt.ac.th"
+        name=""
+        roleFilter="all"
+        roles={["admin", "staff"]}
+        onEmailChange={onEmailChange}
+        onEmailDomainChange={onEmailDomainChange}
+        onNameChange={onNameChange}
+        onRoleChange={onRoleChange}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Email domain" }).textContent).toContain(
+      "End with @kmutt.ac.th",
+    );
     const roleCombobox = screen.getByRole("combobox", { name: "Role" });
     expect(roleCombobox).toBeInstanceOf(HTMLInputElement);
 
@@ -49,9 +68,16 @@ describe("admin users filter", () => {
     fireEvent.pointerDown(roleOption);
     fireEvent.click(roleOption);
 
-    expect(onEmailChange).toHaveBeenCalledWith("@kmutt.ac.th");
-    expect(onEmailDomainChange).toHaveBeenCalledWith("kmutt.ac.th");
-    expect(onNameChange).toHaveBeenCalledWith("Beam");
-    expect(onRoleChange).toHaveBeenCalledWith("staff");
+    expect({
+      email: onEmailChange.mock.calls,
+      emailDomain: onEmailDomainChange.mock.calls,
+      name: onNameChange.mock.calls,
+      role: onRoleChange.mock.calls,
+    }).toStrictEqual({
+      email: [["@kmutt.ac.th"]],
+      emailDomain: [["kmutt.ac.th"]],
+      name: [["Beam"]],
+      role: [["staff"]],
+    });
   });
 });

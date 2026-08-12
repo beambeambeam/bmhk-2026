@@ -2,10 +2,11 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { PaginationState } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { orpc } from "@bmhk-2026/client/orpc";
 
 import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
-import { TABLE_USER_PAGE_SIZE, fetchUsersPage, setUserRole } from "./api";
+import { TABLE_USER_PAGE_SIZE, fetchUsersPage } from "./api";
 import { getUserRole } from "./types";
 import type { AuthRole, RoleFilter, SearchField, StaffUser } from "./types";
 
@@ -66,10 +67,9 @@ function AdminUserTable() {
     await queryClient.invalidateQueries({ queryKey: STAFF_ADMIN_USERS_QUERY_KEY });
   }
 
-  const updateRoleMutation = useMutation({
-    mutationFn: setUserRole,
-    onSuccess: invalidateUsers,
-  });
+  const updateRoleMutation = useMutation(
+    orpc.adminUsers.setRole.mutationOptions({ onSuccess: invalidateUsers }),
+  );
 
   const totalUsers = usersQuery.data?.total ?? 0;
   const users = usersQuery.data?.users ?? [];

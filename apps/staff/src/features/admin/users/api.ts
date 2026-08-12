@@ -1,7 +1,6 @@
 import { authClient } from "@bmhk-2026/client/auth-client";
-import { client } from "@bmhk-2026/client/orpc";
 
-import type { AuthRole, FetchUsersPageInput, SearchField, UsersPage } from "./types";
+import type { FetchUsersPageInput, SearchField, UsersPage } from "./types";
 
 const TABLE_USER_PAGE_SIZE = 10;
 
@@ -55,11 +54,4 @@ async function fetchUsersPage(input: FetchUsersPageInput, signal: AbortSignal): 
   return { total, users };
 }
 
-async function setUserRole(input: {
-  readonly role: AuthRole;
-  readonly userId: string;
-}): Promise<void> {
-  await client.adminUsers.setRole(input);
-}
-
-export { TABLE_USER_PAGE_SIZE, fetchUsersPage, setUserRole };
+export { TABLE_USER_PAGE_SIZE, fetchUsersPage };

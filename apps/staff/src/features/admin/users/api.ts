@@ -1,4 +1,5 @@
 import { authClient } from "@bmhk-2026/client/auth-client";
+import { client } from "@bmhk-2026/client/orpc";
 
 import type { AuthRole, FetchUsersPageInput, SearchField, UsersPage } from "./types";
 
@@ -58,11 +59,7 @@ async function setUserRole(input: {
   readonly role: AuthRole;
   readonly userId: string;
 }): Promise<void> {
-  const response = await authClient.admin.setRole(input);
-
-  if (response.error) {
-    throw new Error(response.error.message ?? response.error.statusText);
-  }
+  await client.adminUsers.setRole(input);
 }
 
 export { TABLE_USER_PAGE_SIZE, fetchUsersPage, setUserRole };

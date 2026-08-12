@@ -9,9 +9,6 @@ import { adminUsersTableFeatures } from "./table-features";
 import type { AuthRole, StaffUser } from "./types";
 
 interface AdminUsersDataTableProps {
-  readonly confirmingDeleteUserId: string | null;
-  readonly currentUserId?: string;
-  readonly deletingUserId?: string;
   readonly errorMessage?: string;
   readonly isError: boolean;
   readonly isLoading: boolean;
@@ -20,16 +17,12 @@ interface AdminUsersDataTableProps {
   readonly totalUsers: number;
   readonly updatingUserId?: string;
   readonly users: StaffUser[];
-  readonly onDeleteUser: (user: StaffUser) => void;
   readonly onPaginationChange: OnChangeFn<PaginationState>;
   readonly onRoleDraftChange: (userId: string, role: AuthRole) => void;
   readonly onUpdateRole: (user: StaffUser) => void;
 }
 
 function AdminUsersDataTable({
-  confirmingDeleteUserId,
-  currentUserId,
-  deletingUserId,
   errorMessage,
   isError,
   isLoading,
@@ -38,7 +31,6 @@ function AdminUsersDataTable({
   totalUsers,
   updatingUserId,
   users,
-  onDeleteUser,
   onPaginationChange,
   onRoleDraftChange,
   onUpdateRole,
@@ -51,10 +43,6 @@ function AdminUsersDataTable({
     getRowId: (user) => user.id,
     manualPagination: true,
     meta: {
-      confirmingDeleteUserId,
-      currentUserId,
-      deletingUserId,
-      onDeleteUser,
       onRoleDraftChange,
       onUpdateRole,
       roleDrafts,

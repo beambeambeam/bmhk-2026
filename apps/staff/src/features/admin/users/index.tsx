@@ -5,16 +5,12 @@ import { toast } from "sonner";
 
 import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
-import { TABLE_USER_PAGE_SIZE, fetchUsersPage, removeUser, setUserRole } from "./api";
+import { TABLE_USER_PAGE_SIZE, fetchUsersPage, setUserRole } from "./api";
 import { getUserRole } from "./types";
 import type { AuthRole, RoleFilter, SearchField, StaffUser } from "./types";
 
 const STAFF_ADMIN_USERS_QUERY_KEY = ["staff-admin-users"] as const;
 const SEARCH_DEBOUNCE_MS = 300;
-
-interface AdminUserTableProps {
-  readonly currentUserId?: string;
-}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -24,7 +20,7 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong.";
 }
 
-function AdminUserTable({ currentUserId }: AdminUserTableProps) {
+function AdminUserTable() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -35,7 +31,6 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
     pageSize: TABLE_USER_PAGE_SIZE,
   });
   const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
-  const [confirmingDeleteUserId, setConfirmingDeleteUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -75,17 +70,12 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
     mutationFn: setUserRole,
     onSuccess: invalidateUsers,
   });
-  const deleteUserMutation = useMutation({
-    mutationFn: removeUser,
-    onSuccess: invalidateUsers,
-  });
 
   const totalUsers = usersQuery.data?.total ?? 0;
   const users = usersQuery.data?.users ?? [];
   const updatingUserId = updateRoleMutation.isPending
     ? updateRoleMutation.variables?.userId
     : undefined;
-  const deletingUserId = deleteUserMutation.isPending ? deleteUserMutation.variables : undefined;
 
   function moveBackAfterLastRowRemoval(): void {
     if (users.length === 1 && pagination.pageIndex > 0) {
@@ -116,28 +106,6 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
     }
   }
 
-  async function deleteUser(user: StaffUser): Promise<void> {
-    if (user.id === currentUserId) {
-      toast.error("You cannot delete your own account.");
-      return;
-    }
-
-    if (confirmingDeleteUserId !== user.id) {
-      setConfirmingDeleteUserId(user.id);
-      return;
-    }
-
-    try {
-      await deleteUserMutation.mutateAsync(user.id);
-
-      toast.success("User deleted");
-      setConfirmingDeleteUserId(null);
-      moveBackAfterLastRowRemoval();
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  }
-
   return (
     <div className="flex flex-col gap-5">
       <AdminUsersFilter
@@ -161,9 +129,6 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         }}
       />
       <AdminUsersDataTable
-        confirmingDeleteUserId={confirmingDeleteUserId}
-        currentUserId={currentUserId}
-        deletingUserId={deletingUserId}
         errorMessage={usersQuery.isError ? getErrorMessage(usersQuery.error) : undefined}
         isError={usersQuery.isError}
         isLoading={usersQuery.isLoading}
@@ -172,9 +137,6 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         totalUsers={totalUsers}
         updatingUserId={updatingUserId}
         users={users}
-        onDeleteUser={(user) => {
-          void deleteUser(user);
-        }}
         onPaginationChange={setPagination}
         onRoleDraftChange={(userId, role) => {
           setRoleDrafts((drafts) => ({

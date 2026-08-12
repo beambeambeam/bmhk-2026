@@ -54,14 +54,6 @@ async function fetchUsersPage(input: FetchUsersPageInput, signal: AbortSignal): 
   return { total, users };
 }
 
-async function removeUser(userId: string): Promise<void> {
-  const response = await authClient.admin.removeUser({ userId });
-
-  if (response.error) {
-    throw new Error(response.error.message ?? response.error.statusText);
-  }
-}
-
 async function setUserRole(input: {
   readonly role: AuthRole;
   readonly userId: string;
@@ -73,4 +65,4 @@ async function setUserRole(input: {
   }
 }
 
-export { TABLE_USER_PAGE_SIZE, fetchUsersPage, removeUser, setUserRole };
+export { TABLE_USER_PAGE_SIZE, fetchUsersPage, setUserRole };

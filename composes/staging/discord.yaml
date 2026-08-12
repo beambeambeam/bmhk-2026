@@ -1,0 +1,17 @@
+services:
+  discord:
+    image: ghcr.io/beambeambeam/bmhk-2026/discord:staging
+    pull_policy: always
+    environment:
+      NODE_ENV: production
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?DISCORD_BOT_TOKEN is required}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID is required}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?DISCORD_CLIENT_SECRET is required}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:?DISCORD_GUILD_ID is required}
+    restart: unless-stopped
+    volumes:
+      - bmhk-2026_discord_data:/app/apps/discord/data
+
+volumes:
+  bmhk-2026_discord_data:
+    name: bmhk-2026_discord_data

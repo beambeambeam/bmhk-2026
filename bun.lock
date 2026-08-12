@@ -186,7 +186,6 @@
         "@orpc/tanstack-query": "^1.14.6",
         "@tanstack/react-query": "^5.101.2",
         "better-auth": "catalog:",
-        "sonner": "catalog:",
       },
       "devDependencies": {
         "@bmhk-2026/config": "workspace:*",

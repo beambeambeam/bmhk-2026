@@ -6,9 +6,11 @@ import { teamParticipants } from "./team-participants";
 export const discord = pgTable(
   "discord",
   {
+    altAccUserId: text("alt_acc_user_id"),
     altRedeemedAt: timestamp("alt_redeemed_at", { withTimezone: true }),
     code: text("code").notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
+    mainAccUserId: text("main_acc_user_id"),
     participantId: uuid("participant_id")
       .notNull()
       .references(() => teamParticipants.id, { onDelete: "cascade" }),

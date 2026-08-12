@@ -1,4 +1,4 @@
-import type { ApiSession, FileRepository, TeamRepository } from "@bmhk-2026/api";
+import type { ApiSession, DiscordService, FileRepository, TeamRepository } from "@bmhk-2026/api";
 import { createAppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
 import { clearMemoryLogs, createMemoryDrain, readMemoryLogs } from "evlog/memory";
@@ -70,6 +70,13 @@ function createTestFileRepository(): FileRepository {
   };
 }
 
+function createTestDiscordService(): DiscordService {
+  return {
+    query: async () => await Promise.resolve({ data: null, status: 1 }),
+    verify: async () => await Promise.resolve({ nickname: null, status: 1 }),
+  };
+}
+
 function createTestTeamRepository(): TeamRepository {
   return {
     create: async () =>
@@ -100,6 +107,7 @@ function createTestApp(getSession?: GetSession) {
       apiRouter,
       auth: testAuth.auth,
       corsOrigins: ["http://localhost:3001", "http://localhost:3002"],
+      discordService: createTestDiscordService(),
       observability: {
         drain: createMemoryDrain({ store }),
       },

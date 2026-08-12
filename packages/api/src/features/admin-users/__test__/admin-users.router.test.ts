@@ -90,6 +90,21 @@ describe("admin users router", () => {
     });
   });
 
+  it("applies shared table query defaults", async () => {
+    const list = vi.fn<AdminUserRepository["list"]>(async () => ({ rowCount: 0, rows: [] }));
+    const router = createRouter(createRepository({ list }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.list, {}, { context, path: ["adminUsers", "list"] }),
+    ).resolves.toStrictEqual({ rowCount: 0, rows: [] });
+    expect(list).toHaveBeenCalledWith({
+      columnFilters: [],
+      pagination: { pageIndex: 0, pageSize: 10 },
+      sorting: [{ desc: false, id: "email" }],
+    });
+  });
+
   it("audits an admin user listing failure without exposing repository details", async () => {
     const router = createRouter(
       createRepository({

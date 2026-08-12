@@ -1,10 +1,12 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { isAuthRole } from "@bmhk-2026/auth/permission";
-import { and, asc, count, desc, eq, ilike, sql } from "drizzle-orm";
+import { count, eq, ilike, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
+import { createTableOrderBy, createTableWhere, escapeLikePattern } from "../../core/query-builder";
 import { createRepositoryExecutor } from "../../core/repository";
+import { getTableOffset } from "../../core/table-query";
 import { adminUserRepositoryError, createAdminUserRepositoryError } from "./admin-users.errors";
 import type {
   AdminUserColumnFilter,
@@ -26,56 +28,35 @@ export interface AdminUserRepository {
 }
 
 type Database = typeof db;
-const LIKE_PATTERN_CHARACTER = /[\\%_]/gu;
 const normalizedUserRole = sql<string>`coalesce(${user.role}, 'user')`;
+const adminUserSortColumns = {
+  email: user.email,
+  name: user.name,
+  role: normalizedUserRole,
+} as const;
+const defaultAdminUserSorting = [
+  { desc: false, id: "email" },
+] as const satisfies readonly AdminUserSort[];
 
-function escapeLikePattern(value: string): string {
-  return value.replace(LIKE_PATTERN_CHARACTER, "\\$&");
-}
-
-function createFilterConditions(columnFilters: readonly AdminUserColumnFilter[]): SQL[] {
-  const conditions: SQL[] = [];
-
-  for (const filter of columnFilters) {
-    if (filter.value.length === 0) {
-      continue;
-    }
-
-    switch (filter.id) {
-      case "email": {
-        conditions.push(ilike(user.email, `%${escapeLikePattern(filter.value)}%`));
-        break;
-      }
-      case "name": {
-        conditions.push(ilike(user.name, `%${escapeLikePattern(filter.value)}%`));
-        break;
-      }
-      case "role": {
-        conditions.push(eq(normalizedUserRole, filter.value));
-        break;
-      }
-      default: {
-        break;
-      }
-    }
+function createAdminUserFilterCondition(filter: AdminUserColumnFilter): SQL | undefined {
+  if (filter.value.length === 0) {
+    return undefined;
   }
 
-  return conditions;
-}
-
-function createOrderBy(sorting: readonly AdminUserSort[]) {
-  const sortColumns = {
-    email: user.email,
-    name: user.name,
-    role: normalizedUserRole,
-  } as const;
-  const requestedSorting = sorting.length > 0 ? sorting : [{ desc: false, id: "email" } as const];
-  const orderBy = requestedSorting.map((sort) => {
-    const column = sortColumns[sort.id];
-    return sort.desc ? desc(column) : asc(column);
-  });
-
-  return [...orderBy, asc(user.id)];
+  switch (filter.id) {
+    case "email": {
+      return ilike(user.email, `%${escapeLikePattern(filter.value)}%`);
+    }
+    case "name": {
+      return ilike(user.name, `%${escapeLikePattern(filter.value)}%`);
+    }
+    case "role": {
+      return eq(normalizedUserRole, filter.value);
+    }
+    default: {
+      return undefined;
+    }
+  }
 }
 
 export function createAdminUserRepository(database: Database = db): AdminUserRepository {
@@ -87,7 +68,7 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
         async () =>
           await database.transaction(
             async (transaction) => {
-              const where = and(...createFilterConditions(columnFilters));
+              const where = createTableWhere(columnFilters, createAdminUserFilterCondition);
               const [totalResult] = await transaction
                 .select({ value: count() })
                 .from(user)
@@ -101,9 +82,16 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
                 })
                 .from(user)
                 .where(where)
-                .orderBy(...createOrderBy(sorting))
+                .orderBy(
+                  ...createTableOrderBy({
+                    columns: adminUserSortColumns,
+                    fallbackSorting: defaultAdminUserSorting,
+                    sorting,
+                    stableColumn: user.id,
+                  }),
+                )
                 .limit(pagination.pageSize)
-                .offset(pagination.pageIndex * pagination.pageSize);
+                .offset(getTableOffset(pagination));
 
               return {
                 rowCount: totalResult?.value ?? 0,

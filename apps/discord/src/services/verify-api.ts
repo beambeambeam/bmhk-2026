@@ -9,7 +9,7 @@ export const bmhkDiscordStatus = {
 
 export type BMHKDiscordStatus = (typeof bmhkDiscordStatus)[keyof typeof bmhkDiscordStatus];
 
-export type BMHKDiscordQueryResponse = {
+export interface BMHKDiscordQueryResponse {
   status: BMHKDiscordStatus;
   data: {
     name: string;
@@ -17,17 +17,17 @@ export type BMHKDiscordQueryResponse = {
     school: string;
     main_acc_id: string | null;
   } | null;
-};
+}
 
-export type BMHKDiscordVerifyResponse = {
+export interface BMHKDiscordVerifyResponse {
   status: BMHKDiscordStatus;
   nickname: string | null;
-};
+}
 
 // ponytail: mocked, replace with real fetch against apps/server once the two
 // interaction-side tasks land.
 export async function queryDiscordCode(_code: string): Promise<BMHKDiscordQueryResponse> {
-  return {
+  return await Promise.resolve({
     data: {
       main_acc_id: null,
       name: "เมทิกา สุทธิวรากุล",
@@ -35,14 +35,14 @@ export async function queryDiscordCode(_code: string): Promise<BMHKDiscordQueryR
       team: "แก๊งน้องห่าน",
     },
     status: bmhkDiscordStatus.SUCCESS,
-  };
+  });
 }
 
 // ponytail: mocked, replace with real fetch against apps/server once the two
 // interaction-side tasks land.
 export async function verifyDiscordCode(_code: string): Promise<BMHKDiscordVerifyResponse> {
-  return {
+  return await Promise.resolve({
     nickname: "1 - แก๊งน้องห่าน - เมทิกา",
     status: bmhkDiscordStatus.SUCCESS,
-  };
+  });
 }

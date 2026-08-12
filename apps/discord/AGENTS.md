@@ -21,7 +21,7 @@
    `select-menus/` directory implementing `Button` / `Modal` / `SelectMenu`.
    All four interfaces live in `src/types.ts`.
 2. Give buttons, modals, and select menus a `customId` that's safe to match by
-   *prefix* — the loader (`src/loaders/interactions.ts`) does
+   _prefix_ — the loader (`src/loaders/interactions.ts`) does
    `startsWith`-style matching, not exact-match, so two handlers can't share a
    prefix.
 3. Run `bun run generate` to regenerate the manifests from the files on disk.

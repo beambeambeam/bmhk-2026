@@ -11,12 +11,12 @@ Copy `.env.example` to `.env` and fill in the required credentials:
 cp .env.example .env
 ```
 
-| Variable            | Required | Description                                                                    |
-| ------------------- | -------- | -------------------------------------------------------------------------------- |
-| `DISCORD_TOKEN`      | yes      | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot**. |
-| `DISCORD_CLIENT_ID`  | yes      | Application (client) ID, from your app's **General Information** page.          |
-| `DISCORD_GUILD_ID`   | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`. |
-| `GLOBAL`             | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development. |
+| Variable            | Required | Description                                                                                                                                                            |
+| ------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DISCORD_TOKEN`     | yes      | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot**.                                                       |
+| `DISCORD_CLIENT_ID` | yes      | Application (client) ID, from your app's **General Information** page.                                                                                                 |
+| `DISCORD_GUILD_ID`  | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`.                                                                     |
+| `GLOBAL`            | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development. |
 
 Before the bot can read message content or see full member lists, enable
 **Server Members Intent** and **Message Content Intent** under your
@@ -47,13 +47,13 @@ Run these from the repository root, unless noted otherwise.
 
 ## Commands
 
-| From repo root         | From `apps/discord`  | What it does                                                                 |
-| ----------------------- | --------------------- | ----------------------------------------------------------------------------- |
-| `bun run dev:discord`   | `bun run dev`         | Regenerates manifests, then starts the bot with file-watch reload.            |
-| `bun run prep:discord`  | `bun run prep`        | Regenerates the command/event/component manifests only (no bot start).        |
-| -                        | `bun run generate`    | Alias for `prep`.                                                             |
-| `bun run deploy:discord`| `bun run deploy`      | Regenerates the command manifest, then pushes slash commands to Discord.      |
-| -                        | `bun run start`       | Regenerates manifests, then starts the bot once — no watch, for production.   |
+| From repo root           | From `apps/discord` | What it does                                                                |
+| ------------------------ | ------------------- | --------------------------------------------------------------------------- |
+| `bun run dev:discord`    | `bun run dev`       | Regenerates manifests, then starts the bot with file-watch reload.          |
+| `bun run prep:discord`   | `bun run prep`      | Regenerates the command/event/component manifests only (no bot start).      |
+| -                        | `bun run generate`  | Alias for `prep`.                                                           |
+| `bun run deploy:discord` | `bun run deploy`    | Regenerates the command manifest, then pushes slash commands to Discord.    |
+| -                        | `bun run start`     | Regenerates manifests, then starts the bot once — no watch, for production. |
 
 "Regenerating manifests" scans `src/events/`, `src/interactions/commands/`,
 `src/interactions/buttons/`, `src/interactions/modals/`, and

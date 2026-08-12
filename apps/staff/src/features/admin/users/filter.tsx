@@ -1,6 +1,14 @@
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/combobox";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
-import { NativeSelect, NativeSelectOption } from "@/components/native-select";
+import { useMemo } from "react";
 
 import { isAuthRole } from "./types";
 import type { AuthRole, RoleFilter } from "./types";
@@ -15,6 +23,13 @@ interface AdminUsersFilterProps {
   readonly onRoleChange: (role: RoleFilter) => void;
 }
 
+interface RoleOption {
+  readonly label: string;
+  readonly value: RoleFilter;
+}
+
+const allRolesOption = { label: "All roles", value: "all" } as const satisfies RoleOption;
+
 function AdminUsersFilter({
   email,
   name,
@@ -24,6 +39,19 @@ function AdminUsersFilter({
   onNameChange,
   onRoleChange,
 }: AdminUsersFilterProps) {
+  const roleOptions = useMemo<RoleOption[]>(
+    () => [
+      allRolesOption,
+      ...roles.map((role) => ({
+        label: role,
+        value: role,
+      })),
+    ],
+    [roles],
+  );
+  const selectedRole =
+    roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
+
   return (
     <FieldGroup className="gap-3 sm:ml-auto sm:w-auto sm:flex-row">
       <Field className="sm:w-64">
@@ -52,25 +80,31 @@ function AdminUsersFilter({
       </Field>
       <Field className="sm:w-48">
         <FieldLabel htmlFor="admin-user-role">Role</FieldLabel>
-        <NativeSelect
-          id="admin-user-role"
-          className="w-full"
-          value={roleFilter}
-          onChange={(event) => {
-            const nextRole = event.target.value;
-
-            if (nextRole === "all" || isAuthRole(nextRole, roles)) {
-              onRoleChange(nextRole);
+        <Combobox
+          items={roleOptions}
+          itemToStringValue={(roleOption) => roleOption.label}
+          value={selectedRole}
+          onValueChange={(roleOption) => {
+            if (
+              roleOption !== null &&
+              (roleOption.value === "all" || isAuthRole(roleOption.value, roles))
+            ) {
+              onRoleChange(roleOption.value);
             }
           }}
         >
-          <NativeSelectOption value="all">All roles</NativeSelectOption>
-          {roles.map((allowedRole) => (
-            <NativeSelectOption key={allowedRole} value={allowedRole}>
-              {allowedRole}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          <ComboboxInput id="admin-user-role" className="w-full" placeholder="Search roles" />
+          <ComboboxContent>
+            <ComboboxEmpty>No roles found.</ComboboxEmpty>
+            <ComboboxList>
+              {(roleOption: RoleOption) => (
+                <ComboboxItem key={roleOption.value} value={roleOption}>
+                  {roleOption.label}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
       </Field>
     </FieldGroup>
   );

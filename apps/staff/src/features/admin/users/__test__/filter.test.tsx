@@ -7,7 +7,7 @@ import { AdminUsersFilter } from "../filter";
 import type { RoleFilter } from "../types";
 
 describe("admin users filter", () => {
-  it("searches email and name independently using server-provided roles", () => {
+  it("searches email, name, and server-provided roles independently", async () => {
     const onEmailChange = vi.fn<(value: string) => void>();
     const onNameChange = vi.fn<(value: string) => void>();
     const onRoleChange = vi.fn<(value: RoleFilter) => void>();
@@ -30,14 +30,16 @@ describe("admin users filter", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Name" }), {
       target: { value: "Beam" },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "Role" }), {
-      target: { value: "staff" },
-    });
+    const roleCombobox = screen.getByRole("combobox", { name: "Role" });
+    expect(roleCombobox).toBeInstanceOf(HTMLInputElement);
+
+    fireEvent.focus(roleCombobox);
+    fireEvent.change(roleCombobox, { target: { value: "staff" } });
+    fireEvent.keyDown(roleCombobox, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "staff" }));
 
     expect(onEmailChange).toHaveBeenCalledWith("@kmutt.ac.th");
     expect(onNameChange).toHaveBeenCalledWith("Beam");
     expect(onRoleChange).toHaveBeenCalledWith("staff");
-    expect(screen.getByRole("option", { name: "admin" })).toBeDefined();
-    expect(screen.getByRole("option", { name: "staff" })).toBeDefined();
   });
 });

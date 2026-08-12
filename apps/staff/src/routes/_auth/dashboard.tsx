@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { orpc } from "@bmhk-2026/client/orpc";
+import { getPrivateDataQueryOptions } from "@bmhk-2026/client/query-options";
 
 export const Route = createFileRoute("/_auth/dashboard")({
   component: RouteComponent,
@@ -9,8 +9,8 @@ export const Route = createFileRoute("/_auth/dashboard")({
 
 function RouteComponent() {
   const { session } = Route.useRouteContext();
-  const privateData = useQuery(orpc.privateData.get.queryOptions());
   const role = session.data?.user.role ?? "user";
+  const privateData = useQuery(getPrivateDataQueryOptions(session.data?.user.id, role !== "user"));
 
   if (role === "user") {
     return (
@@ -27,11 +27,16 @@ function RouteComponent() {
     );
   }
 
+  let apiStatus = privateData.data?.message ?? "Loading...";
+  if (privateData.isError) {
+    apiStatus = "Unable to load private data.";
+  }
+
   return (
     <section className="space-y-2">
       <h1 className="font-semibold text-2xl">Dashboard</h1>
       <p className="text-muted-foreground">Welcome {session.data?.user.name}</p>
-      <p className="text-sm">API: {privateData.data?.message}</p>
+      <p className="text-sm">API: {apiStatus}</p>
     </section>
   );
 }

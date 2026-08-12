@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
-import Navbar from "@/components/navbar/navbar";
+
 import ScrollEdgeEffect from "@/components/scroll-edge-effect";
 import PersonDetails from "./components/person-details";
 import ResultModal from "./components/result-modal";
@@ -107,7 +107,7 @@ const PANES = [
 type Pane = (typeof PANES)[number]["key"];
 
 export default function MyTeam() {
-  const search = useSearch({ from: "/_auth/dashboard" }) as Record<string, unknown>;
+  const search = useSearch({ from: "/_auth/my-team" }) as Record<string, unknown>;
   const statusParam = typeof search.status === "string" ? search.status : null;
   const status: TeamStatus = isStatus(statusParam) ? statusParam : "reviewing";
 
@@ -178,7 +178,7 @@ export default function MyTeam() {
         data-recede={modalOpen}
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
-        <Navbar />
+        {/* Navbar ใหม่ตรงนี้จ้า */}
 
         <div className="flex w-full flex-col items-start gap-6 lg:flex-row">
           <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-8 rounded-[20px] bg-white p-4 shadow-soft">

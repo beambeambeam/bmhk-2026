@@ -13,6 +13,12 @@ export const userRoleChangedAudit = defineAuditAction("user.role.changed", {
   target: "user",
 });
 
+export const userDirectoryAccessedAudit = defineAuditAction("user-directory.accessed", {
+  description: "An Administrator accessed the sensitive user directory",
+  severity: "critical",
+  target: "user-directory",
+});
+
 export const awardChangedAudit = defineAuditAction("team.award.changed", {
   description: "A Registration Operator changed an Award",
   requiresChanges: true,

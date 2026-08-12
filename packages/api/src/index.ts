@@ -2,7 +2,17 @@ export { createAppRouter } from "./router";
 export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { AdminUserRepository } from "./features/admin-users/admin-users.repository";
-export type { AdminUserRole } from "./features/admin-users/admin-users.schema";
+export type {
+  AdminUser,
+  AdminUserColumnFilter,
+  AdminUserFilterOptions,
+  AdminUserListInput,
+  AdminUserListQuery,
+  AdminUserListResult,
+  AdminUserPagination,
+  AdminUserRole,
+  AdminUserSort,
+} from "./features/admin-users/admin-users.schema";
 export type { ApiRole, ApiSession, ApiUser, AuthReader, TeamAccessContext } from "./core/auth";
 export type { ApiContext } from "./core/context";
 export type { FeatureFlags } from "./features/feature-flags/feature-flags.schema";

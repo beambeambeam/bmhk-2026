@@ -21,9 +21,9 @@ export function createAdminUserRepositoryError(
     cause: toError(cause, "Unknown admin user repository error"),
     code: ADMIN_USER_REPOSITORY_ERROR_CODE,
     fix: "Try again or contact support",
-    message: "User role update failed",
+    message: "Admin user operation failed",
     status: 500,
-    why: "The admin user repository could not update the role",
+    why: "The admin user repository could not complete the operation",
   });
 }
 

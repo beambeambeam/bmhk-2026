@@ -1,11 +1,36 @@
 import type { AdminProcedure } from "../../core/procedure";
-import { userRoleChangedAudit } from "../audit/audit.actions";
+import { userDirectoryAccessedAudit, userRoleChangedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
-import { adminUserRoleResultSchema, setAdminUserRoleSchema } from "./admin-users.schema";
+import {
+  adminUserListResultSchema,
+  adminUserFilterOptionsSchema,
+  adminUserRoleResultSchema,
+  listAdminUsersSchema,
+  setAdminUserRoleSchema,
+} from "./admin-users.schema";
 import type { AdminUserService } from "./admin-users.service";
 
 export function createAdminUsersRouter(adminProcedure: AdminProcedure, service: AdminUserService) {
   return {
+    filter: adminProcedure
+      .route({ method: "GET", tags: ["Admin User"] })
+      .output(adminUserFilterOptionsSchema)
+      .handler(() => service.filter()),
+    list: adminProcedure
+      .route({ method: "GET", tags: ["Admin User"] })
+      .input(listAdminUsersSchema)
+      .output(adminUserListResultSchema)
+      .handler(
+        async ({ context, input }) =>
+          await executeAudited({
+            audit: userDirectoryAccessedAudit({
+              actor: { id: context.session.user.id, type: "user" },
+              target: { id: "admin-users" },
+            }),
+            execute: async () => await service.list(input),
+            log: context.log,
+          }),
+      ),
     setRole: adminProcedure
       .route({ method: "PATCH", tags: ["Admin User"] })
       .input(setAdminUserRoleSchema)

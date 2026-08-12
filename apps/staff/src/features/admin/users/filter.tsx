@@ -53,8 +53,8 @@ function AdminUsersFilter({
     roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
 
   return (
-    <FieldGroup className="gap-3 sm:ml-auto sm:w-auto sm:flex-row">
-      <Field className="sm:w-64">
+    <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:ml-auto lg:w-auto lg:grid-cols-[16rem_16rem_12rem]">
+      <Field className="w-full">
         <FieldLabel htmlFor="admin-user-email">Email</FieldLabel>
         <Input
           id="admin-user-email"
@@ -66,7 +66,7 @@ function AdminUsersFilter({
           }}
         />
       </Field>
-      <Field className="sm:w-64">
+      <Field className="w-full">
         <FieldLabel htmlFor="admin-user-name">Name</FieldLabel>
         <Input
           id="admin-user-name"
@@ -78,7 +78,7 @@ function AdminUsersFilter({
           }}
         />
       </Field>
-      <Field className="sm:w-48">
+      <Field className="w-full">
         <FieldLabel htmlFor="admin-user-role">Role</FieldLabel>
         <Combobox
           items={roleOptions}

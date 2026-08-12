@@ -73,7 +73,7 @@ function AdminUsersFilter({
     roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
 
   return (
-    <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:ml-auto lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
+    <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
       <Field className="w-full">
         <FieldLabel htmlFor="admin-user-email">Email</FieldLabel>
         <Input

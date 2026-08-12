@@ -1,4 +1,5 @@
 import { authRoleValues } from "@bmhk-2026/auth/permission";
+import type { AuthRole } from "@bmhk-2026/auth/permission";
 import { z } from "zod";
 
 import { createTableListResultSchema, createTableQuerySchema } from "../../core/table-query";
@@ -52,6 +53,6 @@ export type AdminUserListInput = z.input<typeof listAdminUsersSchema>;
 export type AdminUserListQuery = z.output<typeof listAdminUsersSchema>;
 export type AdminUserListResult = z.output<typeof adminUserListResultSchema>;
 export type AdminUserPagination = AdminUserListQuery["pagination"];
-export type AdminUserRole = z.infer<typeof adminUserRoleSchema>;
+export type AdminUserRole = AuthRole;
 export type AdminUserRoleResult = z.infer<typeof adminUserRoleResultSchema>;
 export type AdminUserSort = AdminUserListQuery["sorting"][number];

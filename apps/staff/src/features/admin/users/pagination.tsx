@@ -1,7 +1,7 @@
 import { Button } from "@/components/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-interface PaginationProps {
+interface AdminUsersPaginationProps {
   readonly firstVisibleUserNumber: number;
   readonly lastVisibleUserNumber: number;
   readonly page: number;
@@ -10,14 +10,14 @@ interface PaginationProps {
   readonly onPageChange: (page: number) => void;
 }
 
-function Pagination({
+function AdminUsersPagination({
   firstVisibleUserNumber,
   lastVisibleUserNumber,
   page,
   pageCount,
   totalUsers,
   onPageChange,
-}: PaginationProps) {
+}: AdminUsersPaginationProps) {
   return (
     <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <p className="text-muted-foreground">
@@ -56,4 +56,4 @@ function Pagination({
   );
 }
 
-export { Pagination };
+export { AdminUsersPagination };

@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { STAFF_ROLES, isRoleFilter, isSearchField } from "./types";
 import type { RoleFilter, SearchField } from "./types";
 
-interface FilterProps {
+interface AdminUsersFilterProps {
   readonly roleFilter: RoleFilter;
   readonly search: string;
   readonly searchField: SearchField;
@@ -13,14 +13,14 @@ interface FilterProps {
   readonly onSearchFieldChange: (searchField: SearchField) => void;
 }
 
-function Filter({
+function AdminUsersFilter({
   roleFilter,
   search,
   searchField,
   onRoleFilterChange,
   onSearchChange,
   onSearchFieldChange,
-}: FilterProps) {
+}: AdminUsersFilterProps) {
   return (
     <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
       <label className="relative block min-w-0 sm:w-72" htmlFor="admin-user-search">
@@ -83,4 +83,4 @@ function Filter({
   );
 }
 
-export { Filter };
+export { AdminUsersFilter };

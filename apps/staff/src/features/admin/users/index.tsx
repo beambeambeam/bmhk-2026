@@ -2,9 +2,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { DataTable } from "./data-table";
-import { Filter } from "./filter";
-import { Pagination } from "./pagination";
+import { AdminUsersDataTable } from "./data-table";
+import { AdminUsersFilter } from "./filter";
+import { AdminUsersPagination } from "./pagination";
 import {
   TABLE_USER_PAGE_SIZE,
   fetchUsersPage,
@@ -141,7 +141,7 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      <Filter
+      <AdminUsersFilter
         roleFilter={roleFilter}
         search={search}
         searchField={searchField}
@@ -155,7 +155,7 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
           setCurrentPage(1);
         }}
       />
-      <DataTable
+      <AdminUsersDataTable
         confirmingDeleteUserId={confirmingDeleteUserId}
         currentUserId={currentUserId}
         deletingUserId={deletingUserId}
@@ -179,7 +179,7 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
           void updateRole(user);
         }}
       />
-      <Pagination
+      <AdminUsersPagination
         firstVisibleUserNumber={firstVisibleUserNumber}
         lastVisibleUserNumber={lastVisibleUserNumber}
         page={visiblePage}

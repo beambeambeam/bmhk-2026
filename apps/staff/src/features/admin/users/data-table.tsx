@@ -5,7 +5,7 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { STAFF_ROLES, getUserRole, isAuthRole } from "./types";
 import type { AuthRole, StaffUser } from "./types";
 
-interface DataTableProps {
+interface AdminUsersDataTableProps {
   readonly confirmingDeleteUserId: string | null;
   readonly currentUserId?: string;
   readonly deletingUserId?: string;
@@ -21,7 +21,7 @@ interface DataTableProps {
   readonly onUpdateRole: (user: StaffUser) => void;
 }
 
-function DataTable({
+function AdminUsersDataTable({
   confirmingDeleteUserId,
   currentUserId,
   deletingUserId,
@@ -35,7 +35,7 @@ function DataTable({
   onDeleteUser,
   onRoleDraftChange,
   onUpdateRole,
-}: DataTableProps) {
+}: AdminUsersDataTableProps) {
   return (
     <div className="rounded-lg border">
       <Table>
@@ -158,4 +158,4 @@ function DataTable({
   );
 }
 
-export { DataTable };
+export { AdminUsersDataTable };

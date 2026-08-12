@@ -1,5 +1,18 @@
 import { defineAuditAction } from "evlog";
 
+export const adminAccessDeniedAudit = defineAuditAction("admin.access.denied", {
+  description: "A non-administrator attempted an administrator operation",
+  severity: "critical",
+  target: "admin-operation",
+});
+
+export const userRoleChangedAudit = defineAuditAction("user.role.changed", {
+  description: "An Administrator changed a user's authorization role",
+  requiresChanges: true,
+  severity: "critical",
+  target: "user",
+});
+
 export const awardChangedAudit = defineAuditAction("team.award.changed", {
   description: "A Registration Operator changed an Award",
   requiresChanges: true,

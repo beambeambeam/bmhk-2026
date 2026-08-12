@@ -5,6 +5,7 @@ import { evlog } from "evlog/orpc";
 
 import type { ApiSession, AuthReader, TeamAccessContext } from "./auth";
 import type { ApiContext } from "./context";
+import { adminAccessDeniedAudit } from "../features/audit/audit.actions";
 
 export interface ProcedureDependencies {
   auth: AuthReader;
@@ -73,6 +74,27 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
 
   const protectedProcedure = base.use(evlog()).use(requireAuth);
+  const adminProcedure = protectedProcedure.use(async ({ context, next, path }) => {
+    if (context.session.user.role !== "admin") {
+      context.log.audit(
+        adminAccessDeniedAudit({
+          actor: { id: context.session.user.id, type: "user" },
+          outcome: "denied",
+          reason: "ADMIN_ACCESS_REQUIRED",
+          target: { id: path.join(".") },
+        }),
+      );
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for access",
+        message: "Administrator access required",
+        status: 403,
+        why: "The authenticated user is not an administrator",
+      });
+    }
+
+    return await next();
+  });
   const teamOwnerProcedure = protectedProcedure.use(async ({ context, next }) => {
     const teamAccess: TeamAccessContext = {
       actorId: context.session.user.id,
@@ -113,6 +135,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
 
   return {
+    adminProcedure,
     protectedProcedure,
     publicProcedure: base.use(evlog()),
     registrationProcedure,
@@ -123,6 +146,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
+export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
 export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
 export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];

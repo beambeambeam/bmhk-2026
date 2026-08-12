@@ -4,15 +4,11 @@ import type { AuthRole, FetchUsersPageInput, SearchField, UsersPage } from "./ty
 
 const TABLE_USER_PAGE_SIZE = 10;
 
-function getPageOffset(page: number): number {
-  return (page - 1) * TABLE_USER_PAGE_SIZE;
-}
-
 function getUsersQuery(input: FetchUsersPageInput) {
   const normalizedSearch = input.search.trim();
   const query = {
-    limit: TABLE_USER_PAGE_SIZE,
-    offset: getPageOffset(input.page),
+    limit: input.pageSize,
+    offset: input.pageIndex * input.pageSize,
     sortBy: "email",
     sortDirection: "asc",
   } as {
@@ -77,4 +73,4 @@ async function setUserRole(input: {
   }
 }
 
-export { TABLE_USER_PAGE_SIZE, fetchUsersPage, getPageOffset, removeUser, setUserRole };
+export { TABLE_USER_PAGE_SIZE, fetchUsersPage, removeUser, setUserRole };

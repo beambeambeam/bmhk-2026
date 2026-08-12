@@ -1,23 +1,23 @@
 import { Button } from "@/components/button";
+import type { ReactTable } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import type { AdminUsersTableFeatures } from "./table-features";
+import type { StaffUser } from "./types";
+
 interface AdminUsersPaginationProps {
-  readonly firstVisibleUserNumber: number;
-  readonly lastVisibleUserNumber: number;
-  readonly page: number;
-  readonly pageCount: number;
-  readonly totalUsers: number;
-  readonly onPageChange: (page: number) => void;
+  readonly table: ReactTable<AdminUsersTableFeatures, StaffUser>;
+  readonly visibleRowCount: number;
 }
 
-function AdminUsersPagination({
-  firstVisibleUserNumber,
-  lastVisibleUserNumber,
-  page,
-  pageCount,
-  totalUsers,
-  onPageChange,
-}: AdminUsersPaginationProps) {
+function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationProps) {
+  const { pageIndex, pageSize } = table.state.pagination;
+  const pageCount = Math.max(1, table.getPageCount());
+  const page = Math.min(pageIndex + 1, pageCount);
+  const totalUsers = table.getRowCount();
+  const firstVisibleUserNumber = totalUsers === 0 ? 0 : pageIndex * pageSize + 1;
+  const lastVisibleUserNumber = Math.min(pageIndex * pageSize + visibleRowCount, totalUsers);
+
   return (
     <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <p className="text-muted-foreground">
@@ -28,9 +28,9 @@ function AdminUsersPagination({
           type="button"
           variant="outline"
           size="sm"
-          disabled={page === 1}
+          disabled={!table.getCanPreviousPage()}
           onClick={() => {
-            onPageChange(Math.max(1, page - 1));
+            table.previousPage();
           }}
         >
           <ChevronLeft aria-hidden="true" data-icon="inline-start" />
@@ -43,9 +43,9 @@ function AdminUsersPagination({
           type="button"
           variant="outline"
           size="sm"
-          disabled={page === pageCount}
+          disabled={!table.getCanNextPage()}
           onClick={() => {
-            onPageChange(Math.min(pageCount, page + 1));
+            table.nextPage();
           }}
         >
           Next

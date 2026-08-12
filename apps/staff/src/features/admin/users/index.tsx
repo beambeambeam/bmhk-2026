@@ -1,17 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { PaginationState } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
-import { AdminUsersPagination } from "./pagination";
-import {
-  TABLE_USER_PAGE_SIZE,
-  fetchUsersPage,
-  getPageOffset,
-  removeUser,
-  setUserRole,
-} from "./api";
+import { TABLE_USER_PAGE_SIZE, fetchUsersPage, removeUser, setUserRole } from "./api";
 import { getUserRole } from "./types";
 import type { AuthRole, RoleFilter, SearchField, StaffUser } from "./types";
 
@@ -36,14 +30,20 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchField, setSearchField] = useState<SearchField>("email");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: TABLE_USER_PAGE_SIZE,
+  });
   const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
   const [confirmingDeleteUserId, setConfirmingDeleteUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearch(search.trim());
-      setCurrentPage(1);
+      setPagination((currentPagination) => ({
+        ...currentPagination,
+        pageIndex: 0,
+      }));
     }, SEARCH_DEBOUNCE_MS);
 
     return () => {
@@ -55,12 +55,12 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
     placeholderData: keepPreviousData,
     queryFn: async ({ signal }) =>
       await fetchUsersPage(
-        { page: currentPage, roleFilter, search: debouncedSearch, searchField },
+        { ...pagination, roleFilter, search: debouncedSearch, searchField },
         signal,
       ),
     queryKey: [
       ...STAFF_ADMIN_USERS_QUERY_KEY,
-      currentPage,
+      pagination,
       roleFilter,
       debouncedSearch,
       searchField,
@@ -82,18 +82,17 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
 
   const totalUsers = usersQuery.data?.total ?? 0;
   const users = usersQuery.data?.users ?? [];
-  const pageCount = Math.max(1, Math.ceil(totalUsers / TABLE_USER_PAGE_SIZE));
-  const visiblePage = Math.min(currentPage, pageCount);
-  const firstVisibleUserNumber = totalUsers === 0 ? 0 : getPageOffset(visiblePage) + 1;
-  const lastVisibleUserNumber = Math.min(getPageOffset(visiblePage) + users.length, totalUsers);
   const updatingUserId = updateRoleMutation.isPending
     ? updateRoleMutation.variables?.userId
     : undefined;
   const deletingUserId = deleteUserMutation.isPending ? deleteUserMutation.variables : undefined;
 
   function moveBackAfterLastRowRemoval(): void {
-    if (users.length === 1 && currentPage > 1) {
-      setCurrentPage((page) => page - 1);
+    if (users.length === 1 && pagination.pageIndex > 0) {
+      setPagination((currentPagination) => ({
+        ...currentPagination,
+        pageIndex: currentPagination.pageIndex - 1,
+      }));
     }
   }
 
@@ -147,12 +146,18 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         searchField={searchField}
         onRoleFilterChange={(nextRoleFilter) => {
           setRoleFilter(nextRoleFilter);
-          setCurrentPage(1);
+          setPagination((currentPagination) => ({
+            ...currentPagination,
+            pageIndex: 0,
+          }));
         }}
         onSearchChange={setSearch}
         onSearchFieldChange={(nextSearchField) => {
           setSearchField(nextSearchField);
-          setCurrentPage(1);
+          setPagination((currentPagination) => ({
+            ...currentPagination,
+            pageIndex: 0,
+          }));
         }}
       />
       <AdminUsersDataTable
@@ -162,6 +167,7 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         errorMessage={usersQuery.isError ? getErrorMessage(usersQuery.error) : undefined}
         isError={usersQuery.isError}
         isLoading={usersQuery.isLoading}
+        pagination={pagination}
         roleDrafts={roleDrafts}
         totalUsers={totalUsers}
         updatingUserId={updatingUserId}
@@ -169,6 +175,7 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         onDeleteUser={(user) => {
           void deleteUser(user);
         }}
+        onPaginationChange={setPagination}
         onRoleDraftChange={(userId, role) => {
           setRoleDrafts((drafts) => ({
             ...drafts,
@@ -178,14 +185,6 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         onUpdateRole={(user) => {
           void updateRole(user);
         }}
-      />
-      <AdminUsersPagination
-        firstVisibleUserNumber={firstVisibleUserNumber}
-        lastVisibleUserNumber={lastVisibleUserNumber}
-        page={visiblePage}
-        pageCount={pageCount}
-        totalUsers={totalUsers}
-        onPageChange={setCurrentPage}
       />
     </div>
   );

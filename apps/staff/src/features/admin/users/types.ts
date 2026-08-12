@@ -18,7 +18,8 @@ interface UsersPage {
 }
 
 interface FetchUsersPageInput {
-  readonly page: number;
+  readonly pageIndex: number;
+  readonly pageSize: number;
   readonly roleFilter: RoleFilter;
   readonly search: string;
   readonly searchField: SearchField;

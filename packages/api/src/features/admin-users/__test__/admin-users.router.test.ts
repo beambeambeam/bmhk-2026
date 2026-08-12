@@ -71,6 +71,7 @@ describe("admin users router", () => {
     const input = {
       columnFilters: [
         { id: "email" as const, value: "@kmutt.ac.th" },
+        { id: "emailDomain" as const, value: "kmutt.ac.th" as const },
         { id: "name" as const, value: "Beam" },
         { id: "role" as const, value: "staff" as const },
       ],

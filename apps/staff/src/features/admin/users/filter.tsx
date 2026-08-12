@@ -8,17 +8,27 @@ import {
 } from "@/components/combobox";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/select";
 import { useMemo } from "react";
 
 import { isAuthRole } from "./types";
-import type { AuthRole, RoleFilter } from "./types";
+import type { AuthRole, EmailDomainFilter, RoleFilter } from "./types";
 
 interface AdminUsersFilterProps {
   readonly email: string;
+  readonly emailDomainFilter: EmailDomainFilter;
   readonly name: string;
   readonly roleFilter: RoleFilter;
   readonly roles: readonly AuthRole[];
   readonly onEmailChange: (email: string) => void;
+  readonly onEmailDomainChange: (emailDomain: EmailDomainFilter) => void;
   readonly onNameChange: (name: string) => void;
   readonly onRoleChange: (role: RoleFilter) => void;
 }
@@ -29,13 +39,23 @@ interface RoleOption {
 }
 
 const allRolesOption = { label: "All roles", value: "all" } as const satisfies RoleOption;
+const emailDomainOptions = [
+  { label: "All Email", value: "all" },
+  { label: "End with @kmutt.ac.th", value: "kmutt.ac.th" },
+] as const satisfies readonly { label: string; value: EmailDomainFilter }[];
+
+function isEmailDomainFilter(value: string): value is EmailDomainFilter {
+  return emailDomainOptions.some((option) => option.value === value);
+}
 
 function AdminUsersFilter({
   email,
+  emailDomainFilter,
   name,
   roleFilter,
   roles,
   onEmailChange,
+  onEmailDomainChange,
   onNameChange,
   onRoleChange,
 }: AdminUsersFilterProps) {
@@ -51,10 +71,13 @@ function AdminUsersFilter({
   );
   const selectedRole =
     roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
+  const selectedEmailDomain =
+    emailDomainOptions.find((option) => option.value === emailDomainFilter) ??
+    emailDomainOptions[0];
 
   return (
-    <FieldGroup className="gap-3 sm:ml-auto sm:w-auto sm:flex-row">
-      <Field className="sm:w-64">
+    <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
+      <Field className="w-full">
         <FieldLabel htmlFor="admin-user-email">Email</FieldLabel>
         <Input
           id="admin-user-email"
@@ -66,7 +89,31 @@ function AdminUsersFilter({
           }}
         />
       </Field>
-      <Field className="sm:w-64">
+      <Field className="w-full">
+        <FieldLabel htmlFor="admin-user-email-domain">Email domain</FieldLabel>
+        <Select
+          value={emailDomainFilter}
+          onValueChange={(value) => {
+            if (value !== null && isEmailDomainFilter(value)) {
+              onEmailDomainChange(value);
+            }
+          }}
+        >
+          <SelectTrigger id="admin-user-email-domain" className="w-full">
+            <SelectValue>{selectedEmailDomain.label}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {emailDomainOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field className="w-full">
         <FieldLabel htmlFor="admin-user-name">Name</FieldLabel>
         <Input
           id="admin-user-name"
@@ -78,7 +125,7 @@ function AdminUsersFilter({
           }}
         />
       </Field>
-      <Field className="sm:w-48">
+      <Field className="w-full">
         <FieldLabel htmlFor="admin-user-role">Role</FieldLabel>
         <Combobox
           items={roleOptions}

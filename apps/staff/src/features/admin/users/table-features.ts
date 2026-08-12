@@ -6,14 +6,12 @@ import {
   tableFeatures,
 } from "@tanstack/react-table";
 
-import type { AdminUser, AuthRole } from "./types";
+import type { AuthRole } from "./types";
 
 interface AdminUsersTableMeta {
-  readonly roleDrafts: Readonly<Record<string, AuthRole>>;
+  readonly currentUserId?: string;
+  readonly handleRoleUpdated: (role: AuthRole) => void;
   readonly roles: readonly AuthRole[];
-  readonly updatingUserId?: string;
-  readonly onRoleDraftChange: (userId: string, role: AuthRole) => void;
-  readonly onUpdateRole: (user: AdminUser) => void;
 }
 
 interface AdminUsersColumnMeta {

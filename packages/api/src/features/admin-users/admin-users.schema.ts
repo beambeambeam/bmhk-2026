@@ -15,8 +15,11 @@ export const adminUserSchema = z
   })
   .strict();
 
+const adminUserEmailDomainSchema = z.literal("kmutt.ac.th");
+
 export const adminUserColumnFilterSchema = z.discriminatedUnion("id", [
   z.object({ id: z.literal("email"), value: z.string().trim().max(254) }).strict(),
+  z.object({ id: z.literal("emailDomain"), value: adminUserEmailDomainSchema }).strict(),
   z.object({ id: z.literal("name"), value: z.string().trim().max(255) }).strict(),
   z.object({ id: z.literal("role"), value: adminUserRoleSchema }).strict(),
 ]);
@@ -25,7 +28,7 @@ export const listAdminUsersSchema = createTableQuerySchema({
   columnFilterSchema: adminUserColumnFilterSchema,
   defaultPageSize: 10,
   defaultSorting: [{ desc: false, id: "email" }],
-  maxColumnFilters: 3,
+  maxColumnFilters: 4,
   sortableColumnIds: ["email", "name", "role"],
 });
 

@@ -47,6 +47,9 @@ function createAdminUserFilterCondition(filter: AdminUserColumnFilter): SQL | un
     case "email": {
       return ilike(user.email, `%${escapeLikePattern(filter.value)}%`);
     }
+    case "emailDomain": {
+      return ilike(user.email, `%@${escapeLikePattern(filter.value)}`);
+    }
     case "name": {
       return ilike(user.name, `%${escapeLikePattern(filter.value)}%`);
     }

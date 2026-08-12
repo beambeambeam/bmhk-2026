@@ -41,7 +41,7 @@ function StaffNavbar({ role, userName }: StaffNavbarProps) {
             Dashboard
           </Link>
           {isAdmin ? (
-            <Link to="/admin" className={cn(buttonVariants({ size: "sm", variant: "ghost" }))}>
+            <Link to="/users" className={cn(buttonVariants({ size: "sm", variant: "ghost" }))}>
               <ShieldCheck />
               Admin
             </Link>

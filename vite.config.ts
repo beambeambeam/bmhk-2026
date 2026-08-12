@@ -55,6 +55,9 @@ export default defineConfig({
       ],
     },
   },
+  resolve: {
+    tsconfigPaths: true,
+  },
   staged: {
     "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
   },

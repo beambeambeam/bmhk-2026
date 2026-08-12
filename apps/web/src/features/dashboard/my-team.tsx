@@ -122,11 +122,18 @@ function getMappedStatus(
   return "reviewing";
 }
 
-function getDisplayTeam(team: { id: string; name: string; school: string } | undefined | null) {
+function getDisplayTeam(
+  team: { id: string; name: string; school: string; image?: string | null } | undefined | null,
+) {
   if (team === undefined || team === null) {
-    return { code: "", name: "", school: "" };
+    return { code: "", image: undefined, name: "", school: "" };
   }
-  return { code: team.id.slice(0, 8).toUpperCase(), name: team.name, school: team.school };
+  return {
+    code: team.id.slice(0, 8).toUpperCase(),
+    image: team.image,
+    name: team.name,
+    school: team.school,
+  };
 }
 
 function formatName(first: string, middle: string | null | undefined, last: string) {
@@ -474,7 +481,17 @@ export default function MyTeam() {
                 className="auth-rise auth-rise-sm flex w-full flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-start"
                 data-rise="1"
               >
-                <div className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb] sm:size-auto sm:aspect-square sm:self-stretch" />
+                {displayTeam.image !== null &&
+                displayTeam.image !== undefined &&
+                displayTeam.image !== "" ? (
+                  <img
+                    src={displayTeam.image}
+                    alt={displayTeam.name}
+                    className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb] object-cover"
+                  />
+                ) : (
+                  <svg aria-hidden className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb]" />
+                )}
                 <div
                   className={`flex min-w-0 flex-1 flex-col items-center ${LOCKUP_STACK_GAP_8_16} sm:items-start`}
                 >

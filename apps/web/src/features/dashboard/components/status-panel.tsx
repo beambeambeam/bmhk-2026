@@ -120,77 +120,16 @@ const LABEL_COLOR: Record<StepTone, string> = {
   pending: "text-brand-yellow",
 };
 
-/**
- * The contact buttons on a step were their own `{ icon, label }` pair with a dead `href="#"`.
- * They point at the same two accounts the footer does, and the footer's `SOCIAL_LINKS` already
- * carries the real URLs alongside these exact same two SVG paths — so the panel reads that
- * instead of keeping a second, hrefless copy. One place to change an account, and the buttons
- * actually go somewhere.
- */
 const SOCIALS = SOCIAL_LINKS;
-
-/**
- * ── The badge, measured ────────────────────────────────────────────────────────────────────
- * Figma authors it as a "Layout Container" wrapping an "Icon" pill, and the pill is what is
- * visible. Every one of the eight status cards draws it at ONE of two diameters, and the
- * diameter is set by the glyph inside, not by the tone:
- *
- *   32 pill = 6 ring pad + 20 glyph + 6, wrapper `Layout Container` 32x32
- *     ok       `708:2652` `708:2761` `708:2771` `708:2815` (1440) / `1297:1394` (402)
- *     pending  `708:2662` (ตรวจสอบเอกสาร) `708:2849` `708:2927`
- *     alert    `708:2706` / `1297:2237`
- *     failed   `708:2971` (Semi-Final Failed — 20 close, NOT 16)
- *   28 pill = 6 + 16 glyph + 6, wrapper `Layout Container` 36x32 (4 pad either side, the
- *             pill centred in a 32-tall row)
- *     failed   `708:2883` (Not Qualified) — the ONLY compact badge in the whole design
- *
- * Two defects fixed here.
- *
- * 1. The pill rendered 2px over. `size-[32px] p-[4px]` on the wrapper left a 24 content box,
- *    but the pill inside computed 20 glyph + 12 ring pad + 2px of CSS `border` = 34 — a 34
- *    badge in a box Figma draws 32 (`708:2652`), overflowing the wrapper's padding. Figma's
- *    ring is an INSIDE stroke, so it is an inset box-shadow (the same trick `Step` already
- *    uses for the row hairline) and the wrapper's `p-[4px]` goes: 20 + 12 = 32 exactly, and
- *    the wrapper is the 32 square itself. This moves 1440 by 2px, deliberately.
- *
- * 2. `compact` was decided here, by tone — `compact || tone === 'failed'` — which forced the
- *    16 glyph onto BOTH failed variants. Figma disagrees: Not Qualified is 16 (`708:2883`)
- *    and Semi-Final Failed is 20 (`708:2971`). The diameter is now purely the step's own
- *    `compact` flag, authored per step in teamData.ts against those two nodes.
- *
- * Flat at both anchors: `1297:1393`/`1297:1394` on the 402 frame are byte-for-byte the 1440
- * `708:2652` — 32 wrapper, 6 ring pad, 20 glyph. Nothing here ramps.
- *
- * A badge is the one thing on this screen that changes meaning while the user is looking at
- * it — a step goes from pending to done — and it used to teleport: the pill's tint class and
- * the glyph asset both swapped in a single frame, so a review completing read as a glitch
- * rather than as progress. Two fixes, both cheap:
- *
- * - a transition on the pill's fill AND its inset ring, so the 10% tint and the 20% ring
- *   interpolate to the new tone instead of cutting. This covers every tone pair. (It names
- *   both properties because the ring is a box-shadow now, which `transition-colors` misses.)
- * - `mm-swap` on the pill, with the tone's own glyph and the check both permanently mounted
- *   in one grid cell. Nothing mounts or unmounts, so the completing transition — pending,
- *   alert or failed → ok, the direction a status actually travels — cross-fades on
- *   micro-motion's shared curve, the same way the copy button's tick does. Both layers are
- *   given the same box, so the pill cannot resize mid-cross-fade.
- */
 function Badge({ tone, compact = false }: { tone: StepTone; compact?: boolean }) {
   const { skin, icon } = BADGE[tone];
   /* 16 in the 28 pill, 20 in the 32 — the glyph frame Figma nests, not a scaled-down icon. */
   const glyph = compact ? 16 : 20;
-  /* The dot is exported at both sizes (`708:2664` is a 14 ellipse in a 20 frame, and the 16
-     export the matching 11.2) so the compact pending badge uses the 16 asset rather than
-     resampling the 20 one. `close_regular` ships only at 16 (`36f13a…`, viewBox 0 0 16 16) and
-     is the same glyph at both — 9.8/16 and 12.3/20 are one ratio — so it scales exactly. */
   const src = compact && tone === "pending" ? ICON.dot16 : icon;
   const done = tone === "ok";
   const box = { height: glyph, width: glyph };
 
   return (
-    /* `708:2882` is the 36x32 wrapper the 28 pill sits centred in; `708:2651`'s is the plain
-       32 square. No `p-[4px]`: the pill is its own exact diameter now, so padding here would
-       only push the row's 12 gap out again. */
     <span
       className={`flex shrink-0 items-center justify-center ${compact ? "h-[32px] w-[36px]" : "size-[32px]"}`}
     >
@@ -198,10 +137,6 @@ function Badge({ tone, compact = false }: { tone: StepTone; compact?: boolean })
         data-on={done}
         className={`mm-swap shrink-0 rounded-full p-[6px] transition-[background-color,box-shadow] ${skin}`}
       >
-        {/* Both layers share the same box so the pill's diameter cannot change under the
-            cross-fade. A compact badge is only ever `failed`, which is terminal — it never
-            reaches `ok` — so the 16 check on the hidden layer is unreachable rather than wrong.
-            The check layer is the inlined, drawn glyph; the tone layer stays the export. */}
         <img src={src} alt="" aria-hidden className="mm-swap-off" style={box} />
         <DrawnCheck size={glyph} className="mm-swap-on" />
       </span>
@@ -221,15 +156,6 @@ function Row({ title, label, tone }: { title: string; label: string; tone: StepT
   );
 }
 
-/**
- * Figma's hairline is an inside stroke, so it must not grow the card past its 59px content
- * height the way a CSS border would — an inset ring draws it in place instead.
- *
- * `rise` continues the page's entrance ladder into the panel so the timeline builds
- * downward, one step after another, rather than the two-to-four steps landing as one slab.
- * It is the shared auth cascade — see pages/MyTeam.tsx — at the short 14px distance, since
- * a step is a line of copy and not a card.
- */
 function Step({ step, rise }: { step: StatusStep; rise: number }) {
   return (
     <div
@@ -268,9 +194,6 @@ function Step({ step, rise }: { step: StatusStep; rise: number }) {
                 <a
                   key={social.label}
                   href={social.href}
-                  /* external, and nothing wrapping the click: a bare `target="_blank"` to
-                     facebook.com / instagram.com is what lets a phone hand off to the installed
-                     app. `rel` keeps `window.opener` from leaking to it. */
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.label}
@@ -287,25 +210,10 @@ function Step({ step, rise }: { step: StatusStep; rise: number }) {
   );
 }
 
-/**
- * Figma nests the Discord mark inside a 64:48 box pinned by percentage, so the glyph keeps
- * its own aspect while the outer square stays on the 20/32px grid.
- */
 export function DiscordGlyph({ size, src }: { size: number; src: string }) {
   return (
     <span className="relative block shrink-0 overflow-clip" style={{ height: size, width: size }}>
-      {/* `708:3549` is the 20 frame, `708:3550` the 17.3x13 mark inside it: 4.375/20 = 21.88%
-          from the top, 13/20 = 65% tall, and 64/48 keeps the mark's own aspect. */}
       <span className="absolute top-[21.88%] bottom-[13.13%] left-1/2 block aspect-[64/48] -translate-x-1/2 overflow-clip">
-        {/*
-         * The inset is on a `<span>`, and the image fills it. It used to be on the `<img>`
-         * itself — `absolute inset-y-0 right-[1.06%] left-0` — which does not size a replaced
-         * element: with `width: auto` the box is over-constrained, `right` is dropped
-         * (CSS 2.1 §10.3.7) and the file renders at its INTRINSIC 17.1497x13. That is
-         * accidentally right at `size={32}`'s parent by nothing more than coincidence at
-         * `size={20}`, and visibly small in the 32 modal button (pages/MyTeam.tsx `708:3560`),
-         * where the box asks for 27.7x20.8. `block size-full` makes the image obey the box.
-         */}
         <span className="absolute inset-y-0 right-[1.06%] left-0 block">
           <img src={src} alt="" aria-hidden className="block size-full" />
         </span>
@@ -314,10 +222,6 @@ export function DiscordGlyph({ size, src }: { size: number; src: string }) {
   );
 }
 
-/**
- * The white plate each block sits on at 1440 (`708:2416`: a 400-wide card, radius 20, 16 of
- * padding). Suppressed by `card={false}` — see the prop's own note.
- */
 const PLATE = "rounded-[20px] bg-white p-4 shadow-soft";
 
 export default function StatusPanel({
@@ -331,28 +235,7 @@ export default function StatusPanel({
   /** The qualified dashboard also carries the Discord join card. */
   showDiscord?: boolean;
   members: Person[];
-  /**
-   * Whether the panel draws its own white card.
-   *
-   * At 1440 it must: `708:2416` is a standalone 400x435 plate — radius 20, 16 of padding —
-   * beside the team card. On the 402 dashboard it must NOT. `1297:1388` is a plain 322-wide
-   * column with no `cornerRadius`, no fill, no padding and no effects, sitting directly inside
-   * the team card's own 16 (`1297:1289` is 354 with `paddingLeft/Right: 16`), because the phone
-   * shows this as the second pane of one card rather than as a second card.
-   *
-   * Held flat, the plate nested a white card in a white card and squeezed the content to 290
-   * where Figma draws 322 — measured on /my-team at 402 with the สถานะ pill selected. The
-   * counterpart to `heading`, and it is set from the same call site.
-   */
   card?: boolean;
-  /**
-   * The 402 frame has NO `สถานะ` heading inside the card: `1297:1388` opens straight on the
-   * `อัปเดตล่าสุดเมื่อ` line, because the phone names the pane with the `สถานะ` pill of the
-   * two-up segmented switcher above it (`1297:1290`, `1297:1386`/`1297:1387`) instead. The
-   * switcher lives in pages/MyTeam.tsx, so this is the hook for it: pass `heading={false}`
-   * from inside the phone pane. It stays on by default so the panel is never headingless
-   * while the two columns are still stacked.
-   */
   heading?: boolean;
 }) {
   return (
@@ -362,11 +245,6 @@ export default function StatusPanel({
       <div className={`flex w-full flex-col items-start ${card ? PLATE : ""}`}>
         <div className="flex w-full flex-col items-start gap-4">
           <div className="flex w-full flex-col items-start">
-            {/* Flat 20, not `fl-20`'s 17 → 20. The phone card has no `สถานะ` heading to
-                measure, but the 402 dashboard's own card headings are 20/500 — `1297:1136`
-                sets `ทีม A` at 20 where 1440 (`708:2322`) has 24 — so the card-heading rank on
-                a phone is 20 and `fl-20`'s 17 sat a rank below every sibling. 1440 unmoved:
-                `708:2649` is 20/500 lh28. */}
             {heading && <p className="w-full text-[20px] leading-[1.4] font-medium">สถานะ</p>}
             <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>
               อัปเดตล่าสุดเมื่อ {TEAM.updatedAt}
@@ -380,23 +258,9 @@ export default function StatusPanel({
         </div>
       </div>
 
-      {/*
-       * The Discord card only exists for a qualified team, and it used to appear and vanish
-       * with no transition at all — a 20px-radius card materialising under the status panel
-       * in one frame, which reads as a layout bug rather than as a reward being handed over.
-       * `mm-card-in` lifts and settles it (280ms, 8px, 0.98 → 1). Only the entrance is
-       * animated: the unmount is a route change away, where the page transition owns the
-       * exit, so there is nothing here to hold open.
-       */}
       {showDiscord && (
         <div className={`mm-card-in flex w-full flex-col items-start ${card ? PLATE : ""}`}>
           <div className="flex w-full flex-col items-start gap-4">
-            {/* `708:3544` / `708:3545`: 20/500 lh28 over 14/400 lh21.2, the same lockup the
-                status card above uses. There is no phone frame for this card — Figma only
-                draws the 402 dashboard's two panes (`1297:812`, `1297:1259`) and neither
-                reaches the Discord state — so it takes its sibling's anchors: the card-heading
-                rank on a phone is 20 (`1297:1136`) and the card subtitle 12 (`1297:1431`).
-                Inferred, not measured; 1440 is Figma's either way. */}
             <div className="flex w-full flex-col items-start">
               <p className="w-full text-[20px] leading-[1.4] font-medium">{DISCORD_CARD.title}</p>
               <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>
@@ -405,10 +269,6 @@ export default function StatusPanel({
             </div>
 
             <div className="flex w-full items-center gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]">
-              {/* The same 32 pill as every status badge, and the same fix: `708:3548` is
-                  6 + 20 + 6 with a weight-1 INSIDE stroke, so the ring is an inset shadow and
-                  the wrapper carries no padding. It was rendering 34 (20 + 12 + 2px border) in
-                  a 32 box, and the wrapper's own `p-[4px]` then pushed the row's 12 gap out. */}
               <span className="flex size-[32px] shrink-0 items-center justify-center">
                 <span className="flex shrink-0 items-center justify-center rounded-full bg-[rgba(88,101,242,0.1)] p-[6px] shadow-[inset_0_0_0_1px_rgba(88,101,242,0.2)]">
                   <DiscordGlyph size={20} src={ICON.discord} />

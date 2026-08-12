@@ -1,10 +1,27 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AdminUserRole } from "../admin-user-role";
+import { AdminUserRole } from "../role";
 import type { AdminUser, AuthRole } from "../types";
+
+// oxlint-disable-next-line vitest/prefer-import-in-mock -- This boundary fake supplies only the role mutation used by the component.
+vi.mock("@bmhk-2026/client/orpc", () => ({
+  orpc: {
+    adminUsers: {
+      list: {
+        key: () => ["adminUsers", "list"],
+      },
+      setRole: {
+        mutationOptions: () => ({
+          mutationFn: (input: { role: AuthRole; userId: string }) => input,
+        }),
+      },
+    },
+  },
+}));
 
 const user = {
   email: "staff@kmutt.ac.th",
@@ -19,17 +36,18 @@ describe("admin user role", () => {
   });
 
   it("edits a displayed role through a confirmed dialog", async () => {
-    const handleUpdateRole = vi.fn<(user: AdminUser, role: AuthRole) => Promise<boolean>>();
-    handleUpdateRole.mockResolvedValue(true);
+    const handleRoleUpdated = vi.fn<(role: AuthRole) => void>();
+    const queryClient = new QueryClient();
 
     render(
-      <AdminUserRole
-        isCurrentUser={false}
-        isUpdating={false}
-        roles={["admin", "staff", "user"]}
-        user={user}
-        handleUpdateRole={handleUpdateRole}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <AdminUserRole
+          isCurrentUser={false}
+          roles={["admin", "staff", "user"]}
+          user={user}
+          onRoleUpdated={handleRoleUpdated}
+        />
+      </QueryClientProvider>,
     );
 
     expect(screen.getByText("staff")).toBeTruthy();
@@ -53,22 +71,24 @@ describe("admin user role", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm change" }));
 
     await waitFor(() => {
-      expect(handleUpdateRole).toHaveBeenCalledWith(user, "admin");
+      expect(handleRoleUpdated).toHaveBeenCalledWith("admin");
     });
     expect(screen.queryByRole("dialog", { name: "Edit user role" })).toBeNull();
   });
 
   it("disables role editing for the current user", () => {
-    const handleUpdateRole = vi.fn<(user: AdminUser, role: AuthRole) => Promise<boolean>>();
+    const handleRoleUpdated = vi.fn<(role: AuthRole) => void>();
+    const queryClient = new QueryClient();
 
     render(
-      <AdminUserRole
-        isCurrentUser
-        isUpdating={false}
-        roles={["admin", "staff", "user"]}
-        user={user}
-        handleUpdateRole={handleUpdateRole}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <AdminUserRole
+          isCurrentUser
+          roles={["admin", "staff", "user"]}
+          user={user}
+          onRoleUpdated={handleRoleUpdated}
+        />
+      </QueryClientProvider>,
     );
 
     const editButton = screen.getByRole("button", {
@@ -79,6 +99,6 @@ describe("admin user role", () => {
     fireEvent.click(editButton);
 
     expect(screen.queryByRole("dialog", { name: "Edit user role" })).toBeNull();
-    expect(handleUpdateRole).not.toHaveBeenCalled();
+    expect(handleRoleUpdated).not.toHaveBeenCalled();
   });
 });

@@ -3,15 +3,13 @@ import {
   getAdminUserFilterQueryOptions,
   getAdminUserListQueryOptions,
 } from "@bmhk-2026/client/query-options";
-import { orpc } from "@bmhk-2026/client/orpc";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { PaginationState, SortingState, Updater } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 
 import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
-import type { AdminUser, AuthRole, RoleFilter } from "./types";
+import type { AuthRole, RoleFilter } from "./types";
 
 const TABLE_USER_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -45,7 +43,6 @@ function toAdminUserSorting(sorting: SortingState): AdminUserSort[] {
 }
 
 function AdminUserTable({ actorId }: AdminUserTableProps) {
-  const queryClient = useQueryClient();
   const [searches, setSearches] = useState<AdminUserSearches>({ email: "", name: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<AdminUserSearches>({
     email: "",
@@ -107,19 +104,8 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
   });
   const roles = filterOptionsQuery.data?.roles ?? [];
 
-  async function invalidateUsers(): Promise<void> {
-    await queryClient.invalidateQueries({ queryKey: orpc.adminUsers.list.key() });
-  }
-
-  const updateRoleMutation = useMutation(
-    orpc.adminUsers.setRole.mutationOptions({ onSuccess: invalidateUsers }),
-  );
-
   const totalUsers = usersQuery.data?.rowCount ?? 0;
   const users = usersQuery.data?.rows ?? [];
-  const updatingUserId = updateRoleMutation.isPending
-    ? updateRoleMutation.variables?.userId
-    : undefined;
 
   function resetPage(): void {
     setPagination((currentPagination) => ({
@@ -137,22 +123,9 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
     }
   }
 
-  async function updateRole(user: AdminUser, role: AuthRole): Promise<boolean> {
-    if (role === user.role) {
-      return false;
-    }
-
-    try {
-      await updateRoleMutation.mutateAsync({ role, userId: user.id });
-
-      toast.success("Role updated");
-      if (roleFilter !== "all" && role !== roleFilter) {
-        moveBackAfterLastRowRemoval();
-      }
-      return true;
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-      return false;
+  function handleRoleUpdated(role: AuthRole): void {
+    if (roleFilter !== "all" && role !== roleFilter) {
+      moveBackAfterLastRowRemoval();
     }
   }
 
@@ -192,11 +165,10 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
         roles={roles}
         sorting={sorting}
         totalUsers={totalUsers}
-        updatingUserId={updatingUserId}
         users={users}
+        onRoleUpdated={handleRoleUpdated}
         onPaginationChange={setPagination}
         onSortingChange={handleSortingChange}
-        onUpdateRole={updateRole}
       />
     </div>
   );

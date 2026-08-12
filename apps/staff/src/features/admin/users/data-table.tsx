@@ -23,11 +23,10 @@ interface AdminUsersDataTableProps {
   readonly roles: readonly AuthRole[];
   readonly sorting: SortingState;
   readonly totalUsers: number;
-  readonly updatingUserId?: string;
   readonly users: AdminUser[];
+  readonly onRoleUpdated: (role: AuthRole) => void;
   readonly onPaginationChange: OnChangeFn<PaginationState>;
   readonly onSortingChange: OnChangeFn<SortingState>;
-  readonly onUpdateRole: (user: AdminUser, role: AuthRole) => Promise<boolean>;
 }
 
 function getAriaSort(direction: false | "asc" | "desc"): "ascending" | "descending" | undefined {
@@ -48,11 +47,10 @@ function AdminUsersDataTable({
   roles,
   sorting,
   totalUsers,
-  updatingUserId,
   users,
+  onRoleUpdated,
   onPaginationChange,
   onSortingChange,
-  onUpdateRole,
 }: AdminUsersDataTableProps) {
   const table = useTable({
     autoResetPageIndex: false,
@@ -65,9 +63,8 @@ function AdminUsersDataTable({
     manualSorting: true,
     meta: {
       currentUserId,
-      onUpdateRole,
+      handleRoleUpdated: onRoleUpdated,
       roles,
-      updatingUserId,
     },
     onPaginationChange,
     onSortingChange,

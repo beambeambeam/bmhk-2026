@@ -2,7 +2,7 @@ import { Button } from "@/components/button";
 import { createColumnHelper } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
-import { AdminUserRole } from "./admin-user-role";
+import { AdminUserRole } from "./role";
 import type { AdminUsersTableFeatures } from "./table-features";
 import type { AdminUser } from "./types";
 
@@ -54,10 +54,9 @@ const adminUsersColumns = columnHelper.columns([
       return (
         <AdminUserRole
           isCurrentUser={meta.currentUserId === user.id}
-          isUpdating={meta.updatingUserId === user.id}
           roles={meta.roles}
           user={user}
-          handleUpdateRole={meta.onUpdateRole}
+          onRoleUpdated={meta.handleRoleUpdated}
         />
       );
     },

@@ -21,19 +21,21 @@ import {
 } from "@/components/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/field";
 import { NativeSelect, NativeSelectOption } from "@/components/native-select";
+import { orpc } from "@bmhk-2026/client/orpc";
 import { useForm } from "@tanstack/react-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { isAuthRole } from "./types";
 import type { AdminUser, AuthRole } from "./types";
 
 interface AdminUserRoleProps {
   readonly isCurrentUser: boolean;
-  readonly isUpdating: boolean;
   readonly roles: readonly AuthRole[];
   readonly user: AdminUser;
-  readonly handleUpdateRole: (user: AdminUser, role: AuthRole) => Promise<boolean>;
+  readonly onRoleUpdated: (role: AuthRole) => void;
 }
 
 function getFieldErrorMessage(error: unknown): string {
@@ -52,18 +54,30 @@ function getFieldErrorMessage(error: unknown): string {
   return "Select a valid role.";
 }
 
-function AdminUserRole({
-  isCurrentUser,
-  isUpdating,
-  roles,
-  user,
-  handleUpdateRole,
-}: AdminUserRoleProps) {
+function getUpdateErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Something went wrong.";
+}
+
+function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserRoleProps) {
+  const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [pendingRole, setPendingRole] = useState<AuthRole | null>(null);
   const formId = `admin-user-role-form-${user.id}`;
+  const updateRoleMutation = useMutation(
+    orpc.adminUsers.setRole.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: orpc.adminUsers.list.key() });
+      },
+    }),
+  );
+  const isUpdating =
+    updateRoleMutation.isPending && updateRoleMutation.variables?.userId === user.id;
   const isBusy = isUpdating || isConfirming;
 
   const form = useForm({
@@ -103,17 +117,20 @@ function AdminUserRole({
     }
 
     setIsConfirming(true);
-    const didUpdate = await handleUpdateRole(user, pendingRole);
-    setIsConfirming(false);
 
-    if (!didUpdate) {
-      return;
+    try {
+      await updateRoleMutation.mutateAsync({ role: pendingRole, userId: user.id });
+      toast.success("Role updated");
+      onRoleUpdated(pendingRole);
+      setIsConfirmationOpen(false);
+      setIsDialogOpen(false);
+      setPendingRole(null);
+      form.reset({ role: pendingRole });
+    } catch (error) {
+      toast.error(getUpdateErrorMessage(error));
+    } finally {
+      setIsConfirming(false);
     }
-
-    setIsConfirmationOpen(false);
-    setIsDialogOpen(false);
-    setPendingRole(null);
-    form.reset({ role: pendingRole });
   }
 
   return (

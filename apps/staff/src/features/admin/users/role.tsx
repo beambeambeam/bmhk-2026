@@ -20,7 +20,14 @@ import {
   DialogTrigger,
 } from "@/components/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/field";
-import { NativeSelect, NativeSelectOption } from "@/components/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/select";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -178,27 +185,33 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
                     return (
                       <Field data-invalid={isInvalid}>
                         <FieldLabel htmlFor={`${formId}-role`}>Role</FieldLabel>
-                        <NativeSelect
-                          id={`${formId}-role`}
-                          name={field.name}
-                          aria-invalid={isInvalid}
-                          disabled={isBusy || roles.length === 0}
+                        <Select
                           value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => {
-                            const nextRole = event.target.value;
-
-                            if (isAuthRole(nextRole, roles)) {
-                              field.handleChange(nextRole);
+                          onValueChange={(value) => {
+                            if (value !== null && isAuthRole(value, roles)) {
+                              field.handleChange(value);
                             }
                           }}
                         >
-                          {roles.map((role) => (
-                            <NativeSelectOption key={role} value={role}>
-                              {role}
-                            </NativeSelectOption>
-                          ))}
-                        </NativeSelect>
+                          <SelectTrigger
+                            id={`${formId}-role`}
+                            aria-invalid={isInvalid}
+                            disabled={isBusy || roles.length === 0}
+                            onBlur={field.handleBlur}
+                            className="w-full"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {roles.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {role}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
                         {isInvalid ? (
                           <FieldError>
                             {getFieldErrorMessage(field.state.meta.errors[0])}

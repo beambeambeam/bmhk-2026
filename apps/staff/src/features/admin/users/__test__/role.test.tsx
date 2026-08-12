@@ -58,9 +58,10 @@ describe("admin user role", () => {
     const roleDialog = await screen.findByRole("dialog", { name: "Edit user role" });
     expect(roleDialog).toBeTruthy();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Role" }), {
-      target: { value: "admin" },
-    });
+    fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
+    const adminOption = await screen.findByRole("option", { name: "admin" });
+    fireEvent.pointerDown(adminOption);
+    fireEvent.click(adminOption);
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     const confirmationDialog = await screen.findByRole("alertdialog", {

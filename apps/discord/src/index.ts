@@ -1,10 +1,10 @@
 import { GatewayIntentBits, Partials } from "discord.js";
 import { loadEvents } from "./loaders/events.js";
 import { loadInteractions } from "./loaders/interactions.js";
-import { createDb } from "./lib/db.js";
+import { getDb } from "./lib/db.js";
 import { BotClient } from "./types.js";
 
-createDb(Bun.env.DISCORD_DB_PATH ?? "data/discord.sqlite");
+getDb();
 
 const client = new BotClient({
   intents: [

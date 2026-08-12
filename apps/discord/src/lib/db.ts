@@ -9,6 +9,13 @@ export function createDb(dbPath: string): Database {
   return new Database(dbPath, { create: true });
 }
 
+let db: Database | undefined;
+
+export function getDb(): Database {
+  db ??= createDb(Bun.env.DISCORD_DB_PATH ?? "data/discord.sqlite");
+  return db;
+}
+
 // ponytail: no vitest coverage here — this repo's vitest suite runs under
 // Node (see vite.config.ts), and `bun:sqlite` only resolves under the real
 // Bun runtime; forcing Bun process-wide via bunfig.toml made the rest of the

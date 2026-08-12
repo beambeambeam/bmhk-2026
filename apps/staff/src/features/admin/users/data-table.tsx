@@ -15,20 +15,19 @@ import type { AdminUser, AuthRole } from "./types";
 
 interface AdminUsersDataTableProps {
   readonly columnFilters: ColumnFiltersState;
+  readonly currentUserId?: string;
   readonly errorMessage?: string;
   readonly isError: boolean;
   readonly isLoading: boolean;
   readonly pagination: PaginationState;
-  readonly roleDrafts: Readonly<Record<string, AuthRole>>;
   readonly roles: readonly AuthRole[];
   readonly sorting: SortingState;
   readonly totalUsers: number;
   readonly updatingUserId?: string;
   readonly users: AdminUser[];
   readonly onPaginationChange: OnChangeFn<PaginationState>;
-  readonly onRoleDraftChange: (userId: string, role: AuthRole) => void;
   readonly onSortingChange: OnChangeFn<SortingState>;
-  readonly onUpdateRole: (user: AdminUser) => void;
+  readonly onUpdateRole: (user: AdminUser, role: AuthRole) => Promise<boolean>;
 }
 
 function getAriaSort(direction: false | "asc" | "desc"): "ascending" | "descending" | undefined {
@@ -41,18 +40,17 @@ function getAriaSort(direction: false | "asc" | "desc"): "ascending" | "descendi
 
 function AdminUsersDataTable({
   columnFilters,
+  currentUserId,
   errorMessage,
   isError,
   isLoading,
   pagination,
-  roleDrafts,
   roles,
   sorting,
   totalUsers,
   updatingUserId,
   users,
   onPaginationChange,
-  onRoleDraftChange,
   onSortingChange,
   onUpdateRole,
 }: AdminUsersDataTableProps) {
@@ -66,9 +64,8 @@ function AdminUsersDataTable({
     manualPagination: true,
     manualSorting: true,
     meta: {
-      onRoleDraftChange,
+      currentUserId,
       onUpdateRole,
-      roleDrafts,
       roles,
       updatingUserId,
     },

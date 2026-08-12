@@ -57,7 +57,6 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
     pageSize: TABLE_USER_PAGE_SIZE,
   });
   const [sorting, setSorting] = useState<SortingState>([{ desc: false, id: "email" }]);
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -138,23 +137,22 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
     }
   }
 
-  async function updateRole(user: AdminUser): Promise<void> {
-    const role = roleDrafts[user.id] ?? user.role;
-
+  async function updateRole(user: AdminUser, role: AuthRole): Promise<boolean> {
     if (role === user.role) {
-      return;
+      return false;
     }
 
     try {
       await updateRoleMutation.mutateAsync({ role, userId: user.id });
 
       toast.success("Role updated");
-      setRoleDrafts(({ [user.id]: _updatedUserRole, ...drafts }) => drafts);
       if (roleFilter !== "all" && role !== roleFilter) {
         moveBackAfterLastRowRemoval();
       }
+      return true;
     } catch (error) {
       toast.error(getErrorMessage(error));
+      return false;
     }
   }
 
@@ -186,27 +184,19 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
       />
       <AdminUsersDataTable
         columnFilters={columnFilters}
+        currentUserId={actorId}
         errorMessage={queryError ? getErrorMessage(queryError) : undefined}
         isError={queryError !== null}
         isLoading={usersQuery.isLoading || filterOptionsQuery.isLoading}
         pagination={pagination}
-        roleDrafts={roleDrafts}
         roles={roles}
         sorting={sorting}
         totalUsers={totalUsers}
         updatingUserId={updatingUserId}
         users={users}
         onPaginationChange={setPagination}
-        onRoleDraftChange={(userId, role) => {
-          setRoleDrafts((drafts) => ({
-            ...drafts,
-            [userId]: role,
-          }));
-        }}
         onSortingChange={handleSortingChange}
-        onUpdateRole={(user) => {
-          void updateRole(user);
-        }}
+        onUpdateRole={updateRole}
       />
     </div>
   );

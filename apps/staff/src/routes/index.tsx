@@ -1,17 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { orpc } from "@bmhk-2026/client/orpc";
+import { getHealthCheckQueryOptions } from "@bmhk-2026/client/query-options";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
 });
 
 function HomeComponent() {
-  const healthCheck = useQuery(orpc.health.check.queryOptions());
+  const healthCheck = useQuery(getHealthCheckQueryOptions());
   let healthStatus = "Checking...";
 
-  if (!healthCheck.isLoading) {
+  if (healthCheck.isError) {
+    healthStatus = "Unable to reach API";
+  } else if (!healthCheck.isPending) {
     healthStatus = healthCheck.data === "OK" ? "Connected" : "Disconnected";
   }
 

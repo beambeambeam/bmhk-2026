@@ -1,6 +1,7 @@
 import { Button, buttonVariants } from "@/components/button";
 import { cn } from "@/lib/utils";
 import { authClient } from "@bmhk-2026/client/auth-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ interface StaffNavbarProps {
 
 function StaffNavbar({ role, userName }: StaffNavbarProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isAdmin = role === "admin";
 
   async function handleSignOut() {
@@ -20,8 +22,9 @@ function StaffNavbar({ role, userName }: StaffNavbarProps) {
         onError: (error) => {
           toast.error(error.error.message || error.error.statusText);
         },
-        onSuccess: () => {
-          void navigate({ to: "/login" });
+        onSuccess: async () => {
+          queryClient.clear();
+          await navigate({ to: "/login" });
         },
       },
     });
@@ -38,7 +41,7 @@ function StaffNavbar({ role, userName }: StaffNavbarProps) {
             Dashboard
           </Link>
           {isAdmin ? (
-            <Link to="/admin" className={cn(buttonVariants({ size: "sm", variant: "ghost" }))}>
+            <Link to="/users" className={cn(buttonVariants({ size: "sm", variant: "ghost" }))}>
               <ShieldCheck />
               Admin
             </Link>

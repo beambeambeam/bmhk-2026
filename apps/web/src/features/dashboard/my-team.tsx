@@ -225,10 +225,10 @@ function MyTeamModals({
 function useMyTeamData() {
   const search = useSearch({ from: "/_auth/my-team" }) as Record<string, unknown>;
 
-  const { data: teamsData, isPending: isTeamsPending } = useQuery(
-    orpc.teams.list.queryOptions({ input: { limit: 1 } }),
+  /*const { data: teamsData, isPending: isTeamsPending } = useQuery(
+    orpc.teams.get.queryOptions({ input: { id: "4172b4c3-e98e-4c22-bcaf-36891b155098" } }),
   );
-  const team = teamsData?.data?.[0];
+  const team = teamsData?.json?.[0];
   const teamId = team?.id;
 
   const { data: statusData, isPending: isStatusPending } = useQuery({
@@ -248,6 +248,37 @@ function useMyTeamData() {
 
   const { data: advisor, isPending: isAdvisorPending } = useQuery({
     ...orpc.teamAdvisors.get.queryOptions({ input: { teamId: teamId ?? "" } }),
+    enabled: Boolean(teamId),
+  });*/
+  const { data: teamsData, isPending: isTeamsPending } = useQuery(
+    orpc.teams.get.queryOptions({ input: { id: "4172b4c3-e98e-4c22-bcaf-36891b155098" } }),
+  );
+  const team = teamsData;
+  console.log(teamsData);
+  const teamId = team?.id;
+
+  const { data: statusData, isPending: isStatusPending } = useQuery({
+    ...orpc.teamRegistrationStatus.get.queryOptions({
+      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
+    }),
+  });
+
+  const { data: reviewFeedback, isPending: isReviewPending } = useQuery({
+    ...orpc.teamRegistrationReviews.feedback.queryOptions({
+      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
+    }),
+  });
+
+  const { data: participants, isPending: isParticipantsPending } = useQuery({
+    ...orpc.teamParticipants.list.queryOptions({
+      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
+    }),
+  });
+
+  const { data: advisor, isPending: isAdvisorPending } = useQuery({
+    ...orpc.teamAdvisors.get.queryOptions({
+      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
+    }),
     enabled: Boolean(teamId),
   });
 
@@ -386,7 +417,12 @@ export default function MyTeam() {
   const initialModal = typeof search.modal === "string" ? search.modal : null;
   const [modal, setModal] = useState<string | null>(initialModal);
 
-  const showModal = featureFlags?.eligibleTeamsAnnouncement === true ? modal : null;
+  let showModal: string | null = null;
+  if (initialModal !== null) {
+    showModal = modal;
+  } else if (featureFlags?.eligibleTeamsAnnouncement === true) {
+    showModal = modal;
+  }
 
   const [copiedAt, setCopiedAt] = useState(0);
   const copied = copiedAt !== 0;

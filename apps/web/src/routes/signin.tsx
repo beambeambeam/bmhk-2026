@@ -8,6 +8,7 @@ import AuthBackdrop, { PhoneAuthBackdrop } from "@/components/auth-backdrop";
 import { useOwnArrival } from "@/components/form/wizard-nav";
 import GoogleLogo from "@/components/google-logo";
 import { STACKED_ASPECT, StackedLockup } from "@/components/lockup";
+import SignInForm from "@/features/auth/sign-in-form";
 
 export const Route = createFileRoute("/signin")({
   component: SignInRoute,
@@ -130,6 +131,19 @@ function SignInRoute() {
               <GoogleLogo />
               {isSigningIn ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบด้วย Google"}
             </button>
+
+            {import.meta.env.DEV && (
+              <div className="mt-6 w-full rounded-2xl border border-gray-200 bg-gray-50/50 p-4">
+                <p className="mb-2 text-xs font-semibold text-gray-500">
+                  [DEV] เข้าสู่ระบบด้วย Email & Password (สำหรับทดสอบ Local):
+                </p>
+                <SignInForm
+                  onSwitchToSignUp={() => {
+                    void 0;
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 

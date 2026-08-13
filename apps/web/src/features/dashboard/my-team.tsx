@@ -7,6 +7,7 @@ import { orpc } from "@bmhk-2026/client/orpc";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import PersonDetails from "./components/person-details";
+import { AuthTopBar } from "@/components/account-menu";
 import ResultModal from "./components/result-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
 import TeamDecor from "./components/team-decor";
@@ -422,6 +423,7 @@ export default function MyTeam() {
         data-recede={showModal === "qualified" || showModal === "rejected"}
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
+        <AuthTopBar className="auth-rise w-full" data-rise="0" />
         <div className="flex w-full flex-col items-start gap-6 lg:flex-row">
           <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-8 rounded-[20px] bg-white p-4 shadow-soft">
             <div

@@ -8,6 +8,9 @@ const permissionStatement = {
 
 const ac = createAccessControl(permissionStatement);
 
+const authRoleValues = ["admin", "registrationStaff", "staff", "user"] as const;
+export type AuthRole = (typeof authRoleValues)[number];
+
 const admin = ac.newRole({
   staff: ["access", "registration_access"],
   ...adminAc.statements,
@@ -32,9 +35,7 @@ const roles = {
   registrationStaff,
   staff,
   user,
-} as const;
-
-export type AuthRole = keyof typeof roles;
+} as const satisfies Record<AuthRole, unknown>;
 
 function isAuthRole(role: string): role is AuthRole {
   return Object.hasOwn(roles, role);
@@ -51,6 +52,8 @@ function hasRegistrationAccess(role: string | null | undefined): boolean {
 export {
   ac,
   admin,
+  authRoleValues,
+  isAuthRole,
   hasRegistrationAccess,
   permissionStatement,
   registrationStaff,

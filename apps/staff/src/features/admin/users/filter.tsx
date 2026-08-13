@@ -1,85 +1,159 @@
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/combobox";
+import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
-import { Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/select";
+import { useMemo } from "react";
 
-import { STAFF_ROLES, isRoleFilter, isSearchField } from "./types";
-import type { RoleFilter, SearchField } from "./types";
+import { isAuthRole } from "./types";
+import type { AuthRole, EmailDomainFilter, RoleFilter } from "./types";
 
 interface AdminUsersFilterProps {
+  readonly email: string;
+  readonly emailDomainFilter: EmailDomainFilter;
+  readonly name: string;
   readonly roleFilter: RoleFilter;
-  readonly search: string;
-  readonly searchField: SearchField;
-  readonly onRoleFilterChange: (roleFilter: RoleFilter) => void;
-  readonly onSearchChange: (search: string) => void;
-  readonly onSearchFieldChange: (searchField: SearchField) => void;
+  readonly roles: readonly AuthRole[];
+  readonly onEmailChange: (email: string) => void;
+  readonly onEmailDomainChange: (emailDomain: EmailDomainFilter) => void;
+  readonly onNameChange: (name: string) => void;
+  readonly onRoleChange: (role: RoleFilter) => void;
+}
+
+interface RoleOption {
+  readonly label: string;
+  readonly value: RoleFilter;
+}
+
+const allRolesOption = { label: "All roles", value: "all" } as const satisfies RoleOption;
+const emailDomainOptions = [
+  { label: "All Email", value: "all" },
+  { label: "End with @kmutt.ac.th", value: "kmutt.ac.th" },
+] as const satisfies readonly { label: string; value: EmailDomainFilter }[];
+
+function isEmailDomainFilter(value: string): value is EmailDomainFilter {
+  return emailDomainOptions.some((option) => option.value === value);
 }
 
 function AdminUsersFilter({
+  email,
+  emailDomainFilter,
+  name,
   roleFilter,
-  search,
-  searchField,
-  onRoleFilterChange,
-  onSearchChange,
-  onSearchFieldChange,
+  roles,
+  onEmailChange,
+  onEmailDomainChange,
+  onNameChange,
+  onRoleChange,
 }: AdminUsersFilterProps) {
+  const roleOptions = useMemo<RoleOption[]>(
+    () => [
+      allRolesOption,
+      ...roles.map((role) => ({
+        label: role,
+        value: role,
+      })),
+    ],
+    [roles],
+  );
+  const selectedRole =
+    roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
+  const selectedEmailDomain =
+    emailDomainOptions.find((option) => option.value === emailDomainFilter) ??
+    emailDomainOptions[0];
+
   return (
-    <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
-      <label className="relative block min-w-0 sm:w-72" htmlFor="admin-user-search">
-        <span className="sr-only">Search users</span>
-        <Search
-          aria-hidden="true"
-          className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-4 text-muted-foreground"
-        />
+    <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
+      <Field className="w-full">
+        <FieldLabel htmlFor="admin-user-email">Email</FieldLabel>
         <Input
-          id="admin-user-search"
-          className="pl-8"
-          placeholder="Search name or email"
-          value={search}
+          id="admin-user-email"
+          placeholder="Search email"
+          type="search"
+          value={email}
           onChange={(event) => {
-            onSearchChange(event.target.value);
+            onEmailChange(event.target.value);
           }}
         />
-      </label>
-      <label className="block sm:w-32" htmlFor="admin-search-field">
-        <span className="sr-only">Search by</span>
-        <select
-          id="admin-search-field"
-          className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          value={searchField}
-          onChange={(event) => {
-            const nextSearchField = event.target.value;
-
-            if (isSearchField(nextSearchField)) {
-              onSearchFieldChange(nextSearchField);
+      </Field>
+      <Field className="w-full">
+        <FieldLabel htmlFor="admin-user-email-domain">Email domain</FieldLabel>
+        <Select
+          value={emailDomainFilter}
+          onValueChange={(value) => {
+            if (value !== null && isEmailDomainFilter(value)) {
+              onEmailDomainChange(value);
             }
           }}
         >
-          <option value="email">Email</option>
-          <option value="name">Name</option>
-        </select>
-      </label>
-      <label className="block sm:w-48" htmlFor="admin-role-filter">
-        <span className="sr-only">Filter by role</span>
-        <select
-          id="admin-role-filter"
-          className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          value={roleFilter}
+          <SelectTrigger id="admin-user-email-domain" className="w-full">
+            <SelectValue>{selectedEmailDomain.label}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {emailDomainOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field className="w-full">
+        <FieldLabel htmlFor="admin-user-name">Name</FieldLabel>
+        <Input
+          id="admin-user-name"
+          placeholder="Search name"
+          type="search"
+          value={name}
           onChange={(event) => {
-            const nextRoleFilter = event.target.value;
-
-            if (isRoleFilter(nextRoleFilter)) {
-              onRoleFilterChange(nextRoleFilter);
+            onNameChange(event.target.value);
+          }}
+        />
+      </Field>
+      <Field className="w-full">
+        <FieldLabel htmlFor="admin-user-role">Role</FieldLabel>
+        <Combobox
+          items={roleOptions}
+          itemToStringValue={(roleOption) => roleOption.label}
+          value={selectedRole}
+          onValueChange={(roleOption) => {
+            if (
+              roleOption !== null &&
+              (roleOption.value === "all" || isAuthRole(roleOption.value, roles))
+            ) {
+              onRoleChange(roleOption.value);
             }
           }}
         >
-          <option value="all">All roles</option>
-          {STAFF_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
+          <ComboboxInput id="admin-user-role" className="w-full" placeholder="Search roles" />
+          <ComboboxContent>
+            <ComboboxEmpty>No roles found.</ComboboxEmpty>
+            <ComboboxList>
+              {(roleOption: RoleOption) => (
+                <ComboboxItem key={roleOption.value} value={roleOption}>
+                  {roleOption.label}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      </Field>
+    </FieldGroup>
   );
 }
 

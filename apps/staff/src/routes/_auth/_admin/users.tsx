@@ -14,7 +14,7 @@ function AdminUsersPage() {
         <h1 className="font-semibold text-2xl">Admin</h1>
         <p className="text-muted-foreground text-sm">Manage staff access and registration roles.</p>
       </div>
-      <AdminUserTable currentUserId={session.data?.user.id} />
+      <AdminUserTable actorId={session.data?.user.id} />
     </section>
   );
 }

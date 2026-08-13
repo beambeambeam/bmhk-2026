@@ -1,19 +1,27 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PaginationState } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import type { AdminUserColumnFilter, AdminUserListQuery, AdminUserSort } from "@bmhk-2026/api";
+import {
+  getAdminUserFilterQueryOptions,
+  getAdminUserListQueryOptions,
+} from "@bmhk-2026/client/query-options";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import type { PaginationState, SortingState, Updater } from "@tanstack/react-table";
+import { useEffect, useMemo, useState } from "react";
 
 import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
-import { TABLE_USER_PAGE_SIZE, fetchUsersPage, removeUser, setUserRole } from "./api";
-import { getUserRole } from "./types";
-import type { AuthRole, RoleFilter, SearchField, StaffUser } from "./types";
+import type { AuthRole, EmailDomainFilter, RoleFilter } from "./types";
 
-const STAFF_ADMIN_USERS_QUERY_KEY = ["staff-admin-users"] as const;
+const TABLE_USER_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
+const SORTABLE_COLUMN_IDS = ["email", "name", "role"] as const;
+
+interface AdminUserSearches {
+  readonly email: string;
+  readonly name: string;
+}
 
 interface AdminUserTableProps {
-  readonly currentUserId?: string;
+  readonly actorId: string | undefined;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -24,22 +32,36 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong.";
 }
 
-function AdminUserTable({ currentUserId }: AdminUserTableProps) {
-  const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [searchField, setSearchField] = useState<SearchField>("email");
+function isSortableColumnId(id: string): id is AdminUserSort["id"] {
+  return SORTABLE_COLUMN_IDS.some((sortableColumnId) => sortableColumnId === id);
+}
+
+function toAdminUserSorting(sorting: SortingState): AdminUserSort[] {
+  return sorting.flatMap((sort) =>
+    isSortableColumnId(sort.id) ? [{ desc: sort.desc, id: sort.id }] : [],
+  );
+}
+
+function AdminUserTable({ actorId }: AdminUserTableProps) {
+  const [searches, setSearches] = useState<AdminUserSearches>({ email: "", name: "" });
+  const [debouncedSearches, setDebouncedSearches] = useState<AdminUserSearches>({
+    email: "",
+    name: "",
+  });
+  const [emailDomainFilter, setEmailDomainFilter] = useState<EmailDomainFilter>("all");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: TABLE_USER_PAGE_SIZE,
   });
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, AuthRole>>({});
-  const [confirmingDeleteUserId, setConfirmingDeleteUserId] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([{ desc: false, id: "email" }]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
+      setDebouncedSearches({
+        email: searches.email.trim(),
+        name: searches.name.trim(),
+      });
       setPagination((currentPagination) => ({
         ...currentPagination,
         pageIndex: 0,
@@ -49,43 +71,52 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [search]);
+  }, [searches]);
 
-  const usersQuery = useQuery({
-    placeholderData: keepPreviousData,
-    queryFn: async ({ signal }) =>
-      await fetchUsersPage(
-        { ...pagination, roleFilter, search: debouncedSearch, searchField },
-        signal,
-      ),
-    queryKey: [
-      ...STAFF_ADMIN_USERS_QUERY_KEY,
+  const columnFilters = useMemo<AdminUserColumnFilter[]>(() => {
+    const filters: AdminUserColumnFilter[] = [];
+
+    if (debouncedSearches.email.length > 0) {
+      filters.push({ id: "email", value: debouncedSearches.email });
+    }
+    if (emailDomainFilter !== "all") {
+      filters.push({ id: "emailDomain", value: emailDomainFilter });
+    }
+    if (debouncedSearches.name.length > 0) {
+      filters.push({ id: "name", value: debouncedSearches.name });
+    }
+    if (roleFilter !== "all") {
+      filters.push({ id: "role", value: roleFilter });
+    }
+
+    return filters;
+  }, [debouncedSearches, emailDomainFilter, roleFilter]);
+
+  const listQuery = useMemo<AdminUserListQuery>(
+    () => ({
+      columnFilters,
       pagination,
-      roleFilter,
-      debouncedSearch,
-      searchField,
-    ],
-  });
+      sorting: toAdminUserSorting(sorting),
+    }),
+    [columnFilters, pagination, sorting],
+  );
 
-  async function invalidateUsers(): Promise<void> {
-    await queryClient.invalidateQueries({ queryKey: STAFF_ADMIN_USERS_QUERY_KEY });
+  const filterOptionsQuery = useQuery(getAdminUserFilterQueryOptions(actorId));
+  const usersQuery = useQuery({
+    ...getAdminUserListQueryOptions(actorId, listQuery),
+    placeholderData: keepPreviousData,
+  });
+  const roles = filterOptionsQuery.data?.roles ?? [];
+
+  const totalUsers = usersQuery.data?.rowCount ?? 0;
+  const users = usersQuery.data?.rows ?? [];
+
+  function resetPage(): void {
+    setPagination((currentPagination) => ({
+      ...currentPagination,
+      pageIndex: 0,
+    }));
   }
-
-  const updateRoleMutation = useMutation({
-    mutationFn: setUserRole,
-    onSuccess: invalidateUsers,
-  });
-  const deleteUserMutation = useMutation({
-    mutationFn: removeUser,
-    onSuccess: invalidateUsers,
-  });
-
-  const totalUsers = usersQuery.data?.total ?? 0;
-  const users = usersQuery.data?.users ?? [];
-  const updatingUserId = updateRoleMutation.isPending
-    ? updateRoleMutation.variables?.userId
-    : undefined;
-  const deletingUserId = deleteUserMutation.isPending ? deleteUserMutation.variables : undefined;
 
   function moveBackAfterLastRowRemoval(): void {
     if (users.length === 1 && pagination.pageIndex > 0) {
@@ -96,95 +127,57 @@ function AdminUserTable({ currentUserId }: AdminUserTableProps) {
     }
   }
 
-  async function updateRole(user: StaffUser): Promise<void> {
-    const role = roleDrafts[user.id] ?? getUserRole(user);
-
-    if (role === getUserRole(user)) {
-      return;
-    }
-
-    try {
-      await updateRoleMutation.mutateAsync({ role, userId: user.id });
-
-      toast.success("Role updated");
-      setRoleDrafts(({ [user.id]: _updatedUserRole, ...drafts }) => drafts);
-      if (roleFilter !== "all" && role !== roleFilter) {
-        moveBackAfterLastRowRemoval();
-      }
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  }
-
-  async function deleteUser(user: StaffUser): Promise<void> {
-    if (user.id === currentUserId) {
-      toast.error("You cannot delete your own account.");
-      return;
-    }
-
-    if (confirmingDeleteUserId !== user.id) {
-      setConfirmingDeleteUserId(user.id);
-      return;
-    }
-
-    try {
-      await deleteUserMutation.mutateAsync(user.id);
-
-      toast.success("User deleted");
-      setConfirmingDeleteUserId(null);
+  function handleRoleUpdated(role: AuthRole): void {
+    if (roleFilter !== "all" && role !== roleFilter) {
       moveBackAfterLastRowRemoval();
-    } catch (error) {
-      toast.error(getErrorMessage(error));
     }
   }
+
+  function handleSortingChange(updater: Updater<SortingState>): void {
+    setSorting((currentSorting) =>
+      typeof updater === "function" ? updater(currentSorting) : updater,
+    );
+    resetPage();
+  }
+  const queryError = usersQuery.error ?? filterOptionsQuery.error;
 
   return (
     <div className="flex flex-col gap-5">
       <AdminUsersFilter
+        email={searches.email}
+        emailDomainFilter={emailDomainFilter}
+        name={searches.name}
         roleFilter={roleFilter}
-        search={search}
-        searchField={searchField}
-        onRoleFilterChange={(nextRoleFilter) => {
-          setRoleFilter(nextRoleFilter);
-          setPagination((currentPagination) => ({
-            ...currentPagination,
-            pageIndex: 0,
-          }));
+        roles={roles}
+        onEmailChange={(email) => {
+          setSearches((currentSearches) => ({ ...currentSearches, email }));
         }}
-        onSearchChange={setSearch}
-        onSearchFieldChange={(nextSearchField) => {
-          setSearchField(nextSearchField);
-          setPagination((currentPagination) => ({
-            ...currentPagination,
-            pageIndex: 0,
-          }));
+        onEmailDomainChange={(emailDomain) => {
+          setEmailDomainFilter(emailDomain);
+          resetPage();
+        }}
+        onNameChange={(name) => {
+          setSearches((currentSearches) => ({ ...currentSearches, name }));
+        }}
+        onRoleChange={(role) => {
+          setRoleFilter(role);
+          resetPage();
         }}
       />
       <AdminUsersDataTable
-        confirmingDeleteUserId={confirmingDeleteUserId}
-        currentUserId={currentUserId}
-        deletingUserId={deletingUserId}
-        errorMessage={usersQuery.isError ? getErrorMessage(usersQuery.error) : undefined}
-        isError={usersQuery.isError}
-        isLoading={usersQuery.isLoading}
+        columnFilters={columnFilters}
+        currentUserId={actorId}
+        errorMessage={queryError ? getErrorMessage(queryError) : undefined}
+        isError={queryError !== null}
+        isLoading={usersQuery.isLoading || filterOptionsQuery.isLoading}
         pagination={pagination}
-        roleDrafts={roleDrafts}
+        roles={roles}
+        sorting={sorting}
         totalUsers={totalUsers}
-        updatingUserId={updatingUserId}
         users={users}
-        onDeleteUser={(user) => {
-          void deleteUser(user);
-        }}
+        onRoleUpdated={handleRoleUpdated}
         onPaginationChange={setPagination}
-        onRoleDraftChange={(userId, role) => {
-          setRoleDrafts((drafts) => ({
-            ...drafts,
-            [userId]: role,
-          }));
-        }}
-        onUpdateRole={(user) => {
-          void updateRole(user);
-        }}
+        onSortingChange={handleSortingChange}
       />
     </div>
   );

@@ -124,21 +124,26 @@ function getMappedStatus(
 }
 
 function getDisplayTeam(
-  team: { id: string; name: string; school: string; image?: string | null } | undefined | null,
+  team:
+    | {
+        id: string;
+        name: string;
+        school: string;
+        image?: { url: string } | string | null;
+      }
+    | undefined
+    | null,
 ) {
   if (team === undefined || team === null) {
     return { code: "", image: undefined, name: "", school: "" };
   }
+  const imageUrl = typeof team.image === "string" ? team.image : team.image?.url;
   return {
     code: team.id.slice(0, 8).toUpperCase(),
-    image: team.image,
+    image: imageUrl,
     name: team.name,
     school: team.school,
   };
-}
-
-function formatName(first: string, middle: string | null | undefined, last: string) {
-  return [first, middle, last].filter(Boolean).join(" ");
 }
 
 function formatSize(bytes: number | null | undefined): string {
@@ -274,6 +279,7 @@ function useMyTeamData() {
       input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
     }),
   });
+  console.log("participants", participants);
 
   const { data: advisor, isPending: isAdvisorPending } = useQuery({
     ...orpc.teamAdvisors.get.queryOptions({
@@ -310,13 +316,19 @@ type ParticipantType = NonNullable<ReturnType<typeof useMyTeamData>["participant
 type AdvisorType = NonNullable<ReturnType<typeof useMyTeamData>["advisor"]>;
 type MockMemberType = ReturnType<typeof getBaseMembers>[number];
 
+function val(v: string | null | undefined): string {
+  return v ?? "-";
+}
+
 function mapParticipant(p: ParticipantType | undefined, mockMember: MockMemberType) {
   if (!p) {
     return mockMember;
   }
   return {
     ...mockMember,
-    birthDate: p.dateOfBirth,
+    chronicConditionsAndFirstAidNotes: val(p.chronicConditionsAndFirstAidNotes),
+    dateOfBirth: val(p.dateOfBirth),
+    dietaryRequirements: val(p.dietaryRequirements),
     documents: [
       {
         file: p.portraitPhoto?.originalName ?? "ไม่มีไฟล์",
@@ -338,13 +350,19 @@ function mapParticipant(p: ParticipantType | undefined, mockMember: MockMemberTy
         url: p.academicRecordDocument?.url,
       },
     ],
+    drugAllergies: val(p.drugAllergies),
     email: p.email,
-    enName: formatName(p.firstNameEn, p.middleNameEn, p.lastNameEn),
-    enPrefix: p.titleEn,
-    lineId: p.lineId ?? "-",
+    firstNameEn: val(p.firstNameEn),
+    firstNameTh: val(p.firstNameTh),
+    foodAllergies: val(p.foodAllergies),
+    lastNameEn: val(p.lastNameEn),
+    lastNameTh: val(p.lastNameTh),
+    lineId: val(p.lineId),
+    middleNameEn: p.middleNameEn ?? "",
+    middleNameTh: p.middleNameTh ?? "",
     phone: p.phone,
-    thaiName: formatName(p.firstNameTh, p.middleNameTh, p.lastNameTh),
-    thaiPrefix: p.titleTh,
+    titleEn: val(p.titleEn),
+    titleTh: val(p.titleTh),
   };
 }
 
@@ -354,6 +372,8 @@ function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMem
   }
   return {
     ...mockMember,
+    chronicConditionsAndFirstAidNotes: val(advisor.chronicConditionsAndFirstAidNotes),
+    dietaryRequirements: val(advisor.dietaryRequirements),
     documents: [
       {
         file: advisor.identityDocument?.originalName ?? "ไม่มีไฟล์",
@@ -369,13 +389,19 @@ function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMem
         url: advisor.teacherStatusDocument?.url,
       },
     ],
+    drugAllergies: val(advisor.drugAllergies),
     email: advisor.email,
-    enName: formatName(advisor.firstNameEn, advisor.middleNameEn, advisor.lastNameEn),
-    enPrefix: advisor.titleEn,
-    lineId: advisor.lineId ?? "-",
+    firstNameEn: val(advisor.firstNameEn),
+    firstNameTh: val(advisor.firstNameTh),
+    foodAllergies: val(advisor.foodAllergies),
+    lastNameEn: val(advisor.lastNameEn),
+    lastNameTh: val(advisor.lastNameTh),
+    lineId: val(advisor.lineId),
+    middleNameEn: advisor.middleNameEn ?? "",
+    middleNameTh: advisor.middleNameTh ?? "",
     phone: advisor.phone,
-    thaiName: formatName(advisor.firstNameTh, advisor.middleNameTh, advisor.lastNameTh),
-    thaiPrefix: advisor.titleTh,
+    titleEn: val(advisor.titleEn),
+    titleTh: val(advisor.titleTh),
   };
 }
 
@@ -405,6 +431,7 @@ export default function MyTeam() {
   } = useMyTeamData();
 
   const MEMBERS = useMappedMembers(participants, advisor);
+  console.log("MEMBER", MEMBERS);
 
   // --- Status Mapping ---
   const statusParam = typeof search.status === "string" ? search.status : null;

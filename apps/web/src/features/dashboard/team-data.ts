@@ -15,22 +15,102 @@ const MORTARBOARD_ICON = {
   on: "/assets/figma/273c4fd108326af21c9881e87baf774bd9e8da90.svg",
 };
 
+export interface DocumentFile {
+  contentType: string;
+  id: string;
+  originalName: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  url: string;
+}
+
+export interface TeamParticipantApi {
+  academicRecordDocument: DocumentFile | null;
+  chronicConditionsAndFirstAidNotes: string | null;
+  createdAt: string;
+  dateOfBirth: string | null;
+  dietaryRequirements: string | null;
+  drugAllergies: string | null;
+  email: string;
+  firstNameEn: string | null;
+  firstNameTh: string | null;
+  foodAllergies: string | null;
+  id: string;
+  identityDocument: DocumentFile | null;
+  index: number;
+  lastNameEn: string | null;
+  lastNameTh: string | null;
+  lineId: string | null;
+  middleNameEn: string | null;
+  middleNameTh: string | null;
+  phone: string;
+  portraitPhoto: DocumentFile | null;
+  teamId: string;
+  titleEn: string | null;
+  titleTh: string | null;
+  updatedAt: string;
+}
+
+export interface TeamAdvisorApi {
+  chronicConditionsAndFirstAidNotes: string | null;
+  createdAt: string;
+  dietaryRequirements: string | null;
+  drugAllergies: string | null;
+  email: string;
+  firstNameEn: string | null;
+  firstNameTh: string | null;
+  foodAllergies: string | null;
+  id: string;
+  identityDocument: DocumentFile | null;
+  lastNameEn: string | null;
+  lastNameTh: string | null;
+  lineId: string | null;
+  middleNameEn: string | null;
+  middleNameTh: string | null;
+  phone: string;
+  teacherStatusDocument: DocumentFile | null;
+  teamId: string;
+  titleEn: string | null;
+  titleTh: string | null;
+  updatedAt: string;
+}
+
 export interface Person {
+  academicRecordDocumentFileId: string;
+  chronicConditionsAndFirstAidNotes: string;
+  dateOfBirth?: string;
+  dietaryRequirements: string;
+  documents: { file: string; label: string; size: string; url?: string }[];
+  drugAllergies: string;
+  email: string;
+  firstNameEn: string;
+  firstNameTh: string;
+  foodAllergies: string;
+  heading: string;
+  icon: { off: string; on: string };
+  lastNameEn: string;
+  lastNameTh: string;
+  lineId: string;
+  middleNameEn: string;
+  middleNameTh: string;
+  phone: string;
   /** Tab label. */
   tab: string;
-  icon: { on: string; off: string };
-  /** Heading of the first detail section. */
-  heading: string;
-  thaiPrefix: string;
-  thaiName: string;
-  enPrefix: string;
-  enName: string;
-  /** Entrants carry a birth date; the advisor row in the design does not. */
-  birthDate?: string;
-  email: string;
-  phone: string;
-  lineId: string;
-  documents: { label: string; file: string; size: string; url?: string }[];
+  titleEn: string;
+  titleTh: string;
+}
+
+export function formatPersonName(
+  title: string | null | undefined,
+  firstName: string | null | undefined,
+  middleName: string | null | undefined,
+  lastName: string | null | undefined,
+): string {
+  const parts = [title, firstName, middleName, lastName].filter(
+    (part): part is string =>
+      part !== null && part !== undefined && part.trim() !== "" && part.trim() !== "-",
+  );
+  return parts.length > 0 ? parts.join(" ") : "-";
 }
 
 const ENTRANT_DOCUMENTS = [
@@ -68,19 +148,28 @@ const ADVISOR_DOCUMENTS = [
 ];
 
 export const EMPTY_SHARED = {
+  academicRecordDocumentFileId: "-",
+  chronicConditionsAndFirstAidNotes: "-",
+  dietaryRequirements: "-",
+  drugAllergies: "-",
   email: "-",
-  enName: "-",
-  enPrefix: "",
+  firstNameEn: "-",
+  firstNameTh: "-",
+  foodAllergies: "-",
+  lastNameEn: "-",
+  lastNameTh: "-",
   lineId: "-",
+  middleNameEn: "-",
+  middleNameTh: "-",
   phone: "-",
-  thaiName: "-",
-  thaiPrefix: "",
+  titleEn: "-",
+  titleTh: "-",
 };
 
 export function getBaseMembers(): Person[] {
   return [
     {
-      birthDate: "-",
+      dateOfBirth: "-",
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 1",
       icon: USER_ICON,
@@ -88,7 +177,7 @@ export function getBaseMembers(): Person[] {
       ...EMPTY_SHARED,
     },
     {
-      birthDate: "-",
+      dateOfBirth: "-",
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 2",
       icon: USER_ICON,
@@ -96,7 +185,7 @@ export function getBaseMembers(): Person[] {
       ...EMPTY_SHARED,
     },
     {
-      birthDate: "-",
+      dateOfBirth: "-",
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 3",
       icon: USER_ICON,
@@ -104,6 +193,7 @@ export function getBaseMembers(): Person[] {
       ...EMPTY_SHARED,
     },
     {
+      dateOfBirth: "-",
       documents: ADVISOR_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลอาจารย์",
       icon: MORTARBOARD_ICON,

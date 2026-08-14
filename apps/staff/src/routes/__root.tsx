@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 import type { orpc } from "@bmhk-2026/client/orpc";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -45,18 +46,20 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className="font-thai">
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Outlet />
-        </div>
-        <Toaster richColors />
-        <TanStackRouterDevtools position="bottom-left" />
-        <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-        <Scripts />
+        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange enableSystem>
+          <div className="grid h-svh grid-rows-[auto_1fr]">
+            <Outlet />
+          </div>
+          <Toaster richColors />
+          <TanStackRouterDevtools position="bottom-left" />
+          <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+          <Scripts />
+        </ThemeProvider>
       </body>
     </html>
   );

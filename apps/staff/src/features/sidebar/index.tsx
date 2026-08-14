@@ -14,7 +14,7 @@ import {
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, UserRound, UsersRound } from "lucide-react";
+import { LayoutDashboard, LogOut, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
@@ -129,9 +129,6 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton render={<div />} size="lg">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
-                <UserRound />
-              </div>
               <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
                 <span className="w-full truncate font-medium">{userName ?? "Staff"}</span>
                 <span className="w-full truncate text-sidebar-foreground/70 text-xs">

@@ -396,7 +396,7 @@ export function NextButton({ to, label = 'ถัดไป' }: { to: string; labe
  * rotation legible at all. `relative` plus an absolutely-positioned spinner so the swap
  * cannot change the pill's width — a button that resizes as it commits reads as a layout bug.
  */
-export function SubmitButton({ to, label }: { to: string; label: string }) {
+export function SubmitButton({ to, label,}: { to: string; label: string;}) {
   const form = useRegisterForm()
   const go = useAuthNavigate()
   const [busy, setBusy] = useState(false)
@@ -408,7 +408,6 @@ export function SubmitButton({ to, label }: { to: string; label: string }) {
       aria-busy={busy}
       onClick={() => {
         setBusy(true)
-        if ()
         form.handleSubmit()
         go(to, 'submit')
       }}

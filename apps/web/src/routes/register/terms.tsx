@@ -253,6 +253,8 @@ export default function TermsStep() {
   const [openDoc, setOpenDoc] = useState<OpenDoc | null>(null)
   const [accepted, setAccepted] = useState<string[]>([])
 
+
+
   return (
     <WizardShell
       totalStep={Number(form.getFieldValue('team.teamSize') ?? 2) + 3}

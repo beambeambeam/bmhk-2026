@@ -3,6 +3,7 @@ import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { asc, eq } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
 
 import { createRepositoryExecutor } from "../../core/repository";
@@ -35,6 +36,7 @@ export interface TeamRegistrationStatusFacts {
 }
 
 export interface TeamRegistrationStatusRepository {
+  findByOwnerId: (ownerId: string) => Promise<TeamRegistrationStatusFacts | null>;
   findByTeamId: (
     access: TeamAccessContext,
     teamId: string,
@@ -55,87 +57,94 @@ export function createTeamRegistrationStatusRepository(
 ): TeamRegistrationStatusRepository {
   const execute = createRepositoryExecutor(teamRegistrationStatusRepositoryError);
 
-  return {
-    findByTeamId: async (access, teamId) =>
-      await execute(
-        async () =>
-          await database.transaction(
-            async (transaction) => {
-              const rows = await transaction
-                .select({
-                  consentCodernTermsAccepted: teamConsents.codernTermsAccepted,
-                  consentCompetitionRulesAccepted: teamConsents.competitionRulesAccepted,
-                  consentGuardianConsentObtained: teamConsents.guardianConsentObtained,
-                  consentHealthDataConsent: teamConsents.healthDataConsent,
-                  consentId: teamConsents.id,
-                  consentPrivacyPolicyAccepted: teamConsents.privacyPolicyAccepted,
-                  consentPublicityMediaConsent: teamConsents.publicityMediaConsent,
-                  participantAcademicRecordDocumentFileId:
-                    teamParticipants.academicRecordDocumentFileId,
-                  participantIdentityDocumentFileId: teamParticipants.identityDocumentFileId,
-                  participantIndex: teamParticipants.index,
-                  participantPortraitPhotoFileId: teamParticipants.portraitPhotoFileId,
-                  teamId: teams.id,
-                  teamImage: teams.image,
-                  teamMemberCount: teams.memberCount,
-                  teamName: teams.name,
-                  teamSchool: teams.school,
-                  teamSubmittedAt: teams.registrationSubmittedAt,
-                })
-                .from(teams)
-                .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
-                .leftJoin(teamConsents, eq(teamConsents.teamId, teams.id))
-                .where(createTeamAccessCondition(access, teamId))
-                .orderBy(asc(teamParticipants.index));
+  async function find(condition: SQL | undefined) {
+    return await execute(async () => {
+      if (!condition) {
+        throw new Error("Team registration status query requires an access condition");
+      }
 
-              const [firstRow] = rows;
-              if (!firstRow) {
-                return null;
-              }
+      return await database.transaction(
+        async (transaction) => {
+          const rows = await transaction
+            .select({
+              consentCodernTermsAccepted: teamConsents.codernTermsAccepted,
+              consentCompetitionRulesAccepted: teamConsents.competitionRulesAccepted,
+              consentGuardianConsentObtained: teamConsents.guardianConsentObtained,
+              consentHealthDataConsent: teamConsents.healthDataConsent,
+              consentId: teamConsents.id,
+              consentPrivacyPolicyAccepted: teamConsents.privacyPolicyAccepted,
+              consentPublicityMediaConsent: teamConsents.publicityMediaConsent,
+              participantAcademicRecordDocumentFileId:
+                teamParticipants.academicRecordDocumentFileId,
+              participantIdentityDocumentFileId: teamParticipants.identityDocumentFileId,
+              participantIndex: teamParticipants.index,
+              participantPortraitPhotoFileId: teamParticipants.portraitPhotoFileId,
+              teamId: teams.id,
+              teamImage: teams.image,
+              teamMemberCount: teams.memberCount,
+              teamName: teams.name,
+              teamSchool: teams.school,
+              teamSubmittedAt: teams.registrationSubmittedAt,
+            })
+            .from(teams)
+            .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
+            .leftJoin(teamConsents, eq(teamConsents.teamId, teams.id))
+            .where(condition)
+            .orderBy(asc(teamParticipants.index));
 
-              const participants = rows.flatMap((row) => {
-                if (row.participantIndex === null) {
-                  return [];
-                }
+          const [firstRow] = rows;
+          if (!firstRow) {
+            return null;
+          }
 
-                return [
-                  {
-                    academicRecordDocumentFileId: row.participantAcademicRecordDocumentFileId,
-                    identityDocumentFileId: row.participantIdentityDocumentFileId,
-                    index: row.participantIndex,
-                    portraitPhotoFileId: row.participantPortraitPhotoFileId,
-                  },
-                ];
-              });
+          const participants = rows.flatMap((row) => {
+            if (row.participantIndex === null) {
+              return [];
+            }
 
-              const consent =
-                firstRow.consentId === null
-                  ? null
-                  : {
-                      codernTermsAccepted: firstRow.consentCodernTermsAccepted ?? false,
-                      competitionRulesAccepted: firstRow.consentCompetitionRulesAccepted ?? false,
-                      guardianConsentObtained: firstRow.consentGuardianConsentObtained ?? false,
-                      healthDataConsent: firstRow.consentHealthDataConsent ?? false,
-                      privacyPolicyAccepted: firstRow.consentPrivacyPolicyAccepted ?? false,
-                      publicityMediaConsent: firstRow.consentPublicityMediaConsent ?? false,
-                    };
+            return [
+              {
+                academicRecordDocumentFileId: row.participantAcademicRecordDocumentFileId,
+                identityDocumentFileId: row.participantIdentityDocumentFileId,
+                index: row.participantIndex,
+                portraitPhotoFileId: row.participantPortraitPhotoFileId,
+              },
+            ];
+          });
 
-              return {
-                consent,
-                participants,
-                team: {
-                  id: firstRow.teamId,
-                  image: firstRow.teamImage,
-                  memberCount: firstRow.teamMemberCount,
-                  name: firstRow.teamName,
-                  school: firstRow.teamSchool,
-                  submittedAt: firstRow.teamSubmittedAt,
-                },
-              };
+          const consent =
+            firstRow.consentId === null
+              ? null
+              : {
+                  codernTermsAccepted: firstRow.consentCodernTermsAccepted ?? false,
+                  competitionRulesAccepted: firstRow.consentCompetitionRulesAccepted ?? false,
+                  guardianConsentObtained: firstRow.consentGuardianConsentObtained ?? false,
+                  healthDataConsent: firstRow.consentHealthDataConsent ?? false,
+                  privacyPolicyAccepted: firstRow.consentPrivacyPolicyAccepted ?? false,
+                  publicityMediaConsent: firstRow.consentPublicityMediaConsent ?? false,
+                };
+
+          return {
+            consent,
+            participants,
+            team: {
+              id: firstRow.teamId,
+              image: firstRow.teamImage,
+              memberCount: firstRow.teamMemberCount,
+              name: firstRow.teamName,
+              school: firstRow.teamSchool,
+              submittedAt: firstRow.teamSubmittedAt,
             },
-            { accessMode: "read only", isolationLevel: "repeatable read" },
-          ),
-      ),
+          };
+        },
+        { accessMode: "read only", isolationLevel: "repeatable read" },
+      );
+    });
+  }
+
+  return {
+    findByOwnerId: async (ownerId) => await find(eq(teams.userId, ownerId)),
+    findByTeamId: async (access, teamId) => await find(createTeamAccessCondition(access, teamId)),
     submit: async (access, teamId, submittedAt) =>
       await execute(
         async () =>

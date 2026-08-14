@@ -18,6 +18,7 @@ import { LayoutDashboard, LogOut, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
+import { ThemSwitcher } from "./them-switcher";
 
 interface StaffSidebarProps {
   readonly role?: string | null;
@@ -127,6 +128,9 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <ThemSwitcher />
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton render={<div />} size="lg">
               <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">

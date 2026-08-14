@@ -4,9 +4,10 @@ import { Label } from "@/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import z from "zod";
+import { Card, CardContent } from "@/components/card";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
 
@@ -118,130 +119,136 @@ export default function SignInForm() {
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center px-6 py-10">
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <div className="mx-auto flex size-11 items-center justify-center rounded-lg border border-border bg-muted">
-            <Building2 aria-hidden="true" className="size-5" />
-          </div>
-          <h1 className="text-2xl font-semibold">Staff sign in</h1>
-          <p className="text-sm text-muted-foreground">
-            Use your KMUTT Microsoft account ending with @kmutt.ac.th.
-          </p>
-        </div>
+      <Card>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="text-start">
+              <h1 className="text-2xl font-semibold">Bangmod Hackthon 2026</h1>
+              <p className="text-start text-xs text-muted-foreground">
+                Access is limited to Bangmod Hackathon staff.
+              </p>
+            </div>
 
-        <Button
-          type="button"
-          className="h-10 w-full gap-2"
-          disabled={isSigningIn}
-          onClick={() => {
-            void signInWithMicrosoft();
-          }}
-        >
-          {isSigningIn ? (
-            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-          ) : (
-            <svg aria-hidden="true" className="size-4" viewBox="0 0 23 23">
-              <path fill="#f35325" d="M1 1h10v10H1z" />
-              <path fill="#81bc06" d="M12 1h10v10H12z" />
-              <path fill="#05a6f0" d="M1 12h10v10H1z" />
-              <path fill="#ffba08" d="M12 12h10v10H12z" />
-            </svg>
-          )}
-          Continue with Microsoft
-        </Button>
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-muted-foreground text-xs">or</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            void form.handleSubmit();
-          }}
-        >
-          <form.Field name="identifier">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Email or username</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  autoComplete="username"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => {
-                    field.handleChange(event.target.value);
-                  }}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-destructive text-sm">
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="password"
-                  autoComplete="current-password"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => {
-                    field.handleChange(event.target.value);
-                  }}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-destructive text-sm">
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Subscribe
-            selector={(state) => ({
-              canSubmit: state.canSubmit,
-              isSubmitting: state.isSubmitting,
-            })}
-          >
-            {({ canSubmit, isSubmitting }) => (
-              <Button type="submit" className="h-10 w-full" disabled={!canSubmit || isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                    Signing in
-                  </>
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                className="h-10 w-full gap-2"
+                disabled={isSigningIn}
+                onClick={() => {
+                  void signInWithMicrosoft();
+                }}
+              >
+                {isSigningIn ? (
+                  <Loader2 aria-hidden="true" className="size-4 animate-spin" />
                 ) : (
-                  "Sign in with password"
+                  <svg aria-hidden="true" className="size-4" viewBox="0 0 23 23">
+                    <path fill="#f35325" d="M1 1h10v10H1z" />
+                    <path fill="#81bc06" d="M12 1h10v10H12z" />
+                    <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                    <path fill="#ffba08" d="M12 12h10v10H12z" />
+                  </svg>
                 )}
+                Continue with Microsoft
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Use your KMUTT Microsoft account ending with @kmutt.ac.th.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-muted-foreground text-xs">or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void form.handleSubmit();
+              }}
+            >
+              <form.Field name="identifier">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Email or username</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      autoComplete="username"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => {
+                        field.handleChange(event.target.value);
+                      }}
+                    />
+                    {field.state.meta.errors.map((error) => (
+                      <p key={error?.message} className="text-destructive text-sm">
+                        {error?.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="password">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Password</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="password"
+                      autoComplete="current-password"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => {
+                        field.handleChange(event.target.value);
+                      }}
+                    />
+                    {field.state.meta.errors.map((error) => (
+                      <p key={error?.message} className="text-destructive text-sm">
+                        {error?.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Subscribe
+                selector={(state) => ({
+                  canSubmit: state.canSubmit,
+                  isSubmitting: state.isSubmitting,
+                })}
+              >
+                {({ canSubmit, isSubmitting }) => (
+                  <Button
+                    type="submit"
+                    className="h-10 w-full"
+                    disabled={!canSubmit || isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                        Signing in
+                      </>
+                    ) : (
+                      "Sign in with password"
+                    )}
+                  </Button>
+                )}
+              </form.Subscribe>
+            </form>
+
+            {oauthError === null ? null : (
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {oauthError}
+              </p>
             )}
-          </form.Subscribe>
-        </form>
-
-        {oauthError === null ? null : (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {oauthError}
-          </p>
-        )}
-
-        <p className="text-center text-xs text-muted-foreground">
-          Access is limited to Bangmod Hackathon staff.
-        </p>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   );
 }

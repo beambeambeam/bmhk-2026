@@ -78,3 +78,17 @@ export type {
   TeamParticipantDetails,
   UpdateTeamParticipantData,
 } from "./features/team-participants/team-participants.schema";
+export { createDiscordRepository } from "./features/discord/discord.repository";
+export type { DiscordRepository } from "./features/discord/discord.repository";
+export { createDiscordService } from "./features/discord/discord.service";
+export type { DiscordService } from "./features/discord/discord.service";
+export {
+  discordQueryInputSchema,
+  discordVerifyInputSchema,
+} from "./features/discord/discord.schema";
+export type {
+  DiscordQueryInput,
+  DiscordQueryResponse,
+  DiscordVerifyInput,
+  DiscordVerifyResponse,
+} from "./features/discord/discord.schema";

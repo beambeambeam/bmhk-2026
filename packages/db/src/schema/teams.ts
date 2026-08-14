@@ -14,6 +14,7 @@ import { files } from "./files";
 
 export const teamAwardValues = [
   "NO_ACHIEVEMENT",
+  "REGISTRATION_COMPLETED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",

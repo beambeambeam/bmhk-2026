@@ -17,6 +17,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
   head: () => ({
     links: [
+      { href: "https://fonts.googleapis.com", rel: "preconnect" },
+      { crossOrigin: "anonymous", href: "https://fonts.gstatic.com", rel: "preconnect" },
+      {
+        href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap",
+        rel: "stylesheet",
+      },
       {
         href: appCss,
         rel: "stylesheet",
@@ -43,7 +49,7 @@ function RootDocument() {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="font-thai">
         <div className="grid h-svh grid-rows-[auto_1fr]">
           <Outlet />
         </div>

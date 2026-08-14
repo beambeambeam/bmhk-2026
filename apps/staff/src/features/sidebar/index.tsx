@@ -17,6 +17,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { SidebarBrand } from "./brand";
 
 interface StaffSidebarProps {
   readonly role?: string | null;
@@ -61,11 +62,13 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton render={<Link to="/dashboard" />} size="lg" tooltip="Staff">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <ShieldCheck />
-              </div>
-              <span className="truncate font-semibold">Staff</span>
+            <SidebarMenuButton
+              className="h-auto min-h-12"
+              render={<Link to="/dashboard" aria-label="BangMod Hackathon 2026" />}
+              size="lg"
+              tooltip="BangMod Hackathon 2026"
+            >
+              <SidebarBrand />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

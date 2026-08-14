@@ -26,6 +26,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         rel: "stylesheet",
       },
       {
+        href: "/assets/figma/81a21a35c9efb8c6f5073ba1753e4d8cf1cf97c7.svg",
+        rel: "icon",
+        type: "image/svg+xml",
+      },
+      {
         href: appCss,
         rel: "stylesheet",
       },
@@ -39,7 +44,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "viewport",
       },
       {
-        title: "My App",
+        title: "Staff BMHK2026",
+      },
+      {
+        content: "noindex, nofollow",
+        name: "robots",
       },
     ],
   }),

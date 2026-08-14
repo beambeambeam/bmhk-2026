@@ -166,6 +166,9 @@ function getMappedStatus(
   }
 
   if (feedbackStatus === "CHANGES_REQUESTED") {
+    if (featureFlags?.eligibleTeamsAnnouncement === true) {
+      return "rejected";
+    }
     return "issue";
   }
 
@@ -430,8 +433,7 @@ function useMappedMembers(
   team?: ReturnType<typeof useMyTeamData>["team"],
 ) {
   const declaredCount =
-    statusData?.memberCount ??
-    (team as { memberCount?: number } | undefined | null)?.memberCount;
+    statusData?.memberCount ?? (team as { memberCount?: number } | undefined | null)?.memberCount;
   const participantCount =
     declaredCount === 2 || declaredCount === 3
       ? declaredCount
@@ -484,9 +486,19 @@ function useAutoOpenModal(
   status: TeamStatus,
   featureFlags?: FeatureFlagsInput | null,
 ) {
-  const [modal, setModal] = useState<string | null>(() =>
-    getAutoOpenedModal(initialModal, status, featureFlags),
-  );
+  const [modal, setModal] = useState<string | null>(initialModal);
+  const [hasAutoOpenedModal, setHasAutoOpenedModal] = useState(false);
+
+  useEffect(() => {
+    if (hasAutoOpenedModal) {
+      return;
+    }
+    const autoModal = getAutoOpenedModal(initialModal, status, featureFlags);
+    if (autoModal !== null) {
+      setModal(autoModal);
+      setHasAutoOpenedModal(true);
+    }
+  }, [hasAutoOpenedModal, initialModal, status, featureFlags]);
 
   return { modal, setModal };
 }

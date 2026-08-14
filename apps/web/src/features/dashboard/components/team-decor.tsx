@@ -57,7 +57,8 @@ export default function TeamDecor() {
        * be scaled down — `.team-decor` in index.css does that from `transform-origin: top
        * center`, exactly as `.hof-band` does for the hall-of-fame closing band.
        */}
-      <div className="team-decor-stage absolute top-0 left-1/2 h-[1024px] w-[1440px]">
+      {/* 1. Pastas top band (scaled from top center) */}
+      <div className="team-decor-stage absolute top-0 left-1/2 h-[509px] w-[1440px]">
         <div className="absolute top-0 left-0 h-[509px] w-[1440px] overflow-clip">
           {PASTAS.map(([w, h, left, top, rotate, iw, ih], i) => (
             <div
@@ -77,31 +78,60 @@ export default function TeamDecor() {
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="absolute top-[752px] right-[-99.73px] flex h-[402.236px] w-[470.728px] items-center justify-center">
-          <div className="flex-none -scale-y-100 rotate-180">
-            <div className="relative h-[402.236px] w-[470.728px]">
-              {TOMATOES.map(([left, top, box, rotate, img], i) => (
+      {/* 2. Desktop Tomatoes (hidden on mobile, visible on lg+: anchored at bottom-right of page like Figma) */}
+      <div className="hidden lg:flex absolute bottom-[-130px] right-[max(-99.73px,calc(50%-819.73px))] h-[402.236px] w-[470.728px] items-center justify-center">
+        <div className="flex-none -scale-y-100 rotate-180">
+          <div className="relative h-[402.236px] w-[470.728px]">
+            {TOMATOES.map(([left, top, box, rotate, img], i) => (
+              <div
+                key={i}
+                className="absolute flex items-center justify-center"
+                style={{
+                  height: box,
+                  left,
+                  top,
+                  width: box,
+                }}
+              >
+                <div className="flex-none" style={{ transform: `rotate(${rotate}deg) scaleY(-1)` }}>
+                  <div className="relative" style={{ height: img, width: img }}>
+                    <img
+                      src={TOMATO}
+                      alt=""
+                      className="absolute inset-0 size-full max-w-none object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Mobile Tomatoes (visible on < lg: anchored at bottom-left of mobile page like Figma) */}
+      <div className="lg:hidden absolute bottom-[-75px] left-[-70px] flex h-[240px] w-[280px] items-center justify-center">
+        <div className="flex-none -scale-y-100 rotate-180">
+          <div className="relative h-[240px] w-[280px]">
+            {TOMATOES.map(([left, top, box, rotate, img], i) => {
+              const s = 240 / 402;
+              return (
                 <div
                   key={i}
                   className="absolute flex items-center justify-center"
-                  style={{ height: box, left, top, width: box }}
+                  style={{
+                    height: box * s,
+                    left: left * s,
+                    top: top * s,
+                    width: box * s,
+                  }}
                 >
-                  {/*
-                   * `rotate()` FIRST, then the mirror. Figma's codegen states a mirrored node
-                   * as `-scale-y-100 … rotate-[Ndeg]`, which as Tailwind 4 classes are the
-                   * individual `rotate`/`scale` properties and compose in css-transforms-2's
-                   * fixed order — translate, rotate, scale — i.e. rotate then scale. Written
-                   * as one `transform` string in Figma's textual order the multiplication is
-                   * the other way round, and since S·R(N) === R(−N)·S that SILENTLY NEGATES
-                   * every angle: all three tomatoes were turned the wrong way. Same defect the
-                   * 404's prawn ring and this homepage's phone cutlery carried.
-                   */}
                   <div
                     className="flex-none"
                     style={{ transform: `rotate(${rotate}deg) scaleY(-1)` }}
                   >
-                    <div className="relative" style={{ height: img, width: img }}>
+                    <div className="relative" style={{ height: img * s, width: img * s }}>
                       <img
                         src={TOMATO}
                         alt=""
@@ -110,8 +140,8 @@ export default function TeamDecor() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>

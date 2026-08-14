@@ -187,7 +187,11 @@ export default function PersonDetails({ person }: { person: Person }) {
                 aria-hidden
                 className="mm-icon-pop size-[calc(19.896px_+_4.104*var(--fl))] shrink-0"
               />
-              <span className={`${VALUE_14_16} leading-[1.6]`}>{doc.file}</span>
+              <span
+                className={`${VALUE_14_16} leading-[1.6] truncate max-w-[160px] sm:max-w-[280px] xl:max-w-[360px]`}
+              >
+                {doc.file}
+              </span>
               <span className={`${VALUE_14_16} leading-[1.6] font-light text-gray-2`}>
                 {doc.size}
               </span>

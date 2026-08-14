@@ -109,7 +109,9 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
       >
         <GoogleLogo />
         {/* Hidden below `sm` because Figma hides it on every 402 frame — see the file header. */}
-        <span className="hidden sm:inline">{displayName}</span>
+        <span className="hidden truncate sm:inline-block sm:max-w-[160px] md:max-w-[220px]">
+          {displayName}
+        </span>
         <img
           src={CHEVRON}
           alt=""

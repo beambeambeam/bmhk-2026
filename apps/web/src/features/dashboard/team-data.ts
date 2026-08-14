@@ -171,7 +171,7 @@ export function getBaseMembers(count = 3): Person[] {
   const pCount = count === 2 ? 2 : 3;
   const members: Person[] = [];
 
-  for (let i = 1; i <= pCount; i++) {
+  for (let i = 1; i <= pCount; i += 1) {
     members.push({
       dateOfBirth: "-",
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),

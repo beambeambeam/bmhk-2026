@@ -122,19 +122,25 @@ function getApprovedStatus(
   award: string | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
-  if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
-    if (featureFlags?.finalRound === true) {
+  const isQualifyingResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
+  const isQualifyingRoundStarted = featureFlags?.qualifyingRound === true;
+
+  if (isQualifyingResultsAnnounced) {
+    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
       return "semifinal-qualified";
     }
-    return "semifinal-pending";
+    if (award === "ROUND_1_COMPLETED") {
+      return "semifinal-failed";
+    }
   }
 
-  if (award === "ROUND_1_COMPLETED") {
-    const isFinalUnlocked =
-      featureFlags?.finalRound === true || featureFlags?.qualifyingResultsAnnouncement === true;
-    if (isFinalUnlocked) {
+  if (isQualifyingRoundStarted) {
+    if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
       return "semifinal-pending";
     }
+  }
+
+  if (award !== undefined && (award === "ROUND_1_COMPLETED" || SEMIFINAL_AWARDS.has(award))) {
     return "qualified";
   }
 

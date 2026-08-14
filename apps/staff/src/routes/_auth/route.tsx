@@ -8,7 +8,7 @@ import { StaffSidebar } from "@/features/sidebar";
 const STAFF_EMAIL_DOMAIN = "@kmutt.ac.th";
 
 export const Route = createFileRoute("/_auth")({
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     const session = await authClient.getSession();
     const email = session.data?.user.email.toLowerCase();
     const isStaffEmail = email?.endsWith(STAFF_EMAIL_DOMAIN) === true;
@@ -24,6 +24,15 @@ export const Route = createFileRoute("/_auth")({
         to: "/login",
       });
     }
+
+    const role = session.data?.user.role ?? "user";
+    if (role === "user" && location.pathname !== "/wait-access") {
+      // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
+      throw redirect({
+        to: "/wait-access",
+      });
+    }
+
     return { session };
   },
   component: AuthLayout,

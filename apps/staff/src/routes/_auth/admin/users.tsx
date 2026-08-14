@@ -16,8 +16,12 @@ function AdminUsersPage() {
           <CardTitle>User Managments</CardTitle>
           <CardDescription>Manage user acess</CardDescription>
         </CardHeader>
-        <CardContent>
-          <AdminUserTable actorId={session.data?.user.id} />
+        <CardContent className="px-0 pb-2">
+          <Card>
+            <CardContent className="px-4">
+              <AdminUserTable actorId={session.data?.user.id} />
+            </CardContent>
+          </Card>
         </CardContent>
       </Card>
     </section>

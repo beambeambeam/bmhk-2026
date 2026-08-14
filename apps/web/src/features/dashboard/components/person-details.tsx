@@ -79,46 +79,70 @@ function formatThaiDate(dateStr: string | undefined): string {
 }
 
 export default function PersonDetails({ person }: { person: Person }) {
+  const isAdvisor = person.isAdvisor === true || person.tab === "อาจารย์";
+
   return (
     /* `1297:1162` separates the three sections by 16, `708:2348` by 24. */
     <div className={`flex w-full flex-col items-start ${GAP_16_24}`}>
       <Section>
         <SectionTitle>{person.heading}</SectionTitle>
 
-        {/* three columns at 1440 (`708:2351`), stacked on the phone (`1297:1165`) */}
-        <FieldRow cols={3}>
-          <Field label="ชื่อ-สกุล">
-            {formatPersonName(
-              person.titleTh,
-              person.firstNameTh,
-              person.middleNameTh,
-              person.lastNameTh,
-            )}
-          </Field>
-          <Field label="Name">
-            {formatPersonName(
-              person.titleEn,
-              person.firstNameEn,
-              person.middleNameEn,
-              person.lastNameEn,
-            )}
-          </Field>
-          {/* the advisor row in the design carries no birth date, so the column drops out */}
-          {person.dateOfBirth !== undefined && person.dateOfBirth !== "" && (
-            <Field label="วัน/เดือน/ปีเกิด">{formatThaiDate(person.dateOfBirth)}</Field>
-          )}
-        </FieldRow>
+        {isAdvisor ? (
+          <FieldRow cols={2}>
+            <Field label="ชื่อ-สกุล">
+              {formatPersonName(
+                person.titleTh,
+                person.firstNameTh,
+                person.middleNameTh,
+                person.lastNameTh,
+              )}
+            </Field>
+            <Field label="Name">
+              {formatPersonName(
+                person.titleEn,
+                person.firstNameEn,
+                person.middleNameEn,
+                person.lastNameEn,
+              )}
+            </Field>
+          </FieldRow>
+        ) : (
+          <>
+            {/* three columns at 1440 (`708:2351`), stacked on the phone (`1297:1165`) */}
+            <FieldRow cols={3}>
+              <Field label="ชื่อ-สกุล">
+                {formatPersonName(
+                  person.titleTh,
+                  person.firstNameTh,
+                  person.middleNameTh,
+                  person.lastNameTh,
+                )}
+              </Field>
+              <Field label="Name">
+                {formatPersonName(
+                  person.titleEn,
+                  person.firstNameEn,
+                  person.middleNameEn,
+                  person.lastNameEn,
+                )}
+              </Field>
+              {person.dateOfBirth !== undefined && person.dateOfBirth !== "" && (
+                <Field label="วัน/เดือน/ปีเกิด">{formatThaiDate(person.dateOfBirth)}</Field>
+              )}
+            </FieldRow>
 
-        {/* two-up on both anchors: `1297:1179` is a row of two 155s in the 322 card */}
-        <FieldRow cols={2}>
-          <Field label="อาหารที่แพ้">{person.foodAllergies}</Field>
-          <Field label="ประเภทอาหาร">{person.dietaryRequirements}</Field>
-        </FieldRow>
+            {/* two-up on both anchors: `1297:1179` is a row of two 155s in the 322 card */}
+            <FieldRow cols={2}>
+              <Field label="อาหารที่แพ้">{person.foodAllergies}</Field>
+              <Field label="ประเภทอาหาร">{person.dietaryRequirements}</Field>
+            </FieldRow>
 
-        <FieldRow cols={2}>
-          <Field label="ยาที่แพ้">{person.drugAllergies}</Field>
-          <Field label="โรคประจำตัว">{person.chronicConditionsAndFirstAidNotes}</Field>
-        </FieldRow>
+            <FieldRow cols={2}>
+              <Field label="ยาที่แพ้">{person.drugAllergies}</Field>
+              <Field label="โรคประจำตัว">{person.chronicConditionsAndFirstAidNotes}</Field>
+            </FieldRow>
+          </>
+        )}
       </Section>
 
       <Separator />

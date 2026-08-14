@@ -88,38 +88,81 @@ interface StatusData {
   submissionState: string;
 }
 interface ReviewFeedback {
+  advisor?: string;
+  participant1?: string;
+  participant2?: string;
+  participant3?: string;
   status: string;
+}
+interface TeamData {
+  award?: string;
+  id: string;
+  name: string;
+  school: string;
+  image?: { url: string } | string | null;
+}
+
+const SEMIFINAL_AWARDS = new Set([
+  "ROUND_2_COMPLETED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+]);
+
+interface FeatureFlagsInput {
+  eligibleTeamsAnnouncement?: boolean;
+  finalRound?: boolean;
+  qualifyingResultsAnnouncement?: boolean;
+  qualifyingRound?: boolean;
+  registration?: boolean;
 }
 
 function getMappedStatus(
   statusParam: string | null,
   statusData: StatusData | null | undefined,
   reviewFeedback: ReviewFeedback | null | undefined,
+  team: TeamData | null | undefined,
+  featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
   if (isStatus(statusParam)) {
     return statusParam;
   }
-  if (statusData === undefined || statusData === null) {
-    return "reviewing";
+
+  const feedbackStatus = reviewFeedback?.status;
+
+  if (feedbackStatus === "REJECTED" || feedbackStatus === "FAILED") {
+    return "rejected";
   }
-  if (statusData.submissionState === "DRAFT") {
-    return "reviewing";
+
+  if (feedbackStatus === "CHANGES_REQUESTED") {
+    return "issue";
   }
-  if (
-    statusData.submissionState === "SUBMITTED" &&
-    reviewFeedback !== undefined &&
-    reviewFeedback !== null
-  ) {
-    if (reviewFeedback.status === "PENDING_REVIEW") {
-      return "reviewing";
+
+  if (feedbackStatus === "APPROVED") {
+    const award = team?.award;
+    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
+      return "semifinal-qualified";
     }
-    if (reviewFeedback.status === "CHANGES_REQUESTED") {
-      return "issue";
-    }
-    if (reviewFeedback.status === "APPROVED") {
+    console.log("AWARD", award);
+    console.log("Flag:", featureFlags?.finalRound);
+    if (award === "ROUND_1_COMPLETED") {
+      if (featureFlags?.finalRound === true) {
+        return "semifinal-pending";
+      }
       return "qualified";
     }
+
+    if (
+      featureFlags?.eligibleTeamsAnnouncement === true &&
+      (award === undefined || award === "NO_ACHIEVEMENT")
+    ) {
+      return "selection-failed";
+    }
+
+    return "selection-pending";
   }
+
   return "reviewing";
 }
 
@@ -259,7 +302,6 @@ function useMyTeamData() {
     orpc.teams.get.queryOptions({ input: { id: "4172b4c3-e98e-4c22-bcaf-36891b155098" } }),
   );
   const team = teamsData;
-  console.log(teamsData);
   const teamId = team?.id;
 
   const { data: statusData, isPending: isStatusPending } = useQuery({
@@ -279,7 +321,6 @@ function useMyTeamData() {
       input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
     }),
   });
-  console.log("participants", participants);
 
   const { data: advisor, isPending: isAdvisorPending } = useQuery({
     ...orpc.teamAdvisors.get.queryOptions({
@@ -431,11 +472,10 @@ export default function MyTeam() {
   } = useMyTeamData();
 
   const MEMBERS = useMappedMembers(participants, advisor);
-  console.log("MEMBER", MEMBERS);
 
   // --- Status Mapping ---
   const statusParam = typeof search.status === "string" ? search.status : null;
-  const status = getMappedStatus(statusParam, statusData, reviewFeedback);
+  const status = getMappedStatus(statusParam, statusData, reviewFeedback, team, featureFlags);
 
   const [pane, setPane] = useState<Pane>("team");
   const paneTabs = useRef<HTMLDivElement>(null);
@@ -650,10 +690,11 @@ export default function MyTeam() {
               {pane === "status" && (
                 <StatusPanel
                   status={status}
-                  showDiscord={status === "qualified"}
+                  showDiscord={status === "qualified" || status === "semifinal-qualified"}
                   heading={false}
                   card={false}
                   members={MEMBERS}
+                  reviewFeedback={reviewFeedback}
                 />
               )}
             </div>
@@ -662,7 +703,12 @@ export default function MyTeam() {
             className="auth-rise hidden shrink-0 lg:block lg:w-[calc(241.5px_+_158.5*var(--fl))]"
             data-rise="4"
           >
-            <StatusPanel status={status} showDiscord={status === "qualified"} members={MEMBERS} />
+            <StatusPanel
+              status={status}
+              showDiscord={status === "qualified" || status === "semifinal-qualified"}
+              members={MEMBERS}
+              reviewFeedback={reviewFeedback}
+            />
           </div>
         </div>
       </div>

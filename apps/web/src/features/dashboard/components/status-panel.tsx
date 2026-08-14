@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { SOCIAL_LINKS } from "@/data";
 import { DISCORD_CARD, getStatusSteps, TEAM } from "../team-data";
-import type { Person, StatusStep, StepTone, TeamStatus } from "../team-data";
+import type { Person, ReviewFeedbackInput, StatusStep, StepTone, TeamStatus } from "../team-data";
 
 /**
  * ── Size ramps, both anchors measured ──────────────────────────────────────────────────────
@@ -230,6 +230,7 @@ export default function StatusPanel({
   heading = true,
   card = true,
   members,
+  reviewFeedback,
 }: {
   status: TeamStatus;
   /** The qualified dashboard also carries the Discord join card. */
@@ -237,6 +238,7 @@ export default function StatusPanel({
   members: Person[];
   card?: boolean;
   heading?: boolean;
+  reviewFeedback?: ReviewFeedbackInput | null;
 }) {
   return (
     /* `708:3506` stacks the sidebar's two cards with a 24 gap. */
@@ -252,7 +254,7 @@ export default function StatusPanel({
           </div>
 
           {/* the ladder tops out at 7, which is the last delay auth-motion.css defines */}
-          {getStatusSteps(members)[status].map((step, i) => (
+          {getStatusSteps(members, reviewFeedback)[status].map((step, i) => (
             <Step key={step.title} step={step} rise={Math.min(i + 3, 7)} />
           ))}
         </div>

@@ -88,6 +88,7 @@ export interface Person {
   foodAllergies: string;
   heading: string;
   icon: { off: string; on: string };
+  isAdvisor?: boolean;
   lastNameEn: string;
   lastNameTh: string;
   lineId: string;
@@ -173,6 +174,7 @@ export function getBaseMembers(): Person[] {
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 1",
       icon: USER_ICON,
+      isAdvisor: false,
       tab: "ผู้เข้าแข่งขันคนที่ 1",
       ...EMPTY_SHARED,
     },
@@ -181,6 +183,7 @@ export function getBaseMembers(): Person[] {
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 2",
       icon: USER_ICON,
+      isAdvisor: false,
       tab: "ผู้เข้าแข่งขันคนที่ 2",
       ...EMPTY_SHARED,
     },
@@ -189,14 +192,15 @@ export function getBaseMembers(): Person[] {
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 3",
       icon: USER_ICON,
+      isAdvisor: false,
       tab: "ผู้เข้าแข่งขันคนที่ 3",
       ...EMPTY_SHARED,
     },
     {
-      dateOfBirth: "-",
       documents: ADVISOR_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
       heading: "1. ข้อมูลอาจารย์",
       icon: MORTARBOARD_ICON,
+      isAdvisor: true,
       tab: "อาจารย์",
       ...EMPTY_SHARED,
     },
@@ -217,6 +221,7 @@ export interface StatusStep {
 export const STATUS_VARIANTS = [
   "reviewing",
   "issue",
+  "rejected",
   "qualified",
   "selection-pending",
   "selection-failed",
@@ -235,21 +240,71 @@ const REGISTERED: StatusStep = {
 
 const DOCS_OK: StatusStep = { label: "ตรวจสอบสำเร็จ", title: "ตรวจสอบเอกสาร", tone: "ok" };
 
-function person(title: string, label: string, tone: StepTone) {
-  return { label, title, tone };
+export interface ReviewFeedbackInput {
+  advisor?: string;
+  participant1?: string;
+  participant2?: string;
+  participant3?: string;
+  status?: string;
 }
 
-export function getStatusSteps(members: Person[]): Record<TeamStatus, StatusStep[]> {
+function getFeedbackStatusTone(statusStr: string | undefined): StepTone {
+  if (statusStr === "APPROVED") {
+    return "ok";
+  }
+  if (statusStr === "CHANGES_REQUESTED") {
+    return "alert";
+  }
+  if (statusStr === "REJECTED" || statusStr === "FAILED") {
+    return "failed";
+  }
+  return "pending";
+}
+
+function getFeedbackStatusLabel(statusStr: string | undefined): string {
+  if (statusStr === "APPROVED") {
+    return "ตรวจสอบสำเร็จ";
+  }
+  if (statusStr === "CHANGES_REQUESTED") {
+    return "เอกสารมีปัญหา";
+  }
+  if (statusStr === "REJECTED" || statusStr === "FAILED") {
+    return "ไม่ผ่านการพิจารณา";
+  }
+  return "กำลังตรวจสอบ";
+}
+
+export function getStatusSteps(
+  members: Person[],
+  reviewFeedback?: ReviewFeedbackInput | null,
+): Record<TeamStatus, StatusStep[]> {
   const participantCount = members.length - 1;
+
+  const rows = members.map((m, idx) => {
+    let rawStatus: string | undefined;
+    if (idx === 0) {
+      rawStatus = reviewFeedback?.participant1;
+    } else if (idx === 1) {
+      rawStatus = reviewFeedback?.participant2;
+    } else if (idx === 2 && participantCount >= 3) {
+      rawStatus = reviewFeedback?.participant3;
+    } else if (m.isAdvisor || idx === members.length - 1) {
+      rawStatus = reviewFeedback?.advisor;
+    }
+
+    return {
+      label: getFeedbackStatusLabel(rawStatus),
+      title: m.tab,
+      tone: getFeedbackStatusTone(rawStatus),
+    };
+  });
+
   return {
     issue: [
       REGISTERED,
       {
         contact: true,
-        rows: [
-          ...members.slice(0, participantCount).map((m) => person(m.tab, "ตรวจสอบสำเร็จ", "ok")),
-          person("อาจารย์", "เอกสารมีปัญหา", "alert"),
-        ],
+        rows,
         title: "ตรวจสอบเอกสาร",
         tone: "alert",
       },
@@ -259,10 +314,25 @@ export function getStatusSteps(members: Person[]): Record<TeamStatus, StatusStep
       DOCS_OK,
       { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
     ],
+    rejected: [
+      REGISTERED,
+      {
+        compact: true,
+        label: "ไม่ผ่านการพิจารณา",
+        title: "ตรวจสอบเอกสาร",
+        tone: "failed",
+      },
+      {
+        compact: true,
+        label: "ไม่มีสิทธิ์เข้าแข่งขัน",
+        title: "การเข้าแข่งขันรอบคัดเลือก",
+        tone: "failed",
+      },
+    ],
     reviewing: [
       REGISTERED,
       {
-        rows: members.map((m) => person(m.tab, "กำลังตรวจสอบ", "pending")),
+        rows,
         title: "ตรวจสอบเอกสาร",
         tone: "pending",
       },

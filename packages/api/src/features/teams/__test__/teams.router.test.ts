@@ -41,6 +41,7 @@ const USER_ID = "user-1";
 
 const expectedAwards = [
   "NO_ACHIEVEMENT",
+  "REGISTRATION_COMPLETED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",

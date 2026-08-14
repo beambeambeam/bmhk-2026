@@ -141,6 +141,13 @@
       "when": 1786531918196,
       "tag": "0019_third_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786716140162,
+      "tag": "0020_amused_zaladane",
+      "breakpoints": true
     }
   ]
 }

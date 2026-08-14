@@ -11,7 +11,7 @@ export const HERO_LINES = [
 
 /** Gradient highlight cards in the calendar section. */
 export const TIMELINE_HIGHLIGHTS = [
-  { date: "17 ส.ค. - 20 ก.ย.", label: "เปิดรับสมัคร", tone: "red" as const },
+  { date: "19 ส.ค. - 20 ก.ย.", label: "เปิดรับสมัคร", tone: "red" as const },
   { date: "23 ก.ย.", label: "ประกาศรายชื่อทีมที่มีสิทธิ์เข้าแข่งขัน", tone: "yellow" as const },
 ];
 

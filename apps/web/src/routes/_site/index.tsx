@@ -48,7 +48,7 @@ const EVENT_JSON_LD = {
     price: "0",
     priceCurrency: "THB",
     url: "https://bangmodhackathon.com/signin",
-    validFrom: "2026-08-17T00:00+07:00",
+    validFrom: "2026-08-19T00:00+07:00",
     validThrough: "2026-09-20T23:59+07:00",
   },
   organizer: {
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/_site/")({
       { title: "BangMod Hackathon 2026 | แข่งขันเขียนโปรแกรม C/C++ ม.ปลาย–ปวช." },
       {
         content:
-          "การแข่งขันเขียนโปรแกรม C/C++ ประเภททีม ระดับมัธยมศึกษาตอนปลายและ ปวช. ชิงเงินรางวัลรวมกว่า 60,000 บาท จัดโดยภาควิชาวิศวกรรมคอมพิวเตอร์ มจธ. รับสมัคร 17 ส.ค.–20 ก.ย. 2569",
+          "การแข่งขันเขียนโปรแกรม C/C++ ประเภททีม ระดับมัธยมศึกษาตอนปลายและ ปวช. ชิงเงินรางวัลรวมกว่า 60,000 บาท จัดโดยภาควิชาวิศวกรรมคอมพิวเตอร์ มจธ. รับสมัคร 19 ส.ค.–20 ก.ย. 2569",
         name: "description",
       },
       { content: "website", property: "og:type" },

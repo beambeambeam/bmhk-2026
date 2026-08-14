@@ -109,7 +109,7 @@ describe(useFeatureFlags, () => {
 
   it("refreshes when a scheduled feature boundary passes", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date("2026-08-16T16:59:58.000Z"));
+    vi.setSystemTime(new Date("2026-08-18T16:59:58.000Z"));
     featureFlagsQueryOptions.queryFn
       .mockResolvedValueOnce(unavailableFeatureFlags)
       .mockResolvedValueOnce(availableRegistration);

@@ -33,7 +33,7 @@ describe("feature flags", () => {
   });
 
   it("includes the start and excludes the end of registration", async () => {
-    const atStart = createRouter("2026-08-16T17:00:00.000Z");
+    const atStart = createRouter("2026-08-18T17:00:00.000Z");
     const atEnd = createRouter("2026-09-20T17:00:00.000Z");
 
     await expect(getAll(atStart)).resolves.toMatchObject({ registration: true });

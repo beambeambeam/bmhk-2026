@@ -7,11 +7,11 @@ export const HERO_LINES = [
  * `1235:77` / `1297:2051` — a single line Figma now sets 20px BELOW the hero CTA (not
  * between the paragraph and the pill), in Gray 02 rather than the paragraph's ink.
  */
-export const HERO_FREE_NOTE = "เปิดรับสมัคร 17 ส.ค. – 20 ก.ย. 2569 · ไม่มีค่าใช้จ่ายในการสมัคร";
+export const HERO_FREE_NOTE = "เปิดรับสมัคร 19 ส.ค. – 20 ก.ย. 2569 · ไม่มีค่าใช้จ่ายในการสมัคร";
 
 /** Gradient highlight cards in the calendar section. */
 export const TIMELINE_HIGHLIGHTS = [
-  { date: "17 ส.ค. - 20 ก.ย.", label: "เปิดรับสมัคร", tone: "red" as const },
+  { date: "19 ส.ค. - 20 ก.ย.", label: "เปิดรับสมัคร", tone: "red" as const },
   { date: "23 ก.ย.", label: "ประกาศรายชื่อทีมที่มีสิทธิ์เข้าแข่งขัน", tone: "yellow" as const },
 ];
 

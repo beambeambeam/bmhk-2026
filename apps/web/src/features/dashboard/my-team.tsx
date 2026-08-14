@@ -122,8 +122,13 @@ function getApprovedStatus(
   award: string | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
-  const isQualifyingResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
+  const isEligibleTeamsAnnounced = featureFlags?.eligibleTeamsAnnouncement === true;
   const isQualifyingRoundStarted = featureFlags?.qualifyingRound === true;
+  const isQualifyingResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
+
+  if (!isEligibleTeamsAnnounced) {
+    return "selection-pending";
+  }
 
   if (isQualifyingResultsAnnounced) {
     if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
@@ -134,24 +139,18 @@ function getApprovedStatus(
     }
   }
 
-  if (isQualifyingRoundStarted) {
-    if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
-      return "semifinal-pending";
-    }
+  if (
+    isQualifyingRoundStarted &&
+    (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award)))
+  ) {
+    return "semifinal-pending";
   }
 
-  if (award !== undefined && (award === "ROUND_1_COMPLETED" || SEMIFINAL_AWARDS.has(award))) {
+  if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
     return "qualified";
   }
 
-  if (
-    featureFlags?.eligibleTeamsAnnouncement === true &&
-    (award === undefined || award === "NO_ACHIEVEMENT")
-  ) {
-    return "selection-failed";
-  }
-
-  return "selection-pending";
+  return "selection-failed";
 }
 
 function getMappedStatus(
@@ -432,6 +431,16 @@ function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMem
   };
 }
 
+function resolveParticipantCount(declaredCount?: number, participantsLength?: number): number {
+  if (declaredCount === 2 || declaredCount === 3) {
+    return declaredCount;
+  }
+  if (participantsLength !== undefined && participantsLength > 0 && participantsLength <= 2) {
+    return participantsLength;
+  }
+  return 3;
+}
+
 function useMappedMembers(
   participants: ReturnType<typeof useMyTeamData>["participants"],
   advisor: ReturnType<typeof useMyTeamData>["advisor"],
@@ -440,12 +449,7 @@ function useMappedMembers(
 ) {
   const declaredCount =
     statusData?.memberCount ?? (team as { memberCount?: number } | undefined | null)?.memberCount;
-  const participantCount =
-    declaredCount === 2 || declaredCount === 3
-      ? declaredCount
-      : participants?.length && participants.length > 0 && participants.length <= 2
-        ? participants.length
-        : 3;
+  const participantCount = resolveParticipantCount(declaredCount, participants?.length);
 
   const rawMembers = getBaseMembers(participantCount);
   return rawMembers.map((mockMember, i) => {
@@ -495,16 +499,13 @@ function useAutoOpenModal(
   const [modal, setModal] = useState<string | null>(initialModal);
   const [hasAutoOpenedModal, setHasAutoOpenedModal] = useState(false);
 
-  useEffect(() => {
-    if (hasAutoOpenedModal) {
-      return;
-    }
+  if (!hasAutoOpenedModal) {
     const autoModal = getAutoOpenedModal(initialModal, status, featureFlags);
     if (autoModal !== null) {
       setModal(autoModal);
       setHasAutoOpenedModal(true);
     }
-  }, [hasAutoOpenedModal, initialModal, status, featureFlags]);
+  }
 
   return { modal, setModal };
 }

@@ -86,6 +86,7 @@ type Pane = (typeof PANES)[number]["key"];
 
 interface StatusData {
   submissionState: string;
+  submittedAt?: Date | string | null;
 }
 interface ReviewFeedback {
   advisor?: string;
@@ -93,13 +94,16 @@ interface ReviewFeedback {
   participant2?: string;
   participant3?: string;
   status: string;
+  statusUpdatedAt?: Date | null;
 }
 interface TeamData {
   award?: string;
+  createdAt?: Date | string | null;
   id: string;
   name: string;
   school: string;
   image?: { url: string } | string | null;
+  updatedAt?: Date | string | null;
 }
 
 const SEMIFINAL_AWARDS = new Set([
@@ -770,6 +774,8 @@ export default function MyTeam() {
                   card={false}
                   members={MEMBERS}
                   reviewFeedback={reviewFeedback}
+                  team={team}
+                  submittedAt={statusData?.submittedAt}
                 />
               )}
             </div>
@@ -783,6 +789,8 @@ export default function MyTeam() {
               showDiscord={showDiscord}
               members={MEMBERS}
               reviewFeedback={reviewFeedback}
+              team={team}
+              submittedAt={statusData?.submittedAt}
             />
           </div>
         </div>

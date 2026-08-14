@@ -1,6 +1,8 @@
 import { useId } from "react";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 import { SOCIAL_LINKS } from "@/data";
-import { DISCORD_CARD, getStatusSteps, TEAM } from "../team-data";
+import { DISCORD_CARD, getStatusSteps } from "../team-data";
 import type { Person, ReviewFeedbackInput, StatusStep, StepTone, TeamStatus } from "../team-data";
 
 /**
@@ -24,6 +26,55 @@ const ICON = {
   dot16: "/assets/figma/f498dfdf3c14fe0850c950e35fdc12de525457bf.svg",
   dot20: "/assets/figma/f8d4363b76896ccf0aac59b3c9c49ccf09ea3174.svg",
 };
+
+function formatStatusDate(date: Date | string | null | undefined): string {
+  if (date === null || date === undefined) {
+    return "-";
+  }
+  const dateObj = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(dateObj.getTime())) {
+    return "-";
+  }
+  const dayMonthYear = format(dateObj, "dd MMM", { locale: th });
+  const yearBe = (dateObj.getFullYear() + 543).toString().slice(-2);
+  const time = format(dateObj, "HH:mm");
+  return `${dayMonthYear} ${yearBe} ${time} น.`;
+}
+
+function getLatestDate(
+  submittedAt?: Date | string | null,
+  reviewUpdatedAt?: Date | string | null,
+  teamUpdatedAt?: Date | string | null,
+): string {
+  const dates = [submittedAt, reviewUpdatedAt, teamUpdatedAt]
+    .filter((d): d is Date | string => d !== null && d !== undefined)
+    .map((d) => (d instanceof Date ? d : new Date(d)))
+    .filter((d) => !Number.isNaN(d.getTime()));
+
+  if (dates.length === 0) {
+    return "-";
+  }
+
+  const latest = new Date(Math.max(...dates.map((d) => d.getTime())));
+  return formatStatusDate(latest);
+}
+
+function getStepDate(
+  stepIndex: number,
+  totalSteps: number,
+  submittedAt?: Date | string | null,
+  reviewUpdatedAt?: Date | string | null,
+  teamUpdatedAt?: Date | string | null,
+  teamCreatedAt?: Date | string | null,
+): string {
+  if (stepIndex === 0) {
+    return formatStatusDate(submittedAt ?? teamCreatedAt);
+  }
+  if (stepIndex === 1 && totalSteps > 2) {
+    return formatStatusDate(reviewUpdatedAt ?? teamUpdatedAt);
+  }
+  return formatStatusDate(teamUpdatedAt ?? reviewUpdatedAt);
+}
 
 /**
  * Badge skin per tone. Figma tints the pill with the tone colour at 10% and rings it at 20%,
@@ -156,7 +207,7 @@ function Row({ title, label, tone }: { title: string; label: string; tone: StepT
   );
 }
 
-function Step({ step, rise }: { step: StatusStep; rise: number }) {
+function Step({ step, rise, updatedAt }: { step: StatusStep; rise: number; updatedAt: string }) {
   return (
     <div
       className="auth-rise auth-rise-sm flex w-full flex-col gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]"
@@ -169,7 +220,7 @@ function Step({ step, rise }: { step: StatusStep; rise: number }) {
           <div className="flex w-full items-center gap-[8px]">
             <div className="flex min-w-0 flex-1 flex-col justify-center">
               <p className="fl-14 leading-normal font-medium">{step.title}</p>
-              <p className="fl-12 leading-normal text-gray-2">{TEAM.updatedAt}</p>
+              <p className="fl-12 leading-normal text-gray-2">{updatedAt}</p>
             </div>
             {Boolean(step.label) && (
               <p className={`shrink-0 fl-14 leading-normal ${LABEL_COLOR[step.tone]}`}>
@@ -231,6 +282,8 @@ export default function StatusPanel({
   card = true,
   members,
   reviewFeedback,
+  team,
+  submittedAt,
 }: {
   status: TeamStatus;
   /** The qualified dashboard also carries the Discord join card. */
@@ -239,7 +292,16 @@ export default function StatusPanel({
   card?: boolean;
   heading?: boolean;
   reviewFeedback?: ReviewFeedbackInput | null;
+  team?: { createdAt?: Date | string | null; updatedAt?: Date | string | null } | null;
+  submittedAt?: Date | string | null;
 }) {
+  const steps = getStatusSteps(members, reviewFeedback)[status];
+  const overallLatestDate = getLatestDate(
+    submittedAt,
+    reviewFeedback?.statusUpdatedAt,
+    team?.updatedAt,
+  );
+
   return (
     /* `708:3506` stacks the sidebar's two cards with a 24 gap. */
     <div className="flex flex-col gap-6">
@@ -249,13 +311,25 @@ export default function StatusPanel({
           <div className="flex w-full flex-col items-start">
             {heading && <p className="w-full text-[20px] leading-[1.4] font-medium">สถานะ</p>}
             <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>
-              อัปเดตล่าสุดเมื่อ {TEAM.updatedAt}
+              อัปเดตล่าสุดเมื่อ {overallLatestDate}
             </p>
           </div>
 
           {/* the ladder tops out at 7, which is the last delay auth-motion.css defines */}
-          {getStatusSteps(members, reviewFeedback)[status].map((step, i) => (
-            <Step key={step.title} step={step} rise={Math.min(i + 3, 7)} />
+          {steps.map((step, i) => (
+            <Step
+              key={step.title}
+              step={step}
+              rise={Math.min(i + 3, 7)}
+              updatedAt={getStepDate(
+                i,
+                steps.length,
+                submittedAt,
+                reviewFeedback?.statusUpdatedAt,
+                team?.updatedAt,
+                team?.createdAt,
+              )}
+            />
           ))}
         </div>
       </div>

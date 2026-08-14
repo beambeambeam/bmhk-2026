@@ -2,7 +2,6 @@ export const TEAM = {
   code: "BH001/26",
   name: "ทีม A",
   school: "บางมดวิทยาคม",
-  updatedAt: "26 ก.ค. 69 15:47 น.",
 };
 
 const USER_ICON = {
@@ -234,6 +233,7 @@ export interface ReviewFeedbackInput {
   participant2?: string;
   participant3?: string;
   status?: string;
+  statusUpdatedAt?: Date | null;
 }
 
 function getFeedbackStatusTone(statusStr: string | undefined): StepTone {

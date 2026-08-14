@@ -15,7 +15,9 @@ export const teamRegistrationSubmissionStateSchema = z.enum(teamRegistrationSubm
 
 const memberCountSchema = z.number().int().nonnegative();
 
-export const teamRegistrationStatusInputSchema = z.object({ teamId: z.uuid() }).strict();
+export const currentTeamRegistrationStatusInputSchema = z.object({}).strict();
+
+export const teamRegistrationStatusTeamInputSchema = z.object({ teamId: z.uuid() }).strict();
 
 export const teamRegistrationStatusSchema = z
   .object({

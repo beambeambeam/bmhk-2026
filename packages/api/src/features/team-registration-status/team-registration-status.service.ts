@@ -14,7 +14,8 @@ import {
 } from "./team-registration-status.errors";
 
 export interface TeamRegistrationStatusService {
-  get: (access: TeamAccessContext, teamId: string) => Promise<TeamRegistrationStatus>;
+  getCurrent: (access: TeamAccessContext) => Promise<TeamRegistrationStatus>;
+  getByTeamId: (access: TeamAccessContext, teamId: string) => Promise<TeamRegistrationStatus>;
   submit: (access: TeamAccessContext, teamId: string) => Promise<TeamRegistrationStatus>;
 }
 
@@ -123,8 +124,16 @@ export function createTeamRegistrationStatusService(
   now: () => Date = () => new Date(),
 ): TeamRegistrationStatusService {
   return {
-    get: async (access, teamId) => {
+    getByTeamId: async (access, teamId) => {
       const facts = await repository.findByTeamId(access, teamId);
+      if (!facts) {
+        throw createTeamNotFoundError();
+      }
+
+      return calculateTeamRegistrationStatus(facts);
+    },
+    getCurrent: async (access) => {
+      const facts = await repository.findByOwnerId(access.actorId);
       if (!facts) {
         throw createTeamNotFoundError();
       }

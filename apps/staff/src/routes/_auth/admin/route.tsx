@@ -1,7 +1,7 @@
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_auth/_admin")({
+export const Route = createFileRoute("/_auth/admin")({
   beforeLoad: async () => {
     const session = await authClient.getSession();
 

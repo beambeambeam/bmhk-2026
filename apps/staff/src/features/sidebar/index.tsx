@@ -14,7 +14,7 @@ import {
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { LayoutDashboard, LogOut, UserRound, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
@@ -26,7 +26,7 @@ interface StaffSidebarProps {
 
 interface StaffNavItem {
   readonly label: string;
-  readonly to: "/dashboard" | "/users";
+  readonly to: "/admin/users" | "/dashboard";
   readonly icon: LucideIcon;
 }
 
@@ -34,14 +34,59 @@ const baseNavItems: readonly StaffNavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
 ];
 
+const adminNavItems: readonly StaffNavItem[] = [
+  { icon: UsersRound, label: "Users", to: "/admin/users" },
+];
+
+interface StaffNavGroup {
+  readonly items: readonly StaffNavItem[];
+  readonly label: string;
+}
+
+interface StaffNavGroupProps {
+  readonly group: StaffNavGroup;
+  readonly pathname: string;
+}
+
+function StaffNavGroup({ group, pathname }: StaffNavGroupProps) {
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {group.items.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <SidebarMenuItem key={item.to}>
+                <SidebarMenuButton
+                  render={<Link to={item.to} />}
+                  isActive={pathname === item.to}
+                  tooltip={item.label}
+                >
+                  <Icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
+
 function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = role === "admin";
-  const navItems: readonly StaffNavItem[] = isAdmin
-    ? [...baseNavItems, { icon: ShieldCheck, label: "Admin", to: "/users" }]
-    : baseNavItems;
+  const navGroups: readonly StaffNavGroup[] = isAdmin
+    ? [
+        { items: baseNavItems, label: "Navigation" },
+        { items: adminNavItems, label: "Admin" },
+      ]
+    : [{ items: baseNavItems, label: "Navigation" }];
 
   async function handleSignOut() {
     await authClient.signOut({
@@ -75,29 +120,9 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      render={<Link to={item.to} />}
-                      isActive={location.pathname === item.to}
-                      tooltip={item.label}
-                    >
-                      <Icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navGroups.map((group) => (
+          <StaffNavGroup key={group.label} group={group} pathname={location.pathname} />
+        ))}
       </SidebarContent>
 
       <SidebarFooter>

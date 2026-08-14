@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/tooltip";
 import type { orpc } from "@bmhk-2026/client/orpc";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -52,9 +53,9 @@ function RootDocument() {
       </head>
       <body className="font-thai">
         <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange enableSystem>
-          <div className="grid h-svh grid-rows-[auto_1fr]">
+          <TooltipProvider>
             <Outlet />
-          </div>
+          </TooltipProvider>
           <Toaster richColors />
           <TanStackRouterDevtools position="bottom-left" />
           <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />

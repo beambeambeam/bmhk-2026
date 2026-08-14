@@ -1,31 +1,42 @@
-import type { TeamAccessProcedure, TeamOwnerProcedure } from "../../core/procedure";
+import type { RegistrationProcedure, TeamOwnerProcedure } from "../../core/procedure";
 import type { TeamRegistrationStatusService } from "./team-registration-status.service";
 import {
-  teamRegistrationStatusInputSchema,
+  currentTeamRegistrationStatusInputSchema,
   teamRegistrationStatusSchema,
+  teamRegistrationStatusTeamInputSchema,
 } from "./team-registration-status.schema";
 import { teamRegistrationSubmittedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 
 export function createTeamRegistrationStatusRouter(
-  teamAccessProcedure: TeamAccessProcedure,
+  registrationProcedure: RegistrationProcedure,
   teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamRegistrationStatusService,
 ) {
   return {
-    get: teamAccessProcedure
+    get: teamOwnerProcedure
       .route({ method: "GET", tags: ["Team Registration Status"] })
-      .input(teamRegistrationStatusInputSchema)
+      .input(currentTeamRegistrationStatusInputSchema)
+      .output(teamRegistrationStatusSchema)
+      .handler(async ({ context }) => {
+        const status = await service.getCurrent(context.teamAccess);
+        context.log.set({ teamRegistrationStatus: { teamId: status.teamId } });
+
+        return status;
+      }),
+    getByTeamId: registrationProcedure
+      .route({ method: "GET", tags: ["Team Registration Status"] })
+      .input(teamRegistrationStatusTeamInputSchema)
       .output(teamRegistrationStatusSchema)
       .handler(async ({ context, input }) => {
-        const status = await service.get(context.teamAccess, input.teamId);
+        const status = await service.getByTeamId(context.teamAccess, input.teamId);
         context.log.set({ teamRegistrationStatus: { teamId: status.teamId } });
 
         return status;
       }),
     submit: teamOwnerProcedure
       .route({ method: "POST", tags: ["Team Registration Status"] })
-      .input(teamRegistrationStatusInputSchema)
+      .input(teamRegistrationStatusTeamInputSchema)
       .output(teamRegistrationStatusSchema)
       .handler(async ({ context, input }) => {
         const status = await executeAudited({

@@ -13,15 +13,15 @@ consent row; it is not stored as a separate snapshot.
 
 ## Decision
 
-teamRegistrationStatus.get accepts an empty object:
+For a Team Owner, teamRegistrationStatus.get accepts an empty object:
 
 ```ts
 {
 }
 ```
 
-The authenticated session is the only source of user identity. The frontend does not
-send userId or teamId.
+The authenticated session is the only source of user identity. The Team Owner frontend
+does not send userId or teamId.
 
 The API resolves the team owned by the current user. If no team exists, the endpoint
 returns the existing structured error:
@@ -33,6 +33,17 @@ status: 404
 
 This lets frontend code distinguish first-time onboarding from an ordinary successful
 status response.
+
+Registration Operators inspect a selected Team through the separate
+teamRegistrationStatus.getByTeamId procedure:
+
+```ts
+{
+  teamId: string;
+}
+```
+
+This explicit selector is unavailable to Team Owners.
 
 When a team exists, the response always contains non-null teamId and memberCount:
 
@@ -206,11 +217,12 @@ is introduced.
 
 ## Considered alternatives
 
-### Accept teamId from the frontend
+### Accept teamId from the Team Owner frontend
 
-Rejected. The application currently permits one team per user, so a client-provided
-team ID adds input and ownership branches without providing product value. Server-side
-session ownership is the clearer boundary.
+Rejected. The application currently permits one Team per Team Owner, so a
+client-provided Team ID adds input and ownership branches without providing product
+value. Server-side session ownership is the clearer boundary. Registration Operators
+use the separate explicit-Team procedure because they work across Teams.
 
 ### Return an initial all-NOT_STARTED payload when no team exists
 
@@ -242,7 +254,7 @@ Positive:
 Trade-offs:
 
 - Frontend must handle TEAM_NOT_FOUND as an expected onboarding response.
-- The endpoint no longer supports explicit team IDs.
+- The Team Owner endpoint does not support explicit Team IDs.
 - Status does not provide historical withdrawal or audit information.
 
 ## Related implementation

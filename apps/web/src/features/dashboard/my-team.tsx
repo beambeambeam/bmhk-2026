@@ -118,9 +118,39 @@ interface FeatureFlagsInput {
   registration?: boolean;
 }
 
+function getApprovedStatus(
+  award: string | undefined,
+  featureFlags?: FeatureFlagsInput | null,
+): TeamStatus {
+  if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
+    if (featureFlags?.finalRound === true) {
+      return "semifinal-qualified";
+    }
+    return "semifinal-pending";
+  }
+
+  if (award === "ROUND_1_COMPLETED") {
+    const isFinalUnlocked =
+      featureFlags?.finalRound === true || featureFlags?.qualifyingResultsAnnouncement === true;
+    if (isFinalUnlocked) {
+      return "semifinal-pending";
+    }
+    return "qualified";
+  }
+
+  if (
+    featureFlags?.eligibleTeamsAnnouncement === true &&
+    (award === undefined || award === "NO_ACHIEVEMENT")
+  ) {
+    return "selection-failed";
+  }
+
+  return "selection-pending";
+}
+
 function getMappedStatus(
   statusParam: string | null,
-  statusData: StatusData | null | undefined,
+  _statusData: StatusData | null | undefined,
   reviewFeedback: ReviewFeedback | null | undefined,
   team: TeamData | null | undefined,
   featureFlags?: FeatureFlagsInput | null,
@@ -140,27 +170,7 @@ function getMappedStatus(
   }
 
   if (feedbackStatus === "APPROVED") {
-    const award = team?.award;
-    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
-      return "semifinal-qualified";
-    }
-    console.log("AWARD", award);
-    console.log("Flag:", featureFlags?.finalRound);
-    if (award === "ROUND_1_COMPLETED") {
-      if (featureFlags?.finalRound === true) {
-        return "semifinal-pending";
-      }
-      return "qualified";
-    }
-
-    if (
-      featureFlags?.eligibleTeamsAnnouncement === true &&
-      (award === undefined || award === "NO_ACHIEVEMENT")
-    ) {
-      return "selection-failed";
-    }
-
-    return "selection-pending";
+    return getApprovedStatus(team?.award, featureFlags);
   }
 
   return "reviewing";
@@ -273,14 +283,13 @@ function MyTeamModals({
 function useMyTeamData() {
   const search = useSearch({ from: "/_auth/my-team" }) as Record<string, unknown>;
 
-  /*const { data: teamsData, isPending: isTeamsPending } = useQuery(
-    orpc.teams.get.queryOptions({ input: { id: "4172b4c3-e98e-4c22-bcaf-36891b155098" } }),
+  const { data: statusData, isPending: isStatusPending } = useQuery(
+    orpc.teamRegistrationStatus.get.queryOptions({ input: {} }),
   );
-  const team = teamsData?.json?.[0];
-  const teamId = team?.id;
+  const teamId = statusData?.teamId;
 
-  const { data: statusData, isPending: isStatusPending } = useQuery({
-    ...orpc.teamRegistrationStatus.get.queryOptions({ input: { teamId: teamId ?? "" } }),
+  const { data: team, isPending: isTeamsPending } = useQuery({
+    ...orpc.teams.get.queryOptions({ input: { id: teamId ?? "" } }),
     enabled: Boolean(teamId),
   });
 
@@ -297,36 +306,6 @@ function useMyTeamData() {
   const { data: advisor, isPending: isAdvisorPending } = useQuery({
     ...orpc.teamAdvisors.get.queryOptions({ input: { teamId: teamId ?? "" } }),
     enabled: Boolean(teamId),
-  });*/
-  const { data: teamsData, isPending: isTeamsPending } = useQuery(
-    orpc.teams.get.queryOptions({ input: { id: "4172b4c3-e98e-4c22-bcaf-36891b155098" } }),
-  );
-  const team = teamsData;
-  const teamId = team?.id;
-
-  const { data: statusData, isPending: isStatusPending } = useQuery({
-    ...orpc.teamRegistrationStatus.get.queryOptions({
-      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
-    }),
-  });
-
-  const { data: reviewFeedback, isPending: isReviewPending } = useQuery({
-    ...orpc.teamRegistrationReviews.feedback.queryOptions({
-      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
-    }),
-  });
-
-  const { data: participants, isPending: isParticipantsPending } = useQuery({
-    ...orpc.teamParticipants.list.queryOptions({
-      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
-    }),
-  });
-
-  const { data: advisor, isPending: isAdvisorPending } = useQuery({
-    ...orpc.teamAdvisors.get.queryOptions({
-      input: { teamId: "4172b4c3-e98e-4c22-bcaf-36891b155098" },
-    }),
-    enabled: Boolean(teamId),
   });
 
   const { data: featureFlags, isPending: isFeatureFlagsPending } = useQuery({
@@ -334,12 +313,10 @@ function useMyTeamData() {
   });
 
   const isLoading =
-    isTeamsPending ||
+    isStatusPending ||
     isFeatureFlagsPending ||
-    (teamId !== undefined && isStatusPending) ||
-    (teamId !== undefined && isReviewPending) ||
-    (teamId !== undefined && isParticipantsPending) ||
-    (teamId !== undefined && isAdvisorPending);
+    (Boolean(teamId) &&
+      (isTeamsPending || isReviewPending || isParticipantsPending || isAdvisorPending));
 
   return {
     advisor,
@@ -449,14 +426,251 @@ function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMem
 function useMappedMembers(
   participants: ReturnType<typeof useMyTeamData>["participants"],
   advisor: ReturnType<typeof useMyTeamData>["advisor"],
+  statusData?: ReturnType<typeof useMyTeamData>["statusData"],
+  team?: ReturnType<typeof useMyTeamData>["team"],
 ) {
-  const rawMembers = getBaseMembers();
+  const declaredCount =
+    statusData?.memberCount ??
+    (team as { memberCount?: number } | undefined | null)?.memberCount;
+  const participantCount =
+    declaredCount === 2 || declaredCount === 3
+      ? declaredCount
+      : participants?.length && participants.length > 0 && participants.length <= 2
+        ? participants.length
+        : 3;
+
+  const rawMembers = getBaseMembers(participantCount);
   return rawMembers.map((mockMember, i) => {
-    if (i < 3) {
+    if (i < participantCount) {
       return mapParticipant(participants?.[i], mockMember);
     }
     return mapAdvisor(advisor, mockMember);
   });
+}
+
+function getAutoOpenedModal(
+  initialModal: string | null,
+  status: TeamStatus,
+  featureFlags?: FeatureFlagsInput | null,
+): string | null {
+  if (initialModal !== null) {
+    return initialModal;
+  }
+
+  const isAnnouncementWindow =
+    featureFlags?.eligibleTeamsAnnouncement === true &&
+    featureFlags?.qualifyingRound !== true &&
+    featureFlags?.qualifyingResultsAnnouncement !== true &&
+    featureFlags?.finalRound !== true;
+
+  if (isAnnouncementWindow) {
+    if (
+      status === "qualified" ||
+      status === "semifinal-qualified" ||
+      status === "semifinal-pending"
+    ) {
+      return "qualified";
+    }
+    if (status === "selection-failed" || status === "rejected") {
+      return "rejected";
+    }
+  }
+
+  return null;
+}
+
+function useAutoOpenModal(
+  initialModal: string | null,
+  status: TeamStatus,
+  featureFlags?: FeatureFlagsInput | null,
+) {
+  const [modal, setModal] = useState<string | null>(() =>
+    getAutoOpenedModal(initialModal, status, featureFlags),
+  );
+
+  return { modal, setModal };
+}
+
+function useCopiedState() {
+  const [copiedAt, setCopiedAt] = useState(0);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    if (copiedAt) {
+      const timer = window.setTimeout(() => {
+        setCopiedAt(0);
+      }, COPIED_MS);
+      cleanup = () => {
+        window.clearTimeout(timer);
+      };
+    }
+    return cleanup;
+  }, [copiedAt]);
+
+  function copy(text: string) {
+    void navigator.clipboard?.writeText(text);
+    setCopiedAt(Date.now());
+  }
+
+  return { copied: copiedAt !== 0, copy };
+}
+
+function PaneTabs({ pane, setPane }: { pane: Pane; setPane: (p: Pane) => void }) {
+  const paneTabs = useRef<HTMLDivElement>(null);
+
+  return (
+    <div
+      ref={paneTabs}
+      role="tablist"
+      aria-label="มุมมองข้อมูลทีม"
+      data-rise="1"
+      className="auth-rise relative flex w-full gap-1.5 rounded-[16px] bg-white p-1 shadow-[inset_0_0_0_0.5px_#dcdcdc] lg:hidden"
+    >
+      <span
+        aria-hidden
+        className="mm-indicator pointer-events-none absolute top-1 bottom-1 left-1 w-[calc(50%_-_7px)] rounded-[12px] bg-[#f3f3f3]"
+        style={{
+          transform: pane === PANES[0].key ? "translateX(0)" : "translateX(calc(100% + 6px))",
+        }}
+      />
+
+      {PANES.map(({ key, label }) => (
+        <button
+          key={key}
+          type="button"
+          role="tab"
+          id={`pane-tab-${key}`}
+          aria-selected={pane === key}
+          aria-controls={`pane-${key}`}
+          tabIndex={pane === key ? 0 : -1}
+          onClick={() => {
+            setPane(key);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+              return;
+            }
+            event.preventDefault();
+            const next = PANES[(PANES.findIndex((p) => p.key === key) + 1) % PANES.length];
+            setPane(next.key);
+            paneTabs.current?.querySelector<HTMLButtonElement>(`#pane-tab-${next.key}`)?.focus();
+          }}
+          className={`${SWITCH_PILL} ${pane === key ? SWITCH_PILL_ON : SWITCH_PILL_OFF}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TeamHeader({ displayTeam }: { displayTeam: ReturnType<typeof getDisplayTeam> }) {
+  const { copied, copy } = useCopiedState();
+
+  const hasImage =
+    displayTeam.image !== null && displayTeam.image !== undefined && displayTeam.image !== "";
+
+  return (
+    <div
+      className="auth-rise auth-rise-sm flex w-full flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-start"
+      data-rise="1"
+    >
+      {hasImage ? (
+        <img
+          src={displayTeam.image}
+          alt={displayTeam.name}
+          className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb] object-cover"
+        />
+      ) : (
+        <svg aria-hidden className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb]" />
+      )}
+      <div
+        className={`flex min-w-0 flex-1 flex-col items-center ${LOCKUP_STACK_GAP_8_16} sm:items-start`}
+      >
+        <h1 className="fl-24 leading-[1.4] font-medium">{displayTeam.name}</h1>
+        <p className={`flex items-center ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}>
+          <span className="text-gray-2">รหัสทีม</span>
+          <span>{displayTeam.code}</span>
+          <button
+            type="button"
+            onClick={() => {
+              copy(displayTeam.code);
+            }}
+            aria-label={copied ? "คัดลอกรหัสทีมแล้ว" : "คัดลอกรหัสทีม"}
+            data-on={copied}
+            className={`mm-swap mm-press-icon transition-opacity hover:opacity-60 ${COPY_BOX}`}
+          >
+            <img src={COPY} alt="" aria-hidden className={`mm-swap-off ${COPY_BOX}`} />
+            <Tick className={`mm-swap-on text-brand-green ${COPY_BOX}`} />
+          </button>
+        </p>
+        <p
+          className={`flex flex-wrap items-start ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}
+        >
+          <span className="text-gray-2">สถานศึกษา</span>
+          <span>{displayTeam.school}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MemberTabs({
+  members,
+  active,
+  setActive,
+}: {
+  members: ReturnType<typeof useMappedMembers>;
+  active: number;
+  setActive: (idx: number) => void;
+}) {
+  const { bar, tabsRef } = useTabsIndicator(active);
+
+  return (
+    <div
+      ref={tabsRef}
+      role="tablist"
+      aria-label="สมาชิกในทีม"
+      className="auth-rise relative flex w-full flex-nowrap items-center gap-2 overflow-x-auto overflow-y-clip [overscroll-behavior-x:contain]"
+      data-rise="2"
+    >
+      {members.map((member, i) => {
+        const on = i === active;
+        return (
+          <button
+            key={member.tab}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => {
+              setActive(i);
+            }}
+            className={`mm-press flex shrink-0 items-start gap-2 px-[calc(7.896px_+_4.104*var(--fl))] py-2 ${LOCKUP_14_18} leading-normal transition-colors ${
+              on ? "font-semibold" : "rounded-2xl bg-white text-gray-2"
+            }`}
+          >
+            <img
+              src={on ? member.icon.on : member.icon.off}
+              alt=""
+              aria-hidden
+              className="size-[24px] shrink-0"
+            />
+            {member.tab}
+          </button>
+        );
+      })}
+      {bar && (
+        <span
+          aria-hidden
+          className="mm-indicator pointer-events-none absolute top-0 left-0 h-0.5 origin-left bg-brand-red"
+          style={{
+            transform: `translate(${bar.x}px, ${bar.y}px) scaleX(${bar.w / BAR_W})`,
+            width: BAR_W,
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
 export default function MyTeam() {
@@ -471,109 +685,39 @@ export default function MyTeam() {
     team,
   } = useMyTeamData();
 
-  const MEMBERS = useMappedMembers(participants, advisor);
+  const MEMBERS = useMappedMembers(participants, advisor, statusData, team);
 
-  // --- Status Mapping ---
   const statusParam = typeof search.status === "string" ? search.status : null;
   const status = getMappedStatus(statusParam, statusData, reviewFeedback, team, featureFlags);
 
   const [pane, setPane] = useState<Pane>("team");
-  const paneTabs = useRef<HTMLDivElement>(null);
-
   const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
   const initialModal = typeof search.modal === "string" ? search.modal : null;
-  const [modal, setModal] = useState<string | null>(initialModal);
-
-  let showModal: string | null = null;
-  if (initialModal !== null) {
-    showModal = modal;
-  } else if (featureFlags?.eligibleTeamsAnnouncement === true) {
-    showModal = modal;
-  }
-
-  const [copiedAt, setCopiedAt] = useState(0);
-  const copied = copiedAt !== 0;
-
-  const person = MEMBERS[active];
-
-  const { bar, tabsRef } = useTabsIndicator(active);
-
-  // the tick is a confirmation, not a mode — it hands the copy glyph back on its own
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    if (copiedAt) {
-      const timer = window.setTimeout(() => {
-        setCopiedAt(0);
-      }, COPIED_MS);
-      cleanup = () => {
-        window.clearTimeout(timer);
-      };
-    }
-    return cleanup;
-  }, [copiedAt]);
+  const { modal, setModal } = useAutoOpenModal(initialModal, status, featureFlags);
 
   if (isLoading) {
     return <Loader />;
   }
 
   const displayTeam = getDisplayTeam(team);
+  const showDiscord =
+    status === "qualified" ||
+    status === "semifinal-pending" ||
+    status === "semifinal-qualified" ||
+    status === "semifinal-failed";
 
   return (
     <div className="relative min-h-dvh overflow-clip bg-[#fefdfc]" data-auth-entrance>
       <TeamDecor />
       <ScrollEdgeEffect className="absolute inset-x-0 top-0 z-10 h-[calc(106px_+_54*var(--fl))]" />
       <div
-        data-recede={showModal === "qualified" || showModal === "rejected"}
+        data-recede={modal === "qualified" || modal === "rejected"}
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
         <AuthTopBar className="auth-rise w-full" data-rise="0" />
         <div className="flex w-full flex-col items-start gap-6 lg:flex-row">
           <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-8 rounded-[20px] bg-white p-4 shadow-soft">
-            <div
-              ref={paneTabs}
-              role="tablist"
-              aria-label="มุมมองข้อมูลทีม"
-              data-rise="1"
-              className="auth-rise relative flex w-full gap-1.5 rounded-[16px] bg-white p-1 shadow-[inset_0_0_0_0.5px_#dcdcdc] lg:hidden"
-            >
-              <span
-                aria-hidden
-                className="mm-indicator pointer-events-none absolute top-1 bottom-1 left-1 w-[calc(50%_-_7px)] rounded-[12px] bg-[#f3f3f3]"
-                style={{
-                  transform:
-                    pane === PANES[0].key ? "translateX(0)" : "translateX(calc(100% + 6px))",
-                }}
-              />
-
-              {PANES.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  id={`pane-tab-${key}`}
-                  aria-selected={pane === key}
-                  aria-controls={`pane-${key}`}
-                  tabIndex={pane === key ? 0 : -1}
-                  onClick={() => {
-                    setPane(key);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-                      return;
-                    }
-                    event.preventDefault();
-                    const next = PANES[(PANES.findIndex((p) => p.key === key) + 1) % PANES.length];
-                    setPane(next.key);
-                    paneTabs.current
-                      ?.querySelector<HTMLButtonElement>(`#pane-tab-${next.key}`)
-                      ?.focus();
-                  }}
-                  className={`${SWITCH_PILL} ${pane === key ? SWITCH_PILL_ON : SWITCH_PILL_OFF}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <PaneTabs pane={pane} setPane={setPane} />
             <div
               role="tabpanel"
               id="pane-team"
@@ -582,100 +726,12 @@ export default function MyTeam() {
                 pane === "team" ? "flex" : "hidden lg:flex"
               }`}
             >
-              <div
-                className="auth-rise auth-rise-sm flex w-full flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-start"
-                data-rise="1"
-              >
-                {displayTeam.image !== null &&
-                displayTeam.image !== undefined &&
-                displayTeam.image !== "" ? (
-                  <img
-                    src={displayTeam.image}
-                    alt={displayTeam.name}
-                    className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb] object-cover"
-                  />
-                ) : (
-                  <svg aria-hidden className="size-[116px] shrink-0 rounded-2xl bg-[#ebebeb]" />
-                )}
-                <div
-                  className={`flex min-w-0 flex-1 flex-col items-center ${LOCKUP_STACK_GAP_8_16} sm:items-start`}
-                >
-                  <h1 className="fl-24 leading-[1.4] font-medium">{displayTeam.name}</h1>
-                  <p
-                    className={`flex items-center ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}
-                  >
-                    <span className="text-gray-2">รหัสทีม</span>
-                    <span>{displayTeam.code}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void navigator.clipboard?.writeText(displayTeam.code);
-                        setCopiedAt(Date.now());
-                      }}
-                      aria-label={copied ? "คัดลอกรหัสทีมแล้ว" : "คัดลอกรหัสทีม"}
-                      data-on={copied}
-                      className={`mm-swap mm-press-icon transition-opacity hover:opacity-60 ${COPY_BOX}`}
-                    >
-                      <img src={COPY} alt="" aria-hidden className={`mm-swap-off ${COPY_BOX}`} />
-                      <Tick className={`mm-swap-on text-brand-green ${COPY_BOX}`} />
-                    </button>
-                  </p>
-                  <p
-                    className={`flex flex-wrap items-start ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}
-                  >
-                    <span className="text-gray-2">สถานศึกษา</span>
-                    <span>{displayTeam.school}</span>
-                  </p>
-                </div>
-              </div>
-              <div
-                ref={tabsRef}
-                role="tablist"
-                aria-label="สมาชิกในทีม"
-                className="auth-rise relative flex w-full flex-nowrap items-center gap-2 overflow-x-auto overflow-y-clip [overscroll-behavior-x:contain]"
-                data-rise="2"
-              >
-                {/* Member tab */}
-                {MEMBERS.map((member, i) => {
-                  const on = i === active;
-                  return (
-                    <button
-                      key={member.tab}
-                      type="button"
-                      role="tab"
-                      aria-selected={on}
-                      onClick={() => {
-                        setActive(i);
-                      }}
-                      className={`mm-press flex shrink-0 items-start gap-2 px-[calc(7.896px_+_4.104*var(--fl))] py-2 ${LOCKUP_14_18} leading-normal transition-colors ${
-                        on ? "font-semibold" : "rounded-2xl bg-white text-gray-2"
-                      }`}
-                    >
-                      <img
-                        src={on ? member.icon.on : member.icon.off}
-                        alt=""
-                        aria-hidden
-                        className="size-[24px] shrink-0"
-                      />
-                      {member.tab}
-                    </button>
-                  );
-                })}
-                {bar && (
-                  <span
-                    aria-hidden
-                    className="mm-indicator pointer-events-none absolute top-0 left-0 h-0.5 origin-left bg-brand-red"
-                    style={{
-                      transform: `translate(${bar.x}px, ${bar.y}px) scaleX(${bar.w / BAR_W})`,
-                      width: BAR_W,
-                    }}
-                  />
-                )}
-              </div>
+              <TeamHeader displayTeam={displayTeam} />
+              <MemberTabs members={MEMBERS} active={active} setActive={setActive} />
               {/* ข้อมูลแต่ละคน */}
               <div className="auth-rise auth-rise-sm w-full" data-rise="3">
                 <div key={active} className="mm-panel w-full">
-                  <PersonDetails person={person} />
+                  <PersonDetails person={MEMBERS[active]} />
                 </div>
               </div>
             </div>
@@ -690,7 +746,7 @@ export default function MyTeam() {
               {pane === "status" && (
                 <StatusPanel
                   status={status}
-                  showDiscord={status === "qualified" || status === "semifinal-qualified"}
+                  showDiscord={showDiscord}
                   heading={false}
                   card={false}
                   members={MEMBERS}
@@ -705,7 +761,7 @@ export default function MyTeam() {
           >
             <StatusPanel
               status={status}
-              showDiscord={status === "qualified" || status === "semifinal-qualified"}
+              showDiscord={showDiscord}
               members={MEMBERS}
               reviewFeedback={reviewFeedback}
             />
@@ -713,7 +769,7 @@ export default function MyTeam() {
         </div>
       </div>
 
-      <MyTeamModals modal={showModal} setModal={setModal} />
+      <MyTeamModals modal={modal} setModal={setModal} />
     </div>
   );
 }

@@ -167,44 +167,32 @@ export const EMPTY_SHARED = {
   titleTh: "-",
 };
 
-export function getBaseMembers(): Person[] {
-  return [
-    {
+export function getBaseMembers(count = 3): Person[] {
+  const pCount = count === 2 ? 2 : 3;
+  const members: Person[] = [];
+
+  for (let i = 1; i <= pCount; i++) {
+    members.push({
       dateOfBirth: "-",
       documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
-      heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 1",
+      heading: `1. ข้อมูลผู้เข้าแข่งขันคนที่ ${i}`,
       icon: USER_ICON,
       isAdvisor: false,
-      tab: "ผู้เข้าแข่งขันคนที่ 1",
+      tab: `ผู้เข้าแข่งขันคนที่ ${i}`,
       ...EMPTY_SHARED,
-    },
-    {
-      dateOfBirth: "-",
-      documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
-      heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 2",
-      icon: USER_ICON,
-      isAdvisor: false,
-      tab: "ผู้เข้าแข่งขันคนที่ 2",
-      ...EMPTY_SHARED,
-    },
-    {
-      dateOfBirth: "-",
-      documents: ENTRANT_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
-      heading: "1. ข้อมูลผู้เข้าแข่งขันคนที่ 3",
-      icon: USER_ICON,
-      isAdvisor: false,
-      tab: "ผู้เข้าแข่งขันคนที่ 3",
-      ...EMPTY_SHARED,
-    },
-    {
-      documents: ADVISOR_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
-      heading: "1. ข้อมูลอาจารย์",
-      icon: MORTARBOARD_ICON,
-      isAdvisor: true,
-      tab: "อาจารย์",
-      ...EMPTY_SHARED,
-    },
-  ];
+    });
+  }
+
+  members.push({
+    documents: ADVISOR_DOCUMENTS.map((doc) => ({ ...doc, file: "ไม่มีไฟล์", size: "0 MB" })),
+    heading: "1. ข้อมูลอาจารย์",
+    icon: MORTARBOARD_ICON,
+    isAdvisor: true,
+    tab: "อาจารย์",
+    ...EMPTY_SHARED,
+  });
+
+  return members;
 }
 
 export type StepTone = "ok" | "pending" | "alert" | "failed";
@@ -288,7 +276,7 @@ export function getStatusSteps(
       rawStatus = reviewFeedback?.participant2;
     } else if (idx === 2 && participantCount >= 3) {
       rawStatus = reviewFeedback?.participant3;
-    } else if (m.isAdvisor || idx === members.length - 1) {
+    } else if (Boolean(m.isAdvisor) || idx === members.length - 1) {
       rawStatus = reviewFeedback?.advisor;
     }
 

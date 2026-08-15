@@ -8,6 +8,7 @@ import AuthBackdrop, { PhoneAuthBackdrop } from "@/components/auth-backdrop";
 import { useAuthNavigate, useOwnArrival } from "@/components/form/wizard-nav";
 import GoogleLogo from "@/components/google-logo";
 import { STACKED_ASPECT, StackedLockup } from "@/components/lockup";
+import { useUserSession } from "@/contexts/user-context";
 
 export const Route = createFileRoute("/signin")({
   component: SignInRoute,
@@ -49,7 +50,7 @@ function SignInRoute() {
 
   const navigate = useNavigate();
   const go = useAuthNavigate();
-  const { data: session, isPending: isSessionPending } = authClient.useSession();
+  const { data: session, isPending: isSessionPending } = useUserSession();
 
   const isLoading = isSigningIn || isSessionPending || isChecking || !!session?.user;
 

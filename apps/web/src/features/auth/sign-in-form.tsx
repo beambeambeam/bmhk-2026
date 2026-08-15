@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
+import { useUserSession } from "@/contexts/user-context";
 
 import Loader from "@/components/loader";
 
@@ -14,7 +15,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
   const navigate = useNavigate({
     from: "/",
   });
-  const { isPending } = authClient.useSession();
+  const { isPending } = useUserSession();
 
   const form = useForm({
     defaultValues: {

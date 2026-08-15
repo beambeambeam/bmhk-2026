@@ -8,6 +8,7 @@ import { useRegisterForm, RegistrationFormData } from '../register'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { useAuthNavigate } from '@/components/form/wizard-nav'
+import { client } from '@bmhk-2026/client/orpc'
 
 
 
@@ -112,13 +113,44 @@ export function TermsSubmitButton({ to, label }: { to: string; label: string }) 
         setBusy(true)
         try {
           const terms = form.getFieldValue('terms')
-          termsSchema.parse(terms)
+          const status = form.getFieldValue('status')
+          if (!status || !status.teamId) {
+            toast.error('กรุณาสร้างทีมก่อน')
+            setBusy(false)
+            return
+          }
+
+          const validData = termsSchema.parse(terms)
+
+          let finalResult;
+          try {
+            finalResult = await client.teamConsents.update({
+              teamId: status.teamId,
+              data: validData
+            })
+          } catch (e: any) {
+            if (e?.data?.code === 'TEAM_CONSENT_NOT_FOUND' || e?.status === 404 || e?.message?.includes('not found')) {
+              finalResult = await client.teamConsents.create({
+                 teamId: status.teamId,
+                 ...validData
+              })
+            } else {
+              throw e
+            }
+          }
+
+          form.setFieldValue('terms', {
+            ...terms,
+            ...finalResult
+          })
+
           form.handleSubmit()
           go(to, 'submit')
         } catch (error) {
           if (error instanceof z.ZodError) {
              toast.error(error.issues[0].message)
           } else {
+             console.error(error)
              toast.error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล')
           }
         } finally {

@@ -77,6 +77,9 @@ function SignInRoute() {
         }
       };
       void checkRegistration();
+    } else {
+      setIsChecking(false);
+      setIsSigningIn(false);
     }
   }, [session?.user, navigate, go]);
 

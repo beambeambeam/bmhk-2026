@@ -58,7 +58,7 @@ const ROW_RADIUS = {
   28: 'rounded-[16px]',
 } as const
 
-const DOC_FIELD_MAP : Record<string, keyof RegistrationFormData['consents']> = {
+const DOC_FIELD_MAP : Record<string, keyof RegistrationFormData['terms']> = {
   'นโยบายความเป็นส่วนตัว': 'privacyPolicyAccepted',
   'กฏกติกาการแข่งขัน' : 'competitionRulesAccepted',
   'ข้อกำหนดการใช้งาน Codern' : 'codernTermsAccepted'
@@ -206,8 +206,8 @@ function ConsentChoice({ name,consentProperties }:
             onChange={() => {
               setValue(key)
               setTouched(true)
-              form.setFieldValue(`consents.${consentProperties}`,key === 'yes' ? true : false)
-              console.log(form.getFieldValue(`consents.${consentProperties}`))
+              form.setFieldValue(`terms.${consentProperties}`,key === 'yes' ? true : false)
+              console.log(form.getFieldValue(`terms.${consentProperties}`))
             }}
             className="sr-only"
           />
@@ -279,8 +279,8 @@ export default function TermsStep() {
                setAccepted((prev) => [...new Set([...prev, openDoc.title])])
               const key = DOC_FIELD_MAP[openDoc.title ? openDoc.title :'นโยบายความเป็นส่วนตัว']
               if (key) {
-                form.setFieldValue(`consents.${key}`, true)
-                console.log(`consents.${key}`+form.getFieldValue(`consents.${key}`))
+                form.setFieldValue(`terms.${key}`, true)
+                console.log(`terms.${key}`+form.getFieldValue(`terms.${key}`))
               }
             }
             setOpenDoc(null)
@@ -308,7 +308,7 @@ export default function TermsStep() {
               const isAccepted = accepted.includes(doc.title)
               const key = DOC_FIELD_MAP[doc.title]
               // if (key){
-              //   form.setFieldValue(`consents.${key}`,false)
+              //   form.setFieldValue(`terms.${key}`,false)
               // }
               return (
                 <Row key={doc.title} {...doc} padding="p-3" glyph={24}>
@@ -320,7 +320,7 @@ export default function TermsStep() {
                       if (isAccepted){
                         setAccepted((prev) => prev.filter((t) => t !== doc.title))
                         if (key){
-                          form.setFieldValue(`consents.${key}`,false)
+                          form.setFieldValue(`terms.${key}`,false)
                         }
                       } else {
                       const box = e.currentTarget.getBoundingClientRect()

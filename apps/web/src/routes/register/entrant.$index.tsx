@@ -93,9 +93,9 @@ export default function EntrantStep() {
         </section>
 
         <Separator />
-        <PersonFields person={n === 1 ? "entrants1" : n === 2 ? "entrants2" : "entrants3"} title={`ข้อมูลผู้เข้าแข่งขันคนที่ ${n}`} withBirthDate />
+        <PersonFields person={n === 1 ? "entrant1" : n === 2 ? "entrant2" : "entrant3"} title={`ข้อมูลผู้เข้าแข่งขันคนที่ ${n}`} withBirthDate />
         <Separator />
-        <ContactFields person={n === 1 ? "entrants1" : n === 2 ? "entrants2" : "entrants3"}  />
+        <ContactFields person={n === 1 ? "entrant1" : n === 2 ? "entrant2" : "entrant3"}  />
       </div>
     </WizardShell>
   )

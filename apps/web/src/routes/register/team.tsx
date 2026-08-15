@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import WizardShell, { NextButton } from '@/components/form/wizard-shell'
+import WizardShell, { NextButton, STEP_BUTTON, STEP_PAD, STEP_GLYPH, STEP_ARROW } from '@/components/form/wizard-shell'
 import {
   CHECK_MARK,
   CheckMark,
@@ -15,7 +15,10 @@ import {createFileRoute, Outlet} from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { AppleIcon } from 'lucide-react'
 import { useRegisterForm } from '@/routes/register'
-
+import { z } from 'zod'
+import { orpc } from '@bmhk-2026/client/orpc'
+import { useAuthNavigate } from '@/components/form/wizard-nav'
+import { toast } from 'sonner'
 
 const F = '/assets/figma/'
 
@@ -71,6 +74,93 @@ function Avatar({ crop, src }: { crop: boolean; src: string }) {
   )
 }
 
+const teamSchema = z.object({
+  name: z.string().trim().min(1, 'กรุณาระบุชื่อทีม').max(120, 'ชื่อทีมยาวเกินไป'),
+  school: z.string().trim().min(1, 'กรุณาระบุสถานศึกษา').max(200, 'ชื่อสถานศึกษายาวเกินไป'),
+  teamSize: z.number().int().min(0).max(2147483647).default(2),
+});
+
+function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?: string }) {
+  const form = useRegisterForm()
+  const go = useAuthNavigate()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <button
+      type="button"
+      data-busy={busy}
+      aria-busy={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          const team = form.getFieldValue('team')
+          const validData = teamSchema.parse({
+             name: team.name,
+             school: team.school,
+             teamSize: team.teamSize
+          })
+          
+          const result = await orpc.teams.create.mutate({
+             name: validData.name,
+             school: validData.school,
+             memberCount: validData.teamSize
+          })
+
+          form.setFieldValue('team', {
+            ...team,
+            name: result.name,
+            school: result.school,
+            teamSize: result.memberCount,
+          })
+          
+          go(to, 'forward')
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+             toast.error(error.errors[0].message)
+          } else {
+             console.error(error)
+             toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+          }
+        } finally {
+          setBusy(false)
+        }
+      }}
+      className={`auth-submit relative ${STEP_BUTTON} ${STEP_PAD} ml-auto sm:pr-4 sm:pl-6`}
+    >
+      <span className={STEP_GLYPH} style={{ opacity: busy ? 0 : 1 }}>{label}</span>
+      <img
+        src="/assets/figma/a275512325b630305418a611fed5319ba90acfc8.svg"
+        alt=""
+        aria-hidden
+        className={STEP_ARROW}
+        style={{ opacity: busy ? 0 : 1 }}
+      />
+      {busy && (
+        <span
+          aria-hidden
+          className="auth-submit-spin pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="auth-submit-spinner size-5">
+            <path
+              d="M10 2a8 8 0 0 1 8 8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M10 18a8 8 0 0 1-8-8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
+      )}
+    </button>
+  )
+}
+
+
 /* the two text controls of this section, so "ล้าง" has something to put back */
 const EMPTY = { name: '', school: '' }
 
@@ -92,7 +182,7 @@ export default function TeamStep() {
   const [touched, setTouched] = useState(false)
 
   return (
-    <WizardShell totalStep={Number(form.getFieldValue('team.teamSize') ?? 2) + 3} step={1} actions={<NextButton to="/register/advisor" />}>
+    <WizardShell totalStep={Number(form.getFieldValue('team.teamSize') ?? 2) + 3} step={1} actions={<TeamNextButton to="/register/advisor" />}>
       <section className="flex w-full flex-col items-center justify-center gap-4">
         {/*
          * Clearing is scoped to this section, which is the whole section: the two text

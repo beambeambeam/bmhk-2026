@@ -66,7 +66,7 @@ export default function PersonFields({
   withBirthDate = false,
   headingGap = 'gap-6',
 }: {
-  person: 'advisor' | 'entrants1' | 'entrants2' | 'entrants3',
+  person: 'advisor' | 'entrant1' | 'entrant2' | 'entrant3',
   title: string
   withBirthDate?: boolean
   headingGap?: string
@@ -197,7 +197,7 @@ export default function PersonFields({
 
           {withBirthDate && (
           <form.Field
-            name={`${person}.dateOfBirth` as `entrants1.dateOfBirth` | `entrants2.dateOfBirth` | `entrants3.dateOfBirth`}
+            name={`${person}.dateOfBirth` as `entrant1.dateOfBirth` | `entrant2.dateOfBirth` | `entrant3.dateOfBirth`}
             children={ (field) => (
               <DateField
               label="วัน/เดือน/ปีเกิด"
@@ -268,7 +268,7 @@ export default function PersonFields({
   )
 }
 
-export function ContactFields({person} : {person : 'advisor' | 'entrants1' | 'entrants2' | 'entrants3'}) {
+export function ContactFields({person} : {person : 'advisor' | 'entrant1' | 'entrant2' | 'entrant3'}) {
   const { bind, clear } = useFieldGroup(EMPTY_CONTACT)
   const form = useRegisterForm()
 

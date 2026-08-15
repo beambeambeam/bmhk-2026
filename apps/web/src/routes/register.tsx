@@ -62,12 +62,14 @@ export interface consentFormData {
 }
 
 export interface RegistrationFormData {                                                                                   
+  status: any,
   team: teamFormData,                                                                                                                     
   advisor: advisorFormData,
-  entrants1: entrantFormData,
-  entrants2: entrantFormData,
-  entrants3: entrantFormData,
-  consents: consentFormData
+  entrant1: entrantFormData,
+  entrant2: entrantFormData,
+  entrant3: entrantFormData,
+  terms: consentFormData,
+  success: any
   }
 
 
@@ -89,6 +91,7 @@ export function useRegisterForm(){
 export function RegisterLayout(){
   const formOptions = useMemo(() => ({
     defaultValues: {
+      status: {},
       team : {name: '', school: '', teamSize: 2, photoFile: null },
       advisor: {
         titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',
@@ -99,7 +102,7 @@ export function RegisterLayout(){
         identityDocumentFile: null, teacherStatusDocumentFile: null,
       },
 
-      entrants1:
+      entrant1:
         // entrant 1
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
@@ -109,7 +112,7 @@ export function RegisterLayout(){
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
         },
-        entrants2:
+        entrant2:
         // entrant 2
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
@@ -119,7 +122,7 @@ export function RegisterLayout(){
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
         },
-        entrants3:
+        entrant3:
         // entrant 3
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
@@ -130,7 +133,7 @@ export function RegisterLayout(){
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
         }
       ,
-      consents: {
+      terms: {
         privacyPolicyAccepted: false,                                                                                     
         competitionRulesAccepted: false,                                                                                  
         codernTermsAccepted: false,                                                                                       
@@ -138,6 +141,7 @@ export function RegisterLayout(){
         healthDataConsent: true,                                                                                         
         guardianConsentObtained: true, 
       },
+      success: {},
     },
     onSubmit: async ({value}: {value: RegistrationFormData}) => {
       //await api

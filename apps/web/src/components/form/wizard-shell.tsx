@@ -301,7 +301,7 @@ export default function WizardShell({
  *
  * RADIUS is a flat 12 and that is both anchors, not one held: every pill above is `r: 12`.
  */
-const STEP_BUTTON =
+export const STEP_BUTTON =
   'mm-press flex items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))] rounded-[12px] bg-brand-red py-[calc(7.792px_+_8.208*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] font-medium text-white transition-opacity hover:opacity-90'
 
 /**
@@ -320,7 +320,7 @@ const STEP_BUTTON =
  * inside redraws at the ramped size instead of being clipped. Figma agrees: the vector is 6x11 in
  * the 20 box (`1297:1570`) and 8x13 in the 24 (`708:1345`), i.e. it scales with its frame.
  */
-const STEP_ARROW = 'size-[calc(19.896px_+_4.104*var(--fl))]'
+export const STEP_ARROW = 'size-[calc(19.896px_+_4.104*var(--fl))]'
 
 /**
  * The icon-only pills' own inset: 8 on the 402 frames → 16 at 1440. Only in force below `sm`,
@@ -331,7 +331,7 @@ const STEP_ARROW = 'size-[calc(19.896px_+_4.104*var(--fl))]'
  * sides; at 1440 Figma splits them around the glyph, and each call site's `sm:` pair is that
  * split to the pixel — `708:2012` back is `pl 16 / pr 24`, `708:1342` next is `pl 24 / pr 16`.
  */
-const STEP_PAD = 'px-[calc(7.792px_+_8.208*var(--fl))]'
+export const STEP_PAD = 'px-[calc(7.792px_+_8.208*var(--fl))]'
 
 /**
  * Below `sm` the two navigation pills are the glyph alone, which is what the phone frame
@@ -340,7 +340,7 @@ const STEP_PAD = 'px-[calc(7.792px_+_8.208*var(--fl))]'
  * "ลงทะเบียนเข้าแข่งขัน" is wider than a 375 phone's card. `aria-label` carries the name the
  * label used to, and the label itself is still in the DOM from `sm` up.
  */
-const STEP_GLYPH = 'hidden sm:inline'
+export const STEP_GLYPH = 'hidden sm:inline'
 
 export function BackButton({ to }: { to: string }) {
   const authBack = useAuthBackLink()

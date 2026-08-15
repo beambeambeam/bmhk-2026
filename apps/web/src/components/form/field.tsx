@@ -707,30 +707,48 @@ export function SelectField({
   value,
   onChange,
 }: BaseProps & { options?: string[] }) {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <FieldShell label={label} required={required} className={className}>
-      <span className="relative w-full">
-        <select
-          className={`${BOX} ${TRAIL} appearance-none bg-white`}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="" disabled>
-            {placeholder}
-          </option>
-          {options.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
+    <FieldShell label={label} required={required} className={`relative ${className ?? ''}`}>
+      <button
+        type="button"
+        onBlur={() => setIsOpen(false)}
+        onClick={(e) => {
+          e.preventDefault()
+          setIsOpen(!isOpen)
+        }}
+        className={`${BOX} ${TRAIL} appearance-none bg-white text-left relative block`}
+      >
+        <span className={`block w-full truncate ${value ? 'text-ink' : 'text-gray-1'}`}>
+          {value || placeholder}
+        </span>
         <img
           src={`${ICON}da1c84a7a51ab6256b69963fbe9c03c1607713d3.svg`}
           alt=""
           aria-hidden
           className={TRAIL_GLYPH}
         />
-      </span>
+      </button>
+      {isOpen && options.length > 0 && (
+        <ul
+          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-[calc(7.896px_+_4.104*var(--fl))] border-[0.8px] border-[#dcdcdc] bg-white py-1 shadow-lg"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          {options.map((o) => (
+            <li
+              key={o}
+              className="cursor-pointer px-[calc(7.896px_+_4.104*var(--fl))] py-[calc(5px_+_3*var(--fl))] text-[calc(13.844px_+_6.156*var(--fl))] text-ink transition-colors hover:bg-brand-red/5 hover:text-brand-red"
+              onClick={() => {
+                onChange(o)
+                setIsOpen(false)
+              }}
+            >
+              {o}
+            </li>
+          ))}
+        </ul>
+      )}
     </FieldShell>
   )
 }

@@ -234,7 +234,7 @@ export default function EntrantStep() {
     >
       {/* 24 @402 (`1243:1369`) → 40 @1440 (`708:1581`) between the three sections — `gap-10` was
           the 1440 value held flat. Same correction as AdvisorStep. */}
-      <div className="flex w-full flex-col items-start gap-[calc(23.584px_+_16.416*var(--fl))]">
+      <div key={`entrant-fields-${n}`} className="flex w-full flex-col items-start gap-[calc(23.584px_+_16.416*var(--fl))]">
         {/* 16 @402 (`1243:1370`) → 24 @1440 (`708:1582`) under the heading. Note this DIFFERS from
             AdvisorStep, where the same gap is a flat 16 at both anchors (`1239:1259` / `708:1392`)
             — the two steps genuinely disagree at 1440, so they are not shared. */}

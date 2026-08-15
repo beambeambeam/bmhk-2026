@@ -22,13 +22,13 @@ const entrantSchema = z.object({
   dateOfBirth: z.string().trim().min(1, 'กรุณาระบุวันเกิด'),
   email: z.string().trim().min(1, 'กรุณาระบุอีเมล').email('รูปแบบอีเมลไม่ถูกต้อง'),
   phone: z.string().trim().min(1, 'กรุณาระบุเบอร์โทรศัพท์').refine(val => val.replace(/\D/g, '').length === 10, 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (ต้องเป็นตัวเลข 10 หลัก)'),
-  middleNameTh: z.string().trim(),
-  middleNameEn: z.string().trim(),
-  lineId: z.string().trim(),
-  foodAllergies: z.string().trim(),
-  dietaryRequirements: z.string().trim(),
-  drugAllergies: z.string().trim(),
-  chronicConditionsAndFirstAidNotes: z.string().trim(),
+  middleNameTh: z.string().trim().optional(),
+  middleNameEn: z.string().trim().optional(),
+  lineId: z.string().trim().optional(),
+  foodAllergies: z.string().trim().optional(),
+  dietaryRequirements: z.string().trim().optional(),
+  drugAllergies: z.string().trim().optional(),
+  chronicConditionsAndFirstAidNotes: z.string().trim().optional(),
 })
 
 function EntrantNextButton({ to, entrantKey }: { to: string; entrantKey: 'entrant1' | 'entrant2' | 'entrant3' }) {

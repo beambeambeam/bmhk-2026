@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import WizardShell, { NextButton, STEP_BUTTON, STEP_PAD, STEP_GLYPH, STEP_ARROW } from '@/components/form/wizard-shell'
 import {
   CHECK_MARK,
@@ -20,6 +20,7 @@ import { z } from 'zod'
 import { client } from '@bmhk-2026/client/orpc'
 import { useAuthNavigate } from '@/components/form/wizard-nav'
 import { toast } from 'sonner'
+import { env } from "@bmhk-2026/env/web"
 
 const F = '/assets/figma/'
 
@@ -121,10 +122,20 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
           }
 
           if (team.photoFile) {
-            finalResult = await client.teams.image({
-              id: finalResult.id,
-              file: team.photoFile,
-            })
+            const formData = new FormData();
+            formData.append('id', finalResult.id);
+            formData.append('file', team.photoFile as File);
+
+            const uploadResponse = await fetch(`${env.VITE_SERVER_URL}/api-reference/teams/image`, {
+              method: 'POST',
+              credentials: 'include',
+              body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error('Failed to upload image');
+            }
+            finalResult = await uploadResponse.json();
           }
 
           form.setFieldValue('team', {
@@ -202,6 +213,10 @@ export default function TeamStep() {
   const [size, setSize] = useState<number | null>(null)
   const [touched, setTouched] = useState(false)
 
+  useEffect(() => {
+    form.setFieldValue('team.photoFile', photo.file)
+  }, [photo.file, form])
+
   return (
     <WizardShell totalStep={Number(form.getFieldValue('team.teamSize') ?? 2) + 3} step={1} actions={<TeamNextButton to="/register/advisor" />}>
       <section className="flex w-full flex-col items-center justify-center gap-4">
@@ -218,6 +233,8 @@ export default function TeamStep() {
             setSize(null)
             setTouched(false)
             photo.clear()
+            form.setFieldValue('team.photoUrl', null)
+            form.setFieldValue('team.photoName', null)
           }}
         />
 
@@ -267,9 +284,9 @@ export default function TeamStep() {
               <span className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal]">
                 รูปโปรไฟล์ทีม
               </span>
-              {photo.preview && (
+              {(photo.preview || form.getFieldValue('team.photoUrl')) && (
                 <img
-                  src={photo.preview}
+                  src={(photo.preview || form.getFieldValue('team.photoUrl')) as string}
                   alt=""
                   aria-hidden
                   className="absolute inset-0 size-full object-cover"
@@ -305,7 +322,7 @@ export default function TeamStep() {
               aria-live="polite"
               className={`w-[calc(138.439px_+_61.561*var(--fl))] truncate text-center text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${photo.error ? 'text-[#ea4335]' : 'text-gray-1'}`}
             >
-              {photo.error ?? photo.file?.name ?? 'จำกัดขนาดไม่เกิน 5 MB'}
+              {photo.error ?? photo.file?.name ?? form.getFieldValue('team.photoName') ?? 'จำกัดขนาดไม่เกิน 5 MB'}
             </p>
           </div>
 

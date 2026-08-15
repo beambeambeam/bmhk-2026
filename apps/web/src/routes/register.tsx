@@ -9,6 +9,8 @@ export interface teamFormData{
   school: string                                                                                                        
   teamSize: number                                                                                                      
   photoFile: File | null 
+  photoUrl?: string | null
+  photoName?: string | null
 }
 
 export interface advisorFormData{
@@ -99,7 +101,9 @@ export function RegisterLayout(){
         name: teamData?.name || '',
         school: teamData?.school || '',
         teamSize: teamData?.memberCount || 2,
-        photoFile: null 
+        photoFile: null,
+        photoUrl: teamData?.image?.url || null,
+        photoName: teamData?.image?.originalName || null
       },
       advisor: {
         titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',

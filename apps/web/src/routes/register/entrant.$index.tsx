@@ -1,12 +1,86 @@
 import { useParams } from '@tanstack/react-router'
-import WizardShell, { BackButton, NextButton } from '@/components/form/wizard-shell'
 import { DocumentRow, Separator } from '@/components/form/field'
 import PersonFields, { ContactFields } from '@/components/registration/person-field'
 import { STUDENT_DOCUMENTS } from '@/features/register/data/registration-data'
-import {createFileRoute } from '@tanstack/react-router'
-import { unknown } from 'zod'
+import { createFileRoute } from '@tanstack/react-router'
+import { z } from 'zod'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useAuthNavigate } from '@/components/form/wizard-nav'
 import { useRegisterForm } from '../register'
 import { teamAdvisorDetailsSchema } from '../../../../../packages/api/src/features/team-advisors/team-advisors.schema'
+import WizardShell, { BackButton, NextButton, STEP_BUTTON, STEP_PAD, STEP_GLYPH, STEP_ARROW } from '@/components/form/wizard-shell'
+
+const entrantSchema = z.object({
+  titleTh: z.string().trim().min(1, 'กรุณาระบุคำนำหน้าชื่อ (ภาษาไทย)'),
+  firstNameTh: z.string().trim().min(1, 'กรุณาระบุชื่อ (ภาษาไทย)'),
+  lastNameTh: z.string().trim().min(1, 'กรุณาระบุนามสกุล (ภาษาไทย)'),
+  titleEn: z.string().trim().min(1, 'กรุณาระบุคำนำหน้าชื่อ (ภาษาอังกฤษ)'),
+  firstNameEn: z.string().trim().min(1, 'กรุณาระบุชื่อ (ภาษาอังกฤษ)'),
+  lastNameEn: z.string().trim().min(1, 'กรุณาระบุนามสกุล (ภาษาอังกฤษ)'),
+  dateOfBirth: z.string().trim().min(1, 'กรุณาระบุวันเกิด'),
+  email: z.string().trim().min(1, 'กรุณาระบุอีเมล').email('รูปแบบอีเมลไม่ถูกต้อง'),
+  phone: z.string().trim().min(1, 'กรุณาระบุเบอร์โทรศัพท์').refine(val => val.replace(/\D/g, '').length === 10, 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (ต้องเป็นตัวเลข 10 หลัก)'),
+  middleNameTh: z.string().trim(),
+  middleNameEn: z.string().trim(),
+  lineId: z.string().trim(),
+  foodAllergies: z.string().trim(),
+  dietaryRequirements: z.string().trim(),
+  drugAllergies: z.string().trim(),
+  chronicConditionsAndFirstAidNotes: z.string().trim(),
+})
+
+function EntrantNextButton({ to, entrantKey }: { to: string; entrantKey: 'entrant1' | 'entrant2' | 'entrant3' }) {
+  const form = useRegisterForm()
+  const go = useAuthNavigate()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <button
+      type="button"
+      data-busy={busy}
+      aria-busy={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          const entrant = form.getFieldValue(entrantKey)
+          entrantSchema.parse(entrant)
+          go(to, 'forward')
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+             toast.error(error.issues[0].message)
+          } else {
+             console.error(error)
+             toast.error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล')
+          }
+        } finally {
+          setBusy(false)
+        }
+      }}
+      className={`auth-submit relative ${STEP_BUTTON} ${STEP_PAD} ml-auto sm:pr-4 sm:pl-6`}
+    >
+      <span className={STEP_GLYPH} style={{ opacity: busy ? 0 : 1 }}>ถัดไป</span>
+      <img
+        src="/assets/figma/a275512325b630305418a611fed5319ba90acfc8.svg"
+        alt=""
+        aria-hidden
+        className={STEP_ARROW}
+        style={{ opacity: busy ? 0 : 1 }}
+      />
+      {busy && (
+        <span
+          aria-hidden
+          className="auth-submit-spin pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="auth-submit-spinner size-5">
+            <path d="M10 2a8 8 0 0 1 8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M10 18a8 8 0 0 1-8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </span>
+      )}
+    </button>
+  )
+}
 
 export const Route = createFileRoute("/register/entrant/$index")({
   component: EntrantStep,
@@ -64,7 +138,10 @@ export default function EntrantStep() {
         <>
 
           <BackButton to={redirection({steps,totalStep, direction: "back"})} />
-          <NextButton to={redirection({steps,totalStep, direction: "next"})} />
+          <EntrantNextButton 
+            to={redirection({steps,totalStep, direction: "next"})} 
+            entrantKey={n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}
+          />
         </>
       }
     >

@@ -1,3 +1,4 @@
+import { client } from '@bmhk-2026/client/orpc'
 import { useParams } from '@tanstack/react-router'
 import { DocumentRow, Separator } from '@/components/form/field'
 import PersonFields, { ContactFields } from '@/components/registration/person-field'
@@ -44,7 +45,93 @@ function EntrantNextButton({ to, entrantKey }: { to: string; entrantKey: 'entran
         setBusy(true)
         try {
           const entrant = form.getFieldValue(entrantKey)
-          entrantSchema.parse(entrant)
+          const status = form.getFieldValue('status')
+          
+          if (!status || !status.teamId) {
+            toast.error('กรุณาสร้างทีมก่อน')
+            setBusy(false)
+            return
+          }
+
+          const validData = entrantSchema.parse(entrant)
+          const index = parseInt(entrantKey.replace('entrant', ''), 10)
+          
+          const hasPortrait = entrant.portraitPhotoFile || (entrant as any).portraitPhotoUrl
+          const hasIdentityDoc = entrant.identityDocumentFile || (entrant as any).identityDocumentUrl
+          const hasAcademicRecord = entrant.academicRecordDocumentFile || (entrant as any).academicRecordDocumentUrl
+
+          if (!hasPortrait || !hasIdentityDoc || !hasAcademicRecord) {
+            toast.error('กรุณาอัปโหลดเอกสารให้ครบถ้วน')
+            setBusy(false)
+            return
+          }
+          
+          const payload = {
+            chronicConditionsAndFirstAidNotes: validData.chronicConditionsAndFirstAidNotes || "",
+            dietaryRequirements: validData.dietaryRequirements || "",
+            drugAllergies: validData.drugAllergies || "",
+            email: validData.email,
+            firstNameEn: validData.firstNameEn,
+            firstNameTh: validData.firstNameTh,
+            foodAllergies: validData.foodAllergies || "",
+            lastNameEn: validData.lastNameEn,
+            lastNameTh: validData.lastNameTh,
+            lineId: validData.lineId || "",
+            middleNameEn: validData.middleNameEn || "",
+            middleNameTh: validData.middleNameTh || "",
+            phone: validData.phone,
+            titleEn: validData.titleEn,
+            titleTh: validData.titleTh,
+            dateOfBirth: validData.dateOfBirth,
+          }
+
+          try {
+            await client.teamParticipants.update({
+              index,
+              teamId: status.teamId,
+              data: payload
+            })
+          } catch (e: any) {
+            if (e?.data?.code === 'TEAM_PARTICIPANT_NOT_FOUND' || e?.status === 404 || e?.message?.includes('not found') || e?.data?.code === 'NOT_FOUND') {
+              await client.teamParticipants.create({
+                teamId: status.teamId,
+                index,
+                ...payload
+              })
+            } else {
+              throw e
+            }
+          }
+
+          try {
+            if (entrant.portraitPhotoFile) {
+              await client.teamParticipants.portraitPhoto({
+                teamId: status.teamId,
+                index,
+                file: entrant.portraitPhotoFile,
+              })
+            }
+            if (entrant.identityDocumentFile) {
+              await client.teamParticipants.identityDocument({
+                teamId: status.teamId,
+                index,
+                file: entrant.identityDocumentFile,
+              })
+            }
+            if (entrant.academicRecordDocumentFile) {
+              await client.teamParticipants.academicRecordDocument({
+                teamId: status.teamId,
+                index,
+                file: entrant.academicRecordDocumentFile,
+              })
+            }
+          } catch (uploadError) {
+            console.error('File upload error', uploadError)
+            toast.error('เกิดข้อผิดพลาดในการอัปโหลดเอกสาร')
+            setBusy(false)
+            return
+          }
+
           go(to, 'forward')
         } catch (error) {
           if (error instanceof z.ZodError) {

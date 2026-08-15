@@ -99,10 +99,36 @@ export function useRegisterForm(){
 
 
 
+import { useEffect } from 'react'
+import { useUserSession } from '@/contexts/user-context'
+import { useNavigate } from '@tanstack/react-router'
+
 export function RegisterLayout(){
   const { statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data } = Route.useLoaderData()
-  const { userSession } = Route.useRouteContext()
-  const userEmail = userSession?.user?.email || ''
+  const session = useUserSession()
+  const navigate = useNavigate()
+  
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+      navigate({ to: '/signin' })
+    }
+
+    const handleFocus = async () => {
+      if (session.refetch) {
+        await session.refetch();
+      } else {
+        const res = await authClient.getSession();
+        if (res?.error || !res?.data) {
+          navigate({ to: '/signin' });
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [session.isPending, session.data, session.refetch, navigate])
+
+  const userEmail = session.data?.user?.email || ''
 
   const formOptions = useMemo(() => ({
     defaultValues: {
@@ -193,16 +219,6 @@ export function RegisterLayout(){
 }
 
 export const Route = createFileRoute('/register')({
-  beforeLoad: async () => {
-    const session = await authClient.getSession();
-    if (!session.data) {
-      // oxlint-disable-next-line typescript/only-throw-error
-      throw redirect({
-        to: "/signin",
-      });
-    }
-    return { userSession: session.data };
-  },
   loader: async () => {
     try {
       const statusRes = await client.teamRegistrationStatus.get({})

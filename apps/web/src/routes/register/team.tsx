@@ -103,6 +103,18 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
              teamSize: team.teamSize
           })
           
+          const initialTeam = form.options.defaultValues?.team;
+          const isDirty = !initialTeam || 
+            validData.name !== initialTeam.name || 
+            validData.school !== initialTeam.school || 
+            validData.teamSize !== initialTeam.teamSize || 
+            team.photoFile !== null;
+
+          if (!isDirty && status && status.teamId) {
+            go(to, 'forward');
+            return;
+          }
+
           let finalResult;
           if (status && status.teamId) {
             finalResult = await client.teams.update({

@@ -78,6 +78,31 @@ function AdvisorNextButton({ to, label = 'ถัดไป' }: { to: string; labe
             chronicConditionsAndFirstAidNotes: advisor.chronicConditionsAndFirstAidNotes || '',
           })
 
+          const initialAdvisor = form.options.defaultValues?.advisor;
+          const isDirty = !initialAdvisor ||
+            validData.titleTh !== initialAdvisor.titleTh ||
+            validData.firstNameTh !== initialAdvisor.firstNameTh ||
+            validData.lastNameTh !== initialAdvisor.lastNameTh ||
+            validData.titleEn !== initialAdvisor.titleEn ||
+            validData.firstNameEn !== initialAdvisor.firstNameEn ||
+            validData.lastNameEn !== initialAdvisor.lastNameEn ||
+            validData.email !== initialAdvisor.email ||
+            validData.phone !== initialAdvisor.phone ||
+            validData.middleNameTh !== initialAdvisor.middleNameTh ||
+            validData.middleNameEn !== initialAdvisor.middleNameEn ||
+            validData.lineId !== initialAdvisor.lineId ||
+            validData.foodAllergies !== initialAdvisor.foodAllergies ||
+            validData.dietaryRequirements !== initialAdvisor.dietaryRequirements ||
+            validData.drugAllergies !== initialAdvisor.drugAllergies ||
+            validData.chronicConditionsAndFirstAidNotes !== initialAdvisor.chronicConditionsAndFirstAidNotes ||
+            advisor.identityDocumentFile !== null ||
+            advisor.teacherStatusDocumentFile !== null;
+
+          if (!isDirty && advisor.identityDocumentUrl && advisor.teacherStatusDocumentUrl) {
+            go(to, 'forward');
+            return;
+          }
+
           let finalResult;
           try {
             finalResult = await client.teamAdvisors.update({

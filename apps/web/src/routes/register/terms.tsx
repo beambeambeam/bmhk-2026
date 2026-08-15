@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import WizardShell, { BackButton, SubmitButton } from '@/components/form/wizard-shell'
+import WizardShell, { BackButton, STEP_BUTTON } from '@/components/form/wizard-shell'
 import { CHECK_MARK, CheckMark } from '@/components/form/field'
 import PolicyModal from '@/components/policy-modal'
 import { CONSENTS, REQUIRED_DOCUMENTS } from '@/features/register/data/registration-data'
 import {createFileRoute } from '@tanstack/react-router'
 import { useRegisterForm, RegistrationFormData } from '../register'
+import { z } from 'zod'
+import { toast } from 'sonner'
+import { useAuthNavigate } from '@/components/form/wizard-nav'
 
 
 
@@ -86,6 +89,67 @@ function consentFieldMap(i : number) {
   }
 } 
 
+const termsSchema = z.object({
+  privacyPolicyAccepted: z.literal(true, { message: 'กรุณายอมรับนโยบายความเป็นส่วนตัว' }),
+  competitionRulesAccepted: z.literal(true, { message: 'กรุณายอมรับกฏกติกาการแข่งขัน' }),
+  codernTermsAccepted: z.literal(true, { message: 'กรุณายอมรับข้อกำหนดการใช้งาน Codern' }),
+  healthDataConsent: z.boolean().optional(),
+  guardianConsentObtained: z.boolean().optional(),
+  publicityMediaConsent: z.boolean().optional(),
+})
+
+export function TermsSubmitButton({ to, label }: { to: string; label: string }) {
+  const form = useRegisterForm()
+  const go = useAuthNavigate()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <button
+      type="button"
+      data-busy={busy}
+      aria-busy={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          const terms = form.getFieldValue('terms')
+          termsSchema.parse(terms)
+          form.handleSubmit()
+          go(to, 'submit')
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+             toast.error(error.issues[0].message)
+          } else {
+             toast.error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล')
+          }
+        } finally {
+          setBusy(false)
+        }
+      }}
+      className={`auth-submit relative ${STEP_BUTTON} ml-auto px-[calc(15.792px_+_8.208*var(--fl))] sm:px-6`}
+    >
+      <span className="auth-submit-label">{label}</span>
+      <span
+        aria-hidden
+        className="auth-submit-spin pointer-events-none absolute inset-0 flex items-center justify-center"
+      >
+        <svg viewBox="0 0 20 20" fill="none" className="auth-submit-spinner size-5">
+          <path
+            d="M10 2a8 8 0 0 1 8 8"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M10 18a8 8 0 0 1-8-8"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </span>
+    </button>
+  )
+}
 
 function Row({
   icon,
@@ -265,7 +329,7 @@ export default function TermsStep() {
       actions={
         <>
           <BackButton to="/register/entrant/2" />
-          <SubmitButton to="/register/success" label="ลงทะเบียนเข้าแข่งขัน" />
+          <TermsSubmitButton to="/register/success" label="ลงทะเบียนเข้าแข่งขัน" />
         </>
       }
       /* the scrim is `fixed inset-0`, so it has to sit outside the view-transition body */

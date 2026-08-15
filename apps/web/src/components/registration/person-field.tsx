@@ -74,6 +74,9 @@ export default function PersonFields({
   const form = useRegisterForm()
   const { bind, clear } = useFieldGroup(EMPTY_PERSON)
 
+  const formatThaiOnly = (val: string) => val.replace(/[^\u0E00-\u0E7F\s]/g, '')
+  const formatEnglishOnly = (val: string) => val.replace(/[^A-Za-z\s]/g, '')
+
   return (
     <section className={`flex w-full flex-col items-center justify-center ${headingGap}`}>
       <SectionTitle title={title} onClear={clear} />
@@ -104,7 +107,7 @@ export default function PersonFields({
             placeholder="มะลิ"
             className={CELL}
             value={field.state.value as string} 
-            onChange={(val) => field.handleChange(val)}
+            onChange={(val) => field.handleChange(formatThaiOnly(val))}
           />
             )}
               />
@@ -117,7 +120,7 @@ export default function PersonFields({
             placeholder="มะลิ"
             className={CELL}
             value={field.state.value as string} 
-            onChange={(val) => field.handleChange(val)}
+            onChange={(val) => field.handleChange(formatThaiOnly(val))}
           />
             )}
               />
@@ -131,7 +134,7 @@ export default function PersonFields({
             placeholder="มะลิ"
             className={CELL}
             value={field.state.value as string} 
-            onChange={(val) => field.handleChange(val)}
+            onChange={(val) => field.handleChange(formatThaiOnly(val))}
           />
             )}
         />
@@ -161,7 +164,7 @@ export default function PersonFields({
             placeholder="มะลิ"
             className={CELL}
             value={field.state.value as string} 
-            onChange={(val) => field.handleChange(val)}
+            onChange={(val) => field.handleChange(formatEnglishOnly(val))}
           />
             )}
               />
@@ -174,7 +177,7 @@ export default function PersonFields({
             placeholder="มะลิ"
             className={CELL}
             value={field.state.value as string} 
-            onChange={(val) => field.handleChange(val)}
+            onChange={(val) => field.handleChange(formatEnglishOnly(val))}
           />
             )}
               />
@@ -187,7 +190,7 @@ export default function PersonFields({
             placeholder="มะลิ"
             className={CELL}
             value={field.state.value as string} 
-            onChange={(val) => field.handleChange(val)}
+            onChange={(val) => field.handleChange(formatEnglishOnly(val))}
           />)}
               />
           
@@ -272,6 +275,13 @@ export function ContactFields({person} : {person : 'advisor' | 'entrant1' | 'ent
   const { bind, clear } = useFieldGroup(EMPTY_CONTACT)
   const form = useRegisterForm()
 
+  const formatPhone = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 10)
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+
   return (
     <section className="flex w-full flex-col items-center justify-center gap-6">
       <SectionTitle title="ช่องทางติดต่อ" onClear={clear} />
@@ -299,7 +309,7 @@ export function ContactFields({person} : {person : 'advisor' | 'entrant1' | 'ent
           placeholder="080-000-0000"
           className={CELL}  
           value={field.state.value as string} 
-          onChange={(val) => field.handleChange(val)}
+          onChange={(val) => field.handleChange(formatPhone(val))}
         />
             )}
             />

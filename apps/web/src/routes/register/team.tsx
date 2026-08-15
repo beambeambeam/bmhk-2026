@@ -7,6 +7,7 @@ import {
   Label,
   SectionTitle,
   SelectField,
+  SchoolAutocompleteField,
   TextField,
   useFieldGroup,
   useFileSlot,
@@ -16,7 +17,7 @@ import { useForm } from '@tanstack/react-form'
 import { AppleIcon } from 'lucide-react'
 import { useRegisterForm } from '@/routes/register'
 import { z } from 'zod'
-import { orpc } from '@bmhk-2026/client/orpc'
+import { client } from '@bmhk-2026/client/orpc'
 import { useAuthNavigate } from '@/components/form/wizard-nav'
 import { toast } from 'sonner'
 
@@ -100,23 +101,30 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
              teamSize: team.teamSize
           })
           
-          const result = await orpc.teams.create.mutate({
+          let finalResult = await client.teams.create({
              name: validData.name,
              school: validData.school,
              memberCount: validData.teamSize
           })
 
+          if (team.photoFile) {
+            finalResult = await client.teams.image({
+              id: finalResult.id,
+              file: team.photoFile,
+            })
+          }
+
           form.setFieldValue('team', {
             ...team,
-            name: result.name,
-            school: result.school,
-            teamSize: result.memberCount,
+            name: finalResult.name,
+            school: finalResult.school,
+            teamSize: finalResult.memberCount,
           })
           
           go(to, 'forward')
         } catch (error) {
           if (error instanceof z.ZodError) {
-             toast.error(error.errors[0].message)
+             toast.error(error.issues[0].message)
           } else {
              console.error(error)
              toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล')
@@ -308,10 +316,10 @@ export default function TeamStep() {
             <form.Field
               name="team.school"
               children={(field) => (
-                <SelectField
+                <SchoolAutocompleteField
               label="สถานศึกษา"
               required
-              placeholder="เลือกสถานศึกษา"
+              placeholder="พิมพ์ชื่อสถานศึกษา"
               className="w-full"
               value={field.state.value}
               onChange={(val) => field.handleChange(val)}

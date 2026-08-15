@@ -82,7 +82,7 @@ export default function PersonFields({
         <div className={ROW}>
           <form.Field 
             name={`${person}.titleTh`}
-            children={(field) => {
+            children={(field) => (
               <SelectField
             label="คำนำหน้า"
             required
@@ -92,7 +92,7 @@ export default function PersonFields({
             value={field.state.value as string} 
             onChange={(val) => field.handleChange(val)}
             />
-            }}
+            )}
           />
           
           <form.Field 

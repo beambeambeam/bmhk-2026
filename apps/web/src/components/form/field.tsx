@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useToast } from '../toast/store'
 import { useRegisterForm } from '@/routes/register'
+import { useQuery } from '@tanstack/react-query'
 
 /**
  * Figma's field primitives (708:1311 and its siblings). Every control is a rounded-12
@@ -555,6 +556,68 @@ export function TextField({ label, required, placeholder, className, value, onCh
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
+    </FieldShell>
+  )
+}
+
+export function SchoolAutocompleteField({ label, required, placeholder, className, value, onChange }: BaseProps) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+  const [isOpen, setIsOpen] = useState(false)
+  const id = useId()
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [value])
+
+  const { data: schools = [] } = useQuery({
+    queryKey: ['schools', debouncedValue],
+    queryFn: async () => {
+      if (!debouncedValue || debouncedValue.length < 2) return []
+      const res = await fetch(`https://api.comcamp.io/api/util/schools?q=${encodeURIComponent(debouncedValue)}`)
+      if (!res.ok) return []
+      return res.json() as Promise<string[]>
+    },
+    enabled: debouncedValue.length >= 2,
+    staleTime: 60000,
+  })
+
+  return (
+    <FieldShell label={label} required={required} className={`relative ${className ?? ''}`}>
+      <input
+        type="text"
+        placeholder={placeholder}
+        className={BOX}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setIsOpen(true)
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        autoComplete="off"
+      />
+      {isOpen && schools.length > 0 && (
+        <ul 
+          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-[calc(7.896px_+_4.104*var(--fl))] border-[0.8px] border-[#dcdcdc] bg-white py-1 shadow-lg"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          {schools.map((school, i) => (
+            <li
+              key={i}
+              className="cursor-pointer px-[calc(7.896px_+_4.104*var(--fl))] py-[calc(5px_+_3*var(--fl))] text-[calc(13.844px_+_6.156*var(--fl))] text-ink transition-colors hover:bg-brand-red/5 hover:text-brand-red"
+              onClick={() => {
+                onChange(school)
+                setIsOpen(false)
+              }}
+            >
+              {school}
+            </li>
+          ))}
+        </ul>
+      )}
     </FieldShell>
   )
 }

@@ -42,17 +42,21 @@ const PANEL_STAGE = {
 
 function SignInRoute() {
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const firstArrival = useArrivalEntrance();
   const own = useOwnArrival();
   const entrance = firstArrival && own;
 
   const navigate = useNavigate();
   const go = useAuthNavigate();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
+
+  const isLoading = isSigningIn || isSessionPending || isChecking || !!session?.user;
 
   useEffect(() => {
     if (session?.user) {
       const checkRegistration = async () => {
+        setIsChecking(true);
         try {
           const res = await fetch(`${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`, {
             credentials: "include",
@@ -149,7 +153,7 @@ function SignInRoute() {
 
             <button
               type="button"
-              disabled={isSigningIn}
+              disabled={isLoading}
               onClick={() => {
                 void handleGoogleSignIn();
               }}
@@ -157,7 +161,7 @@ function SignInRoute() {
               className="auth-rise auth-rise-sm mm-press flex h-[calc(44.61px_+_15.39*var(--fl))] w-full items-center justify-center gap-[calc(15.896px_+_4.104*var(--fl))] rounded-[20px] bg-[#f6f6f6] px-6 py-[calc(9.844px_+_6.156*var(--fl))] font-display text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] font-semibold transition-colors hover:bg-[#ececec] disabled:opacity-50"
             >
               <GoogleLogo />
-              {isSigningIn ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบด้วย Google"}
+              {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบด้วย Google"}
             </button>
           </div>
         </div>

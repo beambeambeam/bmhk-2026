@@ -120,7 +120,7 @@ export function RegisterLayout(){
         firstNameEn: advisorData?.firstNameEn ?? '', 
         middleNameEn: advisorData?.middleNameEn ?? '', 
         lastNameEn: advisorData?.lastNameEn ?? '',
-        email: advisorData?.email ?? userEmail, 
+        email: advisorData?.email ?? '', 
         phone: advisorData?.phone ?? '',
         lineId: advisorData?.lineId ?? '',
         foodAllergies: advisorData?.foodAllergies ?? '', 
@@ -140,7 +140,7 @@ export function RegisterLayout(){
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
           titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',                                                                   
-          dateOfBirth: '', email: userEmail, phone: '', lineId: '',                                                              
+          dateOfBirth: '', email: '', phone: '', lineId: '',                                                              
           foodAllergies: '', dietaryRequirements: '', drugAllergies: '',                                                  
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
@@ -150,7 +150,7 @@ export function RegisterLayout(){
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
           titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',                                                                   
-          dateOfBirth: '', email: userEmail, phone: '', lineId: '',                                                              
+          dateOfBirth: '', email: '', phone: '', lineId: '',                                                              
           foodAllergies: '', dietaryRequirements: '', drugAllergies: '',                                                  
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
@@ -160,7 +160,7 @@ export function RegisterLayout(){
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
           titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',                                                                   
-          dateOfBirth: '', email: userEmail, phone: '', lineId: '',                                                              
+          dateOfBirth: '', email: '', phone: '', lineId: '',                                                              
           foodAllergies: '', dietaryRequirements: '', drugAllergies: '',                                                  
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,

@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useSearch } from "@tanstack/react-router";
 
 import ScrollEdgeEffect from "@/components/scroll-edge-effect";
 import Loader from "@/components/loader";
@@ -11,15 +10,11 @@ import { AuthTopBar } from "@/components/account-menu";
 import ResultModal from "./components/result-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
 import TeamDecor from "./components/team-decor";
-import { getBaseMembers, QUALIFIED_MODAL, REJECTED_MODAL, STATUS_VARIANTS } from "./team-data";
+import { getBaseMembers, QUALIFIED_MODAL, REJECTED_MODAL } from "./team-data";
 import type { TeamStatus } from "./team-data";
 
 const COPY = "/assets/figma/85282b0baf589ceb0eb17e9e2d027684e76a4e8b.svg";
 const DISCORD_32 = "/assets/figma/8353328712043444b22094d1885d9862cc9e8a45.svg";
-
-function isStatus(value: string | null): value is TeamStatus {
-  return value !== null && (STATUS_VARIANTS as readonly (string | null)[]).includes(value);
-}
 
 /** The indicator is drawn at this width and scaled to each tab, so only transform animates. */
 const BAR_W = 100;
@@ -158,16 +153,11 @@ function getApprovedStatus(
 }
 
 function getMappedStatus(
-  statusParam: string | null,
   _statusData: StatusData | null | undefined,
   reviewFeedback: ReviewFeedback | null | undefined,
   team: TeamData | null | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
-  if (isStatus(statusParam)) {
-    return statusParam;
-  }
-
   const feedbackStatus = reviewFeedback?.status;
 
   if (feedbackStatus === "REJECTED" || feedbackStatus === "FAILED") {
@@ -293,8 +283,6 @@ function MyTeamModals({
 }
 
 function useMyTeamData() {
-  const search = useSearch({ from: "/_auth/my-team" }) as Record<string, unknown>;
-
   const { data: statusData, isPending: isStatusPending } = useQuery(
     orpc.teamRegistrationStatus.get.queryOptions({ input: {} }),
   );
@@ -336,7 +324,6 @@ function useMyTeamData() {
     isLoading,
     participants,
     reviewFeedback,
-    search,
     statusData,
     team,
   };
@@ -465,14 +452,9 @@ function useMappedMembers(
 }
 
 function getAutoOpenedModal(
-  initialModal: string | null,
   status: TeamStatus,
   featureFlags?: FeatureFlagsInput | null,
 ): string | null {
-  if (initialModal !== null) {
-    return initialModal;
-  }
-
   const isAnnouncementWindow =
     featureFlags?.eligibleTeamsAnnouncement === true &&
     featureFlags?.qualifyingRound !== true &&
@@ -495,16 +477,12 @@ function getAutoOpenedModal(
   return null;
 }
 
-function useAutoOpenModal(
-  initialModal: string | null,
-  status: TeamStatus,
-  featureFlags?: FeatureFlagsInput | null,
-) {
-  const [modal, setModal] = useState<string | null>(initialModal);
+function useAutoOpenModal(status: TeamStatus, featureFlags?: FeatureFlagsInput | null) {
+  const [modal, setModal] = useState<string | null>(null);
   const [hasAutoOpenedModal, setHasAutoOpenedModal] = useState(false);
 
   if (!hasAutoOpenedModal) {
-    const autoModal = getAutoOpenedModal(initialModal, status, featureFlags);
+    const autoModal = getAutoOpenedModal(status, featureFlags);
     if (autoModal !== null) {
       setModal(autoModal);
       setHasAutoOpenedModal(true);
@@ -697,26 +675,16 @@ function MemberTabs({
 }
 
 export default function MyTeam() {
-  const {
-    advisor,
-    featureFlags,
-    isLoading,
-    participants,
-    reviewFeedback,
-    search,
-    statusData,
-    team,
-  } = useMyTeamData();
+  const { advisor, featureFlags, isLoading, participants, reviewFeedback, statusData, team } =
+    useMyTeamData();
 
   const MEMBERS = useMappedMembers(participants, advisor, statusData, team);
 
-  const statusParam = typeof search.status === "string" ? search.status : null;
-  const status = getMappedStatus(statusParam, statusData, reviewFeedback, team, featureFlags);
+  const status = getMappedStatus(statusData, reviewFeedback, team, featureFlags);
 
   const [pane, setPane] = useState<Pane>("team");
   const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
-  const initialModal = typeof search.modal === "string" ? search.modal : null;
-  const { modal, setModal } = useAutoOpenModal(initialModal, status, featureFlags);
+  const { modal, setModal } = useAutoOpenModal(status, featureFlags);
 
   if (isLoading) {
     return <Loader />;

@@ -72,7 +72,24 @@ export default function PersonFields({
   headingGap?: string
 }) {
   const form = useRegisterForm()
-  const { bind, clear } = useFieldGroup(EMPTY_PERSON)
+
+  const clear = () => {
+    form.setFieldValue(`${person}.titleTh` as any, '')
+    form.setFieldValue(`${person}.firstNameTh` as any, '')
+    form.setFieldValue(`${person}.middleNameTh` as any, '')
+    form.setFieldValue(`${person}.lastNameTh` as any, '')
+    form.setFieldValue(`${person}.titleEn` as any, '')
+    form.setFieldValue(`${person}.firstNameEn` as any, '')
+    form.setFieldValue(`${person}.middleNameEn` as any, '')
+    form.setFieldValue(`${person}.lastNameEn` as any, '')
+    if (withBirthDate) {
+      form.setFieldValue(`${person}.dateOfBirth` as any, '')
+    }
+    form.setFieldValue(`${person}.foodAllergies` as any, '')
+    form.setFieldValue(`${person}.dietaryRequirements` as any, '')
+    form.setFieldValue(`${person}.drugAllergies` as any, '')
+    form.setFieldValue(`${person}.chronicConditionsAndFirstAidNotes` as any, '')
+  }
 
   const formatThaiOnly = (val: string) => val.replace(/[^\u0E00-\u0E7F\s]/g, '')
   const formatEnglishOnly = (val: string) => val.replace(/[^A-Za-z\s]/g, '')
@@ -272,8 +289,13 @@ export default function PersonFields({
 }
 
 export function ContactFields({person} : {person : 'advisor' | 'entrant1' | 'entrant2' | 'entrant3'}) {
-  const { bind, clear } = useFieldGroup(EMPTY_CONTACT)
   const form = useRegisterForm()
+
+  const clear = () => {
+    form.setFieldValue(`${person}.email` as any, '')
+    form.setFieldValue(`${person}.phone` as any, '')
+    form.setFieldValue(`${person}.lineId` as any, '')
+  }
 
   const formatPhone = (val: string) => {
     const digits = val.replace(/\D/g, '').slice(0, 10)

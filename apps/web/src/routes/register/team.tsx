@@ -193,14 +193,9 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
 }
 
 
-/* the two text controls of this section, so "ล้าง" has something to put back */
-const EMPTY = { name: '', school: '' }
-
-/** Figma 708:1255 — the shortest step, which is why the shell's card floor is 832. */
 export default function TeamStep() {
   /* the caption says จำกัดขนาดไม่เกิน 5 MB, so 5 MB is what the box enforces */
   const photo = useFileSlot({ kind: 'image', maxMB: 5 })
-  const { bind, clear } = useFieldGroup(EMPTY)
   const form = useRegisterForm()
 
   /*
@@ -229,7 +224,8 @@ export default function TeamStep() {
         <SectionTitle
           title="ข้อมูลทีม"
           onClear={() => {
-            clear()
+            form.setFieldValue('team.name', '')
+            form.setFieldValue('team.school', '')
             setSize(null)
             setTouched(false)
             photo.clear()

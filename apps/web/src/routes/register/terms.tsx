@@ -122,22 +122,10 @@ export function TermsSubmitButton({ to, label }: { to: string; label: string }) 
 
           const validData = termsSchema.parse(terms)
 
-          let finalResult;
-          try {
-            finalResult = await client.teamConsents.update({
-              teamId: status.teamId,
-              data: validData
-            })
-          } catch (e: any) {
-            if (e?.data?.code === 'TEAM_CONSENT_NOT_FOUND' || e?.status === 404 || e?.message?.includes('not found')) {
-              finalResult = await client.teamConsents.create({
-                 teamId: status.teamId,
-                 ...validData
-              })
-            } else {
-              throw e
-            }
-          }
+          let finalResult = await client.teamConsents.create({
+             teamId: status.teamId,
+             ...validData
+          })
 
           form.setFieldValue('terms', {
             ...terms,
@@ -271,7 +259,7 @@ function ConsentChoice({ name,consentProperties }:
     consentProperties: 'healthDataConsent' | 'guardianConsentObtained' | 'publicityMediaConsent'
   }) {
   const form = useRegisterForm()
-  const [value, setValue] = useState<'yes' | 'no'>('yes')
+  const [value, setValue] = useState<'yes' | 'no'>(() => form.getFieldValue(`terms.${consentProperties}`) ? 'yes' : 'no')
   const [touched, setTouched] = useState(false)
 
   return (
@@ -347,7 +335,14 @@ type OpenDoc = { title: string; x: number; y: number }
 export default function TermsStep() {
   const form = useRegisterForm()
   const [openDoc, setOpenDoc] = useState<OpenDoc | null>(null)
-  const [accepted, setAccepted] = useState<string[]>([])
+  const [accepted, setAccepted] = useState<string[]>(() => {
+    const terms = form.getFieldValue('terms')
+    const acc: string[] = []
+    if (terms.privacyPolicyAccepted) acc.push('นโยบายความเป็นส่วนตัว')
+    if (terms.competitionRulesAccepted) acc.push('กฏกติกาการแข่งขัน')
+    if (terms.codernTermsAccepted) acc.push('ข้อกำหนดการใช้งาน Codern')
+    return acc
+  })
 
 
 

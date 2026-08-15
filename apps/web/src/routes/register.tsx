@@ -93,6 +93,8 @@ export function useRegisterForm(){
 
 export function RegisterLayout(){
   const { statusData, teamData } = Route.useLoaderData()
+  const { userSession } = Route.useRouteContext()
+  const userEmail = userSession?.user?.email || ''
 
   const formOptions = useMemo(() => ({
     defaultValues: {
@@ -108,7 +110,7 @@ export function RegisterLayout(){
       advisor: {
         titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',
         titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',
-        email: '', phone: '',lineId: '',
+        email: userEmail, phone: '',lineId: '',
         foodAllergies: '', dietaryRequirements: '', drugAllergies: '',
         chronicConditionsAndFirstAidNotes: '',
         identityDocumentFile: null, teacherStatusDocumentFile: null,
@@ -119,7 +121,7 @@ export function RegisterLayout(){
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
           titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',                                                                   
-          dateOfBirth: '', email: '', phone: '', lineId: '',                                                              
+          dateOfBirth: '', email: userEmail, phone: '', lineId: '',                                                              
           foodAllergies: '', dietaryRequirements: '', drugAllergies: '',                                                  
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
@@ -129,7 +131,7 @@ export function RegisterLayout(){
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
           titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',                                                                   
-          dateOfBirth: '', email: '', phone: '', lineId: '',                                                              
+          dateOfBirth: '', email: userEmail, phone: '', lineId: '',                                                              
           foodAllergies: '', dietaryRequirements: '', drugAllergies: '',                                                  
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
@@ -139,7 +141,7 @@ export function RegisterLayout(){
         {
           titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',                                                                   
           titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',                                                                   
-          dateOfBirth: '', email: '', phone: '', lineId: '',                                                              
+          dateOfBirth: '', email: userEmail, phone: '', lineId: '',                                                              
           foodAllergies: '', dietaryRequirements: '', drugAllergies: '',                                                  
           chronicConditionsAndFirstAidNotes: '',                                                                          
           portraitPhotoFile: null, identityDocumentFile: null, academicRecordDocumentFile: null,
@@ -178,6 +180,7 @@ export const Route = createFileRoute('/register')({
         to: "/signin",
       });
     }
+    return { userSession: session.data };
   },
   loader: async () => {
     try {

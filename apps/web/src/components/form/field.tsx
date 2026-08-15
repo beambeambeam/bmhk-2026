@@ -858,7 +858,7 @@ export function UploadBox({
  * Numbered document requirement plus its upload target, on Figma's 32 gap. The number
  * is a real `<ol>` marker so the 30 indent and the counter match the design exactly.
  */
-export function DocumentRow({ index, text, onChange, file }: { index: number; text: string; onChange?: (file: File | null) => void; file?: File | null | string }) {
+export function DocumentRow({ index, text, onChange, file, kind, hint, maxMB }: { index: number; text: string; onChange?: (file: File | null) => void; file?: File | null | string; kind?: 'image' | 'pdf'; hint?: string; maxMB?: number }) {
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
       <ol start={index} className="min-w-0 flex-1 list-decimal">
@@ -866,7 +866,7 @@ export function DocumentRow({ index, text, onChange, file }: { index: number; te
           {text}
         </li>
       </ol>
-      <UploadBox onChange={onChange} file={file} />
+      <UploadBox onChange={onChange} file={file} kind={kind} hint={hint} maxMB={maxMB} />
     </div>
   )
 }

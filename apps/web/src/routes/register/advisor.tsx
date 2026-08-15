@@ -69,13 +69,13 @@ function AdvisorNextButton({ to, label = 'ถัดไป' }: { to: string; labe
             lastNameEn: advisor.lastNameEn,
             email: advisor.email,
             phone: advisor.phone,
-            middleNameTh: advisor.middleNameTh || '',
-            middleNameEn: advisor.middleNameEn || '',
-            lineId: advisor.lineId || '',
-            foodAllergies: advisor.foodAllergies || '',
-            dietaryRequirements: advisor.dietaryRequirements || '',
-            drugAllergies: advisor.drugAllergies || '',
-            chronicConditionsAndFirstAidNotes: advisor.chronicConditionsAndFirstAidNotes || '',
+            middleNameTh: advisor.middleNameTh || undefined,
+            middleNameEn: advisor.middleNameEn || undefined,
+            lineId: advisor.lineId || undefined,
+            foodAllergies: advisor.foodAllergies || undefined,
+            dietaryRequirements: advisor.dietaryRequirements || undefined,
+            drugAllergies: advisor.drugAllergies || undefined,
+            chronicConditionsAndFirstAidNotes: advisor.chronicConditionsAndFirstAidNotes || undefined,
           })
 
           const initialAdvisor = form.options.defaultValues?.advisor;

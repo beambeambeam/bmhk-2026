@@ -67,18 +67,18 @@ function EntrantNextButton({ to, entrantKey }: { to: string; entrantKey: 'entran
           }
           
           const payload = {
-            chronicConditionsAndFirstAidNotes: validData.chronicConditionsAndFirstAidNotes || "",
-            dietaryRequirements: validData.dietaryRequirements || "",
-            drugAllergies: validData.drugAllergies || "",
+            chronicConditionsAndFirstAidNotes: validData.chronicConditionsAndFirstAidNotes || undefined,
+            dietaryRequirements: validData.dietaryRequirements || undefined,
+            drugAllergies: validData.drugAllergies || undefined,
             email: validData.email,
             firstNameEn: validData.firstNameEn,
             firstNameTh: validData.firstNameTh,
-            foodAllergies: validData.foodAllergies || "",
+            foodAllergies: validData.foodAllergies || undefined,
             lastNameEn: validData.lastNameEn,
             lastNameTh: validData.lastNameTh,
-            lineId: validData.lineId || "",
-            middleNameEn: validData.middleNameEn || "",
-            middleNameTh: validData.middleNameTh || "",
+            lineId: validData.lineId || undefined,
+            middleNameEn: validData.middleNameEn || undefined,
+            middleNameTh: validData.middleNameTh || undefined,
             phone: validData.phone,
             titleEn: validData.titleEn,
             titleTh: validData.titleTh,
@@ -258,6 +258,8 @@ export default function EntrantStep() {
                   text={STUDENT_DOCUMENTS[0]}
                   onChange={(f) => field.handleChange(f)}
                   file={field.state.value || form.getFieldValue(`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.portraitPhotoName`)}
+                  kind="image"
+                  hint="จำกัดขนาดเอกสารไม่เกิน 10 MB (รูปภาพเท่านั้น)"
                 />
               )}
             />

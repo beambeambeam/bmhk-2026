@@ -85,6 +85,33 @@ function EntrantNextButton({ to, entrantKey }: { to: string; entrantKey: 'entran
             dateOfBirth: validData.dateOfBirth,
           }
 
+          const initialEntrant = form.options.defaultValues?.[entrantKey as keyof typeof form.options.defaultValues] as any;
+          const isDirty = !initialEntrant ||
+            validData.titleTh !== initialEntrant.titleTh ||
+            validData.firstNameTh !== initialEntrant.firstNameTh ||
+            validData.lastNameTh !== initialEntrant.lastNameTh ||
+            validData.titleEn !== initialEntrant.titleEn ||
+            validData.firstNameEn !== initialEntrant.firstNameEn ||
+            validData.lastNameEn !== initialEntrant.lastNameEn ||
+            validData.email !== initialEntrant.email ||
+            validData.phone !== initialEntrant.phone ||
+            (validData.middleNameTh || '') !== (initialEntrant.middleNameTh || '') ||
+            (validData.middleNameEn || '') !== (initialEntrant.middleNameEn || '') ||
+            (validData.lineId || '') !== (initialEntrant.lineId || '') ||
+            (validData.foodAllergies || '') !== (initialEntrant.foodAllergies || '') ||
+            (validData.dietaryRequirements || '') !== (initialEntrant.dietaryRequirements || '') ||
+            (validData.drugAllergies || '') !== (initialEntrant.drugAllergies || '') ||
+            (validData.chronicConditionsAndFirstAidNotes || '') !== (initialEntrant.chronicConditionsAndFirstAidNotes || '') ||
+            validData.dateOfBirth !== initialEntrant.dateOfBirth ||
+            entrant.portraitPhotoFile != null ||
+            entrant.identityDocumentFile != null ||
+            entrant.academicRecordDocumentFile != null;
+
+          if (!isDirty && hasPortrait && hasIdentityDoc && hasAcademicRecord) {
+            go(to, 'forward');
+            return;
+          }
+
           try {
             await client.teamParticipants.update({
               index,

@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { useAuthNavigate } from '@/components/form/wizard-nav'
 import { toast } from 'sonner'
+import { client } from '@bmhk-2026/client/orpc'
 
 const advisorSchema = z.object({
   titleTh: z.string().trim().min(1, 'กรุณาระบุคำนำหน้าชื่อ (ภาษาไทย)'),
@@ -42,6 +43,20 @@ function AdvisorNextButton({ to, label = 'ถัดไป' }: { to: string; labe
         setBusy(true)
         try {
           const advisor = form.getFieldValue('advisor')
+          const status = form.getFieldValue('status')
+
+          if (!status || !status.teamId) {
+            toast.error('กรุณาสร้างทีมก่อน')
+            setBusy(false)
+            return
+          }
+
+          if (!advisor.identityDocumentFile || !advisor.teacherStatusDocumentFile) {
+            toast.error('กรุณาอัปโหลดเอกสารให้ครบถ้วน')
+            setBusy(false)
+            return
+          }
+
           const validData = advisorSchema.parse({
             titleTh: advisor.titleTh,
             firstNameTh: advisor.firstNameTh,
@@ -51,20 +66,44 @@ function AdvisorNextButton({ to, label = 'ถัดไป' }: { to: string; labe
             lastNameEn: advisor.lastNameEn,
             email: advisor.email,
             phone: advisor.phone,
-            middleNameTh: advisor.middleNameTh,
-            middleNameEn: advisor.middleNameEn,
-            lineId: advisor.lineId,
-            foodAllergies: advisor.foodAllergies,
-            dietaryRequirements: advisor.dietaryRequirements,
-            drugAllergies: advisor.drugAllergies,
-            chronicConditionsAndFirstAidNotes: advisor.chronicConditionsAndFirstAidNotes,
+            middleNameTh: advisor.middleNameTh || '',
+            middleNameEn: advisor.middleNameEn || '',
+            lineId: advisor.lineId || '',
+            foodAllergies: advisor.foodAllergies || '',
+            dietaryRequirements: advisor.dietaryRequirements || '',
+            drugAllergies: advisor.drugAllergies || '',
+            chronicConditionsAndFirstAidNotes: advisor.chronicConditionsAndFirstAidNotes || '',
           })
-          
+
+          let finalResult;
+          try {
+            finalResult = await client.teamAdvisors.update({
+              teamId: status.teamId,
+              data: validData
+            })
+          } catch (e: any) {
+            if (e?.data?.code === 'TEAM_ADVISOR_NOT_FOUND' || e?.status === 404 || e?.message?.includes('not found')) {
+              finalResult = await client.teamAdvisors.create({
+                 teamId: status.teamId,
+                 ...validData
+              })
+            } else {
+              throw e
+            }
+          }
+
           form.setFieldValue('advisor', {
             ...advisor,
-            ...validData
+            ...finalResult,
+            middleNameTh: finalResult.middleNameTh ?? '',
+            middleNameEn: finalResult.middleNameEn ?? '',
+            lineId: finalResult.lineId ?? '',
+            foodAllergies: finalResult.foodAllergies ?? '',
+            dietaryRequirements: finalResult.dietaryRequirements ?? '',
+            drugAllergies: finalResult.drugAllergies ?? '',
+            chronicConditionsAndFirstAidNotes: finalResult.chronicConditionsAndFirstAidNotes ?? '',
           })
-          
+
           go(to, 'forward')
         } catch (error) {
           if (error instanceof z.ZodError) {

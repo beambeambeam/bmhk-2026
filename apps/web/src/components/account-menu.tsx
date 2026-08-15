@@ -216,7 +216,7 @@ export default function AccountMenu({ className = '' }: { className?: string }) 
      * are static or animated and therefore paint at z-index 0. Without a z here the open panel
      * would open UNDER the card below it.
      */
-    <div ref={rootRef} className={`relative z-20 ${className}`}>
+    <div ref={rootRef} className={`relative z-50 ${className}`}>
       <button
         ref={chipRef}
         type="button"
@@ -424,7 +424,7 @@ export function AuthTopBar({
 }: { className?: string } & HTMLAttributes<HTMLElement>) {
   return (
     <header
-      className={`flex items-center justify-between gap-4 ${PLATE_RADIUS} bg-white p-5 shadow-soft ${className}`}
+      className={`relative z-50 flex items-center justify-between gap-4 ${PLATE_RADIUS} bg-white p-5 shadow-soft ${className}`}
       {...rest}
     >
       <Link to="/" className="mm-press shrink-0" viewTransition>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from 'react'
-import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import {useForm} from '@tanstack/react-form'
+import { authClient } from "@bmhk-2026/client/auth-client";
 
 export interface teamFormData{
   name: string                                                                                                          
@@ -153,5 +154,14 @@ export function RegisterLayout(){
 }
 
 export const Route = createFileRoute('/register')({
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (!session.data) {
+      // oxlint-disable-next-line typescript/only-throw-error
+      throw redirect({
+        to: "/signin",
+      });
+    }
+  },
   component: RegisterLayout
 })

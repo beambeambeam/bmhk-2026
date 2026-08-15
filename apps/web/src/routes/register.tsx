@@ -104,7 +104,7 @@ import { useUserSession } from '@/contexts/user-context'
 import { useNavigate } from '@tanstack/react-router'
 
 export function RegisterLayout(){
-  const { statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data } = Route.useLoaderData()
+  const { statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData } = Route.useLoaderData()
   const session = useUserSession()
   const navigate = useNavigate()
   
@@ -195,12 +195,12 @@ export function RegisterLayout(){
         academicRecordDocumentFile: null, academicRecordDocumentUrl: entrant3Data?.academicRecordDocument?.url ?? null, academicRecordDocumentName: entrant3Data?.academicRecordDocument?.originalName ?? null,
       },
       terms: {
-        privacyPolicyAccepted: false,                                                                                     
-        competitionRulesAccepted: false,                                                                                  
-        codernTermsAccepted: false,                                                                                       
-        publicityMediaConsent: true,                                                                                     
-        healthDataConsent: true,                                                                                         
-        guardianConsentObtained: true, 
+        privacyPolicyAccepted: termsData?.privacyPolicyAccepted ?? false,
+        competitionRulesAccepted: termsData?.competitionRulesAccepted ?? false,
+        codernTermsAccepted: termsData?.codernTermsAccepted ?? false,
+        publicityMediaConsent: termsData?.publicityMediaConsent ?? true,
+        healthDataConsent: termsData?.healthDataConsent ?? true,
+        guardianConsentObtained: termsData?.guardianConsentObtained ?? true, 
       },
       success: {},
     },
@@ -208,7 +208,7 @@ export function RegisterLayout(){
       //await api
       console.log('📦 Intercepted Payload:', JSON.stringify(value, null, 2))
     }
-  }), [statusData, teamData, advisorData])
+  }), [statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData])
 
   const form = useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>(formOptions)
 
@@ -241,13 +241,16 @@ export const Route = createFileRoute('/register')({
           try { entrant3 = await client.teamParticipants.get({ teamId: statusRes.teamId, index: 3 }) } catch (e) { }
         }
 
-        return { statusData: statusRes, teamData: team, advisorData: advisor, entrant1Data: entrant1, entrant2Data: entrant2, entrant3Data: entrant3 }
+        let terms = null
+        try { terms = await client.teamConsents.get({ teamId: statusRes.teamId }) } catch (e) { }
+
+        return { statusData: statusRes, teamData: team, advisorData: advisor, entrant1Data: entrant1, entrant2Data: entrant2, entrant3Data: entrant3, termsData: terms }
       }
-      return { statusData: statusRes, teamData: null, advisorData: null, entrant1Data: null, entrant2Data: null, entrant3Data: null }
+      return { statusData: statusRes, teamData: null, advisorData: null, entrant1Data: null, entrant2Data: null, entrant3Data: null, termsData: null }
     } catch (e) {
       console.error(e)
     }
-    return { statusData: null, teamData: null, advisorData: null, entrant1Data: null, entrant2Data: null, entrant3Data: null }
+    return { statusData: null, teamData: null, advisorData: null, entrant1Data: null, entrant2Data: null, entrant3Data: null, termsData: null }
   },
   component: RegisterLayout
 })

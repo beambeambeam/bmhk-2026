@@ -250,9 +250,39 @@ export default function EntrantStep() {
               siblings of the heading in one 16-gap column at 402 (`1243:1370`) and grouped into
               `1243:1732` on 24 at 1440. `gap-6` was the 1440 figure held flat. */}
           <div className="flex w-full flex-col items-start gap-[calc(15.792px_+_8.208*var(--fl))]">
-            {STUDENT_DOCUMENTS.map((doc, i) => (
-              <DocumentRow key={doc} index={i + 1} text={doc} />
-            ))}
+            <form.Field
+              name={`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.portraitPhotoFile`}
+              children={(field) => (
+                <DocumentRow
+                  index={1}
+                  text={STUDENT_DOCUMENTS[0]}
+                  onChange={(f) => field.handleChange(f)}
+                  file={field.state.value || form.getFieldValue(`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.portraitPhotoName`)}
+                />
+              )}
+            />
+            <form.Field
+              name={`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.identityDocumentFile`}
+              children={(field) => (
+                <DocumentRow
+                  index={2}
+                  text={STUDENT_DOCUMENTS[1]}
+                  onChange={(f) => field.handleChange(f)}
+                  file={field.state.value || form.getFieldValue(`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.identityDocumentName`)}
+                />
+              )}
+            />
+            <form.Field
+              name={`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.academicRecordDocumentFile`}
+              children={(field) => (
+                <DocumentRow
+                  index={3}
+                  text={STUDENT_DOCUMENTS[2]}
+                  onChange={(f) => field.handleChange(f)}
+                  file={field.state.value || form.getFieldValue(`${n === 1 ? 'entrant1' : n === 2 ? 'entrant2' : 'entrant3'}.academicRecordDocumentName`)}
+                />
+              )}
+            />
           </div>
         </section>
 

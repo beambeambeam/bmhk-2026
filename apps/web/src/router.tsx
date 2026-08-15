@@ -7,6 +7,8 @@ import Loader from "./components/loader";
 import NotFound from "./components/not-found";
 import { routeTree } from "./routeTree.gen";
 
+import { trackAuthNav } from "./components/form/wizard-nav";
+
 export function getRouter() {
   const queryClient = createQueryClient();
   const router = createTanStackRouter({
@@ -22,6 +24,10 @@ export function getRouter() {
     queryClient,
     router,
   });
+
+  if (typeof window !== "undefined") {
+    trackAuthNav(router as any);
+  }
 
   return router;
 }

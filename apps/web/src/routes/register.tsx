@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useMemo } from 'react'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import {useForm} from '@tanstack/react-form'
 
@@ -86,7 +86,7 @@ export function useRegisterForm(){
 
 
 export function RegisterLayout(){
-  const form = useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>({
+  const formOptions = useMemo(() => ({
     defaultValues: {
       team : {name: '', school: '', teamSize: 2, photoFile: null },
       advisor: {
@@ -138,11 +138,13 @@ export function RegisterLayout(){
         guardianConsentObtained: true, 
       },
     },
-    onSubmit: async ({value}) => {
+    onSubmit: async ({value}: {value: RegistrationFormData}) => {
       //await api
       console.log('📦 Intercepted Payload:', JSON.stringify(value, null, 2))
     }
-  })
+  }), [])
+
+  const form = useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>(formOptions)
 
   return( <RegisterFormContext.Provider value={form}>
     <Outlet />

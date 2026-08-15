@@ -95,17 +95,30 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
         setBusy(true)
         try {
           const team = form.getFieldValue('team')
+          const status = form.getFieldValue('status')
           const validData = teamSchema.parse({
              name: team.name,
              school: team.school,
              teamSize: team.teamSize
           })
           
-          let finalResult = await client.teams.create({
-             name: validData.name,
-             school: validData.school,
-             memberCount: validData.teamSize
-          })
+          let finalResult;
+          if (status && status.teamId) {
+            finalResult = await client.teams.update({
+              id: status.teamId,
+              data: {
+                name: validData.name,
+                school: validData.school,
+                memberCount: validData.teamSize
+              }
+            })
+          } else {
+            finalResult = await client.teams.create({
+               name: validData.name,
+               school: validData.school,
+               memberCount: validData.teamSize
+            })
+          }
 
           if (team.photoFile) {
             finalResult = await client.teams.image({

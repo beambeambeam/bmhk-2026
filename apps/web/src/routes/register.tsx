@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo } from 'react'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import {useForm} from '@tanstack/react-form'
 import { authClient } from "@bmhk-2026/client/auth-client";
+import { client } from "@bmhk-2026/client/orpc";
 
 export interface teamFormData{
   name: string                                                                                                          
@@ -89,10 +90,17 @@ export function useRegisterForm(){
 
 
 export function RegisterLayout(){
+  const { statusData, teamData } = Route.useLoaderData()
+
   const formOptions = useMemo(() => ({
     defaultValues: {
-      status: {},
-      team : {name: '', school: '', teamSize: 2, photoFile: null },
+      status: statusData || {},
+      team : {
+        name: teamData?.name || '',
+        school: teamData?.school || '',
+        teamSize: teamData?.memberCount || 2,
+        photoFile: null 
+      },
       advisor: {
         titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',
         titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',
@@ -147,7 +155,7 @@ export function RegisterLayout(){
       //await api
       console.log('📦 Intercepted Payload:', JSON.stringify(value, null, 2))
     }
-  }), [])
+  }), [statusData, teamData])
 
   const form = useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>(formOptions)
 
@@ -166,6 +174,19 @@ export const Route = createFileRoute('/register')({
         to: "/signin",
       });
     }
+  },
+  loader: async () => {
+    try {
+      const statusRes = await client.teamRegistrationStatus.get({})
+      if (statusRes && statusRes.teamId) {
+        const team = await client.teams.get({ id: statusRes.teamId })
+        return { statusData: statusRes, teamData: team }
+      }
+      return { statusData: statusRes, teamData: null }
+    } catch (e) {
+      console.error(e)
+    }
+    return { statusData: null, teamData: null }
   },
   component: RegisterLayout
 })

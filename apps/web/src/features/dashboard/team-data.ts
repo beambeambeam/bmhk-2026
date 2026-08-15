@@ -76,15 +76,15 @@ export interface TeamAdvisorApi {
 
 export interface Person {
   academicRecordDocumentFileId: string;
-  chronicConditionsAndFirstAidNotes: string;
+  chronicConditionsAndFirstAidNotes?: string;
   dateOfBirth?: string;
-  dietaryRequirements: string;
+  dietaryRequirements?: string;
   documents: { file: string; label: string; size: string; url?: string }[];
-  drugAllergies: string;
+  drugAllergies?: string;
   email: string;
   firstNameEn: string;
   firstNameTh: string;
-  foodAllergies: string;
+  foodAllergies?: string;
   heading: string;
   icon: { off: string; on: string };
   isAdvisor?: boolean;
@@ -149,13 +149,9 @@ const ADVISOR_DOCUMENTS = [
 
 export const EMPTY_SHARED = {
   academicRecordDocumentFileId: "-",
-  chronicConditionsAndFirstAidNotes: "-",
-  dietaryRequirements: "-",
-  drugAllergies: "-",
   email: "-",
   firstNameEn: "-",
   firstNameTh: "-",
-  foodAllergies: "-",
   lastNameEn: "-",
   lastNameTh: "-",
   lineId: "-",

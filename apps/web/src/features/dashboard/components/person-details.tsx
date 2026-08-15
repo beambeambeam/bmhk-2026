@@ -107,41 +107,25 @@ export default function PersonDetails({ person }: { person: Person }) {
             </Field>
           </FieldRow>
         ) : (
-          <>
-            {/* three columns at 1440 (`708:2351`), stacked on the phone (`1297:1165`) */}
-            <FieldRow cols={3}>
-              <Field label="ชื่อ-สกุล">
-                {formatPersonName(
-                  person.titleTh,
-                  person.firstNameTh,
-                  person.middleNameTh,
-                  person.lastNameTh,
-                )}
-              </Field>
-              <Field label="Name">
-                {formatPersonName(
-                  person.titleEn,
-                  person.firstNameEn,
-                  person.middleNameEn,
-                  person.lastNameEn,
-                )}
-              </Field>
-              {person.dateOfBirth !== undefined && person.dateOfBirth !== "" && (
-                <Field label="วัน/เดือน/ปีเกิด">{formatThaiDate(person.dateOfBirth)}</Field>
+          <FieldRow cols={3}>
+            <Field label="ชื่อ-สกุล">
+              {formatPersonName(
+                person.titleTh,
+                person.firstNameTh,
+                person.middleNameTh,
+                person.lastNameTh,
               )}
-            </FieldRow>
-
-            {/* two-up on both anchors: `1297:1179` is a row of two 155s in the 322 card */}
-            <FieldRow cols={2}>
-              <Field label="อาหารที่แพ้">{person.foodAllergies}</Field>
-              <Field label="ประเภทอาหาร">{person.dietaryRequirements}</Field>
-            </FieldRow>
-
-            <FieldRow cols={2}>
-              <Field label="ยาที่แพ้">{person.drugAllergies}</Field>
-              <Field label="โรคประจำตัว">{person.chronicConditionsAndFirstAidNotes}</Field>
-            </FieldRow>
-          </>
+            </Field>
+            <Field label="Name">
+              {formatPersonName(
+                person.titleEn,
+                person.firstNameEn,
+                person.middleNameEn,
+                person.lastNameEn,
+              )}
+            </Field>
+            <Field label="วัน/เดือน/ปีเกิด">{formatThaiDate(person.dateOfBirth)}</Field>
+          </FieldRow>
         )}
       </Section>
 

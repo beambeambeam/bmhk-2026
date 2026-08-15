@@ -343,9 +343,7 @@ function mapParticipant(p: ParticipantType | undefined, mockMember: MockMemberTy
   }
   return {
     ...mockMember,
-    chronicConditionsAndFirstAidNotes: val(p.chronicConditionsAndFirstAidNotes),
     dateOfBirth: val(p.dateOfBirth),
-    dietaryRequirements: val(p.dietaryRequirements),
     documents: [
       {
         file: p.portraitPhoto?.originalName ?? "ไม่มีไฟล์",
@@ -362,16 +360,14 @@ function mapParticipant(p: ParticipantType | undefined, mockMember: MockMemberTy
       },
       {
         file: p.academicRecordDocument?.originalName ?? "ไม่มีไฟล์",
-        label: "สำเนา ปพ.7 (ระเบียนแสดงผลการเรียน) ของผู้เข้าแข่งขัน พร้อมเซ็นสำเนาถูกต้อง",
+        label: "สำเนา ปพ.7 (ระเบียนแสดงผลการเรียน) ฉบับจริง",
         size: formatSize(p.academicRecordDocument?.sizeBytes),
         url: p.academicRecordDocument?.url,
       },
     ],
-    drugAllergies: val(p.drugAllergies),
     email: p.email,
     firstNameEn: val(p.firstNameEn),
     firstNameTh: val(p.firstNameTh),
-    foodAllergies: val(p.foodAllergies),
     lastNameEn: val(p.lastNameEn),
     lastNameTh: val(p.lastNameTh),
     lineId: val(p.lineId),
@@ -389,8 +385,6 @@ function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMem
   }
   return {
     ...mockMember,
-    chronicConditionsAndFirstAidNotes: val(advisor.chronicConditionsAndFirstAidNotes),
-    dietaryRequirements: val(advisor.dietaryRequirements),
     documents: [
       {
         file: advisor.identityDocument?.originalName ?? "ไม่มีไฟล์",
@@ -401,16 +395,15 @@ function mapAdvisor(advisor: AdvisorType | undefined | null, mockMember: MockMem
       },
       {
         file: advisor.teacherStatusDocument?.originalName ?? "ไม่มีไฟล์",
-        label: "หนังสือรับรองความเป็นครู",
+        label:
+          "เอกสารแสดงสถานภาพการเป็นอาจารย์ประจำในสถานศึกษา เช่น บัตรประจำตัวอาจารย์ บัตรข้าราชการครู หรือหนังสือรับรองจากสถานศึกษา",
         size: formatSize(advisor.teacherStatusDocument?.sizeBytes),
         url: advisor.teacherStatusDocument?.url,
       },
     ],
-    drugAllergies: val(advisor.drugAllergies),
     email: advisor.email,
     firstNameEn: val(advisor.firstNameEn),
     firstNameTh: val(advisor.firstNameTh),
-    foodAllergies: val(advisor.foodAllergies),
     lastNameEn: val(advisor.lastNameEn),
     lastNameTh: val(advisor.lastNameTh),
     lineId: val(advisor.lineId),

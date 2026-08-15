@@ -1,9 +1,9 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
-
+import { env } from "@bmhk-2026/env/web";
 import AuthBackdrop, { PhoneAuthBackdrop } from "@/components/auth-backdrop";
 import { useOwnArrival } from "@/components/form/wizard-nav";
 import GoogleLogo from "@/components/google-logo";
@@ -46,11 +46,39 @@ function SignInRoute() {
   const own = useOwnArrival();
   const entrance = firstArrival && own;
 
+  const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (session?.user) {
+      const checkRegistration = async () => {
+        try {
+          const res = await fetch(`${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`, {
+            credentials: "include",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.isComplete) {
+              navigate({ to: "/dashboard" });
+            } else {
+              navigate({ to: "/register" });
+            }
+          } else {
+            navigate({ to: "/register" });
+          }
+        } catch {
+          navigate({ to: "/register" });
+        }
+      };
+      void checkRegistration();
+    }
+  }, [session?.user, navigate]);
+
   async function handleGoogleSignIn() {
     setIsSigningIn(true);
     await authClient.signIn.social(
       {
-        callbackURL: `${window.location.origin}/dashboard`,
+        callbackURL: `${window.location.origin}/signin`,
         errorCallbackURL: `${window.location.origin}/signin`,
         provider: "google",
       },

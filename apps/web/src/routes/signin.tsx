@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { env } from "@bmhk-2026/env/web";
 import AuthBackdrop, { PhoneAuthBackdrop } from "@/components/auth-backdrop";
-import { useOwnArrival } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useOwnArrival } from "@/components/form/wizard-nav";
 import GoogleLogo from "@/components/google-logo";
 import { STACKED_ASPECT, StackedLockup } from "@/components/lockup";
 
@@ -47,6 +47,7 @@ function SignInRoute() {
   const entrance = firstArrival && own;
 
   const navigate = useNavigate();
+  const go = useAuthNavigate();
   const { data: session } = authClient.useSession();
 
   useEffect(() => {
@@ -61,18 +62,18 @@ function SignInRoute() {
             if (data.isComplete) {
               navigate({ to: "/dashboard" });
             } else {
-              navigate({ to: "/register" });
+              go("/register", "gate");
             }
           } else {
-            navigate({ to: "/register" });
+            go("/register", "gate");
           }
         } catch {
-          navigate({ to: "/register" });
+          go("/register", "gate");
         }
       };
       void checkRegistration();
     }
-  }, [session?.user, navigate]);
+  }, [session?.user, navigate, go]);
 
   async function handleGoogleSignIn() {
     setIsSigningIn(true);

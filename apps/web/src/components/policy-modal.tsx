@@ -341,7 +341,7 @@ export default function PolicyModal({
               onClick={onDecline}
               className={`${ANSWER} bg-[#efefef] transition-colors hover:bg-[#e2e2e2]`}
             >
-              ไม่ยอมรับ
+              ปิด
             </button>
             <button
               type="button"

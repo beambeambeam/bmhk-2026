@@ -51,7 +51,10 @@ function AdvisorNextButton({ to, label = 'ถัดไป' }: { to: string; labe
             return
           }
 
-          if (!advisor.identityDocumentFile || !advisor.teacherStatusDocumentFile) {
+          const hasIdentityDoc = advisor.identityDocumentFile || advisor.identityDocumentUrl
+          const hasTeacherStatusDoc = advisor.teacherStatusDocumentFile || advisor.teacherStatusDocumentUrl
+
+          if (!hasIdentityDoc || !hasTeacherStatusDoc) {
             toast.error('กรุณาอัปโหลดเอกสารให้ครบถ้วน')
             setBusy(false)
             return

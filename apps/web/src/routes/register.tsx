@@ -30,7 +30,11 @@ export interface advisorFormData{
   drugAllergies: string
   chronicConditionsAndFirstAidNotes: string
   identityDocumentFile: File | null
+  identityDocumentUrl?: string | null
+  identityDocumentName?: string | null
   teacherStatusDocumentFile: File | null
+  teacherStatusDocumentUrl?: string | null
+  teacherStatusDocumentName?: string | null
 }
 export interface entrantFormData{
 
@@ -92,7 +96,7 @@ export function useRegisterForm(){
 
 
 export function RegisterLayout(){
-  const { statusData, teamData } = Route.useLoaderData()
+  const { statusData, teamData, advisorData } = Route.useLoaderData()
   const { userSession } = Route.useRouteContext()
   const userEmail = userSession?.user?.email || ''
 
@@ -108,12 +112,27 @@ export function RegisterLayout(){
         photoName: teamData?.image?.originalName || null
       },
       advisor: {
-        titleTh: '', firstNameTh: '', middleNameTh: '', lastNameTh: '',
-        titleEn: '', firstNameEn: '', middleNameEn: '', lastNameEn: '',
-        email: userEmail, phone: '',lineId: '',
-        foodAllergies: '', dietaryRequirements: '', drugAllergies: '',
-        chronicConditionsAndFirstAidNotes: '',
-        identityDocumentFile: null, teacherStatusDocumentFile: null,
+        titleTh: advisorData?.titleTh ?? '', 
+        firstNameTh: advisorData?.firstNameTh ?? '', 
+        middleNameTh: advisorData?.middleNameTh ?? '', 
+        lastNameTh: advisorData?.lastNameTh ?? '',
+        titleEn: advisorData?.titleEn ?? '', 
+        firstNameEn: advisorData?.firstNameEn ?? '', 
+        middleNameEn: advisorData?.middleNameEn ?? '', 
+        lastNameEn: advisorData?.lastNameEn ?? '',
+        email: advisorData?.email ?? userEmail, 
+        phone: advisorData?.phone ?? '',
+        lineId: advisorData?.lineId ?? '',
+        foodAllergies: advisorData?.foodAllergies ?? '', 
+        dietaryRequirements: advisorData?.dietaryRequirements ?? '', 
+        drugAllergies: advisorData?.drugAllergies ?? '',
+        chronicConditionsAndFirstAidNotes: advisorData?.chronicConditionsAndFirstAidNotes ?? '',
+        identityDocumentFile: null, 
+        identityDocumentUrl: advisorData?.identityDocument?.url ?? null,
+        identityDocumentName: advisorData?.identityDocument?.originalName ?? null,
+        teacherStatusDocumentFile: null,
+        teacherStatusDocumentUrl: advisorData?.teacherStatusDocument?.url ?? null,
+        teacherStatusDocumentName: advisorData?.teacherStatusDocument?.originalName ?? null,
       },
 
       entrant1:
@@ -161,7 +180,7 @@ export function RegisterLayout(){
       //await api
       console.log('📦 Intercepted Payload:', JSON.stringify(value, null, 2))
     }
-  }), [statusData, teamData])
+  }), [statusData, teamData, advisorData])
 
   const form = useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>(formOptions)
 
@@ -187,13 +206,21 @@ export const Route = createFileRoute('/register')({
       const statusRes = await client.teamRegistrationStatus.get({})
       if (statusRes && statusRes.teamId) {
         const team = await client.teams.get({ id: statusRes.teamId })
-        return { statusData: statusRes, teamData: team }
+        let advisor = null
+        try {
+          advisor = await client.teamAdvisors.get({ teamId: statusRes.teamId })
+        } catch (e: any) {
+          if (e?.data?.code !== 'TEAM_ADVISOR_NOT_FOUND' && e?.status !== 404 && !e?.message?.includes('not found')) {
+            console.error('Error fetching advisor', e)
+          }
+        }
+        return { statusData: statusRes, teamData: team, advisorData: advisor }
       }
-      return { statusData: statusRes, teamData: null }
+      return { statusData: statusRes, teamData: null, advisorData: null }
     } catch (e) {
       console.error(e)
     }
-    return { statusData: null, teamData: null }
+    return { statusData: null, teamData: null, advisorData: null }
   },
   component: RegisterLayout
 })

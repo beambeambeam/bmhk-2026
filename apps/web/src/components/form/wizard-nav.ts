@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useState, useCallback, type MouseEvent } from 'react'
 import { useNavigate, type AnyRouter, type ParsedLocation, type LinkOptions } from '@tanstack/react-router'
 
 type To = LinkOptions['to'] | (string & {})
@@ -170,7 +170,7 @@ export function authLink(to: To, kind: AuthNav) {
 /** Imperative form, for the controls in this flow that are buttons rather than links. */
 export function useAuthNavigate() {
   const navigate = useNavigate()
-  return (to: To, kind: AuthNav) => navigate({to: to as any, state: { authNav: kind } as any, viewTransition: true })
+  return useCallback((to: To, kind: AuthNav) => navigate({to: to as any, state: { authNav: kind } as any, viewTransition: true }), [navigate])
 }
 
 /**

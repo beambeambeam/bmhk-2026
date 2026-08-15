@@ -85,6 +85,9 @@ function SignInRoute() {
 
   async function handleGoogleSignIn() {
     setIsSigningIn(true);
+    // Add artificial delay for better UX before redirecting
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
     await authClient.signIn.social(
       {
         callbackURL: `${window.location.origin}/signin`,

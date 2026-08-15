@@ -225,7 +225,7 @@ const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(re
  */
 type Transfer = { cancelled: boolean; paused: boolean; superseded: boolean }
 
-export function useFileSlot({ kind, maxMB }: { kind: keyof typeof FILE_KINDS; maxMB: number }) {
+export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE_KINDS; maxMB: number; onChange?: (file: File | null) => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -300,6 +300,7 @@ export function useFileSlot({ kind, maxMB }: { kind: keyof typeof FILE_KINDS; ma
     put(null)
     setFile(null)
     setError(null)
+    onChange?.(null)
   }
 
   /** the paced read. Every `return` past a `cancelled` check is a transfer that no longer owns
@@ -454,6 +455,7 @@ export function useFileSlot({ kind, maxMB }: { kind: keyof typeof FILE_KINDS; ma
     put(next.type.startsWith('image/') ? URL.createObjectURL(next) : null)
     setFile(next)
     setError(null)
+    onChange?.(next)
     start(next)
   }
 
@@ -782,14 +784,18 @@ export function UploadBox({
   hint = 'จำกัดขนาดเอกสารไม่เกิน 10 MB (PDF เท่านั้น)',
   kind = 'pdf',
   maxMB = 10,
+  onChange,
+  file,
 }: {
   from?: string
   hint?: string
   kind?: 'image' | 'pdf'
   maxMB?: number
+  onChange?: (file: File | null) => void
+  file?: File | null | string
 }) {
   /* six of these per entrant step, and none of them used to answer a drag at all */
-  const slot = useFileSlot({ kind, maxMB })
+  const slot = useFileSlot({ kind, maxMB, onChange })
 
   return (
     /*
@@ -831,7 +837,7 @@ export function UploadBox({
         {/* 14 -> 16, written out (`fl-16` floors at 15): `1243:1378` is a 21-tall box, i.e. 14 at the 1.5
             this style is set at, against 16 at 1440. */}
         <span className="w-full truncate px-3 text-center text-[calc(13.948px_+_2.052*var(--fl))] leading-[normal] font-medium">
-          {slot.file ? slot.file.name : 'อัปโหลดไฟล์'}
+          {slot.file ? slot.file.name : (typeof file === 'string' ? file : (file ? file.name : 'อัปโหลดไฟล์'))}
         </span>
         <input {...slot.inputProps} className="hidden" />
       </label>
@@ -852,7 +858,7 @@ export function UploadBox({
  * Numbered document requirement plus its upload target, on Figma's 32 gap. The number
  * is a real `<ol>` marker so the 30 indent and the counter match the design exactly.
  */
-export function DocumentRow({ index, text }: { index: number; text: string }) {
+export function DocumentRow({ index, text, onChange, file }: { index: number; text: string; onChange?: (file: File | null) => void; file?: File | null | string }) {
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
       <ol start={index} className="min-w-0 flex-1 list-decimal">
@@ -860,7 +866,7 @@ export function DocumentRow({ index, text }: { index: number; text: string }) {
           {text}
         </li>
       </ol>
-      <UploadBox />
+      <UploadBox onChange={onChange} file={file} />
     </div>
   )
 }

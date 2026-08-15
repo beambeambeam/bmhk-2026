@@ -95,6 +95,26 @@ function AdvisorNextButton({ to, label = 'ถัดไป' }: { to: string; labe
             }
           }
 
+          try {
+            if (advisor.identityDocumentFile) {
+              await client.teamAdvisors.identityDocument({
+                teamId: status.teamId,
+                file: advisor.identityDocumentFile,
+              })
+            }
+            if (advisor.teacherStatusDocumentFile) {
+              await client.teamAdvisors.teacherStatusDocument({
+                teamId: status.teamId,
+                file: advisor.teacherStatusDocumentFile,
+              })
+            }
+          } catch (uploadError) {
+            console.error('File upload error', uploadError)
+            toast.error('เกิดข้อผิดพลาดในการอัปโหลดเอกสาร')
+            setBusy(false)
+            return
+          }
+
           form.setFieldValue('advisor', {
             ...advisor,
             ...finalResult,
@@ -192,9 +212,28 @@ export default function AdvisorStep() {
               at 1440 they are grouped into `708:1394` on 24 — so the row gap is 16 down there and
               24 up here, and `gap-6` was the 1440 figure held flat. */}
           <div className="flex w-full flex-col items-start gap-[calc(15.792px_+_8.208*var(--fl))]">
-            {ADVISOR_DOCUMENTS.map((doc, i) => (
-              <DocumentRow key={doc} index={i + 1} text={doc} />
-            ))}
+            <form.Field
+              name="advisor.identityDocumentFile"
+              children={(field) => (
+                <DocumentRow 
+                  index={1} 
+                  text={ADVISOR_DOCUMENTS[0]} 
+                  onChange={(f) => field.handleChange(f)}
+                  file={field.state.value || form.getFieldValue('advisor').identityDocumentName} 
+                />
+              )}
+            />
+            <form.Field
+              name="advisor.teacherStatusDocumentFile"
+              children={(field) => (
+                <DocumentRow 
+                  index={2} 
+                  text={ADVISOR_DOCUMENTS[1]} 
+                  onChange={(f) => field.handleChange(f)}
+                  file={field.state.value || form.getFieldValue('advisor').teacherStatusDocumentName}
+                />
+              )}
+            />
           </div>
         </section>
 

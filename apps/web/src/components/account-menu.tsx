@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type HTMLAttrib
 import { Link } from '@tanstack/react-router'
 import GoogleLogo from './google-logo'
 import { useAuthNavigate } from './form/wizard-nav'
+import { authClient } from '@bmhk-2026/client/auth-client'
+import { useUserSession } from '@/contexts/user-context'
 
 /*
  * ============================================================================================
@@ -169,6 +171,8 @@ export default function AccountMenu({ className = '' }: { className?: string }) 
   const id = useId()
   const chipId = `${id}-chip`
   const menuId = `${id}-menu`
+  
+  const { data: session } = useUserSession()
 
   const rootRef = useRef<HTMLDivElement>(null)
   const chipRef = useRef<HTMLButtonElement>(null)
@@ -231,7 +235,9 @@ export default function AccountMenu({ className = '' }: { className?: string }) 
       >
         <GoogleLogo />
         {/* Hidden below `sm` because Figma hides it on every 402 frame — see the file header. */}
-        <span className="hidden sm:inline">ชื่อบัญชีผู้ใช้</span>
+        <span className="hidden sm:inline max-w-[120px] lg:max-w-[200px] truncate">
+          {session?.user?.name || 'ชื่อบัญชีผู้ใช้'}
+        </span>
         {/*
          * `up_regular` (`1359:969` / `1359:1010`) is `down_regular` upside down, so the open
          * state ROTATES the asset the closed state already ships rather than adding a second
@@ -343,7 +349,7 @@ export default function AccountMenu({ className = '' }: { className?: string }) 
               role="menuitem"
               onClick={() => {
                 setOpen(false)
-                logOut()
+                void logOut()
               }}
               /*
                * `1359:1005` / `1359:961` — the row: an 8 gap at both anchors, the glyph on
@@ -393,7 +399,10 @@ export default function AccountMenu({ className = '' }: { className?: string }) 
  */
 function useLogOut() {
   const go = useAuthNavigate()
-  return () => go('/signin', 'leave')
+  return async () => {
+    await authClient.signOut()
+    go('/signin', 'leave')
+  }
 }
 
 /**

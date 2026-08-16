@@ -6,129 +6,285 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select";
 import { Textarea } from "@/components/textarea";
-import type {
-  TeamAdvisorDetails,
-  TeamDetails,
-  TeamParticipantDetails,
-  TeamRegistrationReview,
-  TeamRegistrationStatus,
-} from "@bmhk-2026/api";
+import type { TeamDetails, TeamRegistrationReview } from "@bmhk-2026/api";
+import { ImageOff, Quote, UsersRound, X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-import { DetailFields } from "./detail-fields";
-import {
-  SubjectDecisionDetails,
-  SubjectDetails,
-  SubjectTabs,
-} from "./participation-review-subject";
-import type { ReviewSubject, subjectDecision } from "./participation-review-subject";
 import { StatusChip } from "./participation-review-status";
 
-interface ParticipationReviewContentProps {
-  readonly advisor: TeamAdvisorDetails | undefined;
+const ADVISOR_ISSUE_OPTIONS = ["ข้อมูลไม่ตรง", "บัตรประชาชนมีปัญหา", "บัตรอาจารย์มีปัญหา"] as const;
+const MEMBER_ISSUE_OPTIONS = ["ข้อมูลไม่ตรง", "บัตรประชาชนมีปัญหา", "ปพ.7 มีปัญหา", "รูปมีปัญหา"] as const;
+
+type ReviewStatus = "APPROVED" | "CHANGES_REQUESTED";
+
+interface IssueCodeFieldProps {
   readonly canReview: boolean;
-  readonly consentExists: boolean;
-  readonly decision: ReturnType<typeof subjectDecision>;
+  readonly id: string;
+  readonly label: string;
+  readonly options: readonly string[];
+  readonly value: readonly string[];
+  readonly onChange: (value: string[]) => void;
+}
+
+interface ParticipationReviewContentProps {
+  readonly canReview: boolean;
   readonly isLoading: boolean;
-  readonly onReviewNoteChange: (value: string) => void;
-  readonly onSave: (status: "APPROVED" | "CHANGES_REQUESTED") => void;
-  readonly onSubjectChange: (subject: ReviewSubject) => void;
-  readonly participant: TeamParticipantDetails | undefined;
-  readonly participants: readonly TeamParticipantDetails[];
   readonly review: TeamRegistrationReview | null | undefined;
-  readonly reviewNotes: string;
   readonly savePending: boolean;
-  readonly selectedSubject: ReviewSubject;
-  readonly status: TeamRegistrationStatus | undefined;
   readonly team: TeamDetails | undefined;
   readonly teamError: boolean;
   readonly teamId: string;
+  readonly onSave: (
+    data: {
+      advisorIssueCodes: string[];
+      internalNotes: string | null;
+      participant1IssueCodes: string[];
+      participant2IssueCodes: string[];
+      participant3IssueCodes: string[];
+    },
+    status: ReviewStatus,
+  ) => void;
+}
+
+interface TeamSummaryProps {
+  readonly imageUrl: string | null;
+  readonly review: TeamRegistrationReview | null | undefined;
+  readonly team: TeamDetails;
+}
+
+function IssueCodeField({ canReview, id, label, options, value, onChange }: IssueCodeFieldProps) {
+  function addIssueCode(issueCode: string | null): void {
+    if (issueCode === null || value.includes(issueCode)) {
+      return;
+    }
+
+    onChange([...value, issueCode]);
+  }
+
+  function removeIssueCode(issueCode: string): void {
+    onChange(value.filter((selectedCode) => selectedCode !== issueCode));
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="font-medium text-sm" htmlFor={id}>
+        {label}
+      </label>
+      <Select disabled={!canReview} onValueChange={addIssueCode}>
+        <SelectTrigger aria-label={`เลือกปัญหาของ${label}`} className="w-full" id={id}>
+          <SelectValue>เลือกปัญหา</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((issueCode) => (
+            <SelectItem disabled={value.includes(issueCode)} key={issueCode} value={issueCode}>
+              {issueCode}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {value.length > 0 ? (
+        <div className="flex flex-wrap gap-2" aria-label={`ปัญหาที่เลือกของ${label}`}>
+          {value.map((issueCode) => (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-destructive/10 py-1 pr-1 pl-2 text-destructive text-xs"
+              key={issueCode}
+            >
+              {issueCode}
+              {canReview ? (
+                <Button
+                  aria-label={`ลบ ${issueCode}`}
+                  className="size-5 rounded-full p-0"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    removeIssueCode(issueCode);
+                  }}
+                >
+                  <X aria-hidden="true" className="size-3" />
+                </Button>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TeamSummary({ imageUrl, review, team }: TeamSummaryProps) {
+  return (
+    <aside className="flex flex-col gap-5 rounded-xl border bg-muted/30 p-5">
+      <div className="flex flex-wrap gap-2" aria-label="หมวดข้อมูลสำหรับตรวจสอบ">
+        <Button size="sm" variant="secondary">
+          ทีม
+        </Button>
+        <Button size="sm" variant="outline">
+          อาจารย์
+        </Button>
+        <Button size="sm" variant="outline">
+          สมาชิก 1
+        </Button>
+        <Button size="sm" variant="outline">
+          สมาชิก 2
+        </Button>
+        <Button size="sm" variant="outline">
+          สมาชิก 3
+        </Button>
+      </div>
+      <div className="overflow-hidden rounded-lg border bg-background">
+        {imageUrl === null ? (
+          <div className="flex aspect-video items-center justify-center text-muted-foreground">
+            <ImageOff aria-hidden="true" className="size-8" />
+            <span className="sr-only">ไม่มีรูปทีม</span>
+          </div>
+        ) : (
+          <img
+            alt={`รูปทีม ${team.name}`}
+            className="aspect-video w-full object-cover"
+            src={imageUrl}
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        <h2 className="font-semibold text-xl">{team.name}</h2>
+        <p className="text-muted-foreground">{team.school}</p>
+        <p className="flex items-start gap-2 text-muted-foreground text-sm">
+          <Quote aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          ข้อมูลทีมสำหรับการตรวจสอบการสมัครแข่งขัน
+        </p>
+        <p className="flex items-center gap-2 font-medium text-sm">
+          <UsersRound aria-hidden="true" className="size-4" />
+          สมาชิก {team.memberCount} คน
+        </p>
+      </div>
+      <div className="flex items-center justify-between rounded-lg border bg-background p-3">
+        <span className="text-muted-foreground text-sm">สถานะการยืนยัน</span>
+        <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
+      </div>
+    </aside>
+  );
 }
 
 function ParticipationReviewContent({
-  advisor,
   canReview,
-  consentExists,
-  decision,
   isLoading,
-  onReviewNoteChange,
-  onSave,
-  onSubjectChange,
-  participant,
-  participants,
   review,
-  reviewNotes,
   savePending,
-  selectedSubject,
-  status,
   team,
   teamError,
   teamId,
+  onSave,
 }: ParticipationReviewContentProps) {
-  const subjectLabel = selectedSubject === "advisor" ? "advisor" : `participant ${selectedSubject}`;
+  const [advisorIssueCodes, setAdvisorIssueCodes] = useState<string[]>(
+    review?.advisorIssueCodes ?? [],
+  );
+  const [member1IssueCodes, setMember1IssueCodes] = useState<string[]>(
+    review?.participant1IssueCodes ?? [],
+  );
+  const [member2IssueCodes, setMember2IssueCodes] = useState<string[]>(
+    review?.participant2IssueCodes ?? [],
+  );
+  const [member3IssueCodes, setMember3IssueCodes] = useState<string[]>(
+    review?.participant3IssueCodes ?? [],
+  );
+  const [notes, setNotes] = useState(review?.internalNotes ?? "");
+  const imageUrl = team?.image?.url ?? null;
+
+  function save(status: ReviewStatus): void {
+    const hasIssues = [
+      advisorIssueCodes,
+      member1IssueCodes,
+      member2IssueCodes,
+      member3IssueCodes,
+    ].some((issueCodes) => issueCodes.length > 0);
+
+    if (status === "CHANGES_REQUESTED" && !hasIssues) {
+      toast.error("กรุณาเลือกปัญหาอย่างน้อยหนึ่งรายการก่อนขอให้แก้ไข");
+      return;
+    }
+
+    if (status === "APPROVED" && hasIssues) {
+      toast.error("กรุณาลบรายการปัญหาทั้งหมดก่อนอนุมัติ");
+      return;
+    }
+
+    const trimmedNotes = notes.trim();
+    onSave(
+      {
+        advisorIssueCodes,
+        internalNotes: trimmedNotes.length > 0 ? trimmedNotes : null,
+        participant1IssueCodes: member1IssueCodes,
+        participant2IssueCodes: member2IssueCodes,
+        participant3IssueCodes: member3IssueCodes,
+      },
+      status,
+    );
+  }
 
   return (
-    <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
+    <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-6xl">
       <DialogHeader>
-        <DialogTitle>{team?.name ?? "Participation review"}</DialogTitle>
-        <DialogDescription>
-          Review team, participant, advisor, consent, and document details.
-        </DialogDescription>
+        <DialogTitle>ตรวจสอบข้อมูลทีม</DialogTitle>
+        <DialogDescription>ตรวจสอบเอกสารและบันทึกผลการยืนยันข้อมูลทีม</DialogDescription>
       </DialogHeader>
-      {isLoading ? <p>Loading participation...</p> : null}
-      {teamError ? <p className="text-destructive">Unable to load this participation.</p> : null}
+      {isLoading ? <p>กำลังโหลดข้อมูลทีม...</p> : null}
+      {teamError ? <p className="text-destructive">ไม่สามารถโหลดข้อมูลทีมได้</p> : null}
       {team ? (
-        <div className="flex flex-col gap-5">
-          <DetailFields
-            title="Team"
-            fields={[
-              { label: "School", value: team.school },
-              { label: "Members", value: team.memberCount },
-              { label: "Submission", value: status?.submissionState },
-              { label: "Submitted at", value: status?.submittedAt?.toLocaleString() },
-            ]}
-          />
-          <section className="flex flex-col gap-3">
-            <h2 className="font-medium">Registration subjects</h2>
-            <SubjectTabs
-              advisor={advisor}
-              participants={participants}
-              selectedSubject={selectedSubject}
-              onSubjectChange={onSubjectChange}
+        <div className="grid gap-6 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)]">
+          <TeamSummary imageUrl={imageUrl} review={review} team={team} />
+          <section className="flex flex-col gap-5">
+            <h2 className="font-semibold text-lg">แบบฟอร์มตรวจสอบ</h2>
+            <IssueCodeField
+              canReview={canReview}
+              id={`advisor-issues-${teamId}`}
+              label="อาจารย์ที่ปรึกษา"
+              options={ADVISOR_ISSUE_OPTIONS}
+              value={advisorIssueCodes}
+              onChange={setAdvisorIssueCodes}
             />
-            <SubjectDetails
-              advisor={selectedSubject === "advisor" ? advisor : undefined}
-              participant={participant}
+            <IssueCodeField
+              canReview={canReview}
+              id={`member-1-issues-${teamId}`}
+              label="สมาชิก 1"
+              options={MEMBER_ISSUE_OPTIONS}
+              value={member1IssueCodes}
+              onChange={setMember1IssueCodes}
             />
-            <SubjectDecisionDetails decision={decision} />
-          </section>
-          <section className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-sm">Review</span>
-              <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-sm">Terms and conditions</span>
-              <StatusChip value={status?.termsAndConditions} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-sm">Consent</span>
-              <StatusChip value={consentExists ? "COMPLETED" : "NOT_STARTED"} />
-            </div>
-          </section>
-          {canReview ? (
-            <label className="flex flex-col gap-2 font-medium" htmlFor={`review-notes-${teamId}`}>
-              Review note for {subjectLabel}
+            <IssueCodeField
+              canReview={canReview}
+              id={`member-2-issues-${teamId}`}
+              label="สมาชิก 2"
+              options={MEMBER_ISSUE_OPTIONS}
+              value={member2IssueCodes}
+              onChange={setMember2IssueCodes}
+            />
+            <IssueCodeField
+              canReview={canReview}
+              id={`member-3-issues-${teamId}`}
+              label="สมาชิก 3"
+              options={MEMBER_ISSUE_OPTIONS}
+              value={member3IssueCodes}
+              onChange={setMember3IssueCodes}
+            />
+            <label
+              className="flex flex-col gap-2 font-medium text-sm"
+              htmlFor={`review-notes-${teamId}`}
+            >
+              หมายเหตุเพิ่มเติมสำหรับทีม
               <Textarea
+                disabled={!canReview}
                 id={`review-notes-${teamId}`}
-                value={reviewNotes}
+                placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับทีม (ถ้ามี)"
+                value={notes}
                 onChange={(event) => {
-                  onReviewNoteChange(event.target.value);
+                  setNotes(event.target.value);
                 }}
-                placeholder="Explain any changes the team needs to make."
               />
             </label>
-          ) : null}
+          </section>
         </div>
       ) : null}
       {canReview ? (
@@ -137,18 +293,18 @@ function ParticipationReviewContent({
             disabled={savePending || !team}
             variant="destructive"
             onClick={() => {
-              onSave("CHANGES_REQUESTED");
+              save("CHANGES_REQUESTED");
             }}
           >
-            Request changes
+            ขอให้แก้ไข
           </Button>
           <Button
             disabled={savePending || !team}
             onClick={() => {
-              onSave("APPROVED");
+              save("APPROVED");
             }}
           >
-            Approve
+            อนุมัติ
           </Button>
         </DialogFooter>
       ) : null}

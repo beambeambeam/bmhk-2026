@@ -15,6 +15,18 @@ interface StatusChipProps {
   readonly value: RegistrationStatus | undefined;
 }
 
+const statusLabels: Record<RegistrationStatus, string> = {
+  APPROVED: "อนุมัติแล้ว",
+  CHANGES_REQUESTED: "ขอให้แก้ไข",
+  COMPLETED: "เสร็จสมบูรณ์",
+  DRAFT: "ฉบับร่าง",
+  IN_PROGRESS: "กำลังดำเนินการ",
+  NOT_APPLICABLE: "ไม่เกี่ยวข้อง",
+  NOT_STARTED: "ยังไม่เริ่ม",
+  PENDING_REVIEW: "รอตรวจสอบ",
+  SUBMITTED: "ส่งแล้ว",
+};
+
 function StatusChip({ value }: StatusChipProps) {
   const status = value ?? "NOT_STARTED";
   const isComplete = status === "APPROVED" || status === "COMPLETED" || status === "SUBMITTED";
@@ -35,7 +47,7 @@ function StatusChip({ value }: StatusChipProps) {
       className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 font-medium text-xs ${className}`}
     >
       <Icon aria-hidden="true" className="size-3.5" />
-      {status.replaceAll("_", " ")}
+      {statusLabels[status]}
     </span>
   );
 }

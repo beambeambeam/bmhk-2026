@@ -23,7 +23,7 @@ function ParticipationPagination({
   return (
     <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <p className="text-muted-foreground">
-        Showing {firstVisible}-{lastVisible} of {pagination.total} participations
+        แสดง {firstVisible}-{lastVisible} จากทั้งหมด {pagination.total} รายการ
       </p>
       <div className="flex items-center justify-end gap-2">
         <Button
@@ -36,7 +36,7 @@ function ParticipationPagination({
           }}
         >
           <ChevronLeft aria-hidden="true" data-icon="inline-start" />
-          Previous
+          ก่อนหน้า
         </Button>
         <Button
           disabled={pagination.nextOffset === null || isFetching}
@@ -49,7 +49,7 @@ function ParticipationPagination({
             }
           }}
         >
-          Next
+          ถัดไป
           <ChevronRight aria-hidden="true" data-icon="inline-end" />
         </Button>
       </div>

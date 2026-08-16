@@ -7,6 +7,7 @@ import type {
   TeamRegistrationReview,
   TeamRegistrationReviewFeedback,
   TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListSort,
   TeamRegistrationReviewListResult,
   TeamRegistrationReviewSubject,
   TeamRegistrationReviewStatus,
@@ -38,6 +39,8 @@ export interface TeamRegistrationReviewService {
     offset: number;
     reviewStatus: TeamRegistrationReviewListFilter;
     search: string;
+    sortBy: TeamRegistrationReviewListSort;
+    sortDesc: boolean;
   }) => Promise<TeamRegistrationReviewListResult>;
 }
 
@@ -127,8 +130,15 @@ export function createTeamRegistrationReviewService(
 
       return toReviewFeedback(result.review);
     },
-    list: async ({ limit, offset, reviewStatus, search }) => {
-      const result = await repository.list({ limit, offset, reviewStatus, search });
+    list: async ({ limit, offset, reviewStatus, search, sortBy, sortDesc }) => {
+      const result = await repository.list({
+        limit,
+        offset,
+        reviewStatus,
+        search,
+        sortBy,
+        sortDesc,
+      });
       const { records, total } = result;
       const rows = records.map(({ review, reviewedByName, team }) => ({
         advisor: listSubjectStatus(review, "advisor"),

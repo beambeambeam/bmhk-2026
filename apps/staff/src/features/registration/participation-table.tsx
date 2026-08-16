@@ -8,10 +8,15 @@ import {
   SelectValue,
 } from "@/components/select";
 import { Card, CardContent } from "@/components/card";
+import { Button } from "@/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
-import type { TeamRegistrationReviewListFilter } from "@bmhk-2026/api";
+import type {
+  TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListSort,
+} from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ParticipationPagination } from "./participation-pagination";
@@ -31,6 +36,17 @@ interface ParticipationTableProps {
   readonly canReview: boolean;
 }
 
+const sortableColumns = [
+  { id: "name", label: "ทีม" },
+  { id: "school", label: "โรงเรียน" },
+  { id: "memberCount", label: "สมาชิก" },
+  { id: "registrationSubmittedAt", label: "การส่งสมัคร" },
+  { id: "registrationSubmittedAt", label: "วันที่ส่ง" },
+  { id: "reviewStatus", label: "ตรวจสอบ" },
+  { id: "reviewedByName", label: "อัปเดตโดย" },
+  { id: "lastUpdatedAt", label: "อัปเดตล่าสุด" },
+] as const satisfies readonly { id: TeamRegistrationReviewListSort; label: string }[];
+
 function formatSubmitDate(submittedAt: Date | null): string {
   return submittedAt?.toLocaleDateString() ?? "—";
 }
@@ -44,12 +60,16 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
+  const [sortBy, setSortBy] = useState<TeamRegistrationReviewListSort>("name");
+  const [sortDesc, setSortDesc] = useState(false);
   const query = useQuery(
     getTeamRegistrationReviewListQueryOptions({
       limit: PARTICIPATIONS_PAGE_SIZE,
       offset,
       reviewStatus,
       search: debouncedSearch,
+      sortBy,
+      sortDesc,
     }),
   );
   const teams = query.data?.rows ?? [];
@@ -65,6 +85,12 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
       window.clearTimeout(timeoutId);
     };
   }, [search]);
+
+  function toggleSorting(column: TeamRegistrationReviewListSort): void {
+    setSortDesc((current) => (sortBy === column ? !current : false));
+    setSortBy(column);
+    setOffset(0);
+  }
 
   return (
     <Card>
@@ -113,14 +139,41 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[14%] whitespace-normal">ทีม</TableHead>
-                <TableHead className="w-[12%] whitespace-normal">โรงเรียน</TableHead>
-                <TableHead className="w-[8%] whitespace-normal">สมาชิก</TableHead>
-                <TableHead className="w-[9%] whitespace-normal">การส่งสมัคร</TableHead>
-                <TableHead className="w-[10%] whitespace-normal">วันที่ส่ง</TableHead>
-                <TableHead className="w-[10%] whitespace-normal">ตรวจสอบ</TableHead>
-                <TableHead className="w-[11%] whitespace-normal">อัปเดตโดย</TableHead>
-                <TableHead className="w-[14%] whitespace-normal">อัปเดตล่าสุด</TableHead>
+                {sortableColumns.map((column, index) => (
+                  <TableHead
+                    className={`${
+                      [
+                        "w-[14%]",
+                        "w-[12%]",
+                        "w-[8%]",
+                        "w-[9%]",
+                        "w-[10%]",
+                        "w-[10%]",
+                        "w-[11%]",
+                        "w-[14%]",
+                      ][index]
+                    } whitespace-normal`}
+                    key={`${column.id}-${column.label}`}
+                  >
+                    <Button
+                      className="-ml-3 h-auto whitespace-normal text-left"
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        toggleSorting(column.id);
+                      }}
+                    >
+                      {column.label}
+                      <ArrowUpDown
+                        aria-hidden="true"
+                        className={
+                          sortBy === column.id ? "text-foreground" : "text-muted-foreground"
+                        }
+                      />
+                    </Button>
+                  </TableHead>
+                ))}
                 <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
               </TableRow>
             </TableHeader>

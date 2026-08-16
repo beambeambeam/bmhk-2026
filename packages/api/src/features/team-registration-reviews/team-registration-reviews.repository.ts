@@ -4,7 +4,7 @@ import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, count, eq, exists, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { TeamAccessContext } from "../../core/auth";
@@ -17,6 +17,7 @@ import type {
   SaveTeamRegistrationReviewSubjectData,
   TeamRegistrationReview,
   TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListSort,
   TeamRegistrationReviewSubject,
 } from "./team-registration-reviews.schema";
 
@@ -45,6 +46,8 @@ export interface TeamRegistrationReviewRepository {
     offset: number;
     reviewStatus: TeamRegistrationReviewListFilter;
     search: string;
+    sortBy: TeamRegistrationReviewListSort;
+    sortDesc: boolean;
   }) => Promise<{ offset: number; records: TeamRegistrationReviewListRecord[]; total: number }>;
   save: (
     access: TeamAccessContext,
@@ -136,9 +139,19 @@ export function createTeamRegistrationReviewRepository(
 
         return result ?? null;
       }),
-    list: async ({ limit, offset, reviewStatus, search }) =>
+    list: async ({ limit, offset, reviewStatus, search, sortBy, sortDesc }) =>
       await execute(async () => {
         const reviewer = alias(user, "team_registration_reviewer");
+        const sortColumns = {
+          lastUpdatedAt: teamRegistrationReviews.updatedAt,
+          memberCount: teams.memberCount,
+          name: teams.name,
+          registrationSubmittedAt: teams.registrationSubmittedAt,
+          reviewStatus: teamRegistrationReviews.status,
+          reviewedByName: reviewer.name,
+          school: teams.school,
+        } as const;
+        const orderBy = sortDesc ? desc(sortColumns[sortBy]) : asc(sortColumns[sortBy]);
         const escapedSearch = escapeLikePattern(search);
         const searchPattern = `%${escapedSearch}%`;
         const searchCondition =
@@ -225,7 +238,7 @@ export function createTeamRegistrationReviewRepository(
               .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
               .leftJoin(reviewer, eq(reviewer.id, teamRegistrationReviews.reviewedByUserId))
               .where(condition)
-              .orderBy(asc(teams.index))
+              .orderBy(orderBy, asc(teams.index))
               .limit(limit)
               .offset(pageOffset);
 

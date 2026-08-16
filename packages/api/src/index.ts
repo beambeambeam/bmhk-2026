@@ -86,6 +86,7 @@ export type {
   TeamRegistrationReviewListFilter,
   TeamRegistrationReviewListInput,
   TeamRegistrationReviewListResult,
+  TeamRegistrationReviewListSort,
   TeamRegistrationReviewListSubjectStatus,
   TeamRegistrationReviewStatus,
 } from "./features/team-registration-reviews/team-registration-reviews.schema";

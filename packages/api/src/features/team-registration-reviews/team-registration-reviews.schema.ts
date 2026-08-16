@@ -12,6 +12,17 @@ const MAX_SEARCH_LENGTH = 120;
 const DEFAULT_LIST_LIMIT = 20;
 const MAX_LIST_LIMIT = 100;
 
+export const teamRegistrationReviewListSortValues = [
+  "name",
+  "school",
+  "memberCount",
+  "registrationSubmittedAt",
+  "reviewStatus",
+  "reviewedByName",
+  "lastUpdatedAt",
+] as const;
+export const teamRegistrationReviewListSortSchema = z.enum(teamRegistrationReviewListSortValues);
+
 const issueCodesSchema = z
   .array(z.string().trim().min(1).max(MAX_ISSUE_CODE_LENGTH))
   .max(MAX_ISSUE_CODES_PER_SUBJECT);
@@ -57,9 +68,18 @@ export const teamRegistrationReviewListInputSchema = z
     offset: z.int().nonnegative().default(0),
     reviewStatus: teamRegistrationReviewListFilterSchema.default("ALL"),
     search: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
+    sortBy: teamRegistrationReviewListSortSchema.default("name"),
+    sortDesc: z.boolean().default(false),
   })
   .strict()
-  .default({ limit: DEFAULT_LIST_LIMIT, offset: 0, reviewStatus: "ALL", search: "" });
+  .default({
+    limit: DEFAULT_LIST_LIMIT,
+    offset: 0,
+    reviewStatus: "ALL",
+    search: "",
+    sortBy: "name",
+    sortDesc: false,
+  });
 export const teamRegistrationReviewListRowSchema = z
   .object({
     advisor: teamRegistrationReviewListSubjectStatusSchema,
@@ -167,6 +187,7 @@ export type TeamRegistrationReviewListFilter = z.output<
 export type TeamRegistrationReviewListInput = z.output<
   typeof teamRegistrationReviewListInputSchema
 >;
+export type TeamRegistrationReviewListSort = z.output<typeof teamRegistrationReviewListSortSchema>;
 export type TeamRegistrationReviewListResult = z.output<
   typeof teamRegistrationReviewListResultSchema
 >;

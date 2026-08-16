@@ -4,7 +4,10 @@ import { executeAudited } from "../audit/audit.service";
 import type { TeamRegistrationReviewService } from "./team-registration-reviews.service";
 import {
   saveTeamRegistrationReviewSchema,
+  saveTeamRegistrationReviewSubjectSchema,
   teamRegistrationReviewFeedbackSchema,
+  teamRegistrationReviewListInputSchema,
+  teamRegistrationReviewListResultSchema,
   teamRegistrationReviewSchema,
   teamRegistrationReviewTeamInputSchema,
 } from "./team-registration-reviews.schema";
@@ -44,6 +47,11 @@ export function createTeamRegistrationReviewsRouter(
         context.log.set({ teamRegistrationReview: { teamId: input.teamId } });
         return review;
       }),
+    list: registrationProcedure
+      .route({ method: "GET", tags: ["Team Registration Review"] })
+      .input(teamRegistrationReviewListInputSchema)
+      .output(teamRegistrationReviewListResultSchema)
+      .handler(async ({ input }) => await service.list(input)),
     save: registrationProcedure
       .route({ method: "PUT", tags: ["Team Registration Review"] })
       .input(saveTeamRegistrationReviewSchema)
@@ -72,6 +80,34 @@ export function createTeamRegistrationReviewsRouter(
           }),
         });
 
+        context.log.set({ teamRegistrationReview: { id: review.id, teamId: review.teamId } });
+        return review;
+      }),
+    saveSubject: registrationProcedure
+      .route({ method: "PUT", tags: ["Team Registration Review"] })
+      .input(saveTeamRegistrationReviewSubjectSchema)
+      .output(teamRegistrationReviewSchema)
+      .handler(async ({ context, input }) => {
+        const { review } = await executeAudited({
+          audit: teamRegistrationReviewChangedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: { id: input.teamId, teamId: input.teamId },
+          }),
+          execute: async () =>
+            await service.saveSubject(context.teamAccess, input.teamId, input.data),
+          log: context.log,
+          onSuccess: (result) => ({
+            changes: result.previous
+              ? { after: toAuditedReview(result.review), before: toAuditedReview(result.previous) }
+              : { after: toAuditedReview(result.review) },
+            target: {
+              id: input.teamId,
+              reviewId: result.review.id,
+              teamId: input.teamId,
+              type: "team-registration-review",
+            },
+          }),
+        });
         context.log.set({ teamRegistrationReview: { id: review.id, teamId: review.teamId } });
         return review;
       }),

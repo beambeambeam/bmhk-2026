@@ -2,6 +2,8 @@ export { createAppRouter } from "./router";
 export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { AdminUserRepository } from "./features/admin-users/admin-users.repository";
+export type { StaffRegistrationRepository } from "./features/staff-registrations/staff-registrations.repository";
+export type { StaffRegistration } from "./features/staff-registrations/staff-registrations.schema";
 export type {
   AdminUser,
   AdminUserColumnFilter,
@@ -67,6 +69,10 @@ export type {
   SaveTeamRegistrationReviewData,
   TeamRegistrationReview,
   TeamRegistrationReviewFeedback,
+  TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListInput,
+  TeamRegistrationReviewListResult,
+  TeamRegistrationReviewListSubjectStatus,
   TeamRegistrationReviewStatus,
 } from "./features/team-registration-reviews/team-registration-reviews.schema";
 export { teamRegistrationReviewStatusValues } from "./features/team-registration-reviews/team-registration-reviews.schema";

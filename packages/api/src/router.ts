@@ -41,6 +41,10 @@ import type { TeamRegistrationReviewRepository } from "./features/team-registrat
 import { createTeamRegistrationReviewRepository } from "./features/team-registration-reviews/team-registration-reviews.repository";
 import { createTeamRegistrationReviewsRouter } from "./features/team-registration-reviews/team-registration-reviews.router";
 import { createTeamRegistrationReviewService } from "./features/team-registration-reviews/team-registration-reviews.service";
+import type { StaffRegistrationRepository } from "./features/staff-registrations/staff-registrations.repository";
+import { createStaffRegistrationRepository } from "./features/staff-registrations/staff-registrations.repository";
+import { createStaffRegistrationsRouter } from "./features/staff-registrations/staff-registrations.router";
+import { createStaffRegistrationService } from "./features/staff-registrations/staff-registrations.service";
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
@@ -55,6 +59,7 @@ export interface ApiDependencies {
   teamParticipants?: TeamParticipantRepository;
   teamRegistrationStatus?: TeamRegistrationStatusRepository;
   teamRegistrationReviews?: TeamRegistrationReviewRepository;
+  staffRegistrations?: StaffRegistrationRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -76,6 +81,8 @@ export function createAppRouter(dependencies: ApiDependencies) {
     dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository();
   const teamRegistrationReviewRepository =
     dependencies.teamRegistrationReviews ?? createTeamRegistrationReviewRepository();
+  const staffRegistrationRepository =
+    dependencies.staffRegistrations ?? createStaffRegistrationRepository();
   const fileRepository = dependencies.files ?? createFileRepository();
   const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
 
@@ -88,6 +95,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
+    staffRegistrations: createStaffRegistrationsRouter(
+      registrationProcedure,
+      createStaffRegistrationService(staffRegistrationRepository),
+    ),
     teamAdvisors: createTeamAdvisorsRouter(
       teamAccessProcedure,
       createTeamAdvisorService(teamAdvisorRepository, fileStorage, fileRepository),

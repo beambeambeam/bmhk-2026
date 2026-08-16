@@ -66,7 +66,7 @@ function RootDocument() {
             <Outlet />
           </TooltipProvider>
           <Toaster richColors />
-          <TanStackRouterDevtools position="bottom-left" />
+          <TanStackRouterDevtools position="top-right" />
           <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
           <Scripts />
         </ThemeProvider>

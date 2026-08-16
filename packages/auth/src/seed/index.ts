@@ -1,14 +1,21 @@
 import { randomBytes } from "node:crypto";
 
 import { createDb } from "@bmhk-2026/db";
+import { user } from "@bmhk-2026/db/schema/auth";
+import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
+import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
+import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
+import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
+import { teams } from "@bmhk-2026/db/schema/teams";
 
 import { createAuth } from "../auth";
 import type { AuthRole } from "../permission";
 
-type SeedMode = "root" | "dev";
+type SeedMode = "auth" | "dev" | "root";
 
 interface SeedAccount {
   readonly email: string;
+  readonly image?: string;
   readonly name: string;
   readonly role: AuthRole;
 }
@@ -40,6 +47,11 @@ const localAccounts = [
     name: "BMHK 2026 Staff",
     role: "staff",
   },
+  {
+    email: "staff-2-bmhk-2026+local@kmutt.ac.th",
+    name: "BMHK 2026 Staff 2",
+    role: "staff",
+  },
   ...Array.from({ length: 5 }, (_, index) => ({
     email: `member${index + 1}+local@gmail.com`,
     name: `BMHK 2026 Member ${index + 1}`,
@@ -47,20 +59,74 @@ const localAccounts = [
   })),
 ] as const satisfies readonly SeedAccount[];
 
+const seedTeamIds = {
+  alpha: "11111111-1111-4111-8111-111111111111",
+  beta: "22222222-2222-4222-8222-222222222222",
+  delta: "44444444-4444-4444-8444-444444444444",
+  epsilon: "55555555-5555-4555-8555-555555555555",
+  gamma: "33333333-3333-4333-8333-333333333333",
+} as const;
+
+const seedParticipantIds = {
+  alpha1: "11111111-1111-4111-8111-111111111121",
+  alpha2: "11111111-1111-4111-8111-111111111122",
+  beta1: "22222222-2222-4222-8222-222222222221",
+  beta2: "22222222-2222-4222-8222-222222222222",
+  beta3: "22222222-2222-4222-8222-222222222223",
+  delta1: "44444444-4444-4444-8444-444444444421",
+  delta2: "44444444-4444-4444-8444-444444444422",
+  epsilon1: "55555555-5555-4555-8555-555555555521",
+  epsilon2: "55555555-5555-4555-8555-555555555522",
+  gamma1: "33333333-3333-4333-8333-333333333321",
+  gamma2: "33333333-3333-4333-8333-333333333322",
+  gamma3: "33333333-3333-4333-8333-333333333323",
+} as const;
+
+const seedAdvisorIds = {
+  alpha: "11111111-1111-4111-8111-111111111131",
+  beta: "22222222-2222-4222-8222-222222222231",
+  delta: "44444444-4444-4444-8444-444444444431",
+  epsilon: "55555555-5555-4555-8555-555555555531",
+  gamma: "33333333-3333-4333-8333-333333333331",
+} as const;
+
+const seedConsentIds = {
+  alpha: "11111111-1111-4111-8111-111111111141",
+  beta: "22222222-2222-4222-8222-222222222241",
+  delta: "44444444-4444-4444-8444-444444444441",
+  epsilon: "55555555-5555-4555-8555-555555555541",
+  gamma: "33333333-3333-4333-8333-333333333341",
+} as const;
+
+const seedReviewIds = {
+  alpha: "11111111-1111-4111-8111-111111111151",
+  beta: "22222222-2222-4222-8222-222222222251",
+  epsilon: "55555555-5555-4555-8555-555555555551",
+  gamma: "33333333-3333-4333-8333-333333333351",
+} as const;
+
 export const seedAccounts = {
-  dev: [rootAccount, ...localAccounts],
+  auth: [rootAccount, ...localAccounts],
   root: [rootAccount],
-} as const satisfies Record<SeedMode, readonly SeedAccount[]>;
+} as const satisfies Record<Exclude<SeedMode, "dev">, readonly SeedAccount[]>;
 
 function parseMode(value: string | undefined): SeedMode {
-  if (value === "root" || value === "dev") {
+  if (value === "auth" || value === "dev" || value === "root") {
     return value;
   }
-  throw new Error("Usage: bun run db:seed:root | bun run db:seed:dev");
+  throw new Error("Usage: bun run db:seed:auth | bun run db:seed:dev | bun run db:seed:root");
 }
 
 function generatePassword(): string {
   return randomBytes(24).toString("base64url");
+}
+
+function getOptionalImage(account: SeedAccount): { readonly image?: string } {
+  if (account.image === undefined) {
+    return {};
+  }
+
+  return { image: account.image };
 }
 
 async function writeLine(message: string): Promise<void> {
@@ -98,7 +164,10 @@ async function seedAccount(
   if (!existing) {
     await auth.api.createUser({
       body: {
-        data: { emailVerified: true },
+        data: {
+          emailVerified: true,
+          ...getOptionalImage(account),
+        },
         email: account.email,
         name: account.name,
         password,
@@ -110,6 +179,7 @@ async function seedAccount(
 
   await context.internalAdapter.updateUser(existing.user.id, {
     emailVerified: true,
+    ...getOptionalImage(account),
     name: account.name,
     role: account.role,
   });
@@ -133,14 +203,277 @@ async function seedAccount(
   return "updated";
 }
 
-export async function runSeed(mode: SeedMode): Promise<readonly SeedResult[]> {
-  const accounts = seedAccounts[mode];
-  validateAccounts(accounts);
+function participantData(
+  teamId: string,
+  id: string,
+  index: number,
+  firstNameEn: string,
+  lastNameEn: string,
+) {
+  return {
+    dateOfBirth: `200${index}-0${index}-0${index}`,
+    email: `${firstNameEn.toLowerCase()}.${lastNameEn.toLowerCase()}@example.com`,
+    firstNameEn,
+    firstNameTh: `ผู้เข้าร่วม${index}`,
+    id,
+    index,
+    lastNameEn,
+    lastNameTh: "ตัวอย่าง",
+    phone: `08123456${index}${index}`,
+    teamId,
+    titleEn: "Mr.",
+    titleTh: "นาย",
+  };
+}
 
+async function seedRegistrationData(database: ReturnType<typeof createDb>): Promise<void> {
+  const seededUsers = await database.select({ email: user.email, id: user.id }).from(user);
+  const owner1 = seededUsers.find((candidate) => candidate.email === "member1+local@gmail.com");
+  const owner2 = seededUsers.find((candidate) => candidate.email === "member2+local@gmail.com");
+  const owner3 = seededUsers.find((candidate) => candidate.email === "member3+local@gmail.com");
+  const owner4 = seededUsers.find((candidate) => candidate.email === "member4+local@gmail.com");
+  const owner5 = seededUsers.find((candidate) => candidate.email === "member5+local@gmail.com");
+  const reviewer = seededUsers.find(
+    (candidate) => candidate.email === "registration-staff-bmhk-2026+local@kmutt.ac.th",
+  );
+
+  if (!owner1 || !owner2 || !owner3 || !owner4 || !owner5 || !reviewer) {
+    throw new Error("Development registration seed accounts are missing");
+  }
+
+  const now = new Date();
+  await database.transaction(async (transaction) => {
+    await transaction
+      .insert(teams)
+      .values([
+        {
+          id: seedTeamIds.alpha,
+          memberCount: 2,
+          name: "Team Alpha",
+          registrationSubmittedAt: now,
+          school: "KMUTT Demonstration School",
+          userId: owner1.id,
+        },
+        {
+          id: seedTeamIds.beta,
+          memberCount: 3,
+          name: "Team Beta",
+          school: "Bangkok Technical College",
+          userId: owner2.id,
+        },
+        {
+          id: seedTeamIds.gamma,
+          memberCount: 3,
+          name: "Team Gamma",
+          registrationSubmittedAt: now,
+          school: "Suan Kularb Wittayalai School",
+          userId: owner3.id,
+        },
+        {
+          id: seedTeamIds.delta,
+          memberCount: 2,
+          name: "Team Delta",
+          registrationSubmittedAt: now,
+          school: "Princess Chulabhorn Science High School",
+          userId: owner4.id,
+        },
+        {
+          id: seedTeamIds.epsilon,
+          memberCount: 2,
+          name: "Team Epsilon",
+          registrationSubmittedAt: now,
+          school: "Triam Udom Suksa School",
+          userId: owner5.id,
+        },
+      ])
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(teamParticipants)
+      .values([
+        participantData(seedTeamIds.alpha, seedParticipantIds.alpha1, 1, "Narin", "Somsak"),
+        participantData(seedTeamIds.alpha, seedParticipantIds.alpha2, 2, "Mali", "Prasert"),
+        participantData(seedTeamIds.beta, seedParticipantIds.beta1, 1, "Krit", "Siri"),
+        participantData(seedTeamIds.beta, seedParticipantIds.beta2, 2, "Pim", "Jinda"),
+        participantData(seedTeamIds.beta, seedParticipantIds.beta3, 3, "Arun", "Kanya"),
+        participantData(seedTeamIds.gamma, seedParticipantIds.gamma1, 1, "Kanda", "Wongchai"),
+        participantData(seedTeamIds.gamma, seedParticipantIds.gamma2, 2, "Preecha", "Saengdao"),
+        participantData(seedTeamIds.gamma, seedParticipantIds.gamma3, 3, "Lalin", "Chaiyo"),
+        participantData(seedTeamIds.delta, seedParticipantIds.delta1, 1, "Thanawat", "Rattanakorn"),
+        participantData(seedTeamIds.delta, seedParticipantIds.delta2, 2, "Nicha", "Wattanakul"),
+        participantData(seedTeamIds.epsilon, seedParticipantIds.epsilon1, 1, "Phurin", "Sukjai"),
+        participantData(seedTeamIds.epsilon, seedParticipantIds.epsilon2, 2, "Sirinya", "Chansri"),
+      ])
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(teamAdvisors)
+      .values([
+        {
+          email: "advisor.alpha@example.com",
+          firstNameEn: "Somchai",
+          firstNameTh: "สมชาย",
+          id: seedAdvisorIds.alpha,
+          lastNameEn: "Advisor",
+          lastNameTh: "ที่ปรึกษา",
+          phone: "0891111111",
+          teamId: seedTeamIds.alpha,
+          titleEn: "Dr.",
+          titleTh: "ดร.",
+        },
+        {
+          email: "advisor.beta@example.com",
+          firstNameEn: "Suda",
+          firstNameTh: "สุดา",
+          id: seedAdvisorIds.beta,
+          lastNameEn: "Advisor",
+          lastNameTh: "ที่ปรึกษา",
+          phone: "0892222222",
+          teamId: seedTeamIds.beta,
+          titleEn: "Ms.",
+          titleTh: "นางสาว",
+        },
+        {
+          email: "advisor.gamma@example.com",
+          firstNameEn: "Anong",
+          firstNameTh: "อนงค์",
+          id: seedAdvisorIds.gamma,
+          lastNameEn: "Teacher",
+          lastNameTh: "ครู",
+          phone: "0893333333",
+          teamId: seedTeamIds.gamma,
+          titleEn: "Ms.",
+          titleTh: "นางสาว",
+        },
+        {
+          email: "advisor.delta@example.com",
+          firstNameEn: "Wichai",
+          firstNameTh: "วิชัย",
+          id: seedAdvisorIds.delta,
+          lastNameEn: "Teacher",
+          lastNameTh: "ครู",
+          phone: "0894444444",
+          teamId: seedTeamIds.delta,
+          titleEn: "Mr.",
+          titleTh: "นาย",
+        },
+        {
+          email: "advisor.epsilon@example.com",
+          firstNameEn: "Ploy",
+          firstNameTh: "พลอย",
+          id: seedAdvisorIds.epsilon,
+          lastNameEn: "Teacher",
+          lastNameTh: "ครู",
+          phone: "0895555555",
+          teamId: seedTeamIds.epsilon,
+          titleEn: "Ms.",
+          titleTh: "นางสาว",
+        },
+      ])
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(teamConsents)
+      .values([
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.alpha,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.alpha,
+        },
+        { id: seedConsentIds.beta, teamId: seedTeamIds.beta },
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.gamma,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.gamma,
+        },
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.delta,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.delta,
+        },
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.epsilon,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.epsilon,
+        },
+      ])
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(teamRegistrationReviews)
+      .values([
+        {
+          id: seedReviewIds.alpha,
+          reviewedAt: now,
+          reviewedByUserId: reviewer.id,
+          status: "APPROVED",
+          teamId: seedTeamIds.alpha,
+        },
+        {
+          advisorIssueCodes: ["MISSING_TEACHER_STATUS"],
+          id: seedReviewIds.beta,
+          internalNotes: "Please upload the advisor teacher status document.",
+          reviewedAt: now,
+          reviewedByUserId: reviewer.id,
+          status: "CHANGES_REQUESTED",
+          teamId: seedTeamIds.beta,
+        },
+        {
+          id: seedReviewIds.gamma,
+          internalNotes: "Please upload participant 2's academic record.",
+          participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
+          reviewedAt: now,
+          reviewedByUserId: reviewer.id,
+          status: "CHANGES_REQUESTED",
+          teamId: seedTeamIds.gamma,
+        },
+        {
+          id: seedReviewIds.epsilon,
+          reviewedAt: now,
+          reviewedByUserId: reviewer.id,
+          status: "APPROVED",
+          teamId: seedTeamIds.epsilon,
+        },
+      ])
+      .onConflictDoNothing();
+  });
+}
+
+export async function runSeed(mode: SeedMode): Promise<readonly SeedResult[]> {
   const database = createDb();
   const results: SeedResult[] = [];
 
   try {
+    if (mode === "dev") {
+      await seedRegistrationData(database);
+      await writeLine(
+        "seeded\tregistration data\t5 teams, participants, advisors, consents, and reviews",
+      );
+      return results;
+    }
+
+    const accounts = seedAccounts[mode];
+    validateAccounts(accounts);
     const auth = createAuth(database);
     await writeLine("Generated credentials are sensitive. Store them securely.");
     for (const account of accounts) {

@@ -14,7 +14,7 @@ import {
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, UsersRound } from "lucide-react";
+import { ClipboardCheck, LayoutDashboard, LogOut, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
@@ -27,7 +27,7 @@ interface StaffSidebarProps {
 
 interface StaffNavItem {
   readonly label: string;
-  readonly to: "/admin/users" | "/dashboard";
+  readonly to: "/admin/users" | "/dashboard" | "/staff" | "/participations";
   readonly icon: LucideIcon;
 }
 
@@ -37,6 +37,11 @@ const baseNavItems: readonly StaffNavItem[] = [
 
 const adminNavItems: readonly StaffNavItem[] = [
   { icon: UsersRound, label: "Users", to: "/admin/users" },
+];
+
+const registrationNavItems: readonly StaffNavItem[] = [
+  { icon: ClipboardCheck, label: "Participations", to: "/participations" },
+  { icon: UsersRound, label: "Staff registration", to: "/staff" },
 ];
 
 interface StaffNavGroup {
@@ -82,12 +87,20 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = role === "admin";
-  const navGroups: readonly StaffNavGroup[] = isAdmin
-    ? [
-        { items: baseNavItems, label: "Navigation" },
-        { items: adminNavItems, label: "Admin" },
-      ]
-    : [{ items: baseNavItems, label: "Navigation" }];
+  const canReviewRegistrations = isAdmin || role === "registrationStaff" || role === "staff";
+  let navGroups: readonly StaffNavGroup[] = [{ items: baseNavItems, label: "Navigation" }];
+  if (isAdmin) {
+    navGroups = [
+      { items: baseNavItems, label: "Navigation" },
+      { items: registrationNavItems, label: "Registration" },
+      { items: adminNavItems, label: "Admin" },
+    ];
+  } else if (canReviewRegistrations) {
+    navGroups = [
+      { items: baseNavItems, label: "Navigation" },
+      { items: [registrationNavItems[0]], label: "Registration" },
+    ];
+  }
 
   async function handleSignOut() {
     await authClient.signOut({

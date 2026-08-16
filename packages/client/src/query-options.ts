@@ -1,4 +1,4 @@
-import type { AdminUserListQuery } from "@bmhk-2026/api";
+import type { AdminUserListQuery, TeamRegistrationReviewListInput } from "@bmhk-2026/api";
 
 import { orpc } from "./orpc";
 
@@ -45,8 +45,8 @@ export function getStaffRegistrationQueryOptions(id: string) {
   return orpc.staffRegistrations.get.queryOptions({ input: { id } });
 }
 
-export function getParticipationListQueryOptions() {
-  return orpc.teams.list.queryOptions({ input: { limit: 100, offset: 0 } });
+export function getTeamRegistrationReviewListQueryOptions(input: TeamRegistrationReviewListInput) {
+  return orpc.teamRegistrationReviews.list.queryOptions({ input });
 }
 
 export function getParticipationQueryOptions(teamId: string) {

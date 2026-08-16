@@ -9,7 +9,11 @@ import {
   DialogTrigger,
 } from "@/components/dialog";
 import { Textarea } from "@/components/textarea";
-import type { TeamAdvisorDetails, TeamParticipantDetails } from "@bmhk-2026/api";
+import type {
+  TeamAdvisorDetails,
+  TeamParticipantDetails,
+  TeamRegistrationReview,
+} from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
 import {
   getParticipationAdvisorQueryOptions,
@@ -20,7 +24,9 @@ import {
   getParticipationStatusQueryOptions,
 } from "@bmhk-2026/client/query-options";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, CircleAlert, Clock3, ExternalLink, FileImage, FileText } from "lucide-react";
 import { useState } from "react";
+import type { KeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import { DetailFields } from "./detail-fields";
@@ -33,13 +39,155 @@ interface ParticipationReviewDialogProps {
 
 type ReviewSubject = "advisor" | number;
 
-function DocumentLink({ label, url }: { readonly label: string; readonly url: string | null }) {
-  return url === null ? (
-    <span>{label}: —</span>
-  ) : (
-    <a className="text-primary underline" href={url} rel="noopener noreferrer" target="_blank">
-      {label}
-    </a>
+type RegistrationStatus =
+  | "APPROVED"
+  | "CHANGES_REQUESTED"
+  | "COMPLETED"
+  | "DRAFT"
+  | "IN_PROGRESS"
+  | "NOT_APPLICABLE"
+  | "NOT_STARTED"
+  | "PENDING_REVIEW"
+  | "SUBMITTED";
+
+function StatusChip({ value }: { readonly value: RegistrationStatus | undefined }) {
+  const status = value ?? "NOT_STARTED";
+  const isComplete = status === "APPROVED" || status === "COMPLETED" || status === "SUBMITTED";
+  const needsAttention = status === "CHANGES_REQUESTED";
+  let Icon = Clock3;
+  let className = "bg-muted text-muted-foreground";
+  if (isComplete) {
+    Icon = CheckCircle2;
+    className = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  } else if (needsAttention) {
+    Icon = CircleAlert;
+    className = "bg-destructive/15 text-destructive";
+  }
+
+  return (
+    <span
+      className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 font-medium text-xs ${className}`}
+    >
+      <Icon aria-hidden="true" className="size-3.5" />
+      {status.replaceAll("_", " ")}
+    </span>
+  );
+}
+
+function toReviewSubject(
+  subject: ReviewSubject,
+): "advisor" | "participant1" | "participant2" | "participant3" {
+  if (subject === "advisor") {
+    return subject;
+  }
+  if (subject === 1) {
+    return "participant1";
+  }
+  if (subject === 2) {
+    return "participant2";
+  }
+  return "participant3";
+}
+
+interface SubjectDecision {
+  readonly note: string | null;
+  readonly reviewedAt: Date | null;
+  readonly status: RegistrationStatus;
+}
+
+function decisionFromFields({
+  issueCodes,
+  note,
+  reviewedAt,
+}: {
+  readonly issueCodes: readonly string[];
+  readonly note: string | null;
+  readonly reviewedAt: Date | null;
+}): SubjectDecision {
+  if (reviewedAt === null) {
+    return { note, reviewedAt, status: "PENDING_REVIEW" };
+  }
+
+  return {
+    note,
+    reviewedAt,
+    status: issueCodes.length > 0 ? "CHANGES_REQUESTED" : "APPROVED",
+  };
+}
+
+function subjectDecision(
+  review: TeamRegistrationReview | null | undefined,
+  subject: ReviewSubject,
+): SubjectDecision {
+  if (review === null || review === undefined) {
+    return { note: null, reviewedAt: null, status: "PENDING_REVIEW" };
+  }
+
+  const reviewSubject = toReviewSubject(subject);
+  switch (reviewSubject) {
+    case "advisor": {
+      return decisionFromFields({
+        issueCodes: review.advisorIssueCodes,
+        note: review.advisorNotes,
+        reviewedAt: review.advisorReviewedAt,
+      });
+    }
+    case "participant1": {
+      return decisionFromFields({
+        issueCodes: review.participant1IssueCodes,
+        note: review.participant1Notes,
+        reviewedAt: review.participant1ReviewedAt,
+      });
+    }
+    case "participant2": {
+      return decisionFromFields({
+        issueCodes: review.participant2IssueCodes,
+        note: review.participant2Notes,
+        reviewedAt: review.participant2ReviewedAt,
+      });
+    }
+    case "participant3": {
+      return decisionFromFields({
+        issueCodes: review.participant3IssueCodes,
+        note: review.participant3Notes,
+        reviewedAt: review.participant3ReviewedAt,
+      });
+    }
+    default: {
+      return { note: null, reviewedAt: null, status: "PENDING_REVIEW" };
+    }
+  }
+}
+
+interface DocumentLinkProps {
+  readonly kind: "document" | "image";
+  readonly label: string;
+  readonly url: string | null;
+}
+
+function DocumentLink({ kind, label, url }: DocumentLinkProps) {
+  if (url === null) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+        <CircleAlert aria-hidden="true" className="size-4" />
+        {label} not uploaded
+      </span>
+    );
+  }
+
+  const Icon = kind === "image" ? FileImage : FileText;
+  return (
+    <Button
+      render={
+        <a aria-label={`View ${label}`} href={url} rel="noopener noreferrer" target="_blank" />
+      }
+      size="sm"
+      variant="outline"
+    >
+      <Icon aria-hidden="true" />
+      View {label}
+      <ExternalLink aria-hidden="true" data-icon="inline-end" />
+    </Button>
   );
 }
 
@@ -56,6 +204,28 @@ function SubjectTabs({
   selectedSubject,
   onSubjectChange,
 }: SubjectTabsProps) {
+  const subjects: ReviewSubject[] = [
+    ...participants.map((participant) => participant.index),
+    ...(advisor ? ["advisor" as const] : []),
+  ];
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, subject: ReviewSubject): void {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+
+    const currentIndex = subjects.indexOf(subject);
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = (currentIndex + direction + subjects.length) % subjects.length;
+    const nextSubject = subjects[nextIndex];
+    if (nextSubject === undefined) {
+      return;
+    }
+
+    event.preventDefault();
+    onSubjectChange(nextSubject);
+  }
+
   return (
     <div aria-label="Registration subjects" className="flex flex-wrap gap-2" role="tablist">
       {participants.map((participant) => (
@@ -64,10 +234,13 @@ function SubjectTabs({
           aria-selected={selectedSubject === participant.index}
           role="tab"
           size="sm"
-          tabIndex={0}
+          tabIndex={selectedSubject === participant.index ? 0 : -1}
           variant={selectedSubject === participant.index ? "default" : "outline"}
           onClick={() => {
             onSubjectChange(participant.index);
+          }}
+          onKeyDown={(event) => {
+            handleKeyDown(event, participant.index);
           }}
         >
           Participant {participant.index}
@@ -78,10 +251,13 @@ function SubjectTabs({
           aria-selected={selectedSubject === "advisor"}
           role="tab"
           size="sm"
-          tabIndex={0}
+          tabIndex={selectedSubject === "advisor" ? 0 : -1}
           variant={selectedSubject === "advisor" ? "default" : "outline"}
           onClick={() => {
             onSubjectChange("advisor");
+          }}
+          onKeyDown={(event) => {
+            handleKeyDown(event, "advisor");
           }}
         >
           Advisor
@@ -112,14 +288,20 @@ function SubjectDetails({ advisor, participant }: SubjectDetailsProps) {
           <h2 className="font-medium">Participant documents</h2>
           <div className="flex flex-col gap-2 text-sm">
             <DocumentLink
+              kind="document"
               label="Identity document"
               url={participant.identityDocument?.url ?? null}
             />
             <DocumentLink
+              kind="document"
               label="Academic record"
               url={participant.academicRecordDocument?.url ?? null}
             />
-            <DocumentLink label="Portrait photo" url={participant.portraitPhoto?.url ?? null} />
+            <DocumentLink
+              kind="image"
+              label="Portrait photo"
+              url={participant.portraitPhoto?.url ?? null}
+            />
           </div>
         </section>
       </div>
@@ -139,8 +321,13 @@ function SubjectDetails({ advisor, participant }: SubjectDetailsProps) {
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">Advisor documents</h2>
           <div className="flex flex-col gap-2 text-sm">
-            <DocumentLink label="Identity document" url={advisor.identityDocument?.url ?? null} />
             <DocumentLink
+              kind="document"
+              label="Identity document"
+              url={advisor.identityDocument?.url ?? null}
+            />
+            <DocumentLink
+              kind="document"
               label="Teacher status document"
               url={advisor.teacherStatusDocument?.url ?? null}
             />
@@ -152,6 +339,27 @@ function SubjectDetails({ advisor, participant }: SubjectDetailsProps) {
 
   return (
     <p className="text-muted-foreground">No registration details are available for this subject.</p>
+  );
+}
+
+function SubjectDecisionDetails({ decision }: { readonly decision: SubjectDecision }) {
+  return (
+    <section className="flex flex-col gap-2 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-medium">Individual review</h2>
+        <StatusChip value={decision.status} />
+      </div>
+      {decision.reviewedAt ? (
+        <p className="text-muted-foreground text-sm">
+          Decided {decision.reviewedAt.toLocaleString()}
+        </p>
+      ) : (
+        <p className="text-muted-foreground text-sm">No decision has been recorded yet.</p>
+      )}
+      {decision.status === "CHANGES_REQUESTED" && decision.note !== null ? (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-foreground">{decision.note}</p>
+      ) : null}
+    </section>
   );
 }
 
@@ -177,7 +385,7 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
   const statusQuery = useQuery({ ...getParticipationStatusQueryOptions(teamId), enabled: isOpen });
   const reviewQuery = useQuery({ ...getParticipationReviewQueryOptions(teamId), enabled: isOpen });
   const saveReview = useMutation(
-    orpc.teamRegistrationReviews.save.mutationOptions({
+    orpc.teamRegistrationReviews.saveSubject.mutationOptions({
       onError: () => {
         toast.error("Unable to save the registration review.");
       },
@@ -185,15 +393,31 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
         await queryClient.invalidateQueries({
           queryKey: orpc.teamRegistrationReviews.get.key({ input: { teamId } }),
         });
+        await queryClient.invalidateQueries({ queryKey: orpc.teamRegistrationReviews.list.key() });
         toast.success("Registration review saved.");
         setReviewNotes("");
       },
     }),
   );
   const team = teamQuery.data;
-  const selectedParticipant = participantsQuery.data?.find(
-    (participant) => participant.index === selectedSubject,
+  const participants = participantsQuery.data ?? [];
+  const firstSubject = participants[0]?.index ?? (advisorQuery.data ? "advisor" : undefined);
+  const selectedSubjectExists =
+    selectedSubject === "advisor"
+      ? advisorQuery.data !== undefined
+      : participants.some((participant) => participant.index === selectedSubject);
+  const effectiveSubject = selectedSubjectExists
+    ? selectedSubject
+    : (firstSubject ?? selectedSubject);
+  const selectedParticipant = participants.find(
+    (participant) => participant.index === effectiveSubject,
   );
+  const decision = subjectDecision(reviewQuery.data, effectiveSubject);
+
+  function handleSubjectChange(subject: ReviewSubject): void {
+    setSelectedSubject(subject);
+    setReviewNotes("");
+  }
 
   async function save(status: "APPROVED" | "CHANGES_REQUESTED"): Promise<void> {
     const hasNotes = reviewNotes.trim().length > 0;
@@ -204,12 +428,9 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
 
     await saveReview.mutateAsync({
       data: {
-        advisorIssueCodes: status === "CHANGES_REQUESTED" ? ["REVIEW_REQUIRED"] : [],
-        internalNotes: hasNotes ? reviewNotes.trim() : null,
-        participant1IssueCodes: [],
-        participant2IssueCodes: [],
-        participant3IssueCodes: [],
+        note: hasNotes ? reviewNotes.trim() : null,
         status,
+        subject: toReviewSubject(effectiveSubject),
       },
       teamId,
     });
@@ -244,27 +465,38 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
               <h2 className="font-medium">Registration subjects</h2>
               <SubjectTabs
                 advisor={advisorQuery.data}
-                participants={participantsQuery.data ?? []}
-                selectedSubject={selectedSubject}
-                onSubjectChange={setSelectedSubject}
+                participants={participants}
+                selectedSubject={effectiveSubject}
+                onSubjectChange={handleSubjectChange}
               />
               <SubjectDetails
-                advisor={selectedSubject === "advisor" ? advisorQuery.data : undefined}
+                advisor={effectiveSubject === "advisor" ? advisorQuery.data : undefined}
                 participant={selectedParticipant}
               />
+              <SubjectDecisionDetails decision={decision} />
             </section>
-            <DetailFields
-              title="Registration review"
-              fields={[
-                { label: "Review status", value: reviewQuery.data?.status ?? "PENDING_REVIEW" },
-                { label: "Team registration", value: statusQuery.data?.team },
-                { label: "Terms and conditions", value: statusQuery.data?.termsAndConditions },
-                { label: "Consent recorded", value: consentQuery.data ? "Available" : "Missing" },
-              ]}
-            />
+            <section className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-sm">Review</span>
+                <StatusChip value={reviewQuery.data?.status ?? "PENDING_REVIEW"} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-sm">Team registration</span>
+                <StatusChip value={statusQuery.data?.team} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-sm">Terms and conditions</span>
+                <StatusChip value={statusQuery.data?.termsAndConditions} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-sm">Consent</span>
+                <StatusChip value={consentQuery.data ? "COMPLETED" : "NOT_STARTED"} />
+              </div>
+            </section>
             {canReview ? (
               <label className="flex flex-col gap-2 font-medium" htmlFor={`review-notes-${teamId}`}>
-                Review notes
+                Review note for{" "}
+                {effectiveSubject === "advisor" ? "advisor" : `participant ${effectiveSubject}`}
                 <Textarea
                   id={`review-notes-${teamId}`}
                   value={reviewNotes}
@@ -303,4 +535,4 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
   );
 }
 
-export { ParticipationReviewDialog };
+export { ParticipationReviewDialog, StatusChip };

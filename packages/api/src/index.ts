@@ -69,6 +69,10 @@ export type {
   SaveTeamRegistrationReviewData,
   TeamRegistrationReview,
   TeamRegistrationReviewFeedback,
+  TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListInput,
+  TeamRegistrationReviewListResult,
+  TeamRegistrationReviewListSubjectStatus,
   TeamRegistrationReviewStatus,
 } from "./features/team-registration-reviews/team-registration-reviews.schema";
 export { teamRegistrationReviewStatusValues } from "./features/team-registration-reviews/team-registration-reviews.schema";

@@ -8,6 +8,7 @@ import { z } from "zod";
 const MAX_INTERNAL_NOTES_LENGTH = 4000;
 const MAX_ISSUE_CODE_LENGTH = 100;
 const MAX_ISSUE_CODES_PER_SUBJECT = 50;
+const MAX_SEARCH_LENGTH = 120;
 
 const issueCodesSchema = z
   .array(z.string().trim().min(1).max(MAX_ISSUE_CODE_LENGTH))
@@ -28,6 +29,48 @@ export const teamRegistrationReviewFeedbackSchema = z
     status: teamRegistrationReviewFeedbackStatusSchema,
     statusUpdatedAt: z.date().nullable(),
   })
+  .strict();
+
+export const teamRegistrationReviewListSubjectStatusValues = [
+  "PENDING_REVIEW",
+  "CHANGES_REQUESTED",
+  "APPROVED",
+  "NOT_APPLICABLE",
+] as const;
+export const teamRegistrationReviewListSubjectStatusSchema = z.enum(
+  teamRegistrationReviewListSubjectStatusValues,
+);
+export const teamRegistrationReviewListFilterValues = [
+  "ALL",
+  "PENDING_REVIEW",
+  "CHANGES_REQUESTED",
+  "APPROVED",
+] as const;
+export const teamRegistrationReviewListFilterSchema = z.enum(
+  teamRegistrationReviewListFilterValues,
+);
+export const teamRegistrationReviewListInputSchema = z
+  .object({
+    reviewStatus: teamRegistrationReviewListFilterSchema.default("ALL"),
+    search: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
+  })
+  .strict()
+  .default({ reviewStatus: "ALL", search: "" });
+export const teamRegistrationReviewListRowSchema = z
+  .object({
+    advisor: teamRegistrationReviewListSubjectStatusSchema,
+    id: z.uuid(),
+    memberCount: z.int().nonnegative(),
+    name: z.string(),
+    participant1: teamRegistrationReviewListSubjectStatusSchema,
+    participant2: teamRegistrationReviewListSubjectStatusSchema,
+    participant3: teamRegistrationReviewListSubjectStatusSchema,
+    registrationSubmittedAt: z.date().nullable(),
+    school: z.string(),
+  })
+  .strict();
+export const teamRegistrationReviewListResultSchema = z
+  .object({ rows: z.array(teamRegistrationReviewListRowSchema) })
   .strict();
 
 export const saveTeamRegistrationReviewDataSchema = z
@@ -66,8 +109,52 @@ export const saveTeamRegistrationReviewSchema = teamRegistrationReviewTeamInputS
   .extend({ data: saveTeamRegistrationReviewDataSchema })
   .strict();
 
+export const teamRegistrationReviewSubjectValues = [
+  "advisor",
+  "participant1",
+  "participant2",
+  "participant3",
+] as const;
+export const teamRegistrationReviewSubjectSchema = z.enum(teamRegistrationReviewSubjectValues);
+export const saveTeamRegistrationReviewSubjectSchema = teamRegistrationReviewTeamInputSchema
+  .extend({
+    data: z
+      .object({
+        note: z.string().trim().min(1).max(MAX_INTERNAL_NOTES_LENGTH).nullable(),
+        status: z.enum(["APPROVED", "CHANGES_REQUESTED"]),
+        subject: teamRegistrationReviewSubjectSchema,
+      })
+      .strict()
+      .superRefine((data, context) => {
+        if (data.status === "CHANGES_REQUESTED" && data.note === null) {
+          context.addIssue({
+            code: "custom",
+            message: "Change requests require review notes",
+            path: ["note"],
+          });
+        }
+      }),
+  })
+  .strict();
+
 export type TeamRegistrationReview = z.output<typeof teamRegistrationReviewSchema>;
 export type TeamRegistrationReviewFeedback = z.output<typeof teamRegistrationReviewFeedbackSchema>;
 export type TeamRegistrationReviewStatus = TeamRegistrationReview["status"];
 export type SaveTeamRegistrationReviewData = z.output<typeof saveTeamRegistrationReviewDataSchema>;
+export type SaveTeamRegistrationReviewSubjectData = z.output<
+  typeof saveTeamRegistrationReviewSubjectSchema
+>["data"];
+export type TeamRegistrationReviewSubject = z.output<typeof teamRegistrationReviewSubjectSchema>;
+export type TeamRegistrationReviewListFilter = z.output<
+  typeof teamRegistrationReviewListFilterSchema
+>;
+export type TeamRegistrationReviewListInput = z.output<
+  typeof teamRegistrationReviewListInputSchema
+>;
+export type TeamRegistrationReviewListResult = z.output<
+  typeof teamRegistrationReviewListResultSchema
+>;
+export type TeamRegistrationReviewListSubjectStatus = z.output<
+  typeof teamRegistrationReviewListSubjectStatusSchema
+>;
 export { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";

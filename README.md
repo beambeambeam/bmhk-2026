@@ -93,11 +93,11 @@ Feature routers should remain transport adapters. Database coordination, not-fou
    # GLOBAL=true  # Optional: set to true to deploy commands globally instead of guild-scoped
    ```
 
-3. Start local services and apply the database migrations:
+3. Start local services and apply the database schema:
 
    ```bash
    bun run services:start
-   bun run db:migrate
+   bun run db:push
    ```
 
    Local services:
@@ -120,6 +120,9 @@ Feature routers should remain transport adapters. Database coordination, not-fou
 
    The staff check-in fixture records `BMHK 2026 Staff 2` as present and approved by
    `BMHK 2026 Registration Staff`, so `/staff` has an example checked-in row.
+
+   Use `bun run db:migrate` in migration-managed environments such as staging and
+   production. It applies the committed migration history in order.
 
 4. Discord Bot setup (optional):
 

@@ -44,7 +44,7 @@ export interface TeamRegistrationReviewRepository {
     offset: number;
     reviewStatus: TeamRegistrationReviewListFilter;
     search: string;
-  }) => Promise<{ records: TeamRegistrationReviewListRecord[]; total: number }>;
+  }) => Promise<{ offset: number; records: TeamRegistrationReviewListRecord[]; total: number }>;
   save: (
     access: TeamAccessContext,
     teamId: string,
@@ -208,6 +208,9 @@ export function createTeamRegistrationReviewRepository(
               .innerJoin(user, eq(user.id, teams.userId))
               .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
               .where(condition);
+            const total = totalResult?.value ?? 0;
+            const lastPageOffset = Math.max(0, Math.ceil(total / limit) - 1) * limit;
+            const pageOffset = Math.min(offset, lastPageOffset);
             const records = await transaction
               .select({ review: teamRegistrationReviews, team: teams })
               .from(teams)
@@ -216,9 +219,9 @@ export function createTeamRegistrationReviewRepository(
               .where(condition)
               .orderBy(asc(teams.index))
               .limit(limit)
-              .offset(offset);
+              .offset(pageOffset);
 
-            return { records, total: totalResult?.value ?? 0 };
+            return { offset: pageOffset, records, total };
           },
           { accessMode: "read only", isolationLevel: "repeatable read" },
         );

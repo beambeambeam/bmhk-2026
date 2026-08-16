@@ -56,7 +56,8 @@ type TestTeamRegistrationReviewRepository = Omit<
   Partial<Pick<TeamRegistrationReviewRepository, "list" | "saveSubject">>;
 
 function createRouter(repository: TestTeamRegistrationReviewRepository, auth: AuthReader) {
-  const list = repository.list ?? (async () => await Promise.resolve({ records: [], total: 0 }));
+  const list =
+    repository.list ?? (async () => await Promise.resolve({ offset: 0, records: [], total: 0 }));
   const saveSubject = repository.saveSubject ?? (async () => await Promise.resolve(null));
   return createAppRouter({
     auth,
@@ -199,7 +200,7 @@ describe("team registration reviews router", () => {
             reviewStatus: "APPROVED",
             search: "",
           });
-          return await Promise.resolve({ records: [], total: 0 });
+          return await Promise.resolve({ offset: 0, records: [], total: 0 });
         },
         save: async () => await Promise.resolve(null),
       },

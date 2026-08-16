@@ -128,7 +128,8 @@ export function createTeamRegistrationReviewService(
       return toReviewFeedback(result.review);
     },
     list: async ({ limit, offset, reviewStatus, search }) => {
-      const { records, total } = await repository.list({ limit, offset, reviewStatus, search });
+      const result = await repository.list({ limit, offset, reviewStatus, search });
+      const { records, total } = result;
       const rows = records.map(({ review, team }) => ({
         advisor: listSubjectStatus(review, "advisor"),
         id: team.id,
@@ -144,8 +145,8 @@ export function createTeamRegistrationReviewService(
       }));
       return {
         pagination: {
-          nextOffset: offset + limit < total ? offset + limit : null,
-          offset,
+          nextOffset: result.offset + limit < total ? result.offset + limit : null,
+          offset: result.offset,
           total,
         },
         rows,

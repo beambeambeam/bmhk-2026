@@ -1,4 +1,3 @@
-import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import {
   Select,
@@ -16,10 +15,11 @@ import type {
 } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { ParticipationReviewDialog, StatusChip } from "./participation-review-dialog";
+import { ParticipationPagination } from "./participation-pagination";
+import { ParticipationReviewDialog } from "./participation-review-dialog";
+import { StatusChip } from "./participation-review-status";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PARTICIPATIONS_PAGE_SIZE = 20;
@@ -74,12 +74,6 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
       window.clearTimeout(timeoutId);
     };
   }, [search]);
-
-  const firstVisibleParticipation =
-    pagination !== undefined && pagination.total > 0 ? pagination.offset + 1 : 0;
-  const lastVisibleParticipation = pagination
-    ? Math.min(pagination.offset + teams.length, pagination.total)
-    : 0;
 
   return (
     <Card>
@@ -182,40 +176,13 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           </Table>
         </div>
         {pagination ? (
-          <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground">
-              Showing {firstVisibleParticipation}-{lastVisibleParticipation} of {pagination.total}{" "}
-              participations
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                disabled={pagination.offset === 0 || query.isFetching}
-                size="sm"
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOffset(Math.max(0, pagination.offset - PARTICIPATIONS_PAGE_SIZE));
-                }}
-              >
-                <ChevronLeft aria-hidden="true" data-icon="inline-start" />
-                Previous
-              </Button>
-              <Button
-                disabled={pagination.nextOffset === null || query.isFetching}
-                size="sm"
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (pagination.nextOffset !== null) {
-                    setOffset(pagination.nextOffset);
-                  }
-                }}
-              >
-                Next
-                <ChevronRight aria-hidden="true" data-icon="inline-end" />
-              </Button>
-            </div>
-          </div>
+          <ParticipationPagination
+            isFetching={query.isFetching}
+            pageSize={PARTICIPATIONS_PAGE_SIZE}
+            pagination={pagination}
+            visibleRowCount={teams.length}
+            onOffsetChange={setOffset}
+          />
         ) : null}
       </CardContent>
     </Card>

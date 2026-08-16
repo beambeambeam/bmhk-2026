@@ -44,13 +44,11 @@ const localAccounts = [
   },
   {
     email: "staff-bmhk-2026+local@kmutt.ac.th",
-    image: "https://placehold.co/128x128/png?text=Staff",
     name: "BMHK 2026 Staff",
     role: "staff",
   },
   {
     email: "staff-2-bmhk-2026+local@kmutt.ac.th",
-    image: "https://placehold.co/128x128/png?text=Staff+2",
     name: "BMHK 2026 Staff 2",
     role: "staff",
   },

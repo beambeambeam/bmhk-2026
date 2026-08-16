@@ -22,10 +22,8 @@ function ParticipationsPage() {
     <section className="flex flex-col gap-5">
       <Card>
         <CardHeader>
-          <CardTitle>Participations</CardTitle>
-          <CardDescription>
-            Review competitor teams, participants, advisors, and submitted documents.
-          </CardDescription>
+          <CardTitle>รายการสมัครแข่งขัน</CardTitle>
+          <CardDescription>ตรวจสอบข้อมูลทีม สมาชิก อาจารย์ที่ปรึกษา และเอกสารที่ส่งสมัคร</CardDescription>
         </CardHeader>
         <CardContent>
           <ParticipationTable canReview={canReview} />

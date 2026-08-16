@@ -15,7 +15,7 @@ import type {
   TeamRegistrationReviewListSort,
 } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -62,8 +62,8 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
   const [sortBy, setSortBy] = useState<TeamRegistrationReviewListSort>("name");
   const [sortDesc, setSortDesc] = useState(false);
-  const query = useQuery(
-    getTeamRegistrationReviewListQueryOptions({
+  const query = useQuery({
+    ...getTeamRegistrationReviewListQueryOptions({
       limit: PARTICIPATIONS_PAGE_SIZE,
       offset,
       reviewStatus,
@@ -71,7 +71,8 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
       sortBy,
       sortDesc,
     }),
-  );
+    placeholderData: keepPreviousData,
+  });
   const teams = query.data?.rows ?? [];
   const pagination = query.data?.pagination;
 
@@ -87,8 +88,12 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
   }, [search]);
 
   function toggleSorting(column: TeamRegistrationReviewListSort): void {
-    setSortDesc((current) => (sortBy === column ? !current : false));
-    setSortBy(column);
+    if (sortBy === column) {
+      setSortDesc((current) => !current);
+    } else {
+      setSortBy(column);
+      setSortDesc(false);
+    }
     setOffset(0);
   }
 

@@ -37,14 +37,6 @@ export function getAdminUserListQueryOptions(
   });
 }
 
-export function getStaffRegistrationListQueryOptions() {
-  return orpc.staffRegistrations.list.queryOptions({});
-}
-
-export function getStaffRegistrationQueryOptions(id: string) {
-  return orpc.staffRegistrations.get.queryOptions({ input: { id } });
-}
-
 export function getTeamRegistrationReviewListQueryOptions(input: TeamRegistrationReviewListInput) {
   return orpc.teamRegistrationReviews.list.queryOptions({ input });
 }

@@ -5,6 +5,7 @@ import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { and, asc, count, eq, exists, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import type { TeamAccessContext } from "../../core/auth";
 import { createRepositoryExecutor } from "../../core/repository";
@@ -59,6 +60,7 @@ export interface TeamRegistrationReviewRepository {
 
 export interface TeamRegistrationReviewListRecord {
   readonly review: TeamRegistrationReview | null;
+  readonly reviewedByName: string | null;
   readonly team: typeof teams.$inferSelect;
 }
 
@@ -136,6 +138,7 @@ export function createTeamRegistrationReviewRepository(
       }),
     list: async ({ limit, offset, reviewStatus, search }) =>
       await execute(async () => {
+        const reviewer = alias(user, "team_registration_reviewer");
         const escapedSearch = escapeLikePattern(search);
         const searchPattern = `%${escapedSearch}%`;
         const searchCondition =
@@ -212,10 +215,15 @@ export function createTeamRegistrationReviewRepository(
             const lastPageOffset = Math.max(0, Math.ceil(total / limit) - 1) * limit;
             const pageOffset = Math.min(offset, lastPageOffset);
             const records = await transaction
-              .select({ review: teamRegistrationReviews, team: teams })
+              .select({
+                review: teamRegistrationReviews,
+                reviewedByName: reviewer.name,
+                team: teams,
+              })
               .from(teams)
               .innerJoin(user, eq(user.id, teams.userId))
               .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
+              .leftJoin(reviewer, eq(reviewer.id, teamRegistrationReviews.reviewedByUserId))
               .where(condition)
               .orderBy(asc(teams.index))
               .limit(limit)

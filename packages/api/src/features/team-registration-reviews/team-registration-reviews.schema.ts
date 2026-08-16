@@ -64,6 +64,7 @@ export const teamRegistrationReviewListRowSchema = z
   .object({
     advisor: teamRegistrationReviewListSubjectStatusSchema,
     id: z.uuid(),
+    lastUpdatedAt: z.date().nullable(),
     memberCount: z.int().nonnegative(),
     name: z.string(),
     participant1: teamRegistrationReviewListSubjectStatusSchema,
@@ -71,6 +72,7 @@ export const teamRegistrationReviewListRowSchema = z
     participant3: teamRegistrationReviewListSubjectStatusSchema,
     registrationSubmittedAt: z.date().nullable(),
     reviewStatus: teamRegistrationReviewListSubjectStatusSchema,
+    reviewedByName: z.string().nullable(),
     school: z.string(),
   })
   .strict();

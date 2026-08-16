@@ -9,10 +9,7 @@ import {
 } from "@/components/select";
 import { Card, CardContent } from "@/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
-import type {
-  TeamRegistrationReviewListFilter,
-  TeamRegistrationReviewListSubjectStatus,
-} from "@bmhk-2026/api";
+import type { TeamRegistrationReviewListFilter } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -24,28 +21,22 @@ import { StatusChip } from "./participation-review-status";
 const SEARCH_DEBOUNCE_MS = 300;
 const PARTICIPATIONS_PAGE_SIZE = 20;
 const reviewFilters = [
-  { label: "All reviews", value: "ALL" },
-  { label: "Pending review", value: "PENDING_REVIEW" },
-  { label: "Changes requested", value: "CHANGES_REQUESTED" },
-  { label: "Approved", value: "APPROVED" },
+  { label: "ทุกสถานะ", value: "ALL" },
+  { label: "รอตรวจสอบ", value: "PENDING_REVIEW" },
+  { label: "ขอให้แก้ไข", value: "CHANGES_REQUESTED" },
+  { label: "อนุมัติแล้ว", value: "APPROVED" },
 ] as const satisfies readonly { label: string; value: TeamRegistrationReviewListFilter }[];
 
 interface ParticipationTableProps {
   readonly canReview: boolean;
 }
 
-interface IndividualReviewStatusProps {
-  readonly label: string;
-  readonly status: TeamRegistrationReviewListSubjectStatus;
+function formatSubmitDate(submittedAt: Date | null): string {
+  return submittedAt?.toLocaleDateString() ?? "—";
 }
 
-function IndividualReviewStatus({ label, status }: IndividualReviewStatusProps) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <StatusChip value={status} />
-    </div>
-  );
+function formatLastUpdated(updatedAt: Date | null): string {
+  return updatedAt?.toLocaleString() ?? "—";
 }
 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
@@ -81,11 +72,11 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
           <div>
             <label className="sr-only" htmlFor="participation-search">
-              Search participations
+              ค้นหาทีมที่สมัคร
             </label>
             <Input
               id="participation-search"
-              placeholder="Search team, school, participant, or advisor"
+              placeholder="ค้นหาชื่อทีม โรงเรียน สมาชิก หรืออาจารย์"
               type="search"
               value={search}
               onChange={(event) => {
@@ -102,7 +93,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
               }
             }}
           >
-            <SelectTrigger aria-label="Review status" className="w-full">
+            <SelectTrigger aria-label="สถานะการตรวจสอบ" className="w-full">
               <SelectValue>
                 {reviewFilters.find((filter) => filter.value === reviewStatus)?.label}
               </SelectValue>
@@ -122,53 +113,60 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[26%] whitespace-normal">Team</TableHead>
-                <TableHead className="w-[14%] whitespace-normal">Submission</TableHead>
-                <TableHead className="w-[17%] whitespace-normal">Review</TableHead>
-                <TableHead className="w-[30%] whitespace-normal">Individual reviews</TableHead>
-                <TableHead className="w-[13%] whitespace-normal">Action</TableHead>
+                <TableHead className="w-[14%] whitespace-normal">ทีม</TableHead>
+                <TableHead className="w-[12%] whitespace-normal">โรงเรียน</TableHead>
+                <TableHead className="w-[8%] whitespace-normal">สมาชิก</TableHead>
+                <TableHead className="w-[9%] whitespace-normal">การส่งสมัคร</TableHead>
+                <TableHead className="w-[10%] whitespace-normal">วันที่ส่ง</TableHead>
+                <TableHead className="w-[10%] whitespace-normal">ตรวจสอบ</TableHead>
+                <TableHead className="w-[11%] whitespace-normal">อัปเดตโดย</TableHead>
+                <TableHead className="w-[14%] whitespace-normal">อัปเดตล่าสุด</TableHead>
+                <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {query.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5}>Loading participations...</TableCell>
+                  <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
                 </TableRow>
               ) : null}
               {query.isError ? (
                 <TableRow>
-                  <TableCell className="text-destructive" colSpan={5}>
-                    Unable to load participations.
+                  <TableCell className="text-destructive" colSpan={9}>
+                    ไม่สามารถโหลดข้อมูลการสมัครได้
                   </TableCell>
                 </TableRow>
               ) : null}
               {!query.isLoading && !query.isError && teams.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5}>No participations found.</TableCell>
+                  <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
                 </TableRow>
               ) : null}
               {teams.map((team) => (
                 <TableRow key={team.id}>
                   <TableCell className="whitespace-normal">
                     <p className="font-medium">{team.name}</p>
-                    <p className="text-muted-foreground text-xs">{team.school}</p>
                   </TableCell>
+                  <TableCell className="whitespace-normal">{team.school}</TableCell>
+                  <TableCell>{team.memberCount}</TableCell>
                   <TableCell>
                     <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
                   </TableCell>
+                  <TableCell>{formatSubmitDate(team.registrationSubmittedAt)}</TableCell>
                   <TableCell>
                     <StatusChip value={team.reviewStatus} />
                   </TableCell>
+                  <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
                   <TableCell className="whitespace-normal">
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                      <IndividualReviewStatus label="Participant 1" status={team.participant1} />
-                      <IndividualReviewStatus label="Participant 2" status={team.participant2} />
-                      <IndividualReviewStatus label="Participant 3" status={team.participant3} />
-                      <IndividualReviewStatus label="Advisor" status={team.advisor} />
-                    </div>
+                    {formatLastUpdated(team.lastUpdatedAt)}
                   </TableCell>
                   <TableCell>
-                    <ParticipationReviewDialog canReview={canReview} teamId={team.id} />
+                    <ParticipationReviewDialog
+                      canReview={canReview}
+                      lastUpdatedAt={team.lastUpdatedAt}
+                      reviewedByName={team.reviewedByName}
+                      teamId={team.id}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

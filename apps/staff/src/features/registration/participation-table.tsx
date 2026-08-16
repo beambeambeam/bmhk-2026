@@ -74,7 +74,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
             </label>
             <Input
               id="participation-search"
-              placeholder="Search team or school"
+              placeholder="Search team, school, participant, or advisor"
               type="search"
               value={search}
               onChange={(event) => {

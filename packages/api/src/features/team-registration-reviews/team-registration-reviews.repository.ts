@@ -1,8 +1,10 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
+import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
+import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, exists, ilike, isNotNull, or, sql } from "drizzle-orm";
 
 import type { TeamAccessContext } from "../../core/auth";
 import { createRepositoryExecutor } from "../../core/repository";
@@ -114,6 +116,7 @@ export function createTeamRegistrationReviewRepository(
     list: async (search) =>
       await execute(async () => {
         const escapedSearch = escapeLikePattern(search);
+        const searchPattern = `%${escapedSearch}%`;
         const condition =
           search.length === 0
             ? and(eq(normalizedUserRole, "user"), isNotNull(teams.registrationSubmittedAt))
@@ -121,8 +124,56 @@ export function createTeamRegistrationReviewRepository(
                 eq(normalizedUserRole, "user"),
                 isNotNull(teams.registrationSubmittedAt),
                 or(
-                  ilike(teams.name, `%${escapedSearch}%`),
-                  ilike(teams.school, `%${escapedSearch}%`),
+                  ilike(teams.name, searchPattern),
+                  ilike(teams.school, searchPattern),
+                  exists(
+                    database
+                      .select({ id: teamParticipants.id })
+                      .from(teamParticipants)
+                      .where(
+                        and(
+                          eq(teamParticipants.teamId, teams.id),
+                          or(
+                            ilike(teamParticipants.firstNameEn, searchPattern),
+                            ilike(teamParticipants.firstNameTh, searchPattern),
+                            ilike(teamParticipants.lastNameEn, searchPattern),
+                            ilike(teamParticipants.lastNameTh, searchPattern),
+                            ilike(
+                              sql<string>`concat_ws(' ', ${teamParticipants.firstNameEn}, ${teamParticipants.middleNameEn}, ${teamParticipants.lastNameEn})`,
+                              searchPattern,
+                            ),
+                            ilike(
+                              sql<string>`concat_ws(' ', ${teamParticipants.firstNameTh}, ${teamParticipants.middleNameTh}, ${teamParticipants.lastNameTh})`,
+                              searchPattern,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ),
+                  exists(
+                    database
+                      .select({ id: teamAdvisors.id })
+                      .from(teamAdvisors)
+                      .where(
+                        and(
+                          eq(teamAdvisors.teamId, teams.id),
+                          or(
+                            ilike(teamAdvisors.firstNameEn, searchPattern),
+                            ilike(teamAdvisors.firstNameTh, searchPattern),
+                            ilike(teamAdvisors.lastNameEn, searchPattern),
+                            ilike(teamAdvisors.lastNameTh, searchPattern),
+                            ilike(
+                              sql<string>`concat_ws(' ', ${teamAdvisors.firstNameEn}, ${teamAdvisors.middleNameEn}, ${teamAdvisors.lastNameEn})`,
+                              searchPattern,
+                            ),
+                            ilike(
+                              sql<string>`concat_ws(' ', ${teamAdvisors.firstNameTh}, ${teamAdvisors.middleNameTh}, ${teamAdvisors.lastNameTh})`,
+                              searchPattern,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ),
                 ),
               );
         return await database

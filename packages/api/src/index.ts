@@ -2,6 +2,14 @@ export { createAppRouter } from "./router";
 export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { AdminUserRepository } from "./features/admin-users/admin-users.repository";
+export type { StaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
+export type {
+  StaffCheckInColumnFilter,
+  StaffCheckInListQuery,
+  StaffCheckInListResult,
+  StaffCheckInSort,
+  StaffCheckInStaff,
+} from "./features/staff-check-ins/staff-check-ins.schema";
 export type {
   AdminUser,
   AdminUserColumnFilter,

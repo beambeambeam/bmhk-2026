@@ -93,11 +93,11 @@ Feature routers should remain transport adapters. Database coordination, not-fou
    # GLOBAL=true  # Optional: set to true to deploy commands globally instead of guild-scoped
    ```
 
-3. Start local services and apply the database schema:
+3. Start local services and apply the database migrations:
 
    ```bash
    bun run services:start
-   bun run db:push
+   bun run db:migrate
    ```
 
    Local services:
@@ -112,11 +112,14 @@ Feature routers should remain transport adapters. Database coordination, not-fou
 
    ```bash
    bun run db:seed:auth # Creates or updates local authentication accounts
-   bun run db:seed:dev  # Adds example teams, participants, advisors, consents, and reviews
+   bun run db:seed:dev  # Adds example registrations and a staff check-in fixture
    ```
 
    `db:seed:dev` does not create authentication accounts. It requires the member and
-   registration-staff accounts created by `db:seed:auth`.
+   registration-staff and staff accounts created by `db:seed:auth`.
+
+   The staff check-in fixture records `BMHK 2026 Staff 2` as present and approved by
+   `BMHK 2026 Registration Staff`, so `/staff` has an example checked-in row.
 
 4. Discord Bot setup (optional):
 

@@ -19,6 +19,19 @@ export const userDirectoryAccessedAudit = defineAuditAction("user-directory.acce
   target: "user-directory",
 });
 
+export const staffCheckInCreatedAudit = defineAuditAction("staff-check-in.created", {
+  description: "A staff member recorded another staff member's on-site arrival",
+  requiresChanges: true,
+  severity: "critical",
+  target: "staff-check-in",
+});
+
+export const staffCheckInCancelledAudit = defineAuditAction("staff-check-in.cancelled", {
+  description: "A staff member cancelled another staff member's on-site arrival record",
+  severity: "critical",
+  target: "staff-check-in",
+});
+
 export const awardChangedAudit = defineAuditAction("team.award.changed", {
   description: "A Registration Operator changed an Award",
   requiresChanges: true,

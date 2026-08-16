@@ -41,6 +41,10 @@ import type { TeamRegistrationReviewRepository } from "./features/team-registrat
 import { createTeamRegistrationReviewRepository } from "./features/team-registration-reviews/team-registration-reviews.repository";
 import { createTeamRegistrationReviewsRouter } from "./features/team-registration-reviews/team-registration-reviews.router";
 import { createTeamRegistrationReviewService } from "./features/team-registration-reviews/team-registration-reviews.service";
+import type { StaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
+import { createStaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
+import { createStaffCheckInsRouter } from "./features/staff-check-ins/staff-check-ins.router";
+import { createStaffCheckInService } from "./features/staff-check-ins/staff-check-ins.service";
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
@@ -55,6 +59,7 @@ export interface ApiDependencies {
   teamParticipants?: TeamParticipantRepository;
   teamRegistrationStatus?: TeamRegistrationStatusRepository;
   teamRegistrationReviews?: TeamRegistrationReviewRepository;
+  staffCheckIns?: StaffCheckInRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -63,6 +68,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     protectedProcedure,
     publicProcedure,
     registrationProcedure,
+    staffProcedure,
     teamAccessProcedure,
     teamOwnerProcedure,
   } = createProcedures(dependencies);
@@ -78,6 +84,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     dependencies.teamRegistrationReviews ?? createTeamRegistrationReviewRepository();
   const fileRepository = dependencies.files ?? createFileRepository();
   const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
+  const staffCheckInRepository = dependencies.staffCheckIns ?? createStaffCheckInRepository();
 
   return {
     adminUsers: createAdminUsersRouter(adminProcedure, createAdminUserService(adminUserRepository)),
@@ -88,6 +95,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     privateData: createPrivateDataRouter(protectedProcedure),
+    staffCheckIns: createStaffCheckInsRouter(
+      staffProcedure,
+      createStaffCheckInService(staffCheckInRepository),
+    ),
     teamAdvisors: createTeamAdvisorsRouter(
       teamAccessProcedure,
       createTeamAdvisorService(teamAdvisorRepository, fileStorage, fileRepository),

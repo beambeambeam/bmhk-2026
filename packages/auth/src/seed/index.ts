@@ -8,6 +8,7 @@ import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
+import { staffCheckIns } from "@bmhk-2026/db/schema/staff-check-ins";
 import { env } from "@bmhk-2026/env/server";
 import { putObject } from "@bmhk-2026/s3";
 import { eq } from "drizzle-orm";
@@ -388,10 +389,18 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
   const reviewer = seededUsers.find(
     (candidate) => candidate.email === "registration-staff-bmhk-2026+local@kmutt.ac.th",
   );
+  const checkedInStaff = seededUsers.find(
+    (candidate) => candidate.email === "staff-2-bmhk-2026+local@kmutt.ac.th",
+  );
 
-  if (!owner1 || !owner2 || !owner3 || !owner4 || !owner5 || !reviewer) {
+  if (!owner1 || !owner2 || !owner3 || !owner4 || !owner5 || !reviewer || !checkedInStaff) {
     throw new Error("Development registration seed accounts are missing");
   }
+
+  await database
+    .insert(staffCheckIns)
+    .values({ checkedInByUserId: reviewer.id, staffUserId: checkedInStaff.id })
+    .onConflictDoNothing();
 
   await seedRegistrationFiles(database, owner1.id);
   const now = new Date();

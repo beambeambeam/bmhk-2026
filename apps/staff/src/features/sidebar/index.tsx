@@ -27,7 +27,7 @@ interface StaffSidebarProps {
 
 interface StaffNavItem {
   readonly label: string;
-  readonly to: "/admin/users" | "/dashboard" | "/staff" | "/participations";
+  readonly to: "/admin/users" | "/dashboard" | "/participations";
   readonly icon: LucideIcon;
 }
 
@@ -41,7 +41,6 @@ const adminNavItems: readonly StaffNavItem[] = [
 
 const registrationNavItems: readonly StaffNavItem[] = [
   { icon: ClipboardCheck, label: "Participations", to: "/participations" },
-  { icon: UsersRound, label: "Staff registration", to: "/staff" },
 ];
 
 interface StaffNavGroup {

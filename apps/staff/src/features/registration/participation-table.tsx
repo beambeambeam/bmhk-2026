@@ -9,10 +9,7 @@ import {
 } from "@/components/select";
 import { Card, CardContent } from "@/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
-import type {
-  TeamRegistrationReviewListFilter,
-  TeamRegistrationReviewListSubjectStatus,
-} from "@bmhk-2026/api";
+import type { TeamRegistrationReviewListFilter } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -32,20 +29,6 @@ const reviewFilters = [
 
 interface ParticipationTableProps {
   readonly canReview: boolean;
-}
-
-interface IndividualReviewStatusProps {
-  readonly label: string;
-  readonly status: TeamRegistrationReviewListSubjectStatus;
-}
-
-function IndividualReviewStatus({ label, status }: IndividualReviewStatusProps) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <StatusChip value={status} />
-    </div>
-  );
 }
 
 function formatSubmitDate(submittedAt: Date | null): string {
@@ -132,26 +115,25 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                 <TableHead className="w-[10%] whitespace-normal">การส่งสมัคร</TableHead>
                 <TableHead className="w-[12%] whitespace-normal">วันที่ส่ง</TableHead>
                 <TableHead className="w-[12%] whitespace-normal">ตรวจสอบ</TableHead>
-                <TableHead className="w-[18%] whitespace-normal">ผลตรวจรายบุคคล</TableHead>
-                <TableHead className="w-[10%] whitespace-normal">จัดการ</TableHead>
+                <TableHead className="w-[18%] whitespace-normal">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {query.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
+                  <TableCell colSpan={7}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
                 </TableRow>
               ) : null}
               {query.isError ? (
                 <TableRow>
-                  <TableCell className="text-destructive" colSpan={8}>
+                  <TableCell className="text-destructive" colSpan={7}>
                     ไม่สามารถโหลดข้อมูลการสมัครได้
                   </TableCell>
                 </TableRow>
               ) : null}
               {!query.isLoading && !query.isError && teams.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8}>ไม่พบข้อมูลการสมัคร</TableCell>
+                  <TableCell colSpan={7}>ไม่พบข้อมูลการสมัคร</TableCell>
                 </TableRow>
               ) : null}
               {teams.map((team) => (
@@ -167,14 +149,6 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                   <TableCell>{formatSubmitDate(team.registrationSubmittedAt)}</TableCell>
                   <TableCell>
                     <StatusChip value={team.reviewStatus} />
-                  </TableCell>
-                  <TableCell className="whitespace-normal">
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                      <IndividualReviewStatus label="สมาชิก 1" status={team.participant1} />
-                      <IndividualReviewStatus label="สมาชิก 2" status={team.participant2} />
-                      <IndividualReviewStatus label="สมาชิก 3" status={team.participant3} />
-                      <IndividualReviewStatus label="อาจารย์" status={team.advisor} />
-                    </div>
                   </TableCell>
                   <TableCell>
                     <ParticipationReviewDialog canReview={canReview} teamId={team.id} />

@@ -57,9 +57,38 @@ export const registrationDocumentReplacedAudit = defineAuditAction(
   },
 );
 
+export const registrationPersonCreatedAudit = defineAuditAction("registration-person.created", {
+  description: "A Registration User created a person in Registration Information",
+  severity: "medium",
+  target: "registration-person",
+});
+
+export const registrationPersonUpdatedAudit = defineAuditAction("registration-person.updated", {
+  description: "A Registration User changed a person in Registration Information",
+  requiresChanges: true,
+  severity: "medium",
+  target: "registration-person",
+});
+
+export const registrationPortraitReplacedAudit = defineAuditAction(
+  "registration-portrait.replaced",
+  {
+    description: "A Registration User replaced a Participant portrait",
+    requiresChanges: true,
+    severity: "medium",
+    target: "registration-portrait",
+  },
+);
+
 export const teamDeletedAudit = defineAuditAction("team.deleted", {
   description: "A Team Owner deleted a Team and its Registration Information",
   severity: "critical",
+  target: "team",
+});
+
+export const teamCreatedAudit = defineAuditAction("team.created", {
+  description: "A Team Owner created a Team",
+  severity: "low",
   target: "team",
 });
 

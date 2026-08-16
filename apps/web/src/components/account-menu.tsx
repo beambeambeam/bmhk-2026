@@ -8,7 +8,7 @@
 /* oxlint-disable prefer-nullish-coalescing */
 /* oxlint-disable no-floating-promises */
 import { useEffect, useId, useRef, useState } from "react";
-import type { CSSProperties, HTMLAttributes } from "react";
+import type { HTMLAttributes } from "react";
 import { Link } from "@tanstack/react-router";
 import GoogleLogo from "./google-logo";
 import { useAuthNavigate } from "./form/wizard-nav";

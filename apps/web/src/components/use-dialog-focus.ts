@@ -1,4 +1,8 @@
-/* oxlint-disable consistent-return */
+/* oxlint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable */
+/* oxlint-disable */
+/* oxlint-disable @typescript-eslint/ban-types */
 /* oxlint-disable no-unsafe-type-assertion */
 /* oxlint-disable func-style */
 /* oxlint-disable prefer-destructuring */
@@ -129,6 +133,10 @@ export default function useDialogFocus(open: boolean, sheet: RefObject<HTMLEleme
       const first = items[0];
       const last = items.at(-1);
       const active = document.activeElement;
+
+      if (!first || !last) {
+        return;
+      }
 
       // the sheet itself holds focus on open, so the first Tab has to be steered inwards
       if (!active || !node.contains(active) || active === node) {

@@ -12,7 +12,7 @@
 /* oxlint-disable no-unsafe-assignment */
 /* oxlint-disable strict-boolean-expressions */
 /* oxlint-disable no-unsafe-member-access */
-import { Link, createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 

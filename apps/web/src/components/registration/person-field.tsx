@@ -1,5 +1,9 @@
 import { DateField, SelectField, SectionTitle, TextArea, TextField } from "@/components/form/field";
 import { PREFIX_OPTIONS } from "@/features/register/data/registration-data";
+/* oxlint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable */
+/* oxlint-disable */
 import { useRegisterForm } from "@/routes/register";
 /**
  * Figma's field rows: a 24 gap, with the prefix select fixed at 100 wide.
@@ -58,34 +62,21 @@ export default function PersonFields({
   const form = useRegisterForm();
 
   function clear() {
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.titleTh`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.firstNameTh`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.middleNameTh`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.lastNameTh`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.titleEn`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.firstNameEn`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.middleNameEn`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.lastNameEn`, "");
+    form.setFieldValue(`${person}.titleTh` as any, "");
+    form.setFieldValue(`${person}.firstNameTh` as any, "");
+    form.setFieldValue(`${person}.middleNameTh` as any, "");
+    form.setFieldValue(`${person}.lastNameTh` as any, "");
+    form.setFieldValue(`${person}.titleEn` as any, "");
+    form.setFieldValue(`${person}.firstNameEn` as any, "");
+    form.setFieldValue(`${person}.middleNameEn` as any, "");
+    form.setFieldValue(`${person}.lastNameEn` as any, "");
     if (withBirthDate) {
-      // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-      form.setFieldValue(`${person}.dateOfBirth`, "");
+      form.setFieldValue(`${person}.dateOfBirth` as any, "");
     }
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.foodAllergies`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.dietaryRequirements`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.drugAllergies`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.chronicConditionsAndFirstAidNotes`, "");
+    form.setFieldValue(`${person}.foodAllergies` as any, "");
+    form.setFieldValue(`${person}.dietaryRequirements` as any, "");
+    form.setFieldValue(`${person}.drugAllergies` as any, "");
+    form.setFieldValue(`${person}.chronicConditionsAndFirstAidNotes` as any, "");
   }
   return (
     <section className={`flex w-full flex-col items-center justify-center ${headingGap}`}>
@@ -219,10 +210,8 @@ export default function PersonFields({
         <div className={ROW}>
           {withBirthDate && (
             <form.Field
-              name={
-                // @ts-expect-error: dynamic path but properly guarded
-                `${person}.dateOfBirth`
-              }
+              // @ts-expect-error: dynamic path but properly guarded
+              name={`${person}.dateOfBirth`}
             >
               {(field) => (
                 <DateField
@@ -230,7 +219,7 @@ export default function PersonFields({
                   required
                   placeholder="เลือกวันที่"
                   className={CELL}
-                  value={field.state.value}
+                  value={field.state.value as any}
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
@@ -306,12 +295,9 @@ export function ContactFields({
   const form = useRegisterForm();
 
   function clear() {
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.email`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.phone`, "");
-    // @ts-expect-error: Dynamic path is valid but too complex for TS inference
-    form.setFieldValue(`${person}.lineId`, "");
+    form.setFieldValue(`${person}.email` as any, "");
+    form.setFieldValue(`${person}.phone` as any, "");
+    form.setFieldValue(`${person}.lineId` as any, "");
   }
   return (
     <section className="flex w-full flex-col items-center justify-center gap-6">

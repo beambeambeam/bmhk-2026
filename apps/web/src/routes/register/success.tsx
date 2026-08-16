@@ -1,6 +1,6 @@
 /* oxlint-disable no-unused-vars */
 /* eslint-disable no-unused-vars */
-import { Link, CreateFileRoute, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import AuthPageShell, { RESULT_ACTION, ResultCard } from "@/components/auth-page-shell";
 import { authLink } from "@/components/form/wizard-nav";
 

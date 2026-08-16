@@ -12,7 +12,6 @@
 /* oxlint-disable react/no-children-prop */
 import { useState, useEffect } from "react";
 import WizardShell, {
-  NextButton,
   STEP_BUTTON,
   STEP_PAD,
   STEP_GLYPH,
@@ -24,15 +23,11 @@ import {
   GLYPH_20_24,
   Label,
   SectionTitle,
-  SelectField,
   SchoolAutocompleteField,
   TextField,
-  useFieldGroup,
   useFileSlot,
 } from "@/components/form/field";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { useForm } from "@tanstack/react-form";
-import { AppleIcon } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useRegisterForm } from "@/routes/register";
 import { z } from "zod";
 import { client } from "@bmhk-2026/client/orpc";

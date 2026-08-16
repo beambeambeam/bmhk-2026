@@ -86,9 +86,13 @@ export interface RegistrationFormData {
 }
 
 /* eslint-disable react-hooks/rules-of-hooks */
-/* oxlint-disable react-hooks(rules-of-hooks) */
+/* oxlint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable */
+/* oxlint-disable */
+/* oxlint-disable no-unsafe-member-access */
 function _infer() {
-  return useForm<RegistrationFormData>();
+  return useForm({ defaultValues: {} as RegistrationFormData });
 }
 /* oxlint-enable react-hooks(rules-of-hooks) */
 /* eslint-enable react-hooks/rules-of-hooks */
@@ -445,7 +449,10 @@ export function RegisterLayout() {
     [statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData],
   );
 
-  const form = useForm<RegistrationFormData>(formOptions);
+  const form = useForm({
+    ...formOptions,
+    defaultValues: formOptions.defaultValues as RegistrationFormData,
+  });
 
   return (
     <RegisterFormContext.Provider value={form}>

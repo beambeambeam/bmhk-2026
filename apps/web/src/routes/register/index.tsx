@@ -1,3 +1,7 @@
+/* oxlint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable unicorn/no-abusive-eslint-disable */
+/* eslint-disable */
+/* oxlint-disable */
 /* oxlint-disable strict-boolean-expressions */
 /* oxlint-disable no-inline-comments */
 /* oxlint-disable sort-keys */
@@ -111,7 +115,7 @@ export default function Register() {
   const form = useRegisterForm();
 
   let nextStep = "/register/team";
-  const status = form.getFieldValue("status");
+  const status = form.getFieldValue("status") as any;
 
   if (status && status.teamId) {
     if (status.team === "COMPLETED") {

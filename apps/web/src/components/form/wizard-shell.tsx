@@ -11,7 +11,7 @@ import { useRegisterForm } from "@/routes/register";
 
 export const TOTAL_STEPS = 5;
 
-const CRUMBS = ["ข้อมูลทีม", "อาจารย์", "ผู้เข้าแข่งขัน", "เงื่อนไข"];
+const CRUMBS = ["เงื่อนไข", "ข้อมูลทีม", "อาจารย์", "ผู้เข้าแข่งขัน"];
 
 /**
  * Figma 708:1255 and friends. The wizard sits on #fefdfc inside a 1440 frame with 200
@@ -50,14 +50,7 @@ export default function WizardShell({
    */
   receded?: boolean;
 }) {
-  let activeCrumb;
-  if (step === totalStep) {
-    activeCrumb = 3;
-  } else if (step >= 3) {
-    activeCrumb = 2;
-  } else {
-    activeCrumb = step - 1;
-  }
+  const activeCrumb = step >= 4 ? 3 : Math.max(0, step - 1);
 
   return (
     /*

@@ -413,7 +413,7 @@ export function RegisterLayout() {
 
   useEffect(() => {
     if (!session.isPending && !session.data) {
-      void navigate({ to: "/signin" });
+    void navigate({ to: "/signin" });
     }
 
     function handleFocus() {

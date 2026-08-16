@@ -12,6 +12,7 @@
 /* oxlint-disable react/no-children-prop */
 import { useState, useEffect } from "react";
 import WizardShell, {
+  BackButton,
   STEP_BUTTON,
   STEP_PAD,
   STEP_GLYPH,
@@ -240,8 +241,13 @@ export default function TeamStep() {
   return (
     <WizardShell
       totalStep={(form.getFieldValue("team.teamSize") ?? 2) + 3}
-      step={1}
-      actions={<TeamNextButton to="/register/advisor" />}
+      step={2}
+      actions={
+        <>
+          <BackButton to="/register/terms" />
+          <TeamNextButton to="/register/advisor" />
+        </>
+      }
     >
       <section className="flex w-full flex-col items-center justify-center gap-4">
         {/*

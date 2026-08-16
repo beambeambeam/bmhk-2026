@@ -114,11 +114,13 @@ export default function Register() {
   const spring = useOwnArrival();
   const form = useRegisterForm();
 
-  let nextStep = "/register/team";
+  let nextStep = "/register/terms";
   const status = form.getFieldValue("status") as any;
 
   if (status && status.teamId) {
-    if (status.team === "COMPLETED") {
+    if (status.team !== "COMPLETED") {
+      nextStep = "/register/team";
+    } else {
       const advisor = form.getFieldValue("advisor");
       const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl;
 
@@ -130,10 +132,9 @@ export default function Register() {
         nextStep = "/register/entrant/2";
       } else if (status.participant3 !== "NOT_APPLICABLE" && status.participant3 !== "COMPLETED") {
         nextStep = "/register/entrant/3";
-      } else if (status.termsAndConditions === "COMPLETED") {
-        nextStep = "/register/terms"; // If all complete, just go to terms to submit or to success if you have it
       } else {
-        nextStep = "/register/terms";
+        const teamSize = (form.getFieldValue("team.teamSize") as number | undefined) ?? 2;
+        nextStep = `/register/entrant/${teamSize}`;
       }
     }
   }

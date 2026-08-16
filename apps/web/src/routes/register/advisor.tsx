@@ -253,8 +253,8 @@ export default function AdvisorStep() {
   const form = useRegisterForm();
   return (
     <WizardShell
-      totalStep={5}
-      step={2}
+      totalStep={((form.getFieldValue("team.teamSize") as number | null | undefined) ?? 2) + 3}
+      step={3}
       actions={
         <>
           <BackButton to="/register/team" />

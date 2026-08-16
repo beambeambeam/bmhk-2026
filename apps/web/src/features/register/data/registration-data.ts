@@ -15,7 +15,7 @@ export const STUDENT_DOCUMENTS = [
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable */
 /* oxlint-disable */
-import { COMPETITION_RULES, PRIVACY_POLICY } from "./privacy-policy";
+import { CODERN_TERMS, COMPETITION_RULES, PRIVACY_POLICY } from "./privacy-policy";
 import type { PolicyDocument } from "./privacy-policy";
 
 /**
@@ -42,12 +42,11 @@ export const REQUIRED_DOCUMENTS: {
     title: "กฏกติกาการแข่งขัน",
   },
   {
-    icon: "/assets/figma/03e489cce381543e38ddae4414d0e87ba31d38d1.png",
-    title: "ข้อกำหนดการใช้งาน Codern",
     description: "เงื่อนไขการใช้งานระบบส่งโค้ดและตรวจผล",
+    document: CODERN_TERMS,
+    icon: "/assets/figma/03e489cce381543e38ddae4414d0e87ba31d38d1.png",
     rounded: true,
-    // no Figma node for this document yet; reuses the privacy text as a placeholder
-    document: PRIVACY_POLICY,
+    title: "ข้อกำหนดการใช้งาน Codern",
   },
 ];
 

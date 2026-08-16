@@ -17,12 +17,12 @@ const admin = ac.newRole({
 });
 
 const staff = ac.newRole({
-  staff: ["access"],
+  staff: ["registration_access"],
   ...userAc.statements,
 });
 
 const registrationStaff = ac.newRole({
-  staff: ["access", "registration_access"],
+  staff: ["access"],
   ...userAc.statements,
 });
 

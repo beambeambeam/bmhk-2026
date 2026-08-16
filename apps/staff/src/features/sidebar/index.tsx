@@ -27,7 +27,12 @@ interface StaffSidebarProps {
 
 interface StaffNavItem {
   readonly label: string;
-  readonly to: "/admin/users" | "/dashboard" | "/participants" | "/participations" | "/staff";
+  readonly to:
+    | "/admin/users"
+    | "/dashboard"
+    | "/participations"
+    | "/round1-participants-check"
+    | "/round1-staff-check";
   readonly icon: LucideIcon;
 }
 
@@ -44,12 +49,11 @@ const registrationNavItems: readonly StaffNavItem[] = [
 ];
 
 const staffNavItems: readonly StaffNavItem[] = [
-  { icon: UserCheck, label: "ลงทะเบียนเข้างาน", to: "/staff" },
+  { icon: UserCheck, label: "ลงทะเบียนทีมงาน", to: "/round1-staff-check" },
 ];
 
-const round1CheckInNavItems: readonly StaffNavItem[] = [
-  ...staffNavItems,
-  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม", to: "/participants" },
+const participantCheckInNavItems: readonly StaffNavItem[] = [
+  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม", to: "/round1-participants-check" },
 ];
 
 interface StaffNavGroup {
@@ -60,6 +64,14 @@ interface StaffNavGroup {
 interface StaffNavGroupProps {
   readonly group: StaffNavGroup;
   readonly pathname: string;
+}
+
+function getHomeRoute(isAdmin: boolean, canAccessParticipations: boolean): StaffNavItem["to"] {
+  if (isAdmin) {
+    return "/dashboard";
+  }
+
+  return canAccessParticipations ? "/participations" : "/round1-staff-check";
 }
 
 function StaffNavGroup({ group, pathname }: StaffNavGroupProps) {
@@ -95,24 +107,24 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = role === "admin";
-  const canReviewRegistrations = isAdmin || role === "registrationStaff" || role === "staff";
-  let navGroups: readonly StaffNavGroup[] = [{ items: baseNavItems, label: "Navigation" }];
+  const canAccessParticipations = isAdmin || role === "staff";
+  const canAccessStaffCheckIn = isAdmin || role === "registrationStaff";
+  const homeRoute = getHomeRoute(isAdmin, canAccessParticipations);
+  let navGroups: readonly StaffNavGroup[] = [];
   if (isAdmin) {
     navGroups = [
       { items: baseNavItems, label: "Navigation" },
       { items: registrationNavItems, label: "Registration" },
-      { items: round1CheckInNavItems, label: "Round 1 Check-in" },
+      { items: [...participantCheckInNavItems, ...staffNavItems], label: "Round 1 Check-in" },
       { items: adminNavItems, label: "Admin" },
     ];
-  } else if (canReviewRegistrations) {
+  } else if (canAccessParticipations) {
     navGroups = [
-      { items: baseNavItems, label: "Navigation" },
       { items: registrationNavItems, label: "Registration" },
-      {
-        items: role === "staff" ? staffNavItems : round1CheckInNavItems,
-        label: "Round 1 Check-in",
-      },
+      { items: participantCheckInNavItems, label: "Round 1 Check-in" },
     ];
+  } else if (canAccessStaffCheckIn) {
+    navGroups = [{ items: staffNavItems, label: "Round 1 Check-in" }];
   }
 
   async function handleSignOut() {
@@ -136,7 +148,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="h-auto min-h-12"
-              render={<Link to="/dashboard" aria-label="BangMod Hackathon 2026" />}
+              render={<Link to={homeRoute} aria-label="BangMod Hackathon 2026" />}
               size="lg"
               tooltip="BangMod Hackathon 2026"
             >

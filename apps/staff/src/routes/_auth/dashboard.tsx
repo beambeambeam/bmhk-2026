@@ -4,12 +4,12 @@ export const Route = createFileRoute("/_auth/dashboard")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role ?? "user";
 
-    if (role === "user") {
-      // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
-      throw redirect({
-        to: "/wait-access",
-      });
+    if (role === "admin") {
+      return;
     }
+
+    // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
+    throw redirect({ to: role === "staff" ? "/participations" : "/round1-staff-check" });
   },
   component: RouteComponent,
 });

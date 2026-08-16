@@ -206,7 +206,7 @@ describe("team registration reviews router", () => {
         },
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
     );
     const { context } = createTestContext();
 
@@ -271,7 +271,7 @@ describe("team registration reviews router", () => {
           await Promise.resolve({ review: approvedReview, teamId: TEAM_ID }),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
     );
     const { context, log } = createTestContext();
 
@@ -287,7 +287,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve({ review: null, teamId: TEAM_ID }),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
     );
     const { context } = createTestContext();
 
@@ -302,7 +302,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
     );
     const { context } = createTestContext();
 
@@ -333,9 +333,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(
-        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
     );
     const { context, log } = createTestContext();
 
@@ -398,9 +396,7 @@ describe("team registration reviews router", () => {
         save: async () => await Promise.resolve(null),
         saveSubject,
       },
-      createTestAuthReader(
-        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
     );
     const { context, log } = createTestContext();
 
@@ -432,9 +428,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(
-        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
     );
     const { context, log } = createTestContext();
 
@@ -468,9 +462,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(
-        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
     );
     const { context } = createTestContext();
 
@@ -503,7 +495,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
     );
     const { context } = createTestContext();
 
@@ -535,9 +527,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save: async () => await Promise.reject(createTeamRegistrationReviewRepositoryError()),
       },
-      createTestAuthReader(
-        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
     );
     const { context, log } = createTestContext();
 

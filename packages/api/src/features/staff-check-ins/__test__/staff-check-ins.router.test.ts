@@ -23,7 +23,7 @@ function createRepository(overrides: Partial<StaffCheckInRepository> = {}): Staf
 function createRouter(
   repository: StaffCheckInRepository,
   auth: AuthReader = createTestAuthReader(
-    createTestSession({ user: { id: ACTOR_ID, role: "staff" } }),
+    createTestSession({ user: { id: ACTOR_ID, role: "registrationStaff" } }),
   ),
 ) {
   return createAppRouter({ auth, staffCheckIns: repository }).staffCheckIns;
@@ -159,11 +159,11 @@ describe("staff check-ins router", () => {
     });
   });
 
-  it("rejects users without staff access", async () => {
+  it("rejects staff without staff check-in access", async () => {
     const checkIn = vi.fn<StaffCheckInRepository["checkIn"]>();
     const router = createRouter(
       createRepository({ checkIn }),
-      createTestAuthReader(createTestSession({ user: { id: "user-1", role: "user" } })),
+      createTestAuthReader(createTestSession({ user: { id: "staff-1", role: "staff" } })),
     );
     const { context } = createTestContext();
 

@@ -1,8 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { StaffCheckInTable } from "@/features/staff-check-ins/staff-check-in-table";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_auth/staff")({
+export const Route = createFileRoute("/_auth/round1-staff-check")({
+  beforeLoad: ({ context }) => {
+    const role = context.session.data?.user.role;
+    if (role !== "admin" && role !== "registrationStaff") {
+      // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   component: StaffCheckInPage,
 });
 

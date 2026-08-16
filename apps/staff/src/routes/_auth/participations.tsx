@@ -5,7 +5,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/_auth/participations")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role;
-    if (role !== "admin" && role !== "registrationStaff" && role !== "staff") {
+    if (role !== "admin" && role !== "staff") {
       // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
       throw redirect({ to: "/dashboard" });
     }
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_auth/participations")({
 function ParticipationsPage() {
   const { session } = Route.useRouteContext();
   const role = session.data?.user.role;
-  const canReview = role === "admin" || role === "registrationStaff";
+  const canReview = role === "admin" || role === "staff";
 
   return (
     <section className="flex flex-col gap-5">

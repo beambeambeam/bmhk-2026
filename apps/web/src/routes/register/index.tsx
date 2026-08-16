@@ -2,6 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import AuthPageShell from '@/components/auth-page-shell'
 import { authLink, useOwnArrival } from '@/components/form/wizard-nav'
 import { DOCUMENT_GROUPS } from '@/features/guide/data/data'
+import { useRegisterForm } from '../register'
 
 
 export const Route = createFileRoute("/register/")({
@@ -100,6 +101,31 @@ export default function Register() {
    * its own, and this test is what keeps the two from ever running at once.
    */
   const spring = useOwnArrival()
+  const form = useRegisterForm()
+  
+  let nextStep = '/register/team'
+  const status = form.getFieldValue('status')
+  
+  if (status && status.teamId) {
+    if (status.team === 'COMPLETED') {
+      const advisor = form.getFieldValue('advisor')
+      const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl
+      
+      if (!isAdvisorComplete) {
+        nextStep = '/register/advisor'
+      } else if (status.participant1 !== 'COMPLETED') {
+        nextStep = '/register/entrant/1'
+      } else if (status.participant2 !== 'COMPLETED') {
+        nextStep = '/register/entrant/2'
+      } else if (status.participant3 !== 'NOT_APPLICABLE' && status.participant3 !== 'COMPLETED') {
+        nextStep = '/register/entrant/3'
+      } else if (status.termsAndConditions !== 'COMPLETED') {
+        nextStep = '/register/terms'
+      } else {
+        nextStep = '/register/terms' // If all complete, just go to terms to submit or to success if you have it
+      }
+    }
+  }
 
   return (
     <AuthPageShell>
@@ -246,7 +272,7 @@ export default function Register() {
         {/* `enter`, not `forward`: this hop sinks the colour blocks away and spills the
             wizard's pasta in, which no step-to-step move should do. */}
         <Link
-          {...authLink('/register/team', 'enter')}
+          {...authLink(nextStep, 'enter')}
           /* same pill as the result screens' `RESULT_ACTION`: 49 tall on `1214:155`, 60 at
              1440 (`708:1203`). Two values that were flat and are Figma ramps: the RADIUS is
              16 on `1214:155` against 20 on `708:1203`, and the LABEL is 16 on `1214:156`

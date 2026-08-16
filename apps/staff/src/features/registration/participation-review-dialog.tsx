@@ -20,6 +20,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ParticipationReviewContent } from "./participation-review-content";
+import type { ReviewSubmissionData } from "./participation-review-content";
 
 interface ParticipationReviewDialogProps {
   readonly canReview: boolean;
@@ -50,6 +51,13 @@ function ParticipationReviewDialog({
     enabled: isOpen,
   });
   const reviewQuery = useQuery({ ...getParticipationReviewQueryOptions(teamId), enabled: isOpen });
+  const isDetailsLoading =
+    teamQuery.isLoading ||
+    advisorQuery.isLoading ||
+    participantsQuery.isLoading ||
+    consentQuery.isLoading;
+  const hasDetailsError =
+    teamQuery.isError || advisorQuery.isError || participantsQuery.isError || consentQuery.isError;
   const saveReview = useMutation(
     orpc.teamRegistrationReviews.save.mutationOptions({
       onError: () => {
@@ -66,13 +74,7 @@ function ParticipationReviewDialog({
   );
 
   async function save(
-    data: {
-      advisorIssueCodes: string[];
-      internalNotes: string | null;
-      participant1IssueCodes: string[];
-      participant2IssueCodes: string[];
-      participant3IssueCodes: string[];
-    },
+    data: ReviewSubmissionData,
     status: "APPROVED" | "CHANGES_REQUESTED",
   ): Promise<void> {
     await saveReview.mutateAsync({
@@ -92,19 +94,14 @@ function ParticipationReviewDialog({
           canReview={canReview}
           advisor={advisorQuery.data}
           consent={consentQuery.data}
-          isLoading={
-            teamQuery.isLoading ||
-            advisorQuery.isLoading ||
-            participantsQuery.isLoading ||
-            consentQuery.isLoading
-          }
+          hasDetailsError={hasDetailsError}
+          isLoading={isDetailsLoading}
           participants={participantsQuery.data ?? []}
           lastUpdatedAt={lastUpdatedAt}
           review={reviewQuery.data}
           reviewedByName={reviewedByName}
           savePending={saveReview.isPending}
           team={teamQuery.data}
-          teamError={teamQuery.isError}
           teamId={teamId}
           onSave={(data, status) => {
             void save(data, status);

@@ -28,6 +28,14 @@ const MEMBER_INDEXES = [1, 2, 3] as const;
 
 type ReviewStatus = "APPROVED" | "CHANGES_REQUESTED";
 
+export interface ReviewSubmissionData {
+  readonly advisorIssueCodes: string[];
+  readonly internalNotes: string | null;
+  readonly participant1IssueCodes: string[];
+  readonly participant2IssueCodes: string[];
+  readonly participant3IssueCodes: string[];
+}
+
 interface IssueCodeFieldProps {
   readonly canReview: boolean;
   readonly id: string;
@@ -41,6 +49,7 @@ interface ParticipationReviewContentProps {
   readonly advisor: TeamAdvisorDetails | undefined;
   readonly canReview: boolean;
   readonly consent: TeamConsent | undefined;
+  readonly hasDetailsError: boolean;
   readonly isLoading: boolean;
   readonly lastUpdatedAt: Date | null;
   readonly review: TeamRegistrationReview | null | undefined;
@@ -48,18 +57,8 @@ interface ParticipationReviewContentProps {
   readonly reviewedByName: string | null;
   readonly savePending: boolean;
   readonly team: TeamDetails | undefined;
-  readonly teamError: boolean;
   readonly teamId: string;
-  readonly onSave: (
-    data: {
-      advisorIssueCodes: string[];
-      internalNotes: string | null;
-      participant1IssueCodes: string[];
-      participant2IssueCodes: string[];
-      participant3IssueCodes: string[];
-    },
-    status: ReviewStatus,
-  ) => void;
+  readonly onSave: (data: ReviewSubmissionData, status: ReviewStatus) => void;
 }
 
 interface TeamSummaryProps {
@@ -556,6 +555,7 @@ function ParticipationReviewContent({
   advisor,
   canReview,
   consent,
+  hasDetailsError,
   isLoading,
   lastUpdatedAt,
   review,
@@ -563,7 +563,6 @@ function ParticipationReviewContent({
   reviewedByName,
   savePending,
   team,
-  teamError,
   teamId,
   onSave,
 }: ParticipationReviewContentProps) {
@@ -625,7 +624,7 @@ function ParticipationReviewContent({
         <DialogDescription>ตรวจสอบเอกสารและบันทึกผลการยืนยันข้อมูลทีม</DialogDescription>
       </DialogHeader>
       {isLoading ? <p>กำลังโหลดข้อมูลทีม...</p> : null}
-      {teamError ? <p className="text-destructive">ไม่สามารถโหลดข้อมูลทีมได้</p> : null}
+      {hasDetailsError ? <p className="text-destructive">ไม่สามารถโหลดข้อมูลการสมัครทั้งหมดได้</p> : null}
       {team ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)]">
           <TeamSummary

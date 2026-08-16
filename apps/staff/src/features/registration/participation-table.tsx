@@ -119,7 +119,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                 <TableHead className="w-[9%] whitespace-normal">การส่งสมัคร</TableHead>
                 <TableHead className="w-[10%] whitespace-normal">วันที่ส่ง</TableHead>
                 <TableHead className="w-[10%] whitespace-normal">ตรวจสอบ</TableHead>
-                <TableHead className="w-[11%] whitespace-normal">อนุมัติโดย</TableHead>
+                <TableHead className="w-[11%] whitespace-normal">อัปเดตโดย</TableHead>
                 <TableHead className="w-[14%] whitespace-normal">อัปเดตล่าสุด</TableHead>
                 <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
               </TableRow>

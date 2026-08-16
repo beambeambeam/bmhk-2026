@@ -2,11 +2,15 @@ import { randomBytes } from "node:crypto";
 
 import { createDb } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
+import { files } from "@bmhk-2026/db/schema/files";
 import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
 import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
+import { env } from "@bmhk-2026/env/server";
+import { putObject } from "@bmhk-2026/s3";
+import { eq } from "drizzle-orm";
 
 import { createAuth } from "../auth";
 import type { AuthRole } from "../permission";
@@ -104,6 +108,20 @@ const seedReviewIds = {
   epsilon: "55555555-5555-4555-8555-555555555551",
   gamma: "33333333-3333-4333-8333-333333333351",
 } as const;
+
+const seedFileIds = {
+  alphaAdvisorIdentity: "11111111-1111-4111-8111-111111111161",
+  alphaAdvisorTeacherStatus: "11111111-1111-4111-8111-111111111162",
+  alphaMember1AcademicRecord: "11111111-1111-4111-8111-111111111164",
+  alphaMember1Identity: "11111111-1111-4111-8111-111111111163",
+  alphaMember1Portrait: "11111111-1111-4111-8111-111111111165",
+  alphaMember2AcademicRecord: "11111111-1111-4111-8111-111111111167",
+  alphaMember2Identity: "11111111-1111-4111-8111-111111111166",
+  alphaMember2Portrait: "11111111-1111-4111-8111-111111111168",
+  alphaTeamImage: "11111111-1111-4111-8111-111111111169",
+} as const;
+
+const sampleImageUrl = new URL("../../../../apps/web/public/assets/logo-nav.png", import.meta.url);
 
 export const seedAccounts = {
   auth: [rootAccount, ...localAccounts],
@@ -211,19 +229,153 @@ function participantData(
   lastNameEn: string,
 ) {
   return {
+    chronicConditionsAndFirstAidNotes: "ไม่มีโรคประจำตัว",
     dateOfBirth: `200${index}-0${index}-0${index}`,
+    dietaryRequirements: "ไม่มีข้อกำหนดด้านอาหาร",
+    drugAllergies: "ไม่แพ้ยา",
     email: `${firstNameEn.toLowerCase()}.${lastNameEn.toLowerCase()}@example.com`,
     firstNameEn,
     firstNameTh: `ผู้เข้าร่วม${index}`,
+    foodAllergies: index === 1 ? "แพ้ถั่วลิสง" : "ไม่แพ้อาหาร",
     id,
     index,
     lastNameEn,
     lastNameTh: "ตัวอย่าง",
+    lineId: `${firstNameEn.toLowerCase()}-${lastNameEn.toLowerCase()}`,
+    middleNameEn: "Sample",
+    middleNameTh: "ตัวอย่าง",
     phone: `08123456${index}${index}`,
     teamId,
     titleEn: "Mr.",
     titleTh: "นาย",
   };
+}
+
+function createSamplePdf(label: string): Uint8Array {
+  const stream = `BT\n/F1 18 Tf\n72 720 Td\n(${label}) Tj\nET\n`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}endstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+
+  for (const [index, object] of objects.entries()) {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  }
+
+  const xrefOffset = pdf.length;
+  const xrefEntries = offsets
+    .map((offset, index) =>
+      index === 0 ? "0000000000 65535 f " : `${String(offset).padStart(10, "0")} 00000 n `,
+    )
+    .join("\n");
+  pdf += `xref\n0 ${objects.length + 1}\n${xrefEntries}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+
+  return new TextEncoder().encode(pdf);
+}
+
+async function seedRegistrationFiles(
+  database: ReturnType<typeof createDb>,
+  uploadedBy: string,
+): Promise<void> {
+  const imageBytes = new Uint8Array(await Bun.file(sampleImageUrl).arrayBuffer());
+  const seedFiles = [
+    {
+      bytes: createSamplePdf("Advisor identity document"),
+      contentType: "application/pdf" as const,
+      id: seedFileIds.alphaAdvisorIdentity,
+      objectKey: "seed/registration/alpha/advisor-identity.pdf",
+      originalName: "advisor-identity.pdf",
+    },
+    {
+      bytes: createSamplePdf("Advisor teacher status document"),
+      contentType: "application/pdf" as const,
+      id: seedFileIds.alphaAdvisorTeacherStatus,
+      objectKey: "seed/registration/alpha/advisor-teacher-status.pdf",
+      originalName: "advisor-teacher-status.pdf",
+    },
+    {
+      bytes: createSamplePdf("Member 1 identity document"),
+      contentType: "application/pdf" as const,
+      id: seedFileIds.alphaMember1Identity,
+      objectKey: "seed/registration/alpha/member-1-identity.pdf",
+      originalName: "member-1-identity.pdf",
+    },
+    {
+      bytes: createSamplePdf("Member 1 academic record"),
+      contentType: "application/pdf" as const,
+      id: seedFileIds.alphaMember1AcademicRecord,
+      objectKey: "seed/registration/alpha/member-1-academic-record.pdf",
+      originalName: "member-1-academic-record.pdf",
+    },
+    {
+      bytes: imageBytes,
+      contentType: "image/png" as const,
+      id: seedFileIds.alphaMember1Portrait,
+      objectKey: "seed/registration/alpha/member-1-portrait.png",
+      originalName: "member-1-portrait.png",
+    },
+    {
+      bytes: createSamplePdf("Member 2 identity document"),
+      contentType: "application/pdf" as const,
+      id: seedFileIds.alphaMember2Identity,
+      objectKey: "seed/registration/alpha/member-2-identity.pdf",
+      originalName: "member-2-identity.pdf",
+    },
+    {
+      bytes: createSamplePdf("Member 2 academic record"),
+      contentType: "application/pdf" as const,
+      id: seedFileIds.alphaMember2AcademicRecord,
+      objectKey: "seed/registration/alpha/member-2-academic-record.pdf",
+      originalName: "member-2-academic-record.pdf",
+    },
+    {
+      bytes: imageBytes,
+      contentType: "image/png" as const,
+      id: seedFileIds.alphaMember2Portrait,
+      objectKey: "seed/registration/alpha/member-2-portrait.png",
+      originalName: "member-2-portrait.png",
+    },
+    {
+      bytes: imageBytes,
+      contentType: "image/png" as const,
+      id: seedFileIds.alphaTeamImage,
+      objectKey: "seed/registration/alpha/team-image.png",
+      originalName: "team-image.png",
+    },
+  ] as const;
+
+  await Promise.all(
+    seedFiles.map(async (seedFile) => {
+      await putObject({
+        body: seedFile.bytes,
+        bucket: env.AWS_S3_BUCKET,
+        contentType: seedFile.contentType,
+        key: seedFile.objectKey,
+        originalName: seedFile.originalName,
+      });
+    }),
+  );
+
+  await database
+    .insert(files)
+    .values(
+      seedFiles.map((seedFile) => ({
+        bucket: env.AWS_S3_BUCKET,
+        contentType: seedFile.contentType,
+        id: seedFile.id,
+        objectKey: seedFile.objectKey,
+        originalName: seedFile.originalName,
+        sizeBytes: seedFile.bytes.byteLength,
+        uploadedBy,
+      })),
+    )
+    .onConflictDoNothing();
 }
 
 async function seedRegistrationData(database: ReturnType<typeof createDb>): Promise<void> {
@@ -241,6 +393,7 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
     throw new Error("Development registration seed accounts are missing");
   }
 
+  await seedRegistrationFiles(database, owner1.id);
   const now = new Date();
   await database.transaction(async (transaction) => {
     await transaction
@@ -456,6 +609,55 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
         },
       ])
       .onConflictDoNothing();
+
+    await transaction
+      .update(teams)
+      .set({ image: seedFileIds.alphaTeamImage })
+      .where(eq(teams.id, seedTeamIds.alpha));
+    await transaction
+      .update(teamAdvisors)
+      .set({
+        chronicConditionsAndFirstAidNotes: "ไม่มีโรคประจำตัว",
+        dietaryRequirements: "อาหารทั่วไป",
+        drugAllergies: "ไม่แพ้ยา",
+        foodAllergies: "ไม่แพ้อาหาร",
+        identityDocumentFileId: seedFileIds.alphaAdvisorIdentity,
+        lineId: "somchai-advisor",
+        middleNameEn: "Sample",
+        middleNameTh: "ตัวอย่าง",
+        teacherStatusDocumentFileId: seedFileIds.alphaAdvisorTeacherStatus,
+      })
+      .where(eq(teamAdvisors.id, seedAdvisorIds.alpha));
+    await transaction
+      .update(teamParticipants)
+      .set({
+        academicRecordDocumentFileId: seedFileIds.alphaMember1AcademicRecord,
+        chronicConditionsAndFirstAidNotes: "ไม่มีโรคประจำตัว",
+        dietaryRequirements: "ไม่มีข้อกำหนดด้านอาหาร",
+        drugAllergies: "ไม่แพ้ยา",
+        foodAllergies: "แพ้ถั่วลิสง",
+        identityDocumentFileId: seedFileIds.alphaMember1Identity,
+        lineId: "narin-somsak",
+        middleNameEn: "Sample",
+        middleNameTh: "ตัวอย่าง",
+        portraitPhotoFileId: seedFileIds.alphaMember1Portrait,
+      })
+      .where(eq(teamParticipants.id, seedParticipantIds.alpha1));
+    await transaction
+      .update(teamParticipants)
+      .set({
+        academicRecordDocumentFileId: seedFileIds.alphaMember2AcademicRecord,
+        chronicConditionsAndFirstAidNotes: "ไม่มีโรคประจำตัว",
+        dietaryRequirements: "ไม่มีข้อกำหนดด้านอาหาร",
+        drugAllergies: "ไม่แพ้ยา",
+        foodAllergies: "ไม่แพ้อาหาร",
+        identityDocumentFileId: seedFileIds.alphaMember2Identity,
+        lineId: "mali-prasert",
+        middleNameEn: "Sample",
+        middleNameTh: "ตัวอย่าง",
+        portraitPhotoFileId: seedFileIds.alphaMember2Portrait,
+      })
+      .where(eq(teamParticipants.id, seedParticipantIds.alpha2));
   });
 }
 

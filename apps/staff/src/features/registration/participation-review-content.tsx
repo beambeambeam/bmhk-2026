@@ -11,11 +11,12 @@ import { Textarea } from "@/components/textarea";
 import type {
   PublicFileWithUrl,
   TeamAdvisorDetails,
+  TeamConsent,
   TeamDetails,
   TeamParticipantDetails,
   TeamRegistrationReview,
 } from "@bmhk-2026/api";
-import { ExternalLink, ImageOff, Quote, UsersRound, X } from "lucide-react";
+import { CircleAlert, ExternalLink, ImageOff, Quote, UserRound, UsersRound, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ interface IssueCodeFieldProps {
 interface ParticipationReviewContentProps {
   readonly advisor: TeamAdvisorDetails | undefined;
   readonly canReview: boolean;
+  readonly consent: TeamConsent | undefined;
   readonly isLoading: boolean;
   readonly lastUpdatedAt: Date | null;
   readonly review: TeamRegistrationReview | null | undefined;
@@ -62,6 +64,7 @@ interface ParticipationReviewContentProps {
 
 interface TeamSummaryProps {
   readonly advisor: TeamAdvisorDetails | undefined;
+  readonly consent: TeamConsent | undefined;
   readonly imageUrl: string | null;
   readonly lastUpdatedAt: Date | null;
   readonly participants: readonly TeamParticipantDetails[];
@@ -71,6 +74,15 @@ interface TeamSummaryProps {
 }
 
 type PreviewSubject = "advisor" | "team" | 1 | 2 | 3;
+
+const CONSENT_FIELDS = [
+  { key: "competitionRulesAccepted", label: "ยอมรับกติกาการแข่งขัน" },
+  { key: "codernTermsAccepted", label: "ยอมรับข้อกำหนด CoderN" },
+  { key: "guardianConsentObtained", label: "ได้รับความยินยอมจากผู้ปกครอง" },
+  { key: "healthDataConsent", label: "ยินยอมให้ใช้ข้อมูลสุขภาพ" },
+  { key: "privacyPolicyAccepted", label: "ยอมรับนโยบายความเป็นส่วนตัว" },
+  { key: "publicityMediaConsent", label: "ยินยอมใช้สื่อประชาสัมพันธ์" },
+] as const satisfies readonly { readonly key: keyof TeamConsent; readonly label: string }[];
 
 function IssueCodeField({ canReview, id, label, options, value, onChange }: IssueCodeFieldProps) {
   function addIssueCode(issueCode: string | null): void {
@@ -139,7 +151,12 @@ function DocumentPreview({
   readonly label: string;
 }) {
   if (document === null) {
-    return <p className="text-muted-foreground text-sm">{label}: ไม่ได้ส่งเอกสาร</p>;
+    return (
+      <output className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 font-medium text-destructive text-sm">
+        <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+        {label}: ไม่ได้ส่งเอกสาร
+      </output>
+    );
   }
 
   const isImage = document.contentType !== "application/pdf";
@@ -177,6 +194,25 @@ function DocumentPreview({
   );
 }
 
+function ProfilePreview({ profilePhoto }: { readonly profilePhoto: PublicFileWithUrl | null }) {
+  if (profilePhoto === null) {
+    return (
+      <div className="flex aspect-square w-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-destructive/40 bg-destructive/10 p-3 text-center font-medium text-destructive text-xs">
+        <UserRound aria-hidden="true" className="size-7" />
+        ไม่มีรูปโปรไฟล์
+      </div>
+    );
+  }
+
+  return (
+    <img
+      alt="รูปโปรไฟล์"
+      className="aspect-square w-32 rounded-lg object-cover"
+      src={profilePhoto.url}
+    />
+  );
+}
+
 function PersonPreview({
   advisor,
   participant,
@@ -193,6 +229,9 @@ function PersonPreview({
   const fullName = [person.titleTh, person.firstNameTh, person.middleNameTh, person.lastNameTh]
     .filter((name) => name !== null && name.length > 0)
     .join(" ");
+  const fullNameEn = [person.titleEn, person.firstNameEn, person.middleNameEn, person.lastNameEn]
+    .filter((name) => name !== null && name.length > 0)
+    .join(" ");
 
   return (
     <div className="flex flex-col gap-4">
@@ -201,7 +240,9 @@ function PersonPreview({
           {isParticipant ? "สมาชิกทีม" : "อาจารย์ที่ปรึกษา"}
         </p>
         <h2 className="font-semibold text-xl">{fullName}</h2>
+        <p className="text-muted-foreground text-sm">{fullNameEn}</p>
       </div>
+      {isParticipant ? <ProfilePreview profilePhoto={participant.portraitPhoto} /> : null}
       <dl className="grid gap-3 text-sm">
         <div>
           <dt className="text-muted-foreground">อีเมล</dt>
@@ -210,6 +251,26 @@ function PersonPreview({
         <div>
           <dt className="text-muted-foreground">เบอร์โทรศัพท์</dt>
           <dd className="font-medium">{person.phone}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">ไลน์ไอดี</dt>
+          <dd className="font-medium">{person.lineId ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">การแพ้อาหาร</dt>
+          <dd className="font-medium">{person.foodAllergies ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">ข้อกำหนดด้านอาหาร</dt>
+          <dd className="font-medium">{person.dietaryRequirements ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">การแพ้ยา</dt>
+          <dd className="font-medium">{person.drugAllergies ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">โรคประจำตัวและการปฐมพยาบาล</dt>
+          <dd className="font-medium">{person.chronicConditionsAndFirstAidNotes ?? "—"}</dd>
         </div>
         {isParticipant ? (
           <div>
@@ -234,8 +295,29 @@ function PersonPreview({
   );
 }
 
+function ConsentSummary({ consent }: { readonly consent: TeamConsent | undefined }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-lg border bg-background p-3">
+      <h3 className="font-medium">การยินยอม</h3>
+      {consent === undefined ? (
+        <p className="text-muted-foreground text-sm">ไม่มีข้อมูลการยินยอม</p>
+      ) : (
+        <dl className="grid gap-2 text-sm">
+          {CONSENT_FIELDS.map(({ key, label }) => (
+            <div className="flex items-center justify-between gap-3" key={key}>
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="font-medium">{consent[key] ? "ยินยอม" : "ยังไม่ยินยอม"}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}
+
 function TeamSummary({
   advisor,
+  consent,
   imageUrl,
   lastUpdatedAt,
   participants,
@@ -314,20 +396,15 @@ function TeamSummary({
               สมาชิก {team.memberCount} คน
             </p>
           </div>
-          <div className="flex items-center justify-between rounded-lg border bg-background p-3">
-            <span className="text-muted-foreground text-sm">สถานะการยืนยัน</span>
-            <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
-          </div>
-          <dl className="grid gap-2 rounded-lg border bg-background p-3 text-sm">
+          <dl className="rounded-lg border bg-background p-3 text-sm">
             <div>
-              <dt className="text-muted-foreground">อนุมัติโดย</dt>
-              <dd className="font-medium">{reviewedByName ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">อัปเดตล่าสุด</dt>
-              <dd className="font-medium">{lastUpdatedAt?.toLocaleString() ?? "—"}</dd>
+              <dt className="text-muted-foreground">วันที่ส่งใบสมัคร</dt>
+              <dd className="font-medium">
+                {team.registrationSubmittedAt?.toLocaleString() ?? "—"}
+              </dd>
             </div>
           </dl>
+          <ConsentSummary consent={consent} />
         </>
       ) : (
         <PersonPreview
@@ -335,6 +412,20 @@ function TeamSummary({
           participant={selectedParticipant}
         />
       )}
+      <div className="flex items-center justify-between rounded-lg border bg-background p-3">
+        <span className="text-muted-foreground text-sm">สถานะการยืนยัน</span>
+        <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
+      </div>
+      <dl className="grid gap-2 rounded-lg border bg-background p-3 text-sm">
+        <div>
+          <dt className="text-muted-foreground">อัปเดตโดย</dt>
+          <dd className="font-medium">{reviewedByName ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">อัปเดตล่าสุด</dt>
+          <dd className="font-medium">{lastUpdatedAt?.toLocaleString() ?? "—"}</dd>
+        </div>
+      </dl>
     </aside>
   );
 }
@@ -464,6 +555,7 @@ function ReviewActions({
 function ParticipationReviewContent({
   advisor,
   canReview,
+  consent,
   isLoading,
   lastUpdatedAt,
   review,
@@ -538,6 +630,7 @@ function ParticipationReviewContent({
         <div className="grid gap-6 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)]">
           <TeamSummary
             advisor={advisor}
+            consent={consent}
             imageUrl={imageUrl}
             lastUpdatedAt={lastUpdatedAt}
             participants={participants}

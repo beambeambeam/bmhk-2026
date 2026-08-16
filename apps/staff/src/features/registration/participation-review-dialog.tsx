@@ -10,6 +10,7 @@ import {
 import { orpc } from "@bmhk-2026/client/orpc";
 import {
   getParticipationAdvisorQueryOptions,
+  getParticipationConsentQueryOptions,
   getParticipationParticipantsQueryOptions,
   getParticipationQueryOptions,
   getParticipationReviewQueryOptions,
@@ -42,6 +43,10 @@ function ParticipationReviewDialog({
   });
   const participantsQuery = useQuery({
     ...getParticipationParticipantsQueryOptions(teamId),
+    enabled: isOpen,
+  });
+  const consentQuery = useQuery({
+    ...getParticipationConsentQueryOptions(teamId),
     enabled: isOpen,
   });
   const reviewQuery = useQuery({ ...getParticipationReviewQueryOptions(teamId), enabled: isOpen });
@@ -86,7 +91,13 @@ function ParticipationReviewDialog({
         <ParticipationReviewContent
           canReview={canReview}
           advisor={advisorQuery.data}
-          isLoading={teamQuery.isLoading || advisorQuery.isLoading || participantsQuery.isLoading}
+          consent={consentQuery.data}
+          isLoading={
+            teamQuery.isLoading ||
+            advisorQuery.isLoading ||
+            participantsQuery.isLoading ||
+            consentQuery.isLoading
+          }
           participants={participantsQuery.data ?? []}
           lastUpdatedAt={lastUpdatedAt}
           review={reviewQuery.data}

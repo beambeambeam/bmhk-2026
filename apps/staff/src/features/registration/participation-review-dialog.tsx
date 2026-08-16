@@ -124,6 +124,23 @@ function subjectDecision(
   }
 
   const reviewSubject = toReviewSubject(subject);
+  const hasIndividualDecisions = [
+    review.advisorReviewedAt,
+    review.participant1ReviewedAt,
+    review.participant2ReviewedAt,
+    review.participant3ReviewedAt,
+  ].some((reviewedAt) => reviewedAt !== null);
+  if (!hasIndividualDecisions) {
+    const issueCodes = review[`${reviewSubject}IssueCodes`];
+    const status =
+      review.status === "CHANGES_REQUESTED" && issueCodes.length === 0 ? "APPROVED" : review.status;
+    return {
+      note: issueCodes.length > 0 ? review.internalNotes : null,
+      reviewedAt: review.reviewedAt,
+      status,
+    };
+  }
+
   switch (reviewSubject) {
     case "advisor": {
       return decisionFromFields({
@@ -479,10 +496,6 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-sm">Review</span>
                 <StatusChip value={reviewQuery.data?.status ?? "PENDING_REVIEW"} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-sm">Team registration</span>
-                <StatusChip value={statusQuery.data?.team} />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-sm">Terms and conditions</span>

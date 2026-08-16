@@ -64,6 +64,9 @@ const localAccounts = [
 const seedTeamIds = {
   alpha: "11111111-1111-4111-8111-111111111111",
   beta: "22222222-2222-4222-8222-222222222222",
+  delta: "44444444-4444-4444-8444-444444444444",
+  epsilon: "55555555-5555-4555-8555-555555555555",
+  gamma: "33333333-3333-4333-8333-333333333333",
 } as const;
 
 const seedParticipantIds = {
@@ -72,21 +75,36 @@ const seedParticipantIds = {
   beta1: "22222222-2222-4222-8222-222222222221",
   beta2: "22222222-2222-4222-8222-222222222222",
   beta3: "22222222-2222-4222-8222-222222222223",
+  delta1: "44444444-4444-4444-8444-444444444421",
+  delta2: "44444444-4444-4444-8444-444444444422",
+  epsilon1: "55555555-5555-4555-8555-555555555521",
+  epsilon2: "55555555-5555-4555-8555-555555555522",
+  gamma1: "33333333-3333-4333-8333-333333333321",
+  gamma2: "33333333-3333-4333-8333-333333333322",
+  gamma3: "33333333-3333-4333-8333-333333333323",
 } as const;
 
 const seedAdvisorIds = {
   alpha: "11111111-1111-4111-8111-111111111131",
   beta: "22222222-2222-4222-8222-222222222231",
+  delta: "44444444-4444-4444-8444-444444444431",
+  epsilon: "55555555-5555-4555-8555-555555555531",
+  gamma: "33333333-3333-4333-8333-333333333331",
 } as const;
 
 const seedConsentIds = {
   alpha: "11111111-1111-4111-8111-111111111141",
   beta: "22222222-2222-4222-8222-222222222241",
+  delta: "44444444-4444-4444-8444-444444444441",
+  epsilon: "55555555-5555-4555-8555-555555555541",
+  gamma: "33333333-3333-4333-8333-333333333341",
 } as const;
 
 const seedReviewIds = {
   alpha: "11111111-1111-4111-8111-111111111151",
   beta: "22222222-2222-4222-8222-222222222251",
+  epsilon: "55555555-5555-4555-8555-555555555551",
+  gamma: "33333333-3333-4333-8333-333333333351",
 } as const;
 
 export const seedAccounts = {
@@ -214,11 +232,14 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
   const seededUsers = await database.select({ email: user.email, id: user.id }).from(user);
   const owner1 = seededUsers.find((candidate) => candidate.email === "member1+local@gmail.com");
   const owner2 = seededUsers.find((candidate) => candidate.email === "member2+local@gmail.com");
+  const owner3 = seededUsers.find((candidate) => candidate.email === "member3+local@gmail.com");
+  const owner4 = seededUsers.find((candidate) => candidate.email === "member4+local@gmail.com");
+  const owner5 = seededUsers.find((candidate) => candidate.email === "member5+local@gmail.com");
   const reviewer = seededUsers.find(
     (candidate) => candidate.email === "registration-staff-bmhk-2026+local@kmutt.ac.th",
   );
 
-  if (!owner1 || !owner2 || !reviewer) {
+  if (!owner1 || !owner2 || !owner3 || !owner4 || !owner5 || !reviewer) {
     throw new Error("Development registration seed accounts are missing");
   }
 
@@ -242,6 +263,30 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
           school: "Bangkok Technical College",
           userId: owner2.id,
         },
+        {
+          id: seedTeamIds.gamma,
+          memberCount: 3,
+          name: "Team Gamma",
+          registrationSubmittedAt: now,
+          school: "Suan Kularb Wittayalai School",
+          userId: owner3.id,
+        },
+        {
+          id: seedTeamIds.delta,
+          memberCount: 2,
+          name: "Team Delta",
+          registrationSubmittedAt: now,
+          school: "Princess Chulabhorn Science High School",
+          userId: owner4.id,
+        },
+        {
+          id: seedTeamIds.epsilon,
+          memberCount: 2,
+          name: "Team Epsilon",
+          registrationSubmittedAt: now,
+          school: "Triam Udom Suksa School",
+          userId: owner5.id,
+        },
       ])
       .onConflictDoNothing();
 
@@ -253,6 +298,13 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
         participantData(seedTeamIds.beta, seedParticipantIds.beta1, 1, "Krit", "Siri"),
         participantData(seedTeamIds.beta, seedParticipantIds.beta2, 2, "Pim", "Jinda"),
         participantData(seedTeamIds.beta, seedParticipantIds.beta3, 3, "Arun", "Kanya"),
+        participantData(seedTeamIds.gamma, seedParticipantIds.gamma1, 1, "Kanda", "Wongchai"),
+        participantData(seedTeamIds.gamma, seedParticipantIds.gamma2, 2, "Preecha", "Saengdao"),
+        participantData(seedTeamIds.gamma, seedParticipantIds.gamma3, 3, "Lalin", "Chaiyo"),
+        participantData(seedTeamIds.delta, seedParticipantIds.delta1, 1, "Thanawat", "Rattanakorn"),
+        participantData(seedTeamIds.delta, seedParticipantIds.delta2, 2, "Nicha", "Wattanakul"),
+        participantData(seedTeamIds.epsilon, seedParticipantIds.epsilon1, 1, "Phurin", "Sukjai"),
+        participantData(seedTeamIds.epsilon, seedParticipantIds.epsilon2, 2, "Sirinya", "Chansri"),
       ])
       .onConflictDoNothing();
 
@@ -283,6 +335,42 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
           titleEn: "Ms.",
           titleTh: "นางสาว",
         },
+        {
+          email: "advisor.gamma@example.com",
+          firstNameEn: "Anong",
+          firstNameTh: "อนงค์",
+          id: seedAdvisorIds.gamma,
+          lastNameEn: "Teacher",
+          lastNameTh: "ครู",
+          phone: "0893333333",
+          teamId: seedTeamIds.gamma,
+          titleEn: "Ms.",
+          titleTh: "นางสาว",
+        },
+        {
+          email: "advisor.delta@example.com",
+          firstNameEn: "Wichai",
+          firstNameTh: "วิชัย",
+          id: seedAdvisorIds.delta,
+          lastNameEn: "Teacher",
+          lastNameTh: "ครู",
+          phone: "0894444444",
+          teamId: seedTeamIds.delta,
+          titleEn: "Mr.",
+          titleTh: "นาย",
+        },
+        {
+          email: "advisor.epsilon@example.com",
+          firstNameEn: "Ploy",
+          firstNameTh: "พลอย",
+          id: seedAdvisorIds.epsilon,
+          lastNameEn: "Teacher",
+          lastNameTh: "ครู",
+          phone: "0895555555",
+          teamId: seedTeamIds.epsilon,
+          titleEn: "Ms.",
+          titleTh: "นางสาว",
+        },
       ])
       .onConflictDoNothing();
 
@@ -300,6 +388,36 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
           teamId: seedTeamIds.alpha,
         },
         { id: seedConsentIds.beta, teamId: seedTeamIds.beta },
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.gamma,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.gamma,
+        },
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.delta,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.delta,
+        },
+        {
+          codernTermsAccepted: true,
+          competitionRulesAccepted: true,
+          guardianConsentObtained: true,
+          healthDataConsent: true,
+          id: seedConsentIds.epsilon,
+          privacyPolicyAccepted: true,
+          publicityMediaConsent: true,
+          teamId: seedTeamIds.epsilon,
+        },
       ])
       .onConflictDoNothing();
 
@@ -321,6 +439,22 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
           reviewedByUserId: reviewer.id,
           status: "CHANGES_REQUESTED",
           teamId: seedTeamIds.beta,
+        },
+        {
+          id: seedReviewIds.gamma,
+          internalNotes: "Please upload participant 2's academic record.",
+          participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
+          reviewedAt: now,
+          reviewedByUserId: reviewer.id,
+          status: "CHANGES_REQUESTED",
+          teamId: seedTeamIds.gamma,
+        },
+        {
+          id: seedReviewIds.epsilon,
+          reviewedAt: now,
+          reviewedByUserId: reviewer.id,
+          status: "APPROVED",
+          teamId: seedTeamIds.epsilon,
         },
       ])
       .onConflictDoNothing();
@@ -351,7 +485,7 @@ export async function runSeed(mode: SeedMode): Promise<readonly SeedResult[]> {
     if (mode === "dev") {
       await seedRegistrationData(database);
       await writeLine(
-        "seeded\tregistration data\t2 teams, participants, advisors, consents, and reviews",
+        "seeded\tregistration data\t5 teams, participants, advisors, consents, and reviews",
       );
     }
     return results;

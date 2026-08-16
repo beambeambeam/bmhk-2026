@@ -2,7 +2,7 @@ import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 
 import type { TeamAccessContext } from "../../core/auth";
 import { createRepositoryExecutor } from "../../core/repository";
@@ -116,9 +116,10 @@ export function createTeamRegistrationReviewRepository(
         const escapedSearch = escapeLikePattern(search);
         const condition =
           search.length === 0
-            ? eq(normalizedUserRole, "user")
+            ? and(eq(normalizedUserRole, "user"), isNotNull(teams.registrationSubmittedAt))
             : and(
                 eq(normalizedUserRole, "user"),
+                isNotNull(teams.registrationSubmittedAt),
                 or(
                   ilike(teams.name, `%${escapedSearch}%`),
                   ilike(teams.school, `%${escapedSearch}%`),

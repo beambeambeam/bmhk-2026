@@ -13,6 +13,7 @@ import {
   createTestSession,
 } from "../../../__test__/test-support";
 import { createTeamRegistrationReviewRepositoryError } from "../team-registration-reviews.errors";
+import type { TeamRegistrationReviewListRecord } from "../team-registration-reviews.repository";
 
 const REVIEW_ID = "22222222-2222-4222-8222-222222222222";
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
@@ -48,6 +49,23 @@ const changeRequestedReview = {
   participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
   status: "CHANGES_REQUESTED",
 } satisfies TeamRegistrationReview;
+
+const changeRequestedReviewRecord = {
+  review: changeRequestedReview,
+  team: {
+    award: "NO_ACHIEVEMENT",
+    createdAt: REVIEWED_AT,
+    id: TEAM_ID,
+    image: null,
+    index: 1,
+    memberCount: 2,
+    name: "Team Alpha",
+    registrationSubmittedAt: REVIEWED_AT,
+    school: "KMUTT Demonstration School",
+    updatedAt: REVIEWED_AT,
+    userId: "user-1",
+  },
+} satisfies TeamRegistrationReviewListRecord;
 
 type TestTeamRegistrationReviewRepository = Omit<
   TeamRegistrationReviewRepository,
@@ -156,6 +174,56 @@ describe("team registration reviews router", () => {
       status: "APPROVED",
       statusUpdatedAt: REVIEWED_AT,
     });
+  });
+
+  it("reports subjects without an individual decision as pending review", async () => {
+    const router = createRouter(
+      {
+        findByTeamId: async () =>
+          await Promise.resolve({
+            review: { ...approvedReview, participant1ReviewedAt: REVIEWED_AT },
+            teamId: TEAM_ID,
+          }),
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.feedback,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationReviews", "feedback"] },
+      ),
+    ).resolves.toStrictEqual({
+      advisor: "PENDING_REVIEW",
+      participant1: "APPROVED",
+      participant2: "PENDING_REVIEW",
+      participant3: "PENDING_REVIEW",
+      status: "APPROVED",
+      statusUpdatedAt: REVIEWED_AT,
+    });
+  });
+
+  it("filters the review queue by the overall review decision", async () => {
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve(null),
+        list: async () => await Promise.resolve([changeRequestedReviewRecord]),
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.list,
+        { reviewStatus: "APPROVED", search: "" },
+        { context, path: ["teamRegistrationReviews", "list"] },
+      ),
+    ).resolves.toStrictEqual({ rows: [] });
   });
 
   it("does not expose Review Feedback for a Team the owner does not own", async () => {

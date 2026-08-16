@@ -179,7 +179,7 @@ describe("team advisors router", () => {
       async (_userId, data) => await Promise.resolve({ ...testAdvisor, ...data }),
     );
     const router = createRouter(createTeamAdvisorRepository({ create }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(router.create, createAdvisorInput(), { context, path: ["teamAdvisors", "create"] }),
@@ -195,17 +195,40 @@ describe("team advisors router", () => {
       titleEn: "Mr.",
       titleTh: "นาย",
     });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-person.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "success",
+      target: {
+        id: ADVISOR_ID,
+        personType: "advisor",
+        teamId: TEAM_ID,
+        type: "registration-person",
+      },
+    });
   });
 
   it("returns team not found when create cannot find owned team", async () => {
     const router = createRouter(
       createTeamAdvisorRepository({ create: async () => await Promise.resolve(null) }),
     );
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(router.create, createAdvisorInput(), { context, path: ["teamAdvisors", "create"] }),
     ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-person.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_NOT_FOUND",
+      target: {
+        id: TEAM_ID,
+        personType: "advisor",
+        teamId: TEAM_ID,
+        type: "registration-person",
+      },
+    });
   });
 
   it("returns conflict when team already has an advisor", async () => {
@@ -219,6 +242,31 @@ describe("team advisors router", () => {
     await expect(
       call(router.create, createAdvisorInput(), { context, path: ["teamAdvisors", "create"] }),
     ).rejects.toMatchObject({ code: "TEAM_ADVISOR_ALREADY_EXISTS", status: 409 });
+  });
+
+  it("audits an advisor creation failure without personal or dependency data", async () => {
+    const router = createRouter(
+      createTeamAdvisorRepository({
+        create: async () => await Promise.reject(new Error("email=private database detail")),
+      }),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(router.create, createAdvisorInput(), { context, path: ["teamAdvisors", "create"] }),
+    ).rejects.toThrow("email=private database detail");
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-person.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "UNKNOWN_FAILURE",
+      target: {
+        id: TEAM_ID,
+        personType: "advisor",
+        teamId: TEAM_ID,
+        type: "registration-person",
+      },
+    });
   });
 
   it("gets an advisor with signed document URLs", async () => {
@@ -302,7 +350,7 @@ describe("team advisors router", () => {
       async (_userId, _teamId, data) => await Promise.resolve({ ...testAdvisor, ...data }),
     );
     const router = createRouter(createTeamAdvisorRepository({ update }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
 
     await expect(
       call(
@@ -314,6 +362,18 @@ describe("team advisors router", () => {
     expect(update).toHaveBeenCalledWith(ownerAccess, TEAM_ID, {
       email: "updated@example.com",
       foodAllergies: null,
+    });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-person.updated",
+      actor: { id: USER_ID, type: "user" },
+      changes: { after: { changedFields: ["email", "foodAllergies"] } },
+      outcome: "success",
+      target: {
+        id: ADVISOR_ID,
+        personType: "advisor",
+        teamId: TEAM_ID,
+        type: "registration-person",
+      },
     });
   });
 
@@ -329,6 +389,47 @@ describe("team advisors router", () => {
       ),
     ).rejects.toBeInstanceOf(Error);
   });
+
+  it.each([
+    {
+      expectedOutcome: "denied" as const,
+      expectedReason: "TEAM_ADVISOR_NOT_FOUND",
+      update: async (): Promise<TeamAdvisor | null> => await Promise.resolve(null),
+    },
+    {
+      expectedOutcome: "failure" as const,
+      expectedReason: "UNKNOWN_FAILURE",
+      update: async (): Promise<TeamAdvisor | null> =>
+        await Promise.reject(new Error("phone=private database detail")),
+    },
+  ])(
+    "audits an advisor update $expectedOutcome outcome without personal data",
+    async ({ expectedOutcome, expectedReason, update }) => {
+      const router = createRouter(createTeamAdvisorRepository({ update }));
+      const { context, log } = createTestContext();
+
+      await expect(
+        call(
+          router.update,
+          { data: { phone: "081-000-0000" }, teamId: TEAM_ID },
+          { context, path: ["teamAdvisors", "update"] },
+        ),
+      ).rejects.toBeInstanceOf(Error);
+      expect(log.audit).toHaveBeenCalledWith({
+        action: "registration-person.updated",
+        actor: { id: USER_ID, type: "user" },
+        changes: { after: { changedFields: ["phone"] } },
+        outcome: expectedOutcome,
+        reason: expectedReason,
+        target: {
+          id: TEAM_ID,
+          personType: "advisor",
+          teamId: TEAM_ID,
+          type: "registration-person",
+        },
+      });
+    },
+  );
 
   it.each([
     { documentType: "identity" as const, path: "identityDocument" as const, segment: "identity" },

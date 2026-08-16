@@ -1,5 +1,9 @@
 import type { TeamAccessProcedure } from "../../core/procedure";
-import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
+import {
+  registrationDocumentReplacedAudit,
+  registrationPersonCreatedAudit,
+  registrationPersonUpdatedAudit,
+} from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamAdvisorService } from "./team-advisors.service";
@@ -75,7 +79,28 @@ export function createTeamAdvisorsRouter(
       .input(createTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.create(context.teamAccess, input);
+        const advisor = await executeAudited({
+          audit: registrationPersonCreatedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: {
+              id: input.teamId,
+              personType: "advisor",
+              teamId: input.teamId,
+              type: "registration-person",
+            },
+          }),
+          deniedErrorCodes: ["TEAM_ADVISOR_ALREADY_EXISTS", "TEAM_NOT_FOUND"],
+          execute: async () => await service.create(context.teamAccess, input),
+          log: context.log,
+          onSuccess: (created) => ({
+            target: {
+              id: created.id,
+              personType: "advisor",
+              teamId: created.teamId,
+              type: "registration-person",
+            },
+          }),
+        });
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;
@@ -111,7 +136,29 @@ export function createTeamAdvisorsRouter(
       .input(updateTeamAdvisorSchema)
       .output(teamAdvisorSchema)
       .handler(async ({ context, input }) => {
-        const advisor = await service.update(context.teamAccess, input.teamId, input.data);
+        const advisor = await executeAudited({
+          audit: registrationPersonUpdatedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            changes: { after: { changedFields: Object.keys(input.data).toSorted() } },
+            target: {
+              id: input.teamId,
+              personType: "advisor",
+              teamId: input.teamId,
+              type: "registration-person",
+            },
+          }),
+          deniedErrorCodes: ["TEAM_ADVISOR_NOT_FOUND"],
+          execute: async () => await service.update(context.teamAccess, input.teamId, input.data),
+          log: context.log,
+          onSuccess: (updated) => ({
+            target: {
+              id: updated.id,
+              personType: "advisor",
+              teamId: updated.teamId,
+              type: "registration-person",
+            },
+          }),
+        });
 
         context.log.set({ teamAdvisor: { id: advisor.id, teamId: advisor.teamId } });
         return advisor;

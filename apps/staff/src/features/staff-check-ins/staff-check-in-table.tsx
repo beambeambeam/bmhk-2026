@@ -4,10 +4,14 @@ import { Input } from "@/components/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowUpDown, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { StaffCheckInColumnFilter, StaffCheckInListQuery } from "@bmhk-2026/api";
+import type {
+  StaffCheckInColumnFilter,
+  StaffCheckInListQuery,
+  StaffCheckInSort,
+} from "@bmhk-2026/api";
 
 import { StaffCheckInCancel } from "./staff-check-in-cancel";
 import { formatCheckInDate, getStaffCheckInErrorMessage } from "./staff-check-in-utils";
@@ -28,11 +32,23 @@ interface SearchValues {
   readonly name: string;
 }
 
+interface SortableColumn {
+  readonly id: StaffCheckInSort["id"];
+  readonly label: string;
+}
+
+const sortableColumns: readonly SortableColumn[] = [
+  { id: "name", label: "ชื่อ" },
+  { id: "email", label: "อีเมล" },
+  { id: "checkedInAt", label: "สถานะการเข้างาน" },
+];
+
 function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
   const queryClient = useQueryClient();
   const [searches, setSearches] = useState<SearchValues>({ email: "", name: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
   const [pageIndex, setPageIndex] = useState(0);
+  const [sorting, setSorting] = useState<StaffCheckInSort>({ desc: false, id: "name" });
   const hasInitializedSearch = useRef(false);
 
   useEffect(() => {
@@ -65,9 +81,9 @@ function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
     () => ({
       columnFilters,
       pagination: { pageIndex, pageSize: PAGE_SIZE },
-      sorting: [{ desc: false, id: "name" }],
+      sorting: [sorting],
     }),
-    [columnFilters, pageIndex],
+    [columnFilters, pageIndex, sorting],
   );
   const staffQuery = useQuery({
     ...orpc.staffCheckIns.list.queryOptions({
@@ -96,6 +112,11 @@ function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
     if (staffMembers.length === 1 && pageIndex > 0) {
       setPageIndex((currentPageIndex) => currentPageIndex - 1);
     }
+  }
+
+  function toggleSorting(id: StaffCheckInSort["id"]): void {
+    setSorting((current) => ({ desc: current.id === id ? !current.desc : false, id }));
+    setPageIndex(0);
   }
 
   async function checkIn(staffUserId: string, staffName: string): Promise<void> {
@@ -140,9 +161,27 @@ function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ชื่อ</TableHead>
-              <TableHead>อีเมล</TableHead>
-              <TableHead>สถานะการเข้างาน</TableHead>
+              {sortableColumns.map((column) => (
+                <TableHead key={column.id}>
+                  <Button
+                    className="-ml-3"
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      toggleSorting(column.id);
+                    }}
+                  >
+                    {column.label}
+                    <ArrowUpDown
+                      aria-hidden="true"
+                      className={
+                        sorting.id === column.id ? "text-foreground" : "text-muted-foreground"
+                      }
+                    />
+                  </Button>
+                </TableHead>
+              ))}
               <TableHead className="text-right">การดำเนินการ</TableHead>
             </TableRow>
           </TableHeader>

@@ -3,6 +3,7 @@ export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { AdminUserRepository } from "./features/admin-users/admin-users.repository";
 export type { StaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
+export type { ParticipantCheckInRepository } from "./features/participant-check-ins/participant-check-ins.repository";
 export type {
   StaffCheckInColumnFilter,
   StaffCheckInListQuery,
@@ -10,6 +11,13 @@ export type {
   StaffCheckInSort,
   StaffCheckInStaff,
 } from "./features/staff-check-ins/staff-check-ins.schema";
+export type {
+  ParticipantCheckInColumnFilter,
+  ParticipantCheckInFlag,
+  ParticipantCheckInListQuery,
+  ParticipantCheckInListResult,
+  ParticipantCheckInSort,
+} from "./features/participant-check-ins/participant-check-ins.schema";
 export type {
   AdminUser,
   AdminUserColumnFilter,
@@ -78,6 +86,7 @@ export type {
   TeamRegistrationReviewListFilter,
   TeamRegistrationReviewListInput,
   TeamRegistrationReviewListResult,
+  TeamRegistrationReviewListSort,
   TeamRegistrationReviewListSubjectStatus,
   TeamRegistrationReviewStatus,
 } from "./features/team-registration-reviews/team-registration-reviews.schema";

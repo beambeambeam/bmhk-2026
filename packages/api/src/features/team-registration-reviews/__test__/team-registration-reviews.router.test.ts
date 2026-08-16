@@ -199,6 +199,8 @@ describe("team registration reviews router", () => {
             offset: 0,
             reviewStatus: "APPROVED",
             search: "",
+            sortBy: "name",
+            sortDesc: false,
           });
           return await Promise.resolve({ offset: 0, records: [], total: 0 });
         },

@@ -27,7 +27,7 @@ interface StaffSidebarProps {
 
 interface StaffNavItem {
   readonly label: string;
-  readonly to: "/admin/users" | "/dashboard" | "/participations" | "/staff";
+  readonly to: "/admin/users" | "/dashboard" | "/participants" | "/participations" | "/staff";
   readonly icon: LucideIcon;
 }
 
@@ -45,6 +45,11 @@ const registrationNavItems: readonly StaffNavItem[] = [
 
 const staffNavItems: readonly StaffNavItem[] = [
   { icon: UserCheck, label: "ลงทะเบียนเข้างาน", to: "/staff" },
+];
+
+const round1CheckInNavItems: readonly StaffNavItem[] = [
+  ...staffNavItems,
+  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม", to: "/participants" },
 ];
 
 interface StaffNavGroup {
@@ -96,14 +101,17 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     navGroups = [
       { items: baseNavItems, label: "Navigation" },
       { items: registrationNavItems, label: "Registration" },
-      { items: staffNavItems, label: "Staff" },
+      { items: round1CheckInNavItems, label: "Round 1 Check-in" },
       { items: adminNavItems, label: "Admin" },
     ];
   } else if (canReviewRegistrations) {
     navGroups = [
       { items: baseNavItems, label: "Navigation" },
-      { items: [registrationNavItems[0]], label: "Registration" },
-      { items: staffNavItems, label: "Staff" },
+      { items: registrationNavItems, label: "Registration" },
+      {
+        items: role === "staff" ? staffNavItems : round1CheckInNavItems,
+        label: "Round 1 Check-in",
+      },
     ];
   }
 

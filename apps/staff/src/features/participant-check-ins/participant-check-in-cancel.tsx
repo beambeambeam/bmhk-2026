@@ -15,21 +15,21 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { getStaffCheckInErrorMessage } from "./staff-check-in-utils";
-
-interface StaffCheckInCancelProps {
-  readonly staffName: string;
-  readonly staffUserId: string;
-  readonly onCancelled: () => void;
+interface ParticipantCheckInCancelProps {
+  readonly participantId: string;
+  readonly participantName: string;
 }
 
-function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckInCancelProps) {
+function ParticipantCheckInCancel({
+  participantId,
+  participantName,
+}: ParticipantCheckInCancelProps) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const cancelMutation = useMutation(
-    orpc.staffCheckIns.cancel.mutationOptions({
+    orpc.participantCheckIns.cancel.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.staffCheckIns.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.participantCheckIns.list.key() });
       },
     }),
   );
@@ -37,12 +37,11 @@ function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckI
 
   async function cancelCheckIn(): Promise<void> {
     try {
-      await cancelMutation.mutateAsync({ staffUserId });
-      toast.success(`ยกเลิกการเข้างานของ ${staffName} แล้ว`);
-      onCancelled();
+      await cancelMutation.mutateAsync({ participantId });
+      toast.success(`ยกเลิกการเข้างานของ ${participantName} แล้ว`);
       setIsOpen(false);
-    } catch (error) {
-      toast.error(getStaffCheckInErrorMessage(error, "ไม่สามารถยกเลิกการเข้างานได้ กรุณาลองใหม่อีกครั้ง"));
+    } catch {
+      toast.error("ไม่สามารถยกเลิกการเข้างานได้ กรุณาลองใหม่อีกครั้ง");
     }
   }
 
@@ -57,7 +56,7 @@ function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckI
     >
       <AlertDialogTrigger
         render={
-          <Button type="button" size="sm" variant="outline" disabled={isCancelling}>
+          <Button disabled={isCancelling} size="sm" type="button" variant="outline">
             ยกเลิก
           </Button>
         }
@@ -66,18 +65,18 @@ function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckI
         <AlertDialogHeader>
           <AlertDialogTitle>ยกเลิกการเข้างาน</AlertDialogTitle>
           <AlertDialogDescription>
-            คุณต้องการยกเลิกการเข้างานของ {staffName} ใช่หรือไม่
+            คุณต้องการยกเลิกการเข้างานของ {participantName} ใช่หรือไม่
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
-            render={<Button type="button" variant="outline" disabled={isCancelling} />}
+            render={<Button disabled={isCancelling} type="button" variant="outline" />}
           >
             กลับ
           </AlertDialogCancel>
           <AlertDialogAction
             className="text-white"
-            render={<Button type="button" variant="destructive" disabled={isCancelling} />}
+            render={<Button type="button" variant="destructive" />}
             onClick={(event) => {
               event.preventDefault();
               void cancelCheckIn();
@@ -91,4 +90,4 @@ function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckI
   );
 }
 
-export { StaffCheckInCancel };
+export { ParticipantCheckInCancel };

@@ -50,7 +50,7 @@ function SignInRoute() {
     setIsSigningIn(true);
     await authClient.signIn.social(
       {
-        callbackURL: `${window.location.origin}/my-team`,
+        callbackURL: `${window.location.origin}/register`,
         errorCallbackURL: `${window.location.origin}/signin`,
         provider: "google",
       },

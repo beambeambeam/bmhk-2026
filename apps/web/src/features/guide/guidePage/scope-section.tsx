@@ -404,7 +404,7 @@ export default function ScopeSection() {
                   to the MODAL's header row (`708:2250`, ScopeModal.tsx) and only there.
                   `whitespace-nowrap` keeps it on the one line the pill is built for. */}
               <span className="leading-[1.4] font-bold whitespace-nowrap text-[calc(15.922px_+_3.078*var(--fl))]">
-                ดาวน์โหลด
+                ดาวน์โหลดฉบับเต็ม (PDF)
               </span>
             </a>
           </div>

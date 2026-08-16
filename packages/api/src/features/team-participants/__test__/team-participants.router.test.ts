@@ -170,7 +170,7 @@ describe("team participants router", () => {
       ...data,
     }));
     const router = createRouter(createRepository({ create }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     await expect(
       call(router.create, input(), { context, path: ["teamParticipants", "create"] }),
     ).resolves.toMatchObject({ email: "student@example.com", firstNameEn: "Student", index: 1 });
@@ -185,7 +185,56 @@ describe("team participants router", () => {
       titleEn: "Mr.",
       titleTh: "นาย",
     });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-person.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "success",
+      target: {
+        id: PARTICIPANT_ID,
+        participantIndex: 1,
+        personType: "participant",
+        teamId: TEAM_ID,
+        type: "registration-person",
+      },
+    });
   });
+
+  it.each([
+    {
+      create: async (): Promise<TeamParticipant | null> => null,
+      expectedOutcome: "denied" as const,
+      expectedReason: "TEAM_NOT_FOUND",
+    },
+    {
+      create: async (): Promise<TeamParticipant | null> =>
+        await Promise.reject(new Error("dateOfBirth=private database detail")),
+      expectedOutcome: "failure" as const,
+      expectedReason: "UNKNOWN_FAILURE",
+    },
+  ])(
+    "audits a participant creation $expectedOutcome outcome without personal data",
+    async ({ create, expectedOutcome, expectedReason }) => {
+      const router = createRouter(createRepository({ create }));
+      const { context, log } = createTestContext();
+
+      await expect(
+        call(router.create, input(), { context, path: ["teamParticipants", "create"] }),
+      ).rejects.toBeInstanceOf(Error);
+      expect(log.audit).toHaveBeenCalledWith({
+        action: "registration-person.created",
+        actor: { id: USER_ID, type: "user" },
+        outcome: expectedOutcome,
+        reason: expectedReason,
+        target: {
+          id: TEAM_ID,
+          participantIndex: 1,
+          personType: "participant",
+          teamId: TEAM_ID,
+          type: "registration-person",
+        },
+      });
+    },
+  );
 
   it("lists participants and returns empty list for owned team", async () => {
     const listByTeamId = vi.fn<TeamParticipantRepository["listByTeamId"]>(async () => []);
@@ -236,7 +285,7 @@ describe("team participants router", () => {
       async (_userId, _teamId, _index, data) => ({ ...participant, ...data }),
     );
     const router = createRouter(createRepository({ update }));
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     await expect(
       call(
         router.update,
@@ -244,6 +293,19 @@ describe("team participants router", () => {
         { context, path: ["teamParticipants", "update"] },
       ),
     ).resolves.toMatchObject({ email: "new@example.com", foodAllergies: null });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-person.updated",
+      actor: { id: USER_ID, type: "user" },
+      changes: { after: { changedFields: ["email", "foodAllergies"] } },
+      outcome: "success",
+      target: {
+        id: PARTICIPANT_ID,
+        participantIndex: 1,
+        personType: "participant",
+        teamId: TEAM_ID,
+        type: "registration-person",
+      },
+    });
     await expect(
       call(
         router.update,
@@ -253,19 +315,75 @@ describe("team participants router", () => {
     ).rejects.toBeInstanceOf(Error);
   });
 
+  it.each([
+    {
+      expectedOutcome: "denied" as const,
+      expectedReason: "TEAM_PARTICIPANT_NOT_FOUND",
+      update: async (): Promise<TeamParticipant | null> => null,
+    },
+    {
+      expectedOutcome: "failure" as const,
+      expectedReason: "UNKNOWN_FAILURE",
+      update: async (): Promise<TeamParticipant | null> =>
+        await Promise.reject(new Error("email=private database detail")),
+    },
+  ])(
+    "audits a participant update $expectedOutcome outcome without personal data",
+    async ({ expectedOutcome, expectedReason, update }) => {
+      const router = createRouter(createRepository({ update }));
+      const { context, log } = createTestContext();
+
+      await expect(
+        call(
+          router.update,
+          { data: { email: "updated@example.com" }, index: 1, teamId: TEAM_ID },
+          { context, path: ["teamParticipants", "update"] },
+        ),
+      ).rejects.toBeInstanceOf(Error);
+      expect(log.audit).toHaveBeenCalledWith({
+        action: "registration-person.updated",
+        actor: { id: USER_ID, type: "user" },
+        changes: { after: { changedFields: ["email"] } },
+        outcome: expectedOutcome,
+        reason: expectedReason,
+        target: {
+          id: TEAM_ID,
+          participantIndex: 1,
+          personType: "participant",
+          teamId: TEAM_ID,
+          type: "registration-person",
+        },
+      });
+    },
+  );
+
   it("accepts portrait image and rejects image for identity document", async () => {
     const router = createRouter(createRepository());
-    const { context } = createTestContext();
+    const { context, log } = createTestContext();
     const png = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "portrait.png", {
       type: "image/png",
     });
-    await expect(
-      call(
-        router.portraitPhoto,
-        { file: png, index: 1, teamId: TEAM_ID },
-        { context, path: ["teamParticipants", "portraitPhoto"] },
-      ),
-    ).resolves.toMatchObject({ portraitPhotoFileId: expect.any(String) });
+    const updatedParticipant = await call(
+      router.portraitPhoto,
+      { file: png, index: 1, teamId: TEAM_ID },
+      { context, path: ["teamParticipants", "portraitPhoto"] },
+    );
+    expect(updatedParticipant).toMatchObject({ portraitPhotoFileId: expect.any(String) });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-portrait.replaced",
+      actor: { id: USER_ID, type: "user" },
+      changes: {
+        after: { fileId: updatedParticipant.portraitPhotoFileId },
+        before: { fileId: null },
+      },
+      outcome: "success",
+      target: {
+        id: PARTICIPANT_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-portrait",
+      },
+    });
     const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "identity.png", {
       type: "image/png",
     });
@@ -276,6 +394,70 @@ describe("team participants router", () => {
         { context, path: ["teamParticipants", "identityDocument"] },
       ),
     ).rejects.toMatchObject({ code: "FILE_TYPE_NOT_ALLOWED", status: 415 });
+  });
+
+  it("audits denied participant portrait replacement", async () => {
+    const router = createRouter(createRepository({ findBySlot: async () => null }));
+    const { context, log } = createTestContext();
+    const portrait = new File(
+      [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])],
+      "portrait.png",
+      { type: "image/png" },
+    );
+
+    await expect(
+      call(
+        router.portraitPhoto,
+        { file: portrait, index: 1, teamId: TEAM_ID },
+        { context, path: ["teamParticipants", "portraitPhoto"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_PARTICIPANT_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-portrait.replaced",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_PARTICIPANT_NOT_FOUND",
+      target: {
+        id: TEAM_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-portrait",
+      },
+    });
+  });
+
+  it("audits failed participant portrait replacement without dependency details", async () => {
+    const router = createRouter(
+      createRepository({
+        replaceDocument: async () => await Promise.reject(new Error("storage secret")),
+      }),
+    );
+    const { context, log } = createTestContext();
+    const portrait = new File(
+      [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])],
+      "portrait.png",
+      { type: "image/png" },
+    );
+
+    await expect(
+      call(
+        router.portraitPhoto,
+        { file: portrait, index: 1, teamId: TEAM_ID },
+        { context, path: ["teamParticipants", "portraitPhoto"] },
+      ),
+    ).rejects.toThrow("storage secret");
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "registration-portrait.replaced",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "UNKNOWN_FAILURE",
+      target: {
+        id: TEAM_ID,
+        participantIndex: 1,
+        teamId: TEAM_ID,
+        type: "registration-portrait",
+      },
+    });
   });
 
   it("deletes an uploaded document when participant persistence fails", async () => {

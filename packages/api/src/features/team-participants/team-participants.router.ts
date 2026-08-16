@@ -1,5 +1,10 @@
 import type { TeamAccessProcedure } from "../../core/procedure";
-import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
+import {
+  registrationDocumentReplacedAudit,
+  registrationPersonCreatedAudit,
+  registrationPersonUpdatedAudit,
+  registrationPortraitReplacedAudit,
+} from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamParticipantService } from "./team-participants.service";
@@ -23,18 +28,15 @@ function createTeamParticipantDocumentUploadProcedure(
     .input(teamParticipantDocumentUploadSchema)
     .output(teamParticipantSchema)
     .handler(async ({ context, input }) => {
-      if (documentType !== "portraitPhoto") {
-        const auditDocumentType =
-          documentType === "identityDocument" ? "identity" : "academic-record";
+      if (documentType === "portraitPhoto") {
         const { file, participant } = await executeAudited({
-          audit: registrationDocumentReplacedAudit({
+          audit: registrationPortraitReplacedAudit({
             actor: { id: context.teamAccess.actorId, type: "user" },
             target: {
-              documentType: auditDocumentType,
               id: input.teamId,
               participantIndex: input.index,
               teamId: input.teamId,
-              type: "registration-document",
+              type: "registration-portrait",
             },
           }),
           deniedErrorCodes: ["TEAM_PARTICIPANT_NOT_FOUND"],
@@ -56,12 +58,10 @@ function createTeamParticipantDocumentUploadProcedure(
               before: { fileId: result.previousFileId },
             },
             target: {
-              documentType: auditDocumentType,
-              id: input.teamId,
-              participantId: result.participant.id,
+              id: result.participant.id,
               participantIndex: input.index,
               teamId: input.teamId,
-              type: "registration-document",
+              type: "registration-portrait",
             },
           }),
         });
@@ -77,14 +77,46 @@ function createTeamParticipantDocumentUploadProcedure(
         return participant;
       }
 
-      assertAllowedOrigin(context.headers);
-      const { file, participant } = await service.uploadDocument({
-        access: context.teamAccess,
-        documentType,
-        file: input.file,
-        index: input.index,
+      const auditDocumentType =
+        documentType === "identityDocument" ? "identity" : "academic-record";
+      const { file, participant } = await executeAudited({
+        audit: registrationDocumentReplacedAudit({
+          actor: { id: context.teamAccess.actorId, type: "user" },
+          target: {
+            documentType: auditDocumentType,
+            id: input.teamId,
+            participantIndex: input.index,
+            teamId: input.teamId,
+            type: "registration-document",
+          },
+        }),
+        deniedErrorCodes: ["TEAM_PARTICIPANT_NOT_FOUND"],
+        execute: async () => {
+          assertAllowedOrigin(context.headers);
+          return await service.uploadDocument({
+            access: context.teamAccess,
+            documentType,
+            file: input.file,
+            index: input.index,
+            log: context.log,
+            teamId: input.teamId,
+          });
+        },
         log: context.log,
-        teamId: input.teamId,
+        onSuccess: (result) => ({
+          changes: {
+            after: { fileId: result.file.id },
+            before: { fileId: result.previousFileId },
+          },
+          target: {
+            documentType: auditDocumentType,
+            id: input.teamId,
+            participantId: result.participant.id,
+            participantIndex: input.index,
+            teamId: input.teamId,
+            type: "registration-document",
+          },
+        }),
       });
 
       context.log.set({
@@ -114,7 +146,30 @@ export function createTeamParticipantsRouter(
       .input(createTeamParticipantSchema)
       .output(teamParticipantSchema)
       .handler(async ({ context, input }) => {
-        const result = await service.create(context.teamAccess, input);
+        const result = await executeAudited({
+          audit: registrationPersonCreatedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: {
+              id: input.teamId,
+              participantIndex: input.index,
+              personType: "participant",
+              teamId: input.teamId,
+              type: "registration-person",
+            },
+          }),
+          deniedErrorCodes: ["TEAM_NOT_FOUND", "TEAM_PARTICIPANT_ALREADY_EXISTS"],
+          execute: async () => await service.create(context.teamAccess, input),
+          log: context.log,
+          onSuccess: (created) => ({
+            target: {
+              id: created.id,
+              participantIndex: created.index,
+              personType: "participant",
+              teamId: created.teamId,
+              type: "registration-person",
+            },
+          }),
+        });
 
         context.log.set({
           teamParticipant: { id: result.id, index: result.index, teamId: result.teamId },
@@ -150,12 +205,32 @@ export function createTeamParticipantsRouter(
       .input(updateTeamParticipantSchema)
       .output(teamParticipantSchema)
       .handler(async ({ context, input }) => {
-        const participant = await service.update(
-          context.teamAccess,
-          input.teamId,
-          input.index,
-          input.data,
-        );
+        const participant = await executeAudited({
+          audit: registrationPersonUpdatedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            changes: { after: { changedFields: Object.keys(input.data).toSorted() } },
+            target: {
+              id: input.teamId,
+              participantIndex: input.index,
+              personType: "participant",
+              teamId: input.teamId,
+              type: "registration-person",
+            },
+          }),
+          deniedErrorCodes: ["TEAM_PARTICIPANT_NOT_FOUND"],
+          execute: async () =>
+            await service.update(context.teamAccess, input.teamId, input.index, input.data),
+          log: context.log,
+          onSuccess: (updated) => ({
+            target: {
+              id: updated.id,
+              participantIndex: updated.index,
+              personType: "participant",
+              teamId: updated.teamId,
+              type: "registration-person",
+            },
+          }),
+        });
         return participant;
       }),
   };

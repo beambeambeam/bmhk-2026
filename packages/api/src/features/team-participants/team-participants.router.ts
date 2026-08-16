@@ -208,7 +208,7 @@ export function createTeamParticipantsRouter(
         const participant = await executeAudited({
           audit: registrationPersonUpdatedAudit({
             actor: { id: context.teamAccess.actorId, type: "user" },
-            changes: { after: { changedFields: Object.keys(input.data).toSorted() } },
+            changes: { after: { changedFields: Object.keys(input.data) } },
             target: {
               id: input.teamId,
               participantIndex: input.index,

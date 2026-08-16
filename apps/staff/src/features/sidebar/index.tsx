@@ -14,7 +14,7 @@ import {
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { ClipboardCheck, LayoutDashboard, LogOut, UsersRound } from "lucide-react";
+import { ClipboardCheck, LayoutDashboard, LogOut, UserCheck, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
@@ -27,7 +27,7 @@ interface StaffSidebarProps {
 
 interface StaffNavItem {
   readonly label: string;
-  readonly to: "/admin/users" | "/dashboard" | "/participations";
+  readonly to: "/admin/users" | "/dashboard" | "/participations" | "/staff";
   readonly icon: LucideIcon;
 }
 
@@ -41,6 +41,10 @@ const adminNavItems: readonly StaffNavItem[] = [
 
 const registrationNavItems: readonly StaffNavItem[] = [
   { icon: ClipboardCheck, label: "Participations", to: "/participations" },
+];
+
+const staffNavItems: readonly StaffNavItem[] = [
+  { icon: UserCheck, label: "ลงทะเบียนเข้างาน", to: "/staff" },
 ];
 
 interface StaffNavGroup {
@@ -92,12 +96,14 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     navGroups = [
       { items: baseNavItems, label: "Navigation" },
       { items: registrationNavItems, label: "Registration" },
+      { items: staffNavItems, label: "Staff" },
       { items: adminNavItems, label: "Admin" },
     ];
   } else if (canReviewRegistrations) {
     navGroups = [
       { items: baseNavItems, label: "Navigation" },
       { items: [registrationNavItems[0]], label: "Registration" },
+      { items: staffNavItems, label: "Staff" },
     ];
   }
 

@@ -49,12 +49,21 @@ function hasRegistrationAccess(role: string | null | undefined): boolean {
   return roles[role].authorize({ staff: ["registration_access"] }).success;
 }
 
+function hasStaffAccess(role: string | null | undefined): boolean {
+  if (role === null || role === undefined || role.length === 0 || !isAuthRole(role)) {
+    return false;
+  }
+
+  return roles[role].authorize({ staff: ["access"] }).success;
+}
+
 export {
   ac,
   admin,
   authRoleValues,
   isAuthRole,
   hasRegistrationAccess,
+  hasStaffAccess,
   permissionStatement,
   registrationStaff,
   roles,

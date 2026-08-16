@@ -5,7 +5,7 @@ import type {
   TeamAccessProcedure,
   TeamOwnerProcedure,
 } from "../../core/procedure";
-import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
+import { awardChangedAudit, teamCreatedAudit, teamDeletedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamService } from "./teams.service";
@@ -39,7 +39,19 @@ export function createTeamsRouter(
       .input(createTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
-        const team = await service.create(context.session.user.id, input);
+        const actorId = context.session.user.id;
+        const team = await executeAudited({
+          audit: teamCreatedAudit({
+            actor: { id: actorId, type: "user" },
+            target: { id: actorId, type: "team" },
+          }),
+          deniedErrorCodes: ["TEAM_ALREADY_EXISTS"],
+          execute: async () => await service.create(actorId, input),
+          log: context.log,
+          onSuccess: (created) => ({
+            target: { id: created.id, teamId: created.id, type: "team" },
+          }),
+        });
         context.log.set({ team: { id: team.id } });
         return team;
       }),

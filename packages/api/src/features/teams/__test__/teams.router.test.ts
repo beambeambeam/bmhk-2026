@@ -139,7 +139,7 @@ describe("teams router", () => {
   it("creates a team for the authenticated owner with defaults", async () => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(
@@ -151,6 +151,12 @@ describe("teams router", () => {
         { context, path: ["teams", "create"] },
       ),
     ).resolves.toStrictEqual(testTeam);
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "success",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
   });
 
   it("rejects creating a second team for the same user", async () => {
@@ -160,7 +166,7 @@ describe("teams router", () => {
 
     const repository = createTeamRepository({ findByUserId });
     const router = createRouter(repository);
-    const { context } = createContext();
+    const { context, log } = createContext();
 
     await expect(
       call(
@@ -172,6 +178,37 @@ describe("teams router", () => {
       code: "TEAM_ALREADY_EXISTS",
       message: "User already owns a team",
       status: 409,
+    });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_ALREADY_EXISTS",
+      target: { id: USER_ID, type: "team" },
+    });
+  });
+
+  it("audits a team creation failure without exposing input or dependency details", async () => {
+    const router = createRouter(
+      createTeamRepository({
+        findByUserId: async () => await Promise.reject(new Error("database password=secret")),
+      }),
+    );
+    const { context, log } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Team One", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).rejects.toThrow("database password=secret");
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.created",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "failure",
+      reason: "UNKNOWN_FAILURE",
+      target: { id: USER_ID, type: "team" },
     });
   });
 

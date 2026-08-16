@@ -9,7 +9,10 @@ import {
 } from "@/components/select";
 import { Card, CardContent } from "@/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
-import type { TeamRegistrationReviewListFilter } from "@bmhk-2026/api";
+import type {
+  TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListSubjectStatus,
+} from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -26,6 +29,20 @@ const reviewFilters = [
 
 interface ParticipationTableProps {
   readonly canReview: boolean;
+}
+
+interface IndividualReviewStatusProps {
+  readonly label: string;
+  readonly status: TeamRegistrationReviewListSubjectStatus;
+}
+
+function IndividualReviewStatus({ label, status }: IndividualReviewStatusProps) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <StatusChip value={status} />
+    </div>
+  );
 }
 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
@@ -89,63 +106,63 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
             </SelectContent>
           </Select>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Team</TableHead>
-              <TableHead>School</TableHead>
-              <TableHead>Submission</TableHead>
-              <TableHead>Participant 1</TableHead>
-              <TableHead>Participant 2</TableHead>
-              <TableHead>Participant 3</TableHead>
-              <TableHead>Advisor</TableHead>
-              <TableHead className="w-28">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {query.isLoading ? (
+        <div className="[&_[data-slot=table-container]]:overflow-x-visible">
+          <Table className="table-fixed">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={8}>Loading participations...</TableCell>
+                <TableHead className="w-[26%] whitespace-normal">Team</TableHead>
+                <TableHead className="w-[14%] whitespace-normal">Submission</TableHead>
+                <TableHead className="w-[17%] whitespace-normal">Review</TableHead>
+                <TableHead className="w-[30%] whitespace-normal">Individual reviews</TableHead>
+                <TableHead className="w-[13%] whitespace-normal">Action</TableHead>
               </TableRow>
-            ) : null}
-            {query.isError ? (
-              <TableRow>
-                <TableCell className="text-destructive" colSpan={8}>
-                  Unable to load participations.
-                </TableCell>
-              </TableRow>
-            ) : null}
-            {!query.isLoading && !query.isError && teams.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8}>No participations found.</TableCell>
-              </TableRow>
-            ) : null}
-            {teams.map((team) => (
-              <TableRow key={team.id}>
-                <TableCell className="font-medium">{team.name}</TableCell>
-                <TableCell>{team.school}</TableCell>
-                <TableCell>
-                  <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
-                </TableCell>
-                <TableCell>
-                  <StatusChip value={team.participant1} />
-                </TableCell>
-                <TableCell>
-                  <StatusChip value={team.participant2} />
-                </TableCell>
-                <TableCell>
-                  <StatusChip value={team.participant3} />
-                </TableCell>
-                <TableCell>
-                  <StatusChip value={team.advisor} />
-                </TableCell>
-                <TableCell>
-                  <ParticipationReviewDialog canReview={canReview} teamId={team.id} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {query.isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5}>Loading participations...</TableCell>
+                </TableRow>
+              ) : null}
+              {query.isError ? (
+                <TableRow>
+                  <TableCell className="text-destructive" colSpan={5}>
+                    Unable to load participations.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {!query.isLoading && !query.isError && teams.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5}>No participations found.</TableCell>
+                </TableRow>
+              ) : null}
+              {teams.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell className="whitespace-normal">
+                    <p className="font-medium">{team.name}</p>
+                    <p className="text-muted-foreground text-xs">{team.school}</p>
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip value={team.reviewStatus} />
+                  </TableCell>
+                  <TableCell className="whitespace-normal">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                      <IndividualReviewStatus label="Participant 1" status={team.participant1} />
+                      <IndividualReviewStatus label="Participant 2" status={team.participant2} />
+                      <IndividualReviewStatus label="Participant 3" status={team.participant3} />
+                      <IndividualReviewStatus label="Advisor" status={team.advisor} />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <ParticipationReviewDialog canReview={canReview} teamId={team.id} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

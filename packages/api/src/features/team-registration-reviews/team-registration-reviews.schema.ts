@@ -66,6 +66,7 @@ export const teamRegistrationReviewListRowSchema = z
     participant2: teamRegistrationReviewListSubjectStatusSchema,
     participant3: teamRegistrationReviewListSubjectStatusSchema,
     registrationSubmittedAt: z.date().nullable(),
+    reviewStatus: teamRegistrationReviewListSubjectStatusSchema,
     school: z.string(),
   })
   .strict();

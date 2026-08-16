@@ -132,6 +132,7 @@ export function createTeamRegistrationReviewService(
             ? "NOT_APPLICABLE"
             : listSubjectStatus(review, review?.participant3IssueCodes ?? []),
         registrationSubmittedAt: team.registrationSubmittedAt,
+        reviewStatus: review?.status ?? PENDING_REVIEW,
         school: team.school,
       }));
       return { rows: rows.filter((row) => matchesListFilter(row, reviewStatus)) };

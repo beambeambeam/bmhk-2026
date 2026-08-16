@@ -108,3 +108,13 @@ export const teamRegistrationReviewChangedAudit = defineAuditAction(
     target: "team-registration-review",
   },
 );
+
+export const teamRegistrationReviewFinalizedAudit = defineAuditAction(
+  "team-registration-review.finalized",
+  {
+    description: "A Registration Operator finalized a Team Registration Review decision",
+    requiresChanges: true,
+    severity: "critical",
+    target: "team-registration-review",
+  },
+);

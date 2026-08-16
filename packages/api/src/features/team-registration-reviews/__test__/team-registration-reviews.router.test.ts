@@ -277,7 +277,7 @@ describe("team registration reviews router", () => {
       ),
     ).resolves.toStrictEqual(approvedReview);
     expect(log.audit).toHaveBeenCalledWith({
-      action: "team-registration-review.changed",
+      action: "team-registration-review.finalized",
       actor: { id: "operator-1", type: "user" },
       changes: {
         after: {
@@ -332,6 +332,60 @@ describe("team registration reviews router", () => {
     ).rejects.toBeInstanceOf(Error);
     expect(save).not.toHaveBeenCalled();
     expect(log.audit).not.toHaveBeenCalled();
+  });
+
+  it("audits a change-requested review as finalized", async () => {
+    const save = vi.fn<TeamRegistrationReviewRepository["save"]>(
+      async () => await Promise.resolve({ previous: null, review: changeRequestedReview }),
+    );
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve(null),
+        save,
+      },
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.save,
+        {
+          data: {
+            advisorIssueCodes: ["IDENTITY_DOCUMENT_UNREADABLE"],
+            internalNotes: "Advisor and participant 2 documents need attention",
+            participant1IssueCodes: [],
+            participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
+            participant3IssueCodes: [],
+            status: "CHANGES_REQUESTED",
+          },
+          teamId: TEAM_ID,
+        },
+        { context, path: ["teamRegistrationReviews", "save"] },
+      ),
+    ).resolves.toStrictEqual(changeRequestedReview);
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration-review.finalized",
+      actor: { id: "operator-1", type: "user" },
+      changes: {
+        after: {
+          advisorIssueCodes: ["IDENTITY_DOCUMENT_UNREADABLE"],
+          participant1IssueCodes: [],
+          participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
+          participant3IssueCodes: [],
+          status: "CHANGES_REQUESTED",
+        },
+      },
+      outcome: "success",
+      target: {
+        id: TEAM_ID,
+        reviewId: REVIEW_ID,
+        teamId: TEAM_ID,
+        type: "team-registration-review",
+      },
+    });
   });
 
   it("rejects a change request without a coded review issue", async () => {
@@ -437,10 +491,52 @@ describe("team registration reviews router", () => {
       status: 500,
     });
     expect(log.audit).toHaveBeenCalledWith({
-      action: "team-registration-review.changed",
+      action: "team-registration-review.finalized",
       actor: { id: "operator-1", type: "user" },
       outcome: "failure",
       reason: "TEAM_REGISTRATION_REVIEW_REPOSITORY_ERROR",
+      target: {
+        id: TEAM_ID,
+        teamId: TEAM_ID,
+        type: "team-registration-review",
+      },
+    });
+  });
+
+  it("audits a denied finalization when the Team is inaccessible", async () => {
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve(null),
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.save,
+        {
+          data: {
+            advisorIssueCodes: [],
+            internalNotes: null,
+            participant1IssueCodes: [],
+            participant2IssueCodes: [],
+            participant3IssueCodes: [],
+            status: "APPROVED",
+          },
+          teamId: TEAM_ID,
+        },
+        { context, path: ["teamRegistrationReviews", "save"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration-review.finalized",
+      actor: { id: "operator-1", type: "user" },
+      outcome: "denied",
+      reason: "TEAM_NOT_FOUND",
       target: {
         id: TEAM_ID,
         teamId: TEAM_ID,

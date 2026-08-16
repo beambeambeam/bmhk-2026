@@ -1,5 +1,8 @@
 import type { RegistrationProcedure, TeamOwnerProcedure } from "../../core/procedure";
-import { teamRegistrationReviewChangedAudit } from "../audit/audit.actions";
+import {
+  teamRegistrationReviewChangedAudit,
+  teamRegistrationReviewFinalizedAudit,
+} from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import type { TeamRegistrationReviewService } from "./team-registration-reviews.service";
 import {
@@ -49,14 +52,20 @@ export function createTeamRegistrationReviewsRouter(
       .input(saveTeamRegistrationReviewSchema)
       .output(teamRegistrationReviewSchema)
       .handler(async ({ context, input }) => {
+        const auditAction =
+          input.data.status === "PENDING_REVIEW"
+            ? teamRegistrationReviewChangedAudit
+            : teamRegistrationReviewFinalizedAudit;
         const { review } = await executeAudited({
-          audit: teamRegistrationReviewChangedAudit({
+          audit: auditAction({
             actor: { id: context.teamAccess.actorId, type: "user" },
             target: { id: input.teamId, teamId: input.teamId },
           }),
+          deniedErrorCodes: ["TEAM_NOT_FOUND"],
           execute: async () => await service.save(context.teamAccess, input.teamId, input.data),
           log: context.log,
           onSuccess: (result) => ({
+            action: auditAction.action,
             changes: result.previous
               ? {
                   after: toAuditedReview(result.review),

@@ -14,6 +14,10 @@ export const Route = createFileRoute("/_auth/participations")({
 });
 
 function ParticipationsPage() {
+  const { session } = Route.useRouteContext();
+  const role = session.data?.user.role;
+  const canReview = role === "admin" || role === "registrationStaff";
+
   return (
     <section className="flex flex-col gap-5">
       <Card>
@@ -24,7 +28,7 @@ function ParticipationsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ParticipationTable />
+          <ParticipationTable canReview={canReview} />
         </CardContent>
       </Card>
     </section>

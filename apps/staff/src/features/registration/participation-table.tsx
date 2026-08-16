@@ -1,11 +1,15 @@
-import { Button } from "@/components/button";
 import { Card, CardContent } from "@/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { getParticipationListQueryOptions } from "@bmhk-2026/client/query-options";
-import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
-function ParticipationTable() {
+import { ParticipationReviewDialog } from "./participation-review-dialog";
+
+interface ParticipationTableProps {
+  readonly canReview: boolean;
+}
+
+function ParticipationTable({ canReview }: ParticipationTableProps) {
   const query = useQuery(getParticipationListQueryOptions());
   const teams = query.data?.data ?? [];
 
@@ -47,13 +51,7 @@ function ParticipationTable() {
                 <TableCell>{team.memberCount}</TableCell>
                 <TableCell>{team.registrationSubmittedAt ? "Submitted" : "Draft"}</TableCell>
                 <TableCell>
-                  <Button
-                    render={<Link to="/participations/$teamId" params={{ teamId: team.id }} />}
-                    size="sm"
-                    variant="outline"
-                  >
-                    View
-                  </Button>
+                  <ParticipationReviewDialog canReview={canReview} teamId={team.id} />
                 </TableCell>
               </TableRow>
             ))}

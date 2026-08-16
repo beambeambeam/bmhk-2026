@@ -1,9 +1,9 @@
-import { Button } from "@/components/button";
 import { Card, CardContent } from "@/components/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { getStaffRegistrationListQueryOptions } from "@bmhk-2026/client/query-options";
-import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+
+import { StaffReviewDialog } from "./staff-review-dialog";
 
 function StaffTable() {
   const query = useQuery(getStaffRegistrationListQueryOptions());
@@ -43,13 +43,7 @@ function StaffTable() {
                 <TableCell className="font-medium">{member.name || "Unnamed staff"}</TableCell>
                 <TableCell>{member.email}</TableCell>
                 <TableCell>
-                  <Button
-                    render={<Link to="/staff/$staffId" params={{ staffId: member.id }} />}
-                    size="sm"
-                    variant="outline"
-                  >
-                    View
-                  </Button>
+                  <StaffReviewDialog staffId={member.id} />
                 </TableCell>
               </TableRow>
             ))}

@@ -10,9 +10,6 @@ export const TOTAL_STEPS = 5
 
 const CRUMBS = ['ข้อมูลทีม', 'อาจารย์', 'ผู้เข้าแข่งขัน', 'เงื่อนไข']
 
-/** Which breadcrumb is active for each 1-based step. Steps 3 and 4 share a crumb. */
-const CRUMB_FOR_STEP = [0, 1, 2, 2, 3]
-
 /**
  * Figma 708:1255 and friends. The wizard sits on #fefdfc inside a 1440 frame with 200
  * of side padding, which gives the 1040 column; the top bar and the form card are two
@@ -51,7 +48,7 @@ export default function WizardShell({
    */
   receded?: boolean
 }) {
-  const activeCrumb = CRUMB_FOR_STEP[step - 1]
+  const activeCrumb = step === totalStep ? 3 : step >= 3 ? 2 : step - 1
 
   return (
     /*
@@ -207,6 +204,7 @@ export default function WizardShell({
                   key={i}
                   data-filled={i < step}
                   data-sweep={i === step - 1}
+                  data-sweep-reverse={i === step}
                   className="wizard-progress-fill h-full flex-1 rounded-full bg-[#e6e6e6]"
                 />
               ))}

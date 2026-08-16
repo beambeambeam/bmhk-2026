@@ -1437,8 +1437,12 @@
 }
 
 @starting-style {
-  .wizard-progress-fill[data-sweep="true"][data-filled="true"]::after {
+  :root:not([data-auth-nav$="back"]) .wizard-progress-fill[data-sweep="true"][data-filled="true"]::after {
     transform: scaleX(0);
+  }
+
+  :root[data-auth-nav$="back"] .wizard-progress-fill[data-sweep-reverse="true"]:not([data-filled="true"])::after {
+    transform: scaleX(1);
   }
 }
 

@@ -355,7 +355,7 @@ export default function TermsStep() {
       receded={openDoc !== null}
       actions={
         <>
-          <BackButton to="/register/entrant/2" />
+          <BackButton to={`/register/entrant/${Number(form.getFieldValue('team.teamSize') ?? 2)}`} />
           <TermsSubmitButton to="/register/success" label="ลงทะเบียนเข้าแข่งขัน" />
         </>
       }

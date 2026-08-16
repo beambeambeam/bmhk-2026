@@ -34,6 +34,8 @@ export interface TeamRegistrationReviewService {
     data: SaveTeamRegistrationReviewSubjectData,
   ) => Promise<TeamRegistrationReviewSaveResult>;
   list: (input: {
+    limit: number;
+    offset: number;
     reviewStatus: TeamRegistrationReviewListFilter;
     search: string;
   }) => Promise<TeamRegistrationReviewListResult>;
@@ -70,13 +72,6 @@ function listSubjectStatus(
   }
 
   return issueCodes.length > 0 ? CHANGES_REQUESTED : APPROVED;
-}
-
-function matchesListFilter(
-  row: TeamRegistrationReviewListResult["rows"][number],
-  filter: TeamRegistrationReviewListFilter,
-): boolean {
-  return filter === "ALL" || row.reviewStatus === filter;
 }
 
 function subjectFeedbackStatus(
@@ -132,8 +127,8 @@ export function createTeamRegistrationReviewService(
 
       return toReviewFeedback(result.review);
     },
-    list: async ({ reviewStatus, search }) => {
-      const records = await repository.list(search);
+    list: async ({ limit, offset, reviewStatus, search }) => {
+      const { records, total } = await repository.list({ limit, offset, reviewStatus, search });
       const rows = records.map(({ review, team }) => ({
         advisor: listSubjectStatus(review, "advisor"),
         id: team.id,
@@ -147,7 +142,14 @@ export function createTeamRegistrationReviewService(
         reviewStatus: review?.status ?? PENDING_REVIEW,
         school: team.school,
       }));
-      return { rows: rows.filter((row) => matchesListFilter(row, reviewStatus)) };
+      return {
+        pagination: {
+          nextOffset: offset + limit < total ? offset + limit : null,
+          offset,
+          total,
+        },
+        rows,
+      };
     },
     save: async (access, teamId, data) => {
       const result = await repository.save(access, teamId, {

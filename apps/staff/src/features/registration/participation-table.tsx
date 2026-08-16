@@ -1,3 +1,4 @@
+import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import {
   Select,
@@ -15,11 +16,13 @@ import type {
 } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ParticipationReviewDialog, StatusChip } from "./participation-review-dialog";
 
 const SEARCH_DEBOUNCE_MS = 300;
+const PARTICIPATIONS_PAGE_SIZE = 20;
 const reviewFilters = [
   { label: "All reviews", value: "ALL" },
   { label: "Pending review", value: "PENDING_REVIEW" },
@@ -48,21 +51,35 @@ function IndividualReviewStatus({ label, status }: IndividualReviewStatusProps) 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [offset, setOffset] = useState(0);
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
   const query = useQuery(
-    getTeamRegistrationReviewListQueryOptions({ reviewStatus, search: debouncedSearch }),
+    getTeamRegistrationReviewListQueryOptions({
+      limit: PARTICIPATIONS_PAGE_SIZE,
+      offset,
+      reviewStatus,
+      search: debouncedSearch,
+    }),
   );
   const teams = query.data?.rows ?? [];
+  const pagination = query.data?.pagination;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearch(search.trim());
+      setOffset(0);
     }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
   }, [search]);
+
+  const firstVisibleParticipation =
+    pagination !== undefined && pagination.total > 0 ? pagination.offset + 1 : 0;
+  const lastVisibleParticipation = pagination
+    ? Math.min(pagination.offset + teams.length, pagination.total)
+    : 0;
 
   return (
     <Card>
@@ -87,6 +104,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
             onValueChange={(value) => {
               if (value !== null && reviewFilters.some((filter) => filter.value === value)) {
                 setReviewStatus(value);
+                setOffset(0);
               }
             }}
           >
@@ -163,6 +181,42 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
             </TableBody>
           </Table>
         </div>
+        {pagination ? (
+          <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-foreground">
+              Showing {firstVisibleParticipation}-{lastVisibleParticipation} of {pagination.total}{" "}
+              participations
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                disabled={pagination.offset === 0 || query.isFetching}
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setOffset(Math.max(0, pagination.offset - PARTICIPATIONS_PAGE_SIZE));
+                }}
+              >
+                <ChevronLeft aria-hidden="true" data-icon="inline-start" />
+                Previous
+              </Button>
+              <Button
+                disabled={pagination.nextOffset === null || query.isFetching}
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (pagination.nextOffset !== null) {
+                    setOffset(pagination.nextOffset);
+                  }
+                }}
+              >
+                Next
+                <ChevronRight aria-hidden="true" data-icon="inline-end" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

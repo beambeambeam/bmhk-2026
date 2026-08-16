@@ -13,7 +13,6 @@ import {
   createTestSession,
 } from "../../../__test__/test-support";
 import { createTeamRegistrationReviewRepositoryError } from "../team-registration-reviews.errors";
-import type { TeamRegistrationReviewListRecord } from "../team-registration-reviews.repository";
 
 const REVIEW_ID = "22222222-2222-4222-8222-222222222222";
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
@@ -50,23 +49,6 @@ const changeRequestedReview = {
   status: "CHANGES_REQUESTED",
 } satisfies TeamRegistrationReview;
 
-const changeRequestedReviewRecord = {
-  review: changeRequestedReview,
-  team: {
-    award: "NO_ACHIEVEMENT",
-    createdAt: REVIEWED_AT,
-    id: TEAM_ID,
-    image: null,
-    index: 1,
-    memberCount: 2,
-    name: "Team Alpha",
-    registrationSubmittedAt: REVIEWED_AT,
-    school: "KMUTT Demonstration School",
-    updatedAt: REVIEWED_AT,
-    userId: "user-1",
-  },
-} satisfies TeamRegistrationReviewListRecord;
-
 type TestTeamRegistrationReviewRepository = Omit<
   TeamRegistrationReviewRepository,
   "list" | "saveSubject"
@@ -74,7 +56,7 @@ type TestTeamRegistrationReviewRepository = Omit<
   Partial<Pick<TeamRegistrationReviewRepository, "list" | "saveSubject">>;
 
 function createRouter(repository: TestTeamRegistrationReviewRepository, auth: AuthReader) {
-  const list = repository.list ?? (async () => await Promise.resolve([]));
+  const list = repository.list ?? (async () => await Promise.resolve({ records: [], total: 0 }));
   const saveSubject = repository.saveSubject ?? (async () => await Promise.resolve(null));
   return createAppRouter({
     auth,
@@ -210,7 +192,15 @@ describe("team registration reviews router", () => {
     const router = createRouter(
       {
         findByTeamId: async () => await Promise.resolve(null),
-        list: async () => await Promise.resolve([changeRequestedReviewRecord]),
+        list: async (input) => {
+          expect(input).toStrictEqual({
+            limit: 20,
+            offset: 0,
+            reviewStatus: "APPROVED",
+            search: "",
+          });
+          return await Promise.resolve({ records: [], total: 0 });
+        },
         save: async () => await Promise.resolve(null),
       },
       createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
@@ -223,7 +213,10 @@ describe("team registration reviews router", () => {
         { reviewStatus: "APPROVED", search: "" },
         { context, path: ["teamRegistrationReviews", "list"] },
       ),
-    ).resolves.toStrictEqual({ rows: [] });
+    ).resolves.toStrictEqual({
+      pagination: { nextOffset: null, offset: 0, total: 0 },
+      rows: [],
+    });
   });
 
   it("does not expose Review Feedback for a Team the owner does not own", async () => {

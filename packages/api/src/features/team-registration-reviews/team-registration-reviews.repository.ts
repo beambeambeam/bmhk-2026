@@ -4,7 +4,7 @@ import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, eq, exists, ilike, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, exists, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import type { TeamAccessContext } from "../../core/auth";
 import { createRepositoryExecutor } from "../../core/repository";
@@ -15,6 +15,7 @@ import type {
   SaveTeamRegistrationReviewData,
   SaveTeamRegistrationReviewSubjectData,
   TeamRegistrationReview,
+  TeamRegistrationReviewListFilter,
   TeamRegistrationReviewSubject,
 } from "./team-registration-reviews.schema";
 
@@ -38,7 +39,12 @@ export interface TeamRegistrationReviewRepository {
     access: TeamAccessContext,
     teamId: string,
   ) => Promise<TeamRegistrationReviewLookup | null>;
-  list: (search: string) => Promise<TeamRegistrationReviewListRecord[]>;
+  list: (input: {
+    limit: number;
+    offset: number;
+    reviewStatus: TeamRegistrationReviewListFilter;
+    search: string;
+  }) => Promise<{ records: TeamRegistrationReviewListRecord[]; total: number }>;
   save: (
     access: TeamAccessContext,
     teamId: string,
@@ -58,6 +64,21 @@ export interface TeamRegistrationReviewListRecord {
 
 type Database = typeof db;
 const normalizedUserRole = sql<string>`coalesce(${user.role}, 'user')`;
+
+function reviewListCondition(reviewStatus: TeamRegistrationReviewListFilter) {
+  if (reviewStatus === "ALL") {
+    return sql`true`;
+  }
+
+  if (reviewStatus === "PENDING_REVIEW") {
+    return or(
+      isNull(teamRegistrationReviews.status),
+      eq(teamRegistrationReviews.status, "PENDING_REVIEW"),
+    );
+  }
+
+  return eq(teamRegistrationReviews.status, reviewStatus);
+}
 
 function issueCodesForSubject(
   review: TeamRegistrationReview | null,
@@ -113,11 +134,11 @@ export function createTeamRegistrationReviewRepository(
 
         return result ?? null;
       }),
-    list: async (search) =>
+    list: async ({ limit, offset, reviewStatus, search }) =>
       await execute(async () => {
         const escapedSearch = escapeLikePattern(search);
         const searchPattern = `%${escapedSearch}%`;
-        const condition =
+        const searchCondition =
           search.length === 0
             ? and(eq(normalizedUserRole, "user"), isNotNull(teams.registrationSubmittedAt))
             : and(
@@ -176,13 +197,31 @@ export function createTeamRegistrationReviewRepository(
                   ),
                 ),
               );
-        return await database
-          .select({ review: teamRegistrationReviews, team: teams })
-          .from(teams)
-          .innerJoin(user, eq(user.id, teams.userId))
-          .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
-          .where(condition)
-          .orderBy(asc(teams.index));
+        const reviewCondition = reviewListCondition(reviewStatus);
+        const condition = and(searchCondition, reviewCondition);
+
+        return await database.transaction(
+          async (transaction) => {
+            const [totalResult] = await transaction
+              .select({ value: count() })
+              .from(teams)
+              .innerJoin(user, eq(user.id, teams.userId))
+              .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
+              .where(condition);
+            const records = await transaction
+              .select({ review: teamRegistrationReviews, team: teams })
+              .from(teams)
+              .innerJoin(user, eq(user.id, teams.userId))
+              .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
+              .where(condition)
+              .orderBy(asc(teams.index))
+              .limit(limit)
+              .offset(offset);
+
+            return { records, total: totalResult?.value ?? 0 };
+          },
+          { accessMode: "read only", isolationLevel: "repeatable read" },
+        );
       }),
     save: async (access, teamId, data) =>
       await execute(

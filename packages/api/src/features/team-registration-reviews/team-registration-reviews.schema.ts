@@ -9,6 +9,8 @@ const MAX_INTERNAL_NOTES_LENGTH = 4000;
 const MAX_ISSUE_CODE_LENGTH = 100;
 const MAX_ISSUE_CODES_PER_SUBJECT = 50;
 const MAX_SEARCH_LENGTH = 120;
+const DEFAULT_LIST_LIMIT = 20;
+const MAX_LIST_LIMIT = 100;
 
 const issueCodesSchema = z
   .array(z.string().trim().min(1).max(MAX_ISSUE_CODE_LENGTH))
@@ -51,11 +53,13 @@ export const teamRegistrationReviewListFilterSchema = z.enum(
 );
 export const teamRegistrationReviewListInputSchema = z
   .object({
+    limit: z.int().min(1).max(MAX_LIST_LIMIT).default(DEFAULT_LIST_LIMIT),
+    offset: z.int().nonnegative().default(0),
     reviewStatus: teamRegistrationReviewListFilterSchema.default("ALL"),
     search: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
   })
   .strict()
-  .default({ reviewStatus: "ALL", search: "" });
+  .default({ limit: DEFAULT_LIST_LIMIT, offset: 0, reviewStatus: "ALL", search: "" });
 export const teamRegistrationReviewListRowSchema = z
   .object({
     advisor: teamRegistrationReviewListSubjectStatusSchema,
@@ -71,7 +75,16 @@ export const teamRegistrationReviewListRowSchema = z
   })
   .strict();
 export const teamRegistrationReviewListResultSchema = z
-  .object({ rows: z.array(teamRegistrationReviewListRowSchema) })
+  .object({
+    pagination: z
+      .object({
+        nextOffset: z.int().nonnegative().nullable(),
+        offset: z.int().nonnegative(),
+        total: z.int().nonnegative(),
+      })
+      .strict(),
+    rows: z.array(teamRegistrationReviewListRowSchema),
+  })
   .strict();
 
 export const saveTeamRegistrationReviewDataSchema = z

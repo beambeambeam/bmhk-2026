@@ -14,6 +14,7 @@
     "auth:info": "DOTENV_CONFIG_PATH=../../apps/server/.env auth info --config ./src/index.ts",
     "auth:secret": "DOTENV_CONFIG_PATH=../../apps/server/.env auth secret",
     "db:seed:dev": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts dev",
+    "db:seed:auth": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts auth",
     "db:seed:root": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts root"
   },
   "dependencies": {

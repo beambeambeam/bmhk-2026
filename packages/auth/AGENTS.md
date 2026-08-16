@@ -68,3 +68,13 @@ bun run build
 
 For auth behavior changes, add tests for success, invalid input, unauthorized
 access, missing optional fields, and any disabled or protected endpoint.
+
+## Seed workflow
+
+`bun run db:seed:auth` owns local Better Auth accounts only. Do not add
+registration fixtures to this command.
+
+## Seed workflow
+
+`bun run db:seed:auth` owns local Better Auth accounts only. Do not add
+registration fixtures to this command.

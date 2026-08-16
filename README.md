@@ -108,11 +108,15 @@ Feature routers should remain transport adapters. Database coordination, not-fou
    - RustFS development credentials: `rustfsadmin` / `rustfssecret`
    - Create configured bucket `uploads` in the RustFS console before starting the server.
 
-   Seed local authentication accounts when needed:
+   Seed local data in this order:
 
    ```bash
-   bun db:seed:dev
+   bun run db:seed:auth # Creates or updates local authentication accounts
+   bun run db:seed:dev  # Adds example teams, participants, advisors, consents, and reviews
    ```
+
+   `db:seed:dev` does not create authentication accounts. It requires the member and
+   registration-staff accounts created by `db:seed:auth`.
 
 4. Discord Bot setup (optional):
 

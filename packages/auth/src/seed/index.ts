@@ -11,7 +11,7 @@ import { teams } from "@bmhk-2026/db/schema/teams";
 import { createAuth } from "../auth";
 import type { AuthRole } from "../permission";
 
-type SeedMode = "root" | "dev";
+type SeedMode = "auth" | "dev" | "root";
 
 interface SeedAccount {
   readonly email: string;
@@ -108,15 +108,15 @@ const seedReviewIds = {
 } as const;
 
 export const seedAccounts = {
-  dev: [rootAccount, ...localAccounts],
+  auth: [rootAccount, ...localAccounts],
   root: [rootAccount],
-} as const satisfies Record<SeedMode, readonly SeedAccount[]>;
+} as const satisfies Record<Exclude<SeedMode, "dev">, readonly SeedAccount[]>;
 
 function parseMode(value: string | undefined): SeedMode {
-  if (value === "root" || value === "dev") {
+  if (value === "auth" || value === "dev" || value === "root") {
     return value;
   }
-  throw new Error("Usage: bun run db:seed:root | bun run db:seed:dev");
+  throw new Error("Usage: bun run db:seed:auth | bun run db:seed:dev | bun run db:seed:root");
 }
 
 function generatePassword(): string {
@@ -462,13 +462,20 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
 }
 
 export async function runSeed(mode: SeedMode): Promise<readonly SeedResult[]> {
-  const accounts = seedAccounts[mode];
-  validateAccounts(accounts);
-
   const database = createDb();
   const results: SeedResult[] = [];
 
   try {
+    if (mode === "dev") {
+      await seedRegistrationData(database);
+      await writeLine(
+        "seeded\tregistration data\t5 teams, participants, advisors, consents, and reviews",
+      );
+      return results;
+    }
+
+    const accounts = seedAccounts[mode];
+    validateAccounts(accounts);
     const auth = createAuth(database);
     await writeLine("Generated credentials are sensitive. Store them securely.");
     for (const account of accounts) {
@@ -481,12 +488,6 @@ export async function runSeed(mode: SeedMode): Promise<readonly SeedResult[]> {
       // Keep credentials ordered with their completed account writes.
       // eslint-disable-next-line no-await-in-loop
       await writeLine(`${action}\t${account.role}\t${account.email}\t${password}`);
-    }
-    if (mode === "dev") {
-      await seedRegistrationData(database);
-      await writeLine(
-        "seeded\tregistration data\t5 teams, participants, advisors, consents, and reviews",
-      );
     }
     return results;
   } finally {

@@ -21,7 +21,7 @@ const statusLabels: Record<RegistrationStatus, string> = {
   COMPLETED: "เสร็จสมบูรณ์",
   DRAFT: "ฉบับร่าง",
   IN_PROGRESS: "กำลังดำเนินการ",
-  NOT_APPLICABLE: "ไม่เกี่ยวข้อง",
+  NOT_APPLICABLE: "ไม่ได้สมัคร",
   NOT_STARTED: "ยังไม่เริ่ม",
   PENDING_REVIEW: "รอตรวจสอบ",
   SUBMITTED: "ส่งแล้ว",

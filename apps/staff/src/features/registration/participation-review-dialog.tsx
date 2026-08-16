@@ -9,6 +9,8 @@ import {
 } from "@/components/dialog";
 import { orpc } from "@bmhk-2026/client/orpc";
 import {
+  getParticipationAdvisorQueryOptions,
+  getParticipationParticipantsQueryOptions,
   getParticipationQueryOptions,
   getParticipationReviewQueryOptions,
 } from "@bmhk-2026/client/query-options";
@@ -27,6 +29,14 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   const teamQuery = useQuery({ ...getParticipationQueryOptions(teamId), enabled: isOpen });
+  const advisorQuery = useQuery({
+    ...getParticipationAdvisorQueryOptions(teamId),
+    enabled: isOpen,
+  });
+  const participantsQuery = useQuery({
+    ...getParticipationParticipantsQueryOptions(teamId),
+    enabled: isOpen,
+  });
   const reviewQuery = useQuery({ ...getParticipationReviewQueryOptions(teamId), enabled: isOpen });
   const saveReview = useMutation(
     orpc.teamRegistrationReviews.save.mutationOptions({
@@ -68,7 +78,9 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
       {reviewQuery.isSuccess ? (
         <ParticipationReviewContent
           canReview={canReview}
-          isLoading={teamQuery.isLoading}
+          advisor={advisorQuery.data}
+          isLoading={teamQuery.isLoading || advisorQuery.isLoading || participantsQuery.isLoading}
+          participants={participantsQuery.data ?? []}
           review={reviewQuery.data}
           savePending={saveReview.isPending}
           team={teamQuery.data}

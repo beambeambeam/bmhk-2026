@@ -1,9 +1,8 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import AuthPageShell from '@/components/auth-page-shell'
-import { authLink, useOwnArrival } from '@/components/form/wizard-nav'
-import { DOCUMENT_GROUPS } from '@/features/guide/data/data'
-import { useRegisterForm } from '../register'
-
+import { Link, createFileRoute } from "@tanstack/react-router";
+import AuthPageShell from "@/components/auth-page-shell";
+import { authLink, useOwnArrival } from "@/components/form/wizard-nav";
+import { DOCUMENT_GROUPS } from "@/features/guide/data/data";
+import { useRegisterForm } from "../register";
 
 export const Route = createFileRoute("/register/")({
   component: Register,
@@ -37,21 +36,21 @@ export const Route = createFileRoute("/register/")({
  */
 const SECTIONS = [
   {
-    image: '/assets/figma/522303cab6b008daf26c3f0e8e3f2ec214a0c0cf.png',
+    image: "/assets/figma/522303cab6b008daf26c3f0e8e3f2ec214a0c0cf.png",
     /** The cropped one — explicit width/height, so nothing is left for `inset` to size. */
-    imageStyle: { height: '100%', width: '114.2857%', left: '-11.8542%', top: '0.1629%' },
-    title: 'นักเรียนผู้เข้าแข่งขัน',
+    imageStyle: { height: "100%", left: "-11.8542%", top: "0.1629%", width: "114.2857%" },
+    title: "นักเรียนผู้เข้าแข่งขัน",
     /* `1214:149` / `708:1197` — one TEXT node, newline-separated, identical `characters` on
        both frames. */
     items: [
-      'สำเนาบัตรประจำตัวประชาชน หรือบัตรประจำตัวสำหรับบุคคลที่ไม่ใช่สัญชาติไทย (เฉพาะด้านหน้า) พร้อมเซ็นสำเนาถูกต้อง',
-      'สำเนา ปพ.7 (ใบรับรองผลการศึกษา) ฉบับจริงของผู้เข้าแข่งขันแต่ละคน พร้อมเซ็นสำเนาถูกต้อง',
-      'รูปถ่ายของนักเรียนผู้เข้าแข่งขัน',
+      "สำเนาบัตรประจำตัวประชาชน หรือบัตรประจำตัวสำหรับบุคคลที่ไม่ใช่สัญชาติไทย (เฉพาะด้านหน้า) พร้อมเซ็นสำเนาถูกต้อง",
+      "สำเนา ปพ.7 (ใบรับรองผลการศึกษา) ฉบับจริงของผู้เข้าแข่งขันแต่ละคน พร้อมเซ็นสำเนาถูกต้อง",
+      "รูปถ่ายของนักเรียนผู้เข้าแข่งขัน",
     ],
   },
   {
-    image: '/assets/figma/2a36441d02ccfe195207a9ad27345494771cc3b6.png',
-    title: 'อาจารย์',
+    image: "/assets/figma/2a36441d02ccfe195207a9ad27345494771cc3b6.png",
+    title: "อาจารย์",
     /*
      * `DOCUMENT_GROUPS[1].items` from data.ts, and it stays shared — this list was briefly
      * inlined with `1214:154` / `708:1202`'s wording and that was a REGRESSION.
@@ -69,7 +68,7 @@ const SECTIONS = [
      */
     items: DOCUMENT_GROUPS[1].items,
   },
-]
+];
 
 /**
  * The bullet marker, measured off both renders rather than guessed: Figma's is a SMALL dot,
@@ -89,7 +88,7 @@ const SECTIONS = [
  * `ms-[30px]` was right at 1440 by accident (1.5em of 20px) and 9px too deep at 402.
  */
 const BULLET =
-  'relative ps-[1.5em] before:absolute before:start-[0.675em] before:top-[0.6em] before:size-[0.15em] before:rounded-full before:bg-current before:content-[""]'
+  'relative ps-[1.5em] before:absolute before:start-[0.675em] before:top-[0.6em] before:size-[0.15em] before:rounded-full before:bg-current before:content-[""]';
 
 export default function Register() {
   /*
@@ -100,29 +99,29 @@ export default function Register() {
    * what "มันยังไม่เด้งมา" reports. `auth-sheet-spring` gives the element the same spring of
    * its own, and this test is what keeps the two from ever running at once.
    */
-  const spring = useOwnArrival()
-  const form = useRegisterForm()
-  
-  let nextStep = '/register/team'
-  const status = form.getFieldValue('status')
-  
+  const spring = useOwnArrival();
+  const form = useRegisterForm();
+
+  let nextStep = "/register/team";
+  const status = form.getFieldValue("status");
+
   if (status && status.teamId) {
-    if (status.team === 'COMPLETED') {
-      const advisor = form.getFieldValue('advisor')
-      const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl
-      
+    if (status.team === "COMPLETED") {
+      const advisor = form.getFieldValue("advisor");
+      const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl;
+
       if (!isAdvisorComplete) {
-        nextStep = '/register/advisor'
-      } else if (status.participant1 !== 'COMPLETED') {
-        nextStep = '/register/entrant/1'
-      } else if (status.participant2 !== 'COMPLETED') {
-        nextStep = '/register/entrant/2'
-      } else if (status.participant3 !== 'NOT_APPLICABLE' && status.participant3 !== 'COMPLETED') {
-        nextStep = '/register/entrant/3'
-      } else if (status.termsAndConditions !== 'COMPLETED') {
-        nextStep = '/register/terms'
+        nextStep = "/register/advisor";
+      } else if (status.participant1 !== "COMPLETED") {
+        nextStep = "/register/entrant/1";
+      } else if (status.participant2 !== "COMPLETED") {
+        nextStep = "/register/entrant/2";
+      } else if (status.participant3 !== "NOT_APPLICABLE" && status.participant3 !== "COMPLETED") {
+        nextStep = "/register/entrant/3";
+      } else if (status.termsAndConditions === "COMPLETED") {
+        nextStep = "/register/terms"; // If all complete, just go to terms to submit or to success if you have it
       } else {
-        nextStep = '/register/terms' // If all complete, just go to terms to submit or to success if you have it
+        nextStep = "/register/terms";
       }
     }
   }
@@ -163,7 +162,7 @@ export default function Register() {
        * uniform `p-` ramp was 16px short at the top on the phone.
        */}
       <div
-        className={`auth-sheet ${spring ? 'auth-sheet-spring' : ''} mt-[calc(23.584px_+_16.416*var(--fl))] flex min-h-0 flex-1 flex-col items-start gap-8 rounded-t-[calc(19.688px_+_12.312*var(--fl))] rounded-b-[calc(20.52px_-_20.52*var(--fl))] bg-white px-[calc(23.584px_+_16.416*var(--fl))] pt-10 pb-[calc(23.584px_+_16.416*var(--fl))] shadow-soft`}
+        className={`auth-sheet ${spring ? "auth-sheet-spring" : ""} mt-[calc(23.584px_+_16.416*var(--fl))] flex min-h-0 flex-1 flex-col items-start gap-8 rounded-t-[calc(19.688px_+_12.312*var(--fl))] rounded-b-[calc(20.52px_-_20.52*var(--fl))] bg-white px-[calc(23.584px_+_16.416*var(--fl))] pt-10 pb-[calc(23.584px_+_16.416*var(--fl))] shadow-soft`}
       >
         {/* `1214:143` is 24 and `708:1191` is 40, both 600/1.4 — so the phone frame is 4px
             under `fl-display`'s 28 floor and the phone frame wins, overridden here rather
@@ -272,7 +271,7 @@ export default function Register() {
         {/* `enter`, not `forward`: this hop sinks the colour blocks away and spills the
             wizard's pasta in, which no step-to-step move should do. */}
         <Link
-          {...authLink(nextStep, 'enter')}
+          {...authLink(nextStep, "enter")}
           /* same pill as the result screens' `RESULT_ACTION`: 49 tall on `1214:155`, 60 at
              1440 (`708:1203`). Two values that were flat and are Figma ramps: the RADIUS is
              16 on `1214:155` against 20 on `708:1203`, and the LABEL is 16 on `1214:156`
@@ -285,5 +284,5 @@ export default function Register() {
         </Link>
       </div>
     </AuthPageShell>
-  )
+  );
 }

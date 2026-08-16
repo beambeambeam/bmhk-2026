@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -59,9 +59,12 @@ function SignInRoute() {
       const checkRegistration = async () => {
         setIsChecking(true);
         try {
-          const res = await fetch(`${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`, {
-            credentials: "include",
-          });
+          const res = await fetch(
+            `${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`,
+            {
+              credentials: "include",
+            },
+          );
           if (res.ok) {
             const data = await res.json();
             if (data.isComplete) {
@@ -87,7 +90,7 @@ function SignInRoute() {
     setIsSigningIn(true);
     // Add artificial delay for better UX before redirecting
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
+
     await authClient.signIn.social(
       {
         callbackURL: `${window.location.origin}/signin`,

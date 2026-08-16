@@ -29,18 +29,18 @@
 
 /** Shared props: these are decorations inside a card that already announces itself in text. */
 const GLYPH = {
-  viewBox: '0 0 20 20',
-  fill: 'none',
-  'aria-hidden': true,
-  xmlns: 'http://www.w3.org/2000/svg',
-} as const
+  "aria-hidden": true,
+  fill: "none",
+  viewBox: "0 0 20 20",
+  xmlns: "http://www.w3.org/2000/svg",
+} as const;
 
 const STROKE = {
-  stroke: 'currentColor',
+  stroke: "currentColor",
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
   strokeWidth: 1.667,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-} as const
+} as const;
 
 /**
  * The transfer's mark — 1359:1096, whose only child is a 14-unit solid disc
@@ -53,7 +53,7 @@ export function TransferDot() {
     <svg {...GLYPH} className="size-5">
       <circle className="toast-dot" cx="10" cy="10" r="7" fill="currentColor" />
     </svg>
-  )
+  );
 }
 
 /**
@@ -87,7 +87,7 @@ export function RingArc() {
         transform="rotate(-90 16 16)"
       />
     </svg>
-  )
+  );
 }
 
 /**
@@ -114,7 +114,7 @@ export function CheckGlyph() {
         {...STROKE}
       />
     </svg>
-  )
+  );
 }
 
 /**
@@ -154,7 +154,7 @@ export function AlertGlyph() {
         fill="currentColor"
       />
     </svg>
-  )
+  );
 }
 
 /**
@@ -193,7 +193,7 @@ export function FileWarningGlyph() {
         fill="currentColor"
       />
     </svg>
-  )
+  );
 }
 
 /* ------------------------------------------------------------------------- the controls
@@ -218,7 +218,7 @@ export function PauseGlyph() {
         <rect x="6.667" y="0" width="1.667" height="13.33" rx="0.833" />
       </g>
     </svg>
-  )
+  );
 }
 
 /**
@@ -233,7 +233,7 @@ export function StopGlyph() {
     <svg {...GLYPH} className="size-5">
       <rect x="4.163" y="4.173" width="11.667" height="11.667" rx="0.9" {...STROKE} />
     </svg>
-  )
+  );
 }
 
 /**
@@ -254,7 +254,7 @@ export function RetryGlyph() {
         d="M7.74339 0.0184427C6.21006 0.177609 4.88339 0.691776 3.68006 1.59511C3.18952 1.98249 2.73844 2.41738 2.33339 2.89344C2.20339 3.05428 2.08673 3.17428 2.07423 3.16011C2.06173 3.14678 1.95839 2.59678 1.84423 1.94011C1.77074 1.50432 1.69129 1.06956 1.60589 0.635943C1.52173 0.330109 1.17756 0.0751093 0.845893 0.0734427C0.60256 0.0709427 0.431726 0.13261 0.27006 0.278443C0.0733929 0.455943 -0.00244033 0.625943 5.96689e-05 0.885109C0.00255967 1.15678 0.856726 5.98928 0.931726 6.16011C1.04423 6.41511 1.29589 6.60011 1.58256 6.63844C1.78423 6.66511 6.79923 5.77928 7.00256 5.68011C7.19173 5.58928 7.36256 5.36094 7.41339 5.13261C7.52006 4.65761 7.19339 4.18511 6.72173 4.13094C6.60256 4.11761 6.11339 4.19178 4.85089 4.41511C3.91006 4.58178 3.12589 4.71844 3.10756 4.71844C3.06256 4.71844 3.27173 4.39594 3.53756 4.05344C4.47589 2.84844 5.88089 2.00844 7.41006 1.73678C7.84506 1.65928 8.64506 1.63344 9.07673 1.68261C10.5734 1.85344 11.8426 2.45678 12.8734 3.48844C13.6865 4.29219 14.2591 5.30693 14.5267 6.41844C14.6301 6.83428 14.6767 7.16511 14.7076 7.69761C14.7359 8.19261 14.7851 8.33094 14.9976 8.51761C15.1684 8.66761 15.3059 8.71844 15.5434 8.71844C15.7809 8.71844 15.9184 8.66761 16.0892 8.51761C16.3234 8.31178 16.3609 8.19678 16.3567 7.68511C16.3492 6.54428 16.0651 5.41844 15.5076 4.31844C14.3384 2.01178 12.1459 0.444276 9.56006 0.0659428C9.14923 0.00594283 8.12506 -0.020724 7.74339 0.0184427Z"
       />
     </svg>
-  )
+  );
 }
 
 /**
@@ -274,5 +274,5 @@ export function CloseGlyph() {
         strokeLinecap="round"
       />
     </svg>
-  )
+  );
 }

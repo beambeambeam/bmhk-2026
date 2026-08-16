@@ -1,15 +1,7 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-  type ReactNode,
-} from 'react'
-import { useToast } from '../toast/store'
-import { useRegisterForm } from '@/routes/register'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useId, useRef, useState } from "react";
+import type { ChangeEvent, DragEvent, ReactNode } from "react";
+import { useToast } from "../toast/store";
+import { useQuery } from "@tanstack/react-query";
 
 /**
  * Figma's field primitives (708:1311 and its siblings). Every control is a rounded-12
@@ -50,9 +42,9 @@ import { useQuery } from '@tanstack/react-query'
  * the frame's 34-tall control, so the field's geometry is Figma's; only the glyphs inside it
  * are 4px larger than drawn.
  */
-const FIELD_SHAPE = 'rounded-[calc(7.896px_+_4.104*var(--fl))] p-[calc(7.896px_+_4.104*var(--fl))]'
+const FIELD_SHAPE = "rounded-[calc(7.896px_+_4.104*var(--fl))] p-[calc(7.896px_+_4.104*var(--fl))]";
 
-const BOX = `w-full ${FIELD_SHAPE} border-[0.8px] border-[#dcdcdc] fl-18 leading-[normal] text-ink placeholder:text-gray-1 focus:border-brand-red focus:outline-none transition-[border-color,box-shadow] duration-[160ms] ease-[cubic-bezier(0.4,0,0.2,1)] focus:shadow-[0_0_0_3px_rgb(192_86_62_/_0.12)]`
+const BOX = `w-full ${FIELD_SHAPE} border-[0.8px] border-[#dcdcdc] fl-18 leading-[normal] text-ink placeholder:text-gray-1 focus:border-brand-red focus:outline-none transition-[border-color,box-shadow] duration-[160ms] ease-[cubic-bezier(0.4,0,0.2,1)] focus:shadow-[0_0_0_3px_rgb(192_86_62_/_0.12)]`;
 
 /**
  * Every 24px glyph in this file, as one ramp. Figma draws each of them at 16 on the 402 frames
@@ -64,13 +56,13 @@ const BOX = `w-full ${FIELD_SHAPE} border-[0.8px] border-[#dcdcdc] fl-18 leading
  * The trailing chevron is why this matters beyond taste: it sits inside the control, so a 24
  * mark in a 34-tall box left 5px of clearance top and bottom where the frame draws 9.
  */
-const GLYPH_16_24 = 'size-[calc(15.792px_+_8.208*var(--fl))]'
+const GLYPH_16_24 = "size-[calc(15.792px_+_8.208*var(--fl))]";
 
 /**
  * ...and the ones Figma draws at 20 on the phone: the upload arrow (`1243:1376`) and the team
  * photo's picture mark (`1214:214`, used from TeamStep), both 24 at 1440 (`708:1306`).
  */
-export const GLYPH_20_24 = 'size-[calc(19.896px_+_4.104*var(--fl))]'
+export const GLYPH_20_24 = "size-[calc(19.896px_+_4.104*var(--fl))]";
 
 /**
  * Figma ships the tick as a flat SVG export, but a tick is the one glyph in this flow that
@@ -91,14 +83,14 @@ export const GLYPH_20_24 = 'size-[calc(19.896px_+_4.104*var(--fl))]'
  * ramping only one of the two is what makes a glyph overflow its own container. The box lives
  * at the call sites (TermsStep's consent square, TeamStep's caption slot); this is the mark.
  */
-export const CHECK_MARK = 'size-[calc(11.896px_+_4.104*var(--fl))]'
+export const CHECK_MARK = "size-[calc(11.896px_+_4.104*var(--fl))]";
 
 export function CheckMark({
   className = CHECK_MARK,
   drawn = false,
 }: {
-  className?: string
-  drawn?: boolean
+  className?: string;
+  drawn?: boolean;
 }) {
   return (
     <svg
@@ -109,7 +101,7 @@ export function CheckMark({
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        className={drawn ? 'auth-check-path' : undefined}
+        className={drawn ? "auth-check-path" : undefined}
         d="M3.5 8.5L6.5 11.5L12.5 4.5"
         stroke="currentColor"
         strokeWidth="2"
@@ -117,7 +109,7 @@ export function CheckMark({
         strokeLinejoin="round"
       />
     </svg>
-  )
+  );
 }
 
 /**
@@ -126,16 +118,20 @@ export function CheckMark({
  * flickering as the pointer crosses the icon and the caption inside the box.
  */
 export function useDropTarget(onFile?: (file: File) => void) {
-  const [depth, setDepth] = useState(0)
+  const [depth, setDepth] = useState(0);
 
   return {
-    'data-over': depth > 0,
+    "data-over": depth > 0,
     onDragEnter: (e: DragEvent) => {
-      e.preventDefault()
-      setDepth((d) => d + 1)
+      e.preventDefault();
+      setDepth((d) => d + 1);
     },
-    onDragOver: (e: DragEvent) => e.preventDefault(),
-    onDragLeave: () => setDepth((d) => Math.max(0, d - 1)),
+    onDragOver: (e: DragEvent) => {
+      e.preventDefault();
+    },
+    onDragLeave: () => {
+      setDepth((d) => Math.max(0, d - 1));
+    },
     /*
      * `preventDefault` because the browser's own default for a file dropped anywhere on the
      * page is to *navigate to it*, which would throw away a half-filled registration. The
@@ -145,12 +141,14 @@ export function useDropTarget(onFile?: (file: File) => void) {
      * silently, which is worse than never taking it.
      */
     onDrop: (e: DragEvent) => {
-      e.preventDefault()
-      setDepth(0)
-      const file = e.dataTransfer?.files?.[0]
-      if (file) onFile?.(file)
+      e.preventDefault();
+      setDepth(0);
+      const file = e.dataTransfer?.files?.[0];
+      if (file) {
+        onFile?.(file);
+      }
     },
-  }
+  };
 }
 
 /**
@@ -169,16 +167,16 @@ export function useDropTarget(onFile?: (file: File) => void) {
  */
 const FILE_KINDS = {
   image: {
-    accept: 'image/*',
-    ok: (f: File) => f.type.startsWith('image/'),
-    refuse: 'รองรับเฉพาะไฟล์รูปภาพ',
+    accept: "image/*",
+    ok: (f: File) => f.type.startsWith("image/"),
+    refuse: "รองรับเฉพาะไฟล์รูปภาพ",
   },
   pdf: {
-    accept: 'application/pdf',
-    ok: (f: File) => f.type === 'application/pdf',
-    refuse: 'รองรับเฉพาะไฟล์ PDF',
+    accept: "application/pdf",
+    ok: (f: File) => f.type === "application/pdf",
+    refuse: "รองรับเฉพาะไฟล์ PDF",
   },
-}
+};
 
 /**
  * ------------------------------------------------------------------- the transfer, and why
@@ -209,10 +207,12 @@ const FILE_KINDS = {
  * that was read. 24 slices is also what gives the bar its granularity: 4% a step, which at
  * 348 wide is 14px, comfortably more than the 1px that would make the transition pointless.
  */
-const READ_CHUNKS = 24
-const READ_PACE_MS = 58
+const READ_CHUNKS = 24;
+const READ_PACE_MS = 58;
 
-const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+const wait = async (ms: number) => {
+  await new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+};
 
 /**
  * The live transfer's switches. `cancelled` and `paused` are flipped by the toast's own
@@ -223,15 +223,27 @@ const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(re
  * the slot is tidying up after itself. Picking a second file supersedes the first, and if the
  * first card's cancel were allowed to run it would delete the file that had just been accepted.
  */
-type Transfer = { cancelled: boolean; paused: boolean; superseded: boolean }
+interface Transfer {
+  cancelled: boolean;
+  paused: boolean;
+  superseded: boolean;
+}
 
-export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE_KINDS; maxMB: number; onChange?: (file: File | null) => void }) {
-  const [file, setFile] = useState<File | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
-  const previewRef = useRef<string | null>(null)
+export function useFileSlot({
+  kind,
+  maxMB,
+  onChange,
+}: {
+  kind: keyof typeof FILE_KINDS;
+  maxMB: number;
+  onChange?: (file: File | null) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const previewRef = useRef<string | null>(null);
 
-  const toast = useToast()
+  const toast = useToast();
   /*
    * The slot's identity, and half of the toast's de-duplication key. A registration has seven
    * of these — six document boxes on an entrant step plus TeamStep's photo — and two of them
@@ -239,17 +251,19 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
    * must be one. `useId` is stable across renders and unique per mounted slot, which is
    * exactly that distinction.
    */
-  const slotId = useId()
-  const transfer = useRef<Transfer | null>(null)
+  const slotId = useId();
+  const transfer = useRef<Transfer | null>(null);
   /* the in-flight toast's key, so an unmounted slot can withdraw it; null once it has settled */
-  const openKey = useRef<string | null>(null)
+  const openKey = useRef<string | null>(null);
   /* the api is memoised in the provider, but the unmount cleanup must not close over a render */
-  const dismissRef = useRef(toast.dismiss)
-  dismissRef.current = toast.dismiss
+  const dismissRef = useRef(toast.dismiss);
+  dismissRef.current = toast.dismiss;
 
   useEffect(
     () => () => {
-      if (previewRef.current) URL.revokeObjectURL(previewRef.current)
+      if (previewRef.current) {
+        URL.revokeObjectURL(previewRef.current);
+      }
       /*
        * A transfer whose slot has gone is a claim about nothing: the wizard's steps unmount on
        * every hop and a 1.4s read easily outlives one. The read is stopped and its card
@@ -258,21 +272,25 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
        */
       if (transfer.current) {
         /* `superseded` so the withdrawal below does not try to setState on a gone component */
-        transfer.current.superseded = true
-        transfer.current.cancelled = true
+        transfer.current.superseded = true;
+        transfer.current.cancelled = true;
       }
-      transfer.current = null
-      if (openKey.current) dismissRef.current(openKey.current)
-      openKey.current = null
+      transfer.current = null;
+      if (openKey.current) {
+        dismissRef.current(openKey.current);
+      }
+      openKey.current = null;
     },
     [],
-  )
+  );
 
   const put = (next: string | null) => {
-    if (previewRef.current) URL.revokeObjectURL(previewRef.current)
-    previewRef.current = next
-    setPreview(next)
-  }
+    if (previewRef.current) {
+      URL.revokeObjectURL(previewRef.current);
+    }
+    previewRef.current = next;
+    setPreview(next);
+  };
 
   /**
    * One transfer per slot, and one card per transfer.
@@ -284,82 +302,98 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
    * withdrawal cannot re-enter through the card's own cancel.
    */
   const stopTransfer = () => {
-    const ctl = transfer.current
-    const key = openKey.current
-    transfer.current = null
-    openKey.current = null
+    const ctl = transfer.current;
+    const key = openKey.current;
+    transfer.current = null;
+    openKey.current = null;
     if (ctl) {
-      ctl.superseded = true
-      ctl.cancelled = true
+      ctl.superseded = true;
+      ctl.cancelled = true;
     }
-    if (key) toast.dismiss(key)
-  }
+    if (key) {
+      toast.dismiss(key);
+    }
+  };
 
   const empty = () => {
-    stopTransfer()
-    put(null)
-    setFile(null)
-    setError(null)
-    onChange?.(null)
-  }
+    stopTransfer();
+    put(null);
+    setFile(null);
+    setError(null);
+    onChange?.(null);
+  };
 
   /** the paced read. Every `return` past a `cancelled` check is a transfer that no longer owns
    *  its card, so it must not write to it — the card may already belong to the next file. */
   const run = async (f: File, ctl: Transfer, key: string) => {
-    const step = Math.max(1, Math.ceil(f.size / READ_CHUNKS))
-    let loaded = 0
+    const step = Math.max(1, Math.ceil(f.size / READ_CHUNKS));
+    let loaded = 0;
 
     try {
       while (loaded < f.size) {
-        if (ctl.cancelled) return
+        if (ctl.cancelled) {
+          return;
+        }
         /* parked, not busy-waiting: 90ms is imperceptible against a paused progress bar */
         while (ctl.paused) {
-          await wait(90)
-          if (ctl.cancelled) return
+          await wait(90);
+          if (ctl.cancelled) {
+            return;
+          }
         }
 
-        const started = performance.now()
-        const end = Math.min(loaded + step, f.size)
-        await f.slice(loaded, end).arrayBuffer() // the real read, and the only thing that throws
-        if (ctl.cancelled) return
+        const started = performance.now();
+        const end = Math.min(loaded + step, f.size);
+        await f.slice(loaded, end).arrayBuffer(); // the real read, and the only thing that throws
+        if (ctl.cancelled) {
+          return;
+        }
 
-        loaded = end
-        toast.update(key, { loaded })
+        loaded = end;
+        toast.update(key, { loaded });
 
-        const spent = performance.now() - started
-        if (spent < READ_PACE_MS) await wait(READ_PACE_MS - spent)
+        const spent = performance.now() - started;
+        if (spent < READ_PACE_MS) {
+          await wait(READ_PACE_MS - spent);
+        }
       }
 
-      if (ctl.cancelled) return
-      transfer.current = null
-      openKey.current = null
+      if (ctl.cancelled) {
+        return;
+      }
+      transfer.current = null;
+      openKey.current = null;
       /*
        * 1359:1117. The three controls are cleared explicitly and not left to fall through the
        * merge: a settled card that still carried `onCancel` would throw the accepted file away
        * the moment the user closed the success message.
        */
       toast.update(key, {
-        kind: 'success',
+        kind: "success",
         loaded: f.size,
+        onCancel: undefined,
         onPause: undefined,
         onResume: undefined,
-        onCancel: undefined,
-      })
+      });
     } catch {
-      if (ctl.cancelled) return
-      transfer.current = null
-      openKey.current = null
+      if (ctl.cancelled) {
+        return;
+      }
+      transfer.current = null;
+      openKey.current = null;
       /* 1359:1161, with the partial count the frame prints and the curved arrow it draws */
       toast.update(key, {
-        kind: 'failed',
+        kind: "failed",
         loaded,
+        onCancel: undefined,
         onPause: undefined,
         onResume: undefined,
-        onCancel: undefined,
-        onRetry: () => start(f),
-      })
+        onRetry: () => {
+          start(f);
+        },
+      });
     }
-  }
+  };
 
   /** 1359:1024 — raise the in-flight card and walk the file. */
   const start = (f: File) => {
@@ -367,46 +401,48 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
        On the RETRY path there is nothing to stop: the failed transfer already released both
        refs, so this is a no-op and the push below lands on the same key — which is what makes
        a retry re-time and redraw the card that is already there rather than raising a second. */
-    stopTransfer()
+    stopTransfer();
 
     const ctl: Transfer = {
       cancelled: false,
       paused: false,
       superseded: false,
-    }
-    transfer.current = ctl
+    };
+    transfer.current = ctl;
 
-    const key = `up:${slotId}:${f.name}:${f.size}`
-    openKey.current = key
+    const key = `up:${slotId}:${f.name}:${f.size}`;
+    openKey.current = key;
     toast.push({
       key,
-      kind: 'uploading',
+      kind: "uploading",
       name: f.name,
       loaded: 0,
       total: f.size,
       /* 1359:1113's pause and 1359:1159's square are the same switch read twice */
       onPause: () => {
-        ctl.paused = true
-        toast.update(key, { kind: 'paused' })
+        ctl.paused = true;
+        toast.update(key, { kind: "paused" });
       },
       onResume: () => {
-        ctl.paused = false
-        toast.update(key, { kind: 'uploading' })
+        ctl.paused = false;
+        toast.update(key, { kind: "uploading" });
       },
       /* The cross on an in-flight card is the only thing that can end the transfer, so it also
          empties the slot — cancelling an upload and being left holding the file would be a
          cross that did half its job. `superseded` is the one case it must not: there the slot
          is already holding the NEXT file and emptying would delete it. */
       onCancel: () => {
-        ctl.cancelled = true
-        if (ctl.superseded) return
-        openKey.current = null
-        empty()
+        ctl.cancelled = true;
+        if (ctl.superseded) {
+          return;
+        }
+        openKey.current = null;
+        empty();
       },
-    })
+    });
 
-    void run(f, ctl, key)
-  }
+    void run(f, ctl, key);
+  };
 
   /**
    * a refused file leaves the slot as it was: losing an accepted file to a mis-drop is worse.
@@ -418,32 +454,34 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
    * fails ever reports, but the keys must still not collide across slots or reasons.
    */
   const take = (next: File | null | undefined) => {
-    if (!next) return
+    if (!next) {
+      return;
+    }
 
     if (!FILE_KINDS[kind].ok(next)) {
-      setError(FILE_KINDS[kind].refuse)
+      setError(FILE_KINDS[kind].refuse);
       /* Figma's own copy for this state (1359:1193); the caption keeps the more specific
          "รองรับเฉพาะไฟล์ PDF", which names what the box DOES take. */
       toast.push({
         key: `type:${slotId}:${next.name}:${next.size}`,
-        kind: 'rejected',
+        kind: "rejected",
         name: next.name,
-      })
-      return
+      });
+      return;
     }
 
     if (next.size > maxMB * 1024 * 1024) {
-      const refuse = `ไฟล์นี้มีขนาดเกิน ${maxMB} MB`
-      setError(refuse)
+      const refuse = `ไฟล์นี้มีขนาดเกิน ${maxMB} MB`;
+      setError(refuse);
       /* no frame draws the over-size case, so it borrows 1359:1185's drawing and states its own
          limit — the same string the caption uses, so the two surfaces cannot disagree */
       toast.push({
         key: `size:${slotId}:${next.name}:${next.size}`,
-        kind: 'rejected',
+        kind: "rejected",
         name: next.name,
         reason: refuse,
-      })
-      return
+      });
+      return;
     }
 
     /*
@@ -452,31 +490,31 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
      * behave exactly as they did. A read that fails leaves the file in place — the choice was
      * good, the read was not — and only an explicit cancel empties the slot.
      */
-    put(next.type.startsWith('image/') ? URL.createObjectURL(next) : null)
-    setFile(next)
-    setError(null)
-    onChange?.(next)
-    start(next)
-  }
+    put(next.type.startsWith("image/") ? URL.createObjectURL(next) : null);
+    setFile(next);
+    setError(null);
+    onChange?.(next);
+    start(next);
+  };
 
   /* the drag highlight and the picker are the two ways into the same slot */
-  const drop = useDropTarget(take)
+  const drop = useDropTarget(take);
 
   return {
-    file,
-    error,
-    preview,
+    clear: empty,
     drop,
+    error,
+    file,
     inputProps: {
-      type: 'file' as const,
       accept: FILE_KINDS[kind].accept,
       onChange: (e: ChangeEvent<HTMLInputElement>) => {
-        take(e.target.files?.[0])
-        e.target.value = ''
+        take(e.target.files?.[0]);
+        e.target.value = "";
       },
+      type: "file" as const,
     },
-    clear: empty,
-  }
+    preview,
+  };
 }
 
 /**
@@ -489,19 +527,23 @@ export function useFileSlot({ kind, maxMB, onChange }: { kind: keyof typeof FILE
  * only thing state is needed for is being able to put it back.
  */
 export function useFieldGroup<T extends Record<string, string>>(empty: T) {
-  const [values, setValues] = useState(empty)
+  const [values, setValues] = useState(empty);
 
   return {
     /** spread onto a field: `<TextField label="ชื่อทีม" {...bind('name')} />` */
     bind: (key: keyof T) => ({
+      onChange: (next: string) => {
+        setValues((prev) => ({ ...prev, [key]: next }));
+      },
       value: values[key],
-      onChange: (next: string) => setValues((prev) => ({ ...prev, [key]: next })),
     }),
-    clear: () => setValues(empty),
-  }
+    clear: () => {
+      setValues(empty);
+    },
+  };
 }
 
-const ICON = '/assets/figma/'
+const ICON = "/assets/figma/";
 
 export function Label({ children, required }: { children: ReactNode; required?: boolean }) {
   return (
@@ -515,7 +557,7 @@ export function Label({ children, required }: { children: ReactNode; required?: 
         </span>
       )}
     </span>
-  )
+  );
 }
 
 /*
@@ -524,13 +566,13 @@ export function Label({ children, required }: { children: ReactNode; required?: 
  * added later would leave that button looking like it works and doing nothing — which is the
  * bug this pair exists to make impossible. `useFieldGroup` supplies both in one spread.
  */
-type BaseProps = {
-  label: string
-  required?: boolean
-  placeholder?: string
-  className?: string
-  value: string
-  onChange: (value: string) => void
+interface BaseProps {
+  label: string;
+  required?: boolean;
+  placeholder?: string;
+  className?: string;
+  value: string;
+  onChange: (value: string) => void;
 }
 
 /** Figma's field group: label over control on an 8 gap. */
@@ -539,13 +581,13 @@ function FieldShell({
   required,
   className,
   children,
-}: Omit<BaseProps, 'value' | 'onChange'> & { children: ReactNode }) {
+}: Omit<BaseProps, "value" | "onChange"> & { children: ReactNode }) {
   return (
-    <label className={`flex flex-col items-start gap-2 ${className ?? ''}`}>
+    <label className={`flex flex-col items-start gap-2 ${className ?? ""}`}>
       <Label required={required}>{label}</Label>
       {children}
     </label>
-  )
+  );
 }
 
 export function TextField({ label, required, placeholder, className, value, onChange }: BaseProps) {
@@ -556,63 +598,85 @@ export function TextField({ label, required, placeholder, className, value, onCh
         placeholder={placeholder}
         className={BOX}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
       />
     </FieldShell>
-  )
+  );
 }
 
-export function SchoolAutocompleteField({ label, required, placeholder, className, value, onChange }: BaseProps) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-  const [isOpen, setIsOpen] = useState(false)
-  const id = useId()
-  
+export function SchoolAutocompleteField({
+  label,
+  required,
+  placeholder,
+  className,
+  value,
+  onChange,
+}: BaseProps) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  const [isOpen, setIsOpen] = useState(false);
+
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, 300)
-    return () => clearTimeout(handler)
-  }, [value])
+      setDebouncedValue(value);
+    }, 300);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value]);
 
   const { data: schools = [] } = useQuery({
-    queryKey: ['schools', debouncedValue],
-    queryFn: async () => {
-      if (!debouncedValue || debouncedValue.length < 2) return []
-      const res = await fetch(`https://api.comcamp.io/api/util/schools?q=${encodeURIComponent(debouncedValue)}`)
-      if (!res.ok) return []
-      return res.json() as Promise<string[]>
-    },
     enabled: debouncedValue.length >= 2,
-    staleTime: 60000,
-  })
+    queryFn: async () => {
+      if (!debouncedValue || debouncedValue.length < 2) {
+        return [];
+      }
+      const res = await fetch(
+        `https://api.comcamp.io/api/util/schools?q=${encodeURIComponent(debouncedValue)}`,
+      );
+      if (!res.ok) {
+        return [];
+      }
+      return await (res.json() as Promise<string[]>);
+    },
+    queryKey: ["schools", debouncedValue],
+    staleTime: 60_000,
+  });
 
   return (
-    <FieldShell label={label} required={required} className={`relative ${className ?? ''}`}>
+    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`}>
       <input
         type="text"
         placeholder={placeholder}
         className={BOX}
         value={value}
         onChange={(e) => {
-          onChange(e.target.value)
-          setIsOpen(true)
+          onChange(e.target.value);
+          setIsOpen(true);
         }}
-        onFocus={() => setIsOpen(true)}
-        onBlur={() => setIsOpen(false)}
+        onFocus={() => {
+          setIsOpen(true);
+        }}
+        onBlur={() => {
+          setIsOpen(false);
+        }}
         autoComplete="off"
       />
       {isOpen && schools.length > 0 && (
-        <ul 
+        <ul
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-[calc(7.896px_+_4.104*var(--fl))] border-[0.8px] border-[#dcdcdc] bg-white py-1 shadow-lg"
-          onMouseDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
         >
           {schools.map((school, i) => (
             <li
               key={i}
               className="cursor-pointer px-[calc(7.896px_+_4.104*var(--fl))] py-[calc(5px_+_3*var(--fl))] text-[calc(13.844px_+_6.156*var(--fl))] text-ink transition-colors hover:bg-brand-red/5 hover:text-brand-red"
               onClick={() => {
-                onChange(school)
-                setIsOpen(false)
+                onChange(school);
+                setIsOpen(false);
               }}
             >
               {school}
@@ -621,7 +685,7 @@ export function SchoolAutocompleteField({ label, required, placeholder, classNam
         </ul>
       )}
     </FieldShell>
-  )
+  );
 }
 
 /**
@@ -633,8 +697,8 @@ export function SchoolAutocompleteField({ label, required, placeholder, classNam
  * the 1440 figure and it reserved 44 of a 314-wide phone control for a mark that only needed
  * 32, so a long date string cleared the glyph by 12px more than the design allows.
  */
-const TRAIL = 'pr-[calc(31.688px_+_12.312*var(--fl))]'
-const TRAIL_GLYPH = `pointer-events-none absolute top-1/2 right-[calc(7.896px_+_4.104*var(--fl))] -translate-y-1/2 ${GLYPH_16_24}`
+const TRAIL = "pr-[calc(31.688px_+_12.312*var(--fl))]";
+const TRAIL_GLYPH = `pointer-events-none absolute top-1/2 right-[calc(7.896px_+_4.104*var(--fl))] -translate-y-1/2 ${GLYPH_16_24}`;
 
 /**
  * TWO calendar icons, and why only one of them can simply be deleted.
@@ -653,14 +717,14 @@ const TRAIL_GLYPH = `pointer-events-none absolute top-1/2 right-[calc(7.896px_+_
  * Firefox draws no indicator at all, so it never had the duplicate and is unaffected.
  */
 const NATIVE_PICKER = [
-  '[&::-webkit-calendar-picker-indicator]:absolute',
-  '[&::-webkit-calendar-picker-indicator]:inset-y-0',
-  '[&::-webkit-calendar-picker-indicator]:right-0',
-  '[&::-webkit-calendar-picker-indicator]:w-[calc(31.688px_+_12.312*var(--fl))]',
-  '[&::-webkit-calendar-picker-indicator]:m-0',
-  '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
-  '[&::-webkit-calendar-picker-indicator]:opacity-0',
-].join(' ')
+  "[&::-webkit-calendar-picker-indicator]:absolute",
+  "[&::-webkit-calendar-picker-indicator]:inset-y-0",
+  "[&::-webkit-calendar-picker-indicator]:right-0",
+  "[&::-webkit-calendar-picker-indicator]:w-[calc(31.688px_+_12.312*var(--fl))]",
+  "[&::-webkit-calendar-picker-indicator]:m-0",
+  "[&::-webkit-calendar-picker-indicator]:cursor-pointer",
+  "[&::-webkit-calendar-picker-indicator]:opacity-0",
+].join(" ");
 
 export function DateField({ label, required, placeholder, className, value, onChange }: BaseProps) {
   return (
@@ -671,7 +735,9 @@ export function DateField({ label, required, placeholder, className, value, onCh
           placeholder={placeholder}
           className={`${BOX} ${TRAIL} ${NATIVE_PICKER}`}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+          }}
         />
         <img
           src={`${ICON}e2f35dcd983d5c03887288d750b8cab9ac1c240b.svg`}
@@ -681,21 +747,23 @@ export function DateField({ label, required, placeholder, className, value, onCh
         />
       </span>
     </FieldShell>
-  )
+  );
 }
 
 /** The only multi-line control in the design is 100 tall and top-aligned. */
 export function TextArea({ label, required, placeholder, className, value, onChange }: BaseProps) {
   return (
-    <FieldShell label={label} required={required} className={`w-full ${className ?? ''}`}>
+    <FieldShell label={label} required={required} className={`w-full ${className ?? ""}`}>
       <textarea
         placeholder={placeholder}
         className={`${BOX} h-[100px] resize-y`}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
       />
     </FieldShell>
-  )
+  );
 }
 
 export function SelectField({
@@ -707,20 +775,22 @@ export function SelectField({
   value,
   onChange,
 }: BaseProps & { options?: string[] }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <FieldShell label={label} required={required} className={`relative ${className ?? ''}`}>
+    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`}>
       <button
         type="button"
-        onBlur={() => setIsOpen(false)}
+        onBlur={() => {
+          setIsOpen(false);
+        }}
         onClick={(e) => {
-          e.preventDefault()
-          setIsOpen(!isOpen)
+          e.preventDefault();
+          setIsOpen(!isOpen);
         }}
         className={`${BOX} ${TRAIL} appearance-none bg-white text-left relative block`}
       >
-        <span className={`block w-full truncate ${value ? 'text-ink' : 'text-gray-1'}`}>
+        <span className={`block w-full truncate ${value ? "text-ink" : "text-gray-1"}`}>
           {value || placeholder}
         </span>
         <img
@@ -733,15 +803,17 @@ export function SelectField({
       {isOpen && options.length > 0 && (
         <ul
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-[calc(7.896px_+_4.104*var(--fl))] border-[0.8px] border-[#dcdcdc] bg-white py-1 shadow-lg"
-          onMouseDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
         >
           {options.map((o) => (
             <li
               key={o}
               className="cursor-pointer px-[calc(7.896px_+_4.104*var(--fl))] py-[calc(5px_+_3*var(--fl))] text-[calc(13.844px_+_6.156*var(--fl))] text-ink transition-colors hover:bg-brand-red/5 hover:text-brand-red"
               onClick={() => {
-                onChange(o)
-                setIsOpen(false)
+                onChange(o);
+                setIsOpen(false);
               }}
             >
               {o}
@@ -750,7 +822,7 @@ export function SelectField({
         </ul>
       )}
     </FieldShell>
-  )
+  );
 }
 
 /** Section heading with the "ล้าง" reset affordance from the design. */
@@ -783,7 +855,7 @@ export function SectionTitle({ title, onClear }: { title: string; onClear?: () =
         </button>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -798,22 +870,20 @@ export function SectionTitle({ title, onClear }: { title: string; onClear?: () =
  * file name truncates rather than widening the row (the page must not scroll sideways).
  */
 export function UploadBox({
-  from,
-  hint = 'จำกัดขนาดเอกสารไม่เกิน 10 MB (PDF เท่านั้น)',
-  kind = 'pdf',
+  hint = "จำกัดขนาดเอกสารไม่เกิน 10 MB (PDF เท่านั้น)",
+  kind = "pdf",
   maxMB = 10,
   onChange,
   file,
 }: {
-  from?: string
-  hint?: string
-  kind?: 'image' | 'pdf'
-  maxMB?: number
-  onChange?: (file: File | null) => void
-  file?: File | null | string
+  hint?: string;
+  kind?: "image" | "pdf";
+  maxMB?: number;
+  onChange?: (file: File | null) => void;
+  file?: File | null | string;
 }) {
   /* six of these per entrant step, and none of them used to answer a drag at all */
-  const slot = useFileSlot({ kind, maxMB, onChange })
+  const slot = useFileSlot({ kind, maxMB, onChange });
 
   return (
     /*
@@ -855,7 +925,13 @@ export function UploadBox({
         {/* 14 -> 16, written out (`fl-16` floors at 15): `1243:1378` is a 21-tall box, i.e. 14 at the 1.5
             this style is set at, against 16 at 1440. */}
         <span className="w-full truncate px-3 text-center text-[calc(13.948px_+_2.052*var(--fl))] leading-[normal] font-medium">
-          {slot.file ? slot.file.name : (typeof file === 'string' ? file : (file ? file.name : 'อัปโหลดไฟล์'))}
+          {slot.file
+            ? slot.file.name
+            : typeof file === "string"
+              ? file
+              : file
+                ? file.name
+                : "อัปโหลดไฟล์"}
         </span>
         <input {...slot.inputProps} className="hidden" />
       </label>
@@ -864,19 +940,35 @@ export function UploadBox({
           so the 16px iOS-zoom floor that pins `BOX` does not apply to it. */}
       <p
         aria-live="polite"
-        className={`w-full truncate text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${slot.error ? 'text-[#ea4335]' : 'text-gray-1'}`}
+        className={`w-full truncate text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${slot.error ? "text-[#ea4335]" : "text-gray-1"}`}
       >
         {slot.error ?? hint}
       </p>
     </div>
-  )
+  );
 }
 
 /**
  * Numbered document requirement plus its upload target, on Figma's 32 gap. The number
  * is a real `<ol>` marker so the 30 indent and the counter match the design exactly.
  */
-export function DocumentRow({ index, text, onChange, file, kind, hint, maxMB }: { index: number; text: string; onChange?: (file: File | null) => void; file?: File | null | string; kind?: 'image' | 'pdf'; hint?: string; maxMB?: number }) {
+export function DocumentRow({
+  index,
+  text,
+  onChange,
+  file,
+  kind,
+  hint,
+  maxMB,
+}: {
+  index: number;
+  text: string;
+  onChange?: (file: File | null) => void;
+  file?: File | null | string;
+  kind?: "image" | "pdf";
+  hint?: string;
+  maxMB?: number;
+}) {
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
       <ol start={index} className="min-w-0 flex-1 list-decimal">
@@ -886,10 +978,10 @@ export function DocumentRow({ index, text, onChange, file, kind, hint, maxMB }: 
       </ol>
       <UploadBox onChange={onChange} file={file} kind={kind} hint={hint} maxMB={maxMB} />
     </div>
-  )
+  );
 }
 
 /** Figma's 0.5px section rule. */
 export function Separator() {
-  return <div aria-hidden className="h-[0.5px] w-full shrink-0 bg-[#dcdcdc]" />
+  return <div aria-hidden className="h-[0.5px] w-full shrink-0 bg-[#dcdcdc]" />;
 }

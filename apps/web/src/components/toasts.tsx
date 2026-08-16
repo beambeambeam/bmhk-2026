@@ -1,11 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  formatBytes,
-  TOAST_REASON,
-  TOAST_WRONG_TYPE,
-  type Toast as ToastModel,
-  type ToastKind,
-} from './toast/store'
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { formatBytes, TOAST_REASON, TOAST_WRONG_TYPE } from "./toast/store";
+import type { Toast as ToastModel, ToastKind } from "./toast/store";
 import {
   AlertGlyph,
   CheckGlyph,
@@ -16,7 +12,7 @@ import {
   RingArc,
   StopGlyph,
   TransferDot,
-} from './toast/icons'
+} from "./toast/icons";
 
 /**
  * The upload toast — Figma 1359:1024 (uploading), 1359:1142 (paused), 1359:1117 (success),
@@ -68,11 +64,17 @@ import {
 
 /** Which glyph the ring holds, per state. */
 function KindGlyph({ kind }: { kind: ToastKind }) {
-  if (kind === 'success') return <CheckGlyph />
-  if (kind === 'failed') return <AlertGlyph />
-  if (kind === 'rejected') return <FileWarningGlyph />
+  if (kind === "success") {
+    return <CheckGlyph />;
+  }
+  if (kind === "failed") {
+    return <AlertGlyph />;
+  }
+  if (kind === "rejected") {
+    return <FileWarningGlyph />;
+  }
   /* 1359:1096 — both transfer states draw the same disc; only the ring's motion differs */
-  return <TransferDot />
+  return <TransferDot />;
 }
 
 /**
@@ -87,10 +89,10 @@ function KindGlyph({ kind }: { kind: ToastKind }) {
 function Ring({ kind }: { kind: ToastKind }) {
   return (
     <span className="toast-ring relative grid size-8 shrink-0 place-items-center rounded-full border border-[color-mix(in_srgb,var(--toast-accent)_20%,transparent)] bg-[color-mix(in_srgb,var(--toast-accent)_10%,transparent)] text-[var(--toast-accent)]">
-      {(kind === 'uploading' || kind === 'paused') && <RingArc />}
+      {(kind === "uploading" || kind === "paused") && <RingArc />}
       <KindGlyph kind={kind} />
     </span>
-  )
+  );
 }
 
 /**
@@ -108,14 +110,14 @@ function IconButton({
   label,
   onClick,
   chrome,
-  className = '',
+  className = "",
   children,
 }: {
-  label: string
-  onClick: () => void
-  chrome?: boolean
-  className?: string
-  children: ReactNode
+  label: string;
+  onClick: () => void;
+  chrome?: boolean;
+  className?: string;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -130,7 +132,7 @@ function IconButton({
     >
       {children}
     </button>
-  )
+  );
 }
 
 /**
@@ -150,9 +152,9 @@ function IconButton({
  * simply appear — which is the one thing a mark that states an outcome must not do.
  */
 function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => void }) {
-  const { kind, name, loaded, total } = toast
-  const transferring = kind === 'uploading' || kind === 'paused'
-  const reason = toast.reason ?? (kind === 'rejected' ? TOAST_WRONG_TYPE : TOAST_REASON[kind])
+  const { kind, name, loaded, total } = toast;
+  const transferring = kind === "uploading" || kind === "paused";
+  const reason = toast.reason ?? (kind === "rejected" ? TOAST_WRONG_TYPE : TOAST_REASON[kind]);
 
   /*
    * The card flips its own `data-state` a frame after mount, exactly as micro-motion.css
@@ -166,28 +168,30 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
    * the second is the frame after the paint, which is the guarantee. Cheap, and it is the
    * difference between an entrance and a pop.
    */
-  const [shown, setShown] = useState(false)
+  const [shown, setShown] = useState(false);
 
   useEffect(() => {
-    let inner = 0
+    let inner = 0;
     const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => setShown(true))
-    })
+      inner = requestAnimationFrame(() => {
+        setShown(true);
+      });
+    });
     return () => {
-      cancelAnimationFrame(outer)
-      cancelAnimationFrame(inner)
-    }
-  }, [])
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, []);
 
   /*
    * 1359:1185 has a size line in the frame tree but it sits outside its own row's bounds and
    * does not render — the frame prints the reason and nothing else. Honoured: a refusal shows
    * no byte count, because a file that never started moving has no count worth printing.
    */
-  const size = kind === 'rejected' ? undefined : formatBytes(loaded, total)
+  const size = kind === "rejected" ? undefined : formatBytes(loaded, total);
 
   /* 1359:1206 is 230 of the 348 track, i.e. the frame is drawn at 66%. Live, it is bytes. */
-  const ratio = total ? Math.min(1, Math.max(0, (loaded ?? 0) / total)) : 0
+  const ratio = total ? Math.min(1, Math.max(0, (loaded ?? 0) / total)) : 0;
 
   return (
     <div
@@ -196,7 +200,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
          withdrawing it. Either being false is the closed state, which is what makes the exit
          reverse an entrance that has not finished — the transition retargets from wherever the
          translate and the scale have actually reached rather than restarting from the offset. */
-      data-state={toast.open && shown ? 'open' : 'closed'}
+      data-state={toast.open && shown ? "open" : "closed"}
       /*
        * `alert` on the two states that report a problem, `status` on the three that report
        * progress — which is how one container carries both politeness levels. `role="alert"`
@@ -204,7 +208,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
        * ancestor with a live role governs, so an error escalates past the viewport's polite
        * region while a success stays inside it.
        */
-      role={kind === 'failed' || kind === 'rejected' ? 'alert' : 'status'}
+      role={kind === "failed" || kind === "rejected" ? "alert" : "status"}
       aria-atomic="true"
       className="toast-card pointer-events-auto flex w-full flex-col rounded-[12px] bg-white p-[10px] shadow-[0_8px_24px_-6px_rgb(40_40_40_/_0.16),0_2px_6px_-2px_rgb(40_40_40_/_0.07)] md:w-[368px]"
     >
@@ -243,12 +247,12 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
 
         {/* 1359:1116 / 1359:1172 — the optional action, then the cross, on an 8 gap. */}
         <div className="flex shrink-0 items-center gap-2">
-          {kind === 'uploading' && toast.onPause && (
+          {kind === "uploading" && toast.onPause && (
             <IconButton chrome label={`หยุดอัปโหลด ${name}`} onClick={toast.onPause}>
               <PauseGlyph />
             </IconButton>
           )}
-          {kind === 'paused' && toast.onResume && (
+          {kind === "paused" && toast.onResume && (
             /* 1359:1159 draws a square here. A square is the glyph; resuming is the only
                action a stopped transfer has left, since the cross beside it already ends it
                for good — so the mark is Figma's and the label says what it does. Flagged in
@@ -258,7 +262,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
               <StopGlyph />
             </IconButton>
           )}
-          {kind === 'failed' && toast.onRetry && (
+          {kind === "failed" && toast.onRetry && (
             /* 1359:1184's own ink is #10161f rather than the cross's #282828 */
             <IconButton
               chrome
@@ -335,7 +339,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 /* ----------------------------------------------------------------------- the viewport */
@@ -348,18 +352,18 @@ function ToastCard({ toast, onDismiss }: { toast: ToastModel; onDismiss: () => v
  * a hardcoded `220` beside `--mm-base` is exactly the parallel system this repo's stylesheets
  * are structured to avoid. Resolved once, lazily, on the first settle.
  */
-let tokens: { duration: number; easing: string } | null = null
+let tokens: { duration: number; easing: string } | null = null;
 
 function motionTokens() {
   if (!tokens) {
-    const style = getComputedStyle(document.documentElement)
-    const base = parseFloat(style.getPropertyValue('--mm-base'))
+    const style = getComputedStyle(document.documentElement);
+    const base = Number.parseFloat(style.getPropertyValue("--mm-base"));
     tokens = {
       duration: Number.isFinite(base) ? base : 220,
-      easing: style.getPropertyValue('--mm-ease-out').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)',
-    }
+      easing: style.getPropertyValue("--mm-ease-out").trim() || "cubic-bezier(0.16, 1, 0.3, 1)",
+    };
   }
-  return tokens
+  return tokens;
 }
 
 /**
@@ -383,8 +387,8 @@ function motionTokens() {
  * This one can, so it is.
  */
 function useSettle(listRef: React.RefObject<HTMLOListElement | null>) {
-  const tops = useRef(new Map<string, number>())
-  const running = useRef(new Map<string, Animation>())
+  const tops = useRef(new Map<string, number>());
+  const running = useRef(new Map<string, Animation>());
 
   /**
    * Measure, and animate away any row that moved since the last measurement.
@@ -393,49 +397,55 @@ function useSettle(listRef: React.RefObject<HTMLOListElement | null>) {
    * below for the case that needs it.
    */
   const sample = (animate: boolean) => {
-    const list = listRef.current
-    if (!list) return
+    const list = listRef.current;
+    if (!list) {
+      return;
+    }
 
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const next = new Map<string, number>()
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const next = new Map<string, number>();
 
-    for (const child of Array.from(list.children)) {
-      const row = child as HTMLElement
-      const id = row.dataset.toastId
-      if (!id) continue
+    for (const child of [...list.children]) {
+      const row = child as HTMLElement;
+      const id = row.dataset.toastId;
+      if (!id) {
+        continue;
+      }
 
-      const top = row.getBoundingClientRect().top
-      next.set(id, top)
+      const { top } = row.getBoundingClientRect();
+      next.set(id, top);
 
-      const was = tops.current.get(id)
+      const was = tops.current.get(id);
       // sub-pixel deltas are float noise from the ramps, not movement
-      if (!animate || reduce || was === undefined || Math.abs(was - top) < 0.5) continue
+      if (!animate || reduce || was === undefined || Math.abs(was - top) < 0.5) {
+        continue;
+      }
 
       // one settle per row: a second dismiss mid-settle must retarget, not compound
-      running.current.get(id)?.cancel()
-      const { duration, easing } = motionTokens()
+      running.current.get(id)?.cancel();
+      const { duration, easing } = motionTokens();
       running.current.set(
         id,
         row.animate(
           [
             { transform: `translate3d(0, ${was - top}px, 0)` },
-            { transform: 'translate3d(0, 0, 0)' },
+            { transform: "translate3d(0, 0, 0)" },
           ],
           { duration, easing },
         ),
-      )
+      );
     }
 
     // rows that have gone take their entries with them, so ids cannot leak
-    for (const id of Array.from(running.current.keys())) {
+    for (const id of [...running.current.keys()]) {
       if (!next.has(id)) {
-        running.current.get(id)?.cancel()
-        running.current.delete(id)
+        running.current.get(id)?.cancel();
+        running.current.delete(id);
       }
     }
 
-    tops.current = next
-  }
+    tops.current = next;
+  };
 
   /* No dependency list on purpose. FLIP has to measure inside the frame the browser lays out
      in, and the trigger is "the list changed" rather than any one value — a dependency array
@@ -443,7 +453,9 @@ function useSettle(listRef: React.RefObject<HTMLOListElement | null>) {
      from a position that has not been true for four seconds. Progress ticks run through here too
      (~24 per transfer): three `getBoundingClientRect` calls that find no delta and start
      nothing. */
-  useLayoutEffect(() => sample(true))
+  useLayoutEffect(() => {
+    sample(true);
+  });
 
   /**
    * The one movement React never renders.
@@ -455,22 +467,28 @@ function useSettle(listRef: React.RefObject<HTMLOListElement | null>) {
    * record honest through it.
    */
   useEffect(() => {
-    const list = listRef.current
-    if (!list) return
+    const list = listRef.current;
+    if (!list) {
+      return;
+    }
 
     const onEnd = (event: TransitionEvent) => {
-      if (event.propertyName === 'grid-template-rows') sample(false)
-    }
-    list.addEventListener('transitionend', onEnd)
+      if (event.propertyName === "grid-template-rows") {
+        sample(false);
+      }
+    };
+    list.addEventListener("transitionend", onEnd);
 
-    const live = running.current
+    const live = running.current;
     return () => {
-      list.removeEventListener('transitionend', onEnd)
-      for (const animation of live.values()) animation.cancel()
-      live.clear()
-    }
+      list.removeEventListener("transitionend", onEnd);
+      for (const animation of live.values()) {
+        animation.cancel();
+      }
+      live.clear();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listRef])
+  }, [listRef]);
 }
 
 /**
@@ -513,13 +531,13 @@ export function ToastViewport({
   onHold,
   onRelease,
 }: {
-  toasts: ToastModel[]
-  onDismiss: (key: string) => void
-  onHold: () => void
-  onRelease: () => void
+  toasts: ToastModel[];
+  onDismiss: (key: string) => void;
+  onHold: () => void;
+  onRelease: () => void;
 }) {
-  const listRef = useRef<HTMLOListElement>(null)
-  useSettle(listRef)
+  const listRef = useRef<HTMLOListElement>(null);
+  useSettle(listRef);
 
   return (
     <div
@@ -553,10 +571,15 @@ export function ToastViewport({
            * across that remount and finds no delta rather than treating it as a new arrival.
            */
           <li key={`${toast.id}:${toast.bump}`} data-toast-id={toast.id} className="flex">
-            <ToastCard toast={toast} onDismiss={() => onDismiss(toast.key)} />
+            <ToastCard
+              toast={toast}
+              onDismiss={() => {
+                onDismiss(toast.key);
+              }}
+            />
           </li>
         ))}
       </ol>
     </div>
-  )
+  );
 }

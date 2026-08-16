@@ -1,15 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
-import { ToastViewport } from '../toasts'
-import {
-  ToastContext,
-  TOAST_LIFE,
-  TOAST_VISIBLE,
-  type Toast,
-  type ToastApi,
-  type ToastInput,
-} from './store'
-import '../../styles/toast.css'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { ToastViewport } from "../toasts";
+import { ToastContext, TOAST_LIFE, TOAST_VISIBLE } from "./store";
+import type { Toast, ToastApi, ToastInput } from "./store";
+import "../../styles/toast.css";
 
 /**
  * The upload toasts' queue, their clocks, and the portal they render into.
@@ -33,12 +28,12 @@ import '../../styles/toast.css'
  */
 
 /* how long the exit transition needs before the row can be removed — `--mm-fast` plus slack */
-const EXIT_MS = 200
+const EXIT_MS = 200;
 
-let seq = 0
+let seq = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   /**
    * A committed mirror of the list, for the one thing an updater function must not do: run a
@@ -47,10 +42,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
    * under StrictMode's double invocation. Written in an effect, so it is always the last
    * committed list by the time a click can reach it.
    */
-  const live = useRef<Toast[]>([])
+  const live = useRef<Toast[]>([]);
   useEffect(() => {
-    live.current = toasts
-  }, [toasts])
+    live.current = toasts;
+  }, [toasts]);
 
   /**
    * Every pending clock, keyed the way the toasts are.
@@ -59,18 +54,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
    * clock can be stopped and picked up again — on hover, on focus, and on the tab going to the
    * background. `timer` is only set while it is actually running.
    */
-  const clocks = useRef(new Map<string, { remaining: number; startedAt: number; timer: number }>())
+  const clocks = useRef(new Map<string, { remaining: number; startedAt: number; timer: number }>());
   /* one-shot removal timers, so a card cannot be torn out mid-exit or removed twice */
-  const exits = useRef(new Map<string, number>())
+  const exits = useRef(new Map<string, number>());
   /* a pointer resting on the stack, focus inside it, or a hidden tab: all three hold the clocks */
-  const held = useRef(false)
+  const held = useRef(false);
 
   const stopClock = useCallback((key: string) => {
-    const clock = clocks.current.get(key)
-    if (!clock) return
-    window.clearTimeout(clock.timer)
-    clocks.current.delete(key)
-  }, [])
+    const clock = clocks.current.get(key);
+    if (!clock) {
+      return;
+    }
+    window.clearTimeout(clock.timer);
+    clocks.current.delete(key);
+  }, []);
 
   /**
    * Starts the exit. Two steps and not one: the row is marked closed so toast.css can play the
@@ -89,8 +86,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
    */
   const dismiss = useCallback(
     (key: string) => {
-      if (exits.current.has(key)) return // already leaving
-      stopClock(key)
+      if (exits.current.has(key)) {
+        return;
+      } // already leaving
+      stopClock(key);
 
       /*
        * What the cross means on 1359:1024 and 1359:1142. Those two frames put the dismiss
@@ -100,24 +99,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
        * has already reached `success` must not have its file thrown away by a dismiss, and the
        * kind is the only fact that distinguishes the two.
        */
-      const target = live.current.find((t) => t.key === key)
-      if (target && (target.kind === 'uploading' || target.kind === 'paused')) target.onCancel?.()
+      const target = live.current.find((t) => t.key === key);
+      if (target && (target.kind === "uploading" || target.kind === "paused")) {
+        target.onCancel?.();
+      }
 
-      setToasts((prev) => prev.map((t) => (t.key === key ? { ...t, open: false } : t)))
+      setToasts((prev) => prev.map((t) => (t.key === key ? { ...t, open: false } : t)));
 
       exits.current.set(
         key,
         window.setTimeout(() => {
-          exits.current.delete(key)
-          setToasts((prev) => prev.filter((t) => t.key !== key))
+          exits.current.delete(key);
+          setToasts((prev) => prev.filter((t) => t.key !== key));
         }, EXIT_MS),
-      )
+      );
     },
     [stopClock],
-  )
+  );
 
-  const dismissRef = useRef(dismiss)
-  dismissRef.current = dismiss
+  const dismissRef = useRef(dismiss);
+  dismissRef.current = dismiss;
 
   /**
    * (Re)starts a card's clock, unless it is sticky or the stack is being held.
@@ -127,20 +128,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
    */
   const startClock = useCallback(
     (key: string, life: number) => {
-      stopClock(key)
-      if (life <= 0) return // uploading and paused: sticky by design
+      stopClock(key);
+      if (life <= 0) {
+        return;
+      } // uploading and paused: sticky by design
       if (held.current) {
-        clocks.current.set(key, { remaining: life, startedAt: 0, timer: 0 })
-        return
+        clocks.current.set(key, { remaining: life, startedAt: 0, timer: 0 });
+        return;
       }
       clocks.current.set(key, {
         remaining: life,
         startedAt: performance.now(),
-        timer: window.setTimeout(() => dismissRef.current(key), life),
-      })
+        timer: window.setTimeout(() => {
+          dismissRef.current(key);
+        }, life),
+      });
     },
     [stopClock],
-  )
+  );
 
   /**
    * A card only gets a clock once it is ON SCREEN. Beyond `TOAST_VISIBLE` the queue holds the
@@ -150,62 +155,88 @@ export function ToastProvider({ children }: { children: ReactNode }) {
    */
   useEffect(() => {
     for (const toast of toasts.slice(0, TOAST_VISIBLE)) {
-      if (!toast.open) continue
-      if (clocks.current.has(toast.key)) continue
-      if (exits.current.has(toast.key)) continue
-      startClock(toast.key, TOAST_LIFE[toast.kind])
+      if (!toast.open) {
+        continue;
+      }
+      if (clocks.current.has(toast.key)) {
+        continue;
+      }
+      if (exits.current.has(toast.key)) {
+        continue;
+      }
+      startClock(toast.key, TOAST_LIFE[toast.kind]);
     }
-  }, [toasts, startClock])
+  }, [toasts, startClock]);
 
   const hold = useCallback(() => {
-    if (held.current) return
-    held.current = true
+    if (held.current) {
+      return;
+    }
+    held.current = true;
     for (const [key, clock] of clocks.current) {
-      if (!clock.timer) continue
-      window.clearTimeout(clock.timer)
-      const spent = performance.now() - clock.startedAt
+      if (!clock.timer) {
+        continue;
+      }
+      window.clearTimeout(clock.timer);
+      const spent = performance.now() - clock.startedAt;
       clocks.current.set(key, {
         // never below a beat: releasing a hold should not instantly dissolve the card
         remaining: Math.max(600, clock.remaining - spent),
         startedAt: 0,
         timer: 0,
-      })
+      });
     }
-  }, [])
+  }, []);
 
   const release = useCallback(() => {
-    if (!held.current) return
-    held.current = false
+    if (!held.current) {
+      return;
+    }
+    held.current = false;
     for (const [key, clock] of clocks.current) {
       clocks.current.set(key, {
         remaining: clock.remaining,
         startedAt: performance.now(),
-        timer: window.setTimeout(() => dismissRef.current(key), clock.remaining),
-      })
+        timer: window.setTimeout(() => {
+          dismissRef.current(key);
+        }, clock.remaining),
+      });
     }
-  }, [])
+  }, []);
 
   /* a toast must not expire while the tab is in the background — there was nobody to read it */
   useEffect(() => {
-    const onVisibility = () => (document.hidden ? hold() : release())
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [hold, release])
+    const onVisibility = () => {
+      document.hidden ? hold() : release();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [hold, release]);
 
   /* every pending timer belongs to this provider and must not outlive it */
   useEffect(() => {
-    const running = clocks.current
-    const leaving = exits.current
+    const running = clocks.current;
+    const leaving = exits.current;
     return () => {
-      for (const clock of running.values()) window.clearTimeout(clock.timer)
-      running.clear()
-      for (const timer of leaving.values()) window.clearTimeout(timer)
-      leaving.clear()
-    }
-  }, [])
+      for (const clock of running.values()) {
+        window.clearTimeout(clock.timer);
+      }
+      running.clear();
+      for (const timer of leaving.values()) {
+        window.clearTimeout(timer);
+      }
+      leaving.clear();
+    };
+  }, []);
 
   const api = useMemo<ToastApi>(
     () => ({
+      dismiss: (key) => {
+        dismissRef.current(key);
+      },
+
       /**
        * De-duplication lives here, and it is keyed rather than content-based: a caller that
        * pushes a key already on screen does not add a row. The live card takes the new
@@ -220,21 +251,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
          * new toast to the OLD removal timer, which then deleted it — a message that vanishes a
          * fifth of a second after it appears, and only when the user is being quick.
          */
-        const leaving = exits.current.get(input.key)
+        const leaving = exits.current.get(input.key);
         if (leaving !== undefined) {
-          window.clearTimeout(leaving)
-          exits.current.delete(input.key)
+          window.clearTimeout(leaving);
+          exits.current.delete(input.key);
         }
 
         setToasts((prev) => {
-          const at = prev.findIndex((t) => t.key === input.key)
+          const at = prev.findIndex((t) => t.key === input.key);
           if (at === -1) {
-            return [...prev, { ...input, id: `toast-${++seq}`, open: true, bump: 0 }]
+            return [...prev, { ...input, bump: 0, id: `toast-${++seq}`, open: true }];
           }
-          const next = [...prev]
-          next[at] = { ...next[at], ...input, open: true, bump: next[at].bump + 1 }
-          return next
-        })
+          const next = [...prev];
+          next[at] = { ...next[at], ...input, bump: next[at].bump + 1, open: true };
+          return next;
+        });
         /*
          * Drop the old clock and let the promotion effect above mint a new one. It does that
          * AFTER the commit, which is the only point at which two things this needs are both
@@ -242,7 +273,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
          * screen at all (so a toast that pushed straight into the queue does not spend its
          * four seconds waiting for a slot).
          */
-        stopClock(input.key)
+        stopClock(input.key);
       },
 
       /**
@@ -255,17 +286,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
        * is what starts the four-second clock, and it is the only place that transition happens.
        */
       update: (key, patch) => {
-        setToasts((prev) => prev.map((t) => (t.key === key ? { ...t, ...patch } : t)))
+        setToasts((prev) => prev.map((t) => (t.key === key ? { ...t, ...patch } : t)));
         /* same handover as `push`: a kind change is a life change, and the effect re-times it */
         if (patch.kind && live.current.find((t) => t.key === key)?.kind !== patch.kind) {
-          stopClock(key)
+          stopClock(key);
         }
       },
-
-      dismiss: (key) => dismissRef.current(key),
     }),
     [stopClock],
-  )
+  );
 
   /*
    * A handle on the queue for driving the five states from a devtools console or a CDP session
@@ -278,23 +307,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
    * bundle. This was an ungated assignment before.
    */
   if (import.meta.env.DEV) {
-    ;(window as unknown as { __toast?: ToastApi }).__toast = api
+    (window as unknown as { __toast?: ToastApi }).__toast = api;
   }
 
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {typeof document !== 'undefined' &&
+      {typeof document !== "undefined" &&
         createPortal(
           <ToastViewport
             /* the queue is the tail; only the head is rendered, and only the head has a clock */
             toasts={toasts.slice(0, TOAST_VISIBLE)}
-            onDismiss={(key) => dismissRef.current(key)}
+            onDismiss={(key) => {
+              dismissRef.current(key);
+            }}
             onHold={hold}
             onRelease={release}
           />,
           document.body,
         )}
     </ToastContext.Provider>
-  )
+  );
 }

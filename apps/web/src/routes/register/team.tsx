@@ -1,40 +1,41 @@
-import { useState, useEffect } from 'react'
-import WizardShell, { NextButton, STEP_BUTTON, STEP_PAD, STEP_GLYPH, STEP_ARROW } from '@/components/form/wizard-shell'
+import { useState, useEffect } from "react";
+import WizardShell, {
+  STEP_BUTTON,
+  STEP_PAD,
+  STEP_GLYPH,
+  STEP_ARROW,
+} from "@/components/form/wizard-shell";
 import {
   CHECK_MARK,
   CheckMark,
   GLYPH_20_24,
   Label,
   SectionTitle,
-  SelectField,
   SchoolAutocompleteField,
   TextField,
-  useFieldGroup,
   useFileSlot,
-} from '@/components/form/field'
-import {createFileRoute, Outlet} from '@tanstack/react-router'
-import { useForm } from '@tanstack/react-form'
-import { AppleIcon } from 'lucide-react'
-import { useRegisterForm } from '@/routes/register'
-import { z } from 'zod'
-import { client } from '@bmhk-2026/client/orpc'
-import { useAuthNavigate } from '@/components/form/wizard-nav'
-import { toast } from 'sonner'
-import { env } from "@bmhk-2026/env/web"
+} from "@/components/form/field";
+import { createFileRoute } from "@tanstack/react-router";
+import { useRegisterForm } from "@/routes/register";
+import { z } from "zod";
+import { client } from "@bmhk-2026/client/orpc";
+import { useAuthNavigate } from "@/components/form/wizard-nav";
+import { toast } from "sonner";
+import { env } from "@bmhk-2026/env/web";
 
-const F = '/assets/figma/'
+const F = "/assets/figma/";
 
 /**
  * Figma crops the "นร6" mascot inside its square rather than fitting it, so the two
  * avatars need different treatments even at the same 60 size.
  */
-const NR6 = { src: `${F}522303cab6b008daf26c3f0e8e3f2ec214a0c0cf.png`, crop: true }
-const NR5 = { src: `${F}b616da517775c0a0c018c7a71c10c07a82eeec55.png`, crop: false }
+const NR6 = { crop: true, src: `${F}522303cab6b008daf26c3f0e8e3f2ec214a0c0cf.png` };
+const NR5 = { crop: false, src: `${F}b616da517775c0a0c018c7a71c10c07a82eeec55.png` };
 
 const TEAM_SIZES = [
-  { count: 2, avatars: [NR6, NR5] },
-  { count: 3, avatars: [NR5, NR6, NR5] },
-]
+  { avatars: [NR6, NR5], count: 2 },
+  { avatars: [NR5, NR6, NR5], count: 3 },
+];
 
 /**
  * 48 on the 402 frame (`1214:240`), 60 at 1440 (`708:1332`) — `size-15` was the 1440 figure
@@ -53,10 +54,7 @@ export const Route = createFileRoute("/register/team")({
   }),
 });
 
-
-
-
-const AVATAR = 'size-[calc(47.688px_+_12.312*var(--fl))]'
+const AVATAR = "size-[calc(47.688px_+_12.312*var(--fl))]";
 
 function Avatar({ crop, src }: { crop: boolean; src: string }) {
   return (
@@ -68,24 +66,24 @@ function Avatar({ crop, src }: { crop: boolean; src: string }) {
         className="absolute max-w-none object-cover"
         style={
           crop
-            ? { height: '100%', width: '114.29%', left: '-11.51%', top: 0 }
-            : { inset: 0, height: '100%', width: '100%' }
+            ? { height: "100%", left: "-11.51%", top: 0, width: "114.29%" }
+            : { height: "100%", inset: 0, width: "100%" }
         }
       />
     </span>
-  )
+  );
 }
 
 const teamSchema = z.object({
-  name: z.string().trim().min(1, 'กรุณาระบุชื่อทีม').max(120, 'ชื่อทีมยาวเกินไป'),
-  school: z.string().trim().min(1, 'กรุณาระบุสถานศึกษา').max(200, 'ชื่อสถานศึกษายาวเกินไป'),
-  teamSize: z.number().int().min(0).max(2147483647).default(2),
+  name: z.string().trim().min(1, "กรุณาระบุชื่อทีม").max(120, "ชื่อทีมยาวเกินไป"),
+  school: z.string().trim().min(1, "กรุณาระบุสถานศึกษา").max(200, "ชื่อสถานศึกษายาวเกินไป"),
+  teamSize: z.number().int().min(0).max(2_147_483_647).default(2),
 });
 
-function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?: string }) {
-  const form = useRegisterForm()
-  const go = useAuthNavigate()
-  const [busy, setBusy] = useState(false)
+function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?: string }) {
+  const form = useRegisterForm();
+  const go = useAuthNavigate();
+  const [busy, setBusy] = useState(false);
 
   return (
     <button
@@ -93,85 +91,88 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
       data-busy={busy}
       aria-busy={busy}
       onClick={async () => {
-        setBusy(true)
+        setBusy(true);
         try {
-          const team = form.getFieldValue('team')
-          const status = form.getFieldValue('status')
+          const team = form.getFieldValue("team");
+          const status = form.getFieldValue("status");
           const validData = teamSchema.parse({
-             name: team.name,
-             school: team.school,
-             teamSize: team.teamSize
-          })
-          
+            name: team.name,
+            school: team.school,
+            teamSize: team.teamSize,
+          });
+
           const initialTeam = form.options.defaultValues?.team;
-          const isDirty = !initialTeam || 
-            validData.name !== initialTeam.name || 
-            validData.school !== initialTeam.school || 
-            validData.teamSize !== initialTeam.teamSize || 
+          const isDirty =
+            !initialTeam ||
+            validData.name !== initialTeam.name ||
+            validData.school !== initialTeam.school ||
+            validData.teamSize !== initialTeam.teamSize ||
             team.photoFile !== null;
 
           if (!isDirty && status && status.teamId) {
-            go(to, 'forward');
+            go(to, "forward");
             return;
           }
 
           let finalResult;
           if (status && status.teamId) {
             finalResult = await client.teams.update({
-              id: status.teamId,
               data: {
+                memberCount: validData.teamSize,
                 name: validData.name,
                 school: validData.school,
-                memberCount: validData.teamSize
-              }
-            })
+              },
+              id: status.teamId,
+            });
           } else {
             finalResult = await client.teams.create({
-               name: validData.name,
-               school: validData.school,
-               memberCount: validData.teamSize
-            })
+              memberCount: validData.teamSize,
+              name: validData.name,
+              school: validData.school,
+            });
           }
 
           if (team.photoFile) {
             const formData = new FormData();
-            formData.append('id', finalResult.id);
-            formData.append('file', team.photoFile as File);
+            formData.append("id", finalResult.id);
+            formData.append("file", team.photoFile);
 
             const uploadResponse = await fetch(`${env.VITE_SERVER_URL}/api-reference/teams/image`, {
-              method: 'POST',
-              credentials: 'include',
               body: formData,
+              credentials: "include",
+              method: "POST",
             });
 
             if (!uploadResponse.ok) {
-              throw new Error('Failed to upload image');
+              throw new Error("Failed to upload image");
             }
             finalResult = await uploadResponse.json();
           }
 
-          form.setFieldValue('team', {
+          form.setFieldValue("team", {
             ...team,
             name: finalResult.name,
             school: finalResult.school,
             teamSize: finalResult.memberCount,
-          })
-          
-          go(to, 'forward')
+          });
+
+          go(to, "forward");
         } catch (error) {
           if (error instanceof z.ZodError) {
-             toast.error(error.issues[0].message)
+            toast.error(error.issues[0].message);
           } else {
-             console.error(error)
-             toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล')
+            console.error(error);
+            toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
           }
         } finally {
-          setBusy(false)
+          setBusy(false);
         }
       }}
       className={`auth-submit relative ${STEP_BUTTON} ${STEP_PAD} ml-auto sm:pr-4 sm:pl-6`}
     >
-      <span className={STEP_GLYPH} style={{ opacity: busy ? 0 : 1 }}>{label}</span>
+      <span className={STEP_GLYPH} style={{ opacity: busy ? 0 : 1 }}>
+        {label}
+      </span>
       <img
         src="/assets/figma/a275512325b630305418a611fed5319ba90acfc8.svg"
         alt=""
@@ -201,14 +202,13 @@ function TeamNextButton({ to, label = 'ถัดไป' }: { to: string; label?:
         </span>
       )}
     </button>
-  )
+  );
 }
-
 
 export default function TeamStep() {
   /* the caption says จำกัดขนาดไม่เกิน 5 MB, so 5 MB is what the box enforces */
-  const photo = useFileSlot({ kind: 'image', maxMB: 5 })
-  const form = useRegisterForm()
+  const photo = useFileSlot({ kind: "image", maxMB: 5 });
+  const form = useRegisterForm();
 
   /*
    * Team size is tracked here only so the choice can be *confirmed*: the box used to swap its
@@ -217,15 +217,19 @@ export default function TeamStep() {
    * pre-selected and draws it only for a choice the user made — the same rule the consent rows
    * follow (see `.auth-check-path` in styles/auth-motion.css).
    */
-  const [size, setSize] = useState<number | null>(null)
-  const [touched, setTouched] = useState(false)
+  const [size, setSize] = useState<number | null>(null);
+  const [touched, setTouched] = useState(false);
 
   useEffect(() => {
-    form.setFieldValue('team.photoFile', photo.file)
-  }, [photo.file, form])
+    form.setFieldValue("team.photoFile", photo.file);
+  }, [photo.file, form]);
 
   return (
-    <WizardShell totalStep={Number(form.getFieldValue('team.teamSize') ?? 2) + 3} step={1} actions={<TeamNextButton to="/register/advisor" />}>
+    <WizardShell
+      totalStep={Number(form.getFieldValue("team.teamSize") ?? 2) + 3}
+      step={1}
+      actions={<TeamNextButton to="/register/advisor" />}
+    >
       <section className="flex w-full flex-col items-center justify-center gap-4">
         {/*
          * Clearing is scoped to this section, which is the whole section: the two text
@@ -236,13 +240,13 @@ export default function TeamStep() {
         <SectionTitle
           title="ข้อมูลทีม"
           onClear={() => {
-            form.setFieldValue('team.name', '')
-            form.setFieldValue('team.school', '')
-            setSize(null)
-            setTouched(false)
-            photo.clear()
-            form.setFieldValue('team.photoUrl', null)
-            form.setFieldValue('team.photoName', null)
+            form.setFieldValue("team.name", "");
+            form.setFieldValue("team.school", "");
+            setSize(null);
+            setTouched(false);
+            photo.clear();
+            form.setFieldValue("team.photoUrl", null);
+            form.setFieldValue("team.photoName", null);
           }}
         />
 
@@ -292,9 +296,9 @@ export default function TeamStep() {
               <span className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal]">
                 รูปโปรไฟล์ทีม
               </span>
-              {(photo.preview || form.getFieldValue('team.photoUrl')) && (
+              {(photo.preview || form.getFieldValue("team.photoUrl")) && (
                 <img
-                  src={(photo.preview || form.getFieldValue('team.photoUrl')) as string}
+                  src={(photo.preview || form.getFieldValue("team.photoUrl")) as string}
                   alt=""
                   aria-hidden
                   className="absolute inset-0 size-full object-cover"
@@ -303,18 +307,18 @@ export default function TeamStep() {
               <form.Field
                 name="team.photoFile"
                 children={(field) => (
-                  <input 
+                  <input
                     type="file"
                     accept="image/*"
-                    className='hidden'
+                    className="hidden"
                     onChange={(e) => {
-                      photo.inputProps.onChange(e)
-                      const file = e.target.files?.[0] ?? null
-                      field.handleChange(file)
+                      photo.inputProps.onChange(e);
+                      const file = e.target.files?.[0] ?? null;
+                      field.handleChange(file);
                     }}
-                    />
+                  />
                 )}
-                />
+              />
             </label>
             {/*
              * One line under the box, three states: the size rule, then the name of the file
@@ -328,9 +332,12 @@ export default function TeamStep() {
                 was 3px over Figma's 12 on the phone. #808080 = `text-gray-1`, both anchors. */}
             <p
               aria-live="polite"
-              className={`w-[calc(138.439px_+_61.561*var(--fl))] truncate text-center text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${photo.error ? 'text-[#ea4335]' : 'text-gray-1'}`}
+              className={`w-[calc(138.439px_+_61.561*var(--fl))] truncate text-center text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${photo.error ? "text-[#ea4335]" : "text-gray-1"}`}
             >
-              {photo.error ?? photo.file?.name ?? form.getFieldValue('team.photoName') ?? 'จำกัดขนาดไม่เกิน 5 MB'}
+              {photo.error ??
+                photo.file?.name ??
+                form.getFieldValue("team.photoName") ??
+                "จำกัดขนาดไม่เกิน 5 MB"}
             </p>
           </div>
 
@@ -338,16 +345,18 @@ export default function TeamStep() {
               `gap-8` was the 1440 value held flat, which on a phone pushed this column 24px
               taller than the frame across the two gaps. */}
           <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-[calc(19.688px_+_12.312*var(--fl))]">
-            <form.Field 
+            <form.Field
               name="team.name"
               children={(field) => (
-                <TextField 
-                label="ชื่อทีม"
-                required
-                placeholder="มะลิ"
-                className="w-full"
-                value={field.state.value as string} 
-                onChange={(val) => field.handleChange(val)}
+                <TextField
+                  label="ชื่อทีม"
+                  required
+                  placeholder="มะลิ"
+                  className="w-full"
+                  value={field.state.value}
+                  onChange={(val) => {
+                    field.handleChange(val);
+                  }}
                 />
               )}
             />
@@ -355,18 +364,17 @@ export default function TeamStep() {
               name="team.school"
               children={(field) => (
                 <SchoolAutocompleteField
-              label="สถานศึกษา"
-              required
-              placeholder="พิมพ์ชื่อสถานศึกษา"
-              className="w-full"
-              value={field.state.value}
-              onChange={(val) => field.handleChange(val)}
+                  label="สถานศึกษา"
+                  required
+                  placeholder="พิมพ์ชื่อสถานศึกษา"
+                  className="w-full"
+                  value={field.state.value}
+                  onChange={(val) => {
+                    field.handleChange(val);
+                  }}
+                />
+              )}
             />
-              )
-
-              } />
-            
-            
 
             <fieldset className="flex w-full flex-col items-start gap-2">
               <legend>
@@ -400,19 +408,20 @@ export default function TeamStep() {
                       name="team.teamSize"
                       children={(field) => (
                         <input
-                      type="radio"
-                      name="teamSize"
-                      value={option.count}
-                      checked={field.state.value === option.count}
-                      onChange={() => {
-                        field.handleChange(option.count)
-                        setSize(option.count)
-                        setTouched(true)
-                      }}
-                      className="sr-only"
+                          type="radio"
+                          name="teamSize"
+                          value={option.count}
+                          checked={field.state.value === option.count}
+                          onChange={() => {
+                            field.handleChange(option.count);
+                            setSize(option.count);
+                            setTouched(true);
+                          }}
+                          className="sr-only"
+                        />
+                      )}
                     />
-                      )} />
-                    
+
                     <span className="flex w-full items-center justify-center">
                       {option.avatars.map((avatar, i) => (
                         <span
@@ -437,7 +446,7 @@ export default function TeamStep() {
                        * which is Field.tsx's own tick pair (`1297:1523` → `722:371`).
                        */}
                       <CheckMark
-                        className={`${CHECK_MARK} text-brand-red ${size === option.count ? '' : 'invisible'}`}
+                        className={`${CHECK_MARK} text-brand-red ${size === option.count ? "" : "invisible"}`}
                         drawn={touched && size === option.count}
                       />
                       {option.count} คน
@@ -450,5 +459,5 @@ export default function TeamStep() {
         </div>
       </section>
     </WizardShell>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext } from "react";
 
 /**
  * The upload toast's model, its context, and the one hook the rest of the app touches.
@@ -31,20 +31,20 @@ import { createContext, useContext } from 'react'
  * two refusals are the same event to the user: the file never started moving. Called out in
  * the report.
  */
-export type ToastKind = 'uploading' | 'paused' | 'success' | 'failed' | 'rejected'
+export type ToastKind = "uploading" | "paused" | "success" | "failed" | "rejected";
 
 /** Reasons that are Figma's own copy, so the strings live in one place. */
-export const TOAST_REASON: Record<Exclude<ToastKind, 'rejected'>, string> = {
-  uploading: 'กำลังอัปโหลด', // 1359:1101
-  paused: 'หยุดอัปโหลดแล้ว', // 1359:1150
-  success: 'อัปโหลดสำเร็จ', // 1359:1125
-  failed: 'อัปโหลดไม่สำเร็จ', // 1359:1169
-}
+export const TOAST_REASON: Record<Exclude<ToastKind, "rejected">, string> = {
+  failed: "อัปโหลดไม่สำเร็จ", // 1359:1169
+  paused: "หยุดอัปโหลดแล้ว", // 1359:1150
+  success: "อัปโหลดสำเร็จ", // 1359:1125
+  uploading: "กำลังอัปโหลด", // 1359:1101
+};
 
 /** 1359:1193 — the drawn refusal. An over-size file overrides it with its own limit. */
-export const TOAST_WRONG_TYPE = 'รูปแบบไฟล์นี้ไม่รองรับ'
+export const TOAST_WRONG_TYPE = "รูปแบบไฟล์นี้ไม่รองรับ";
 
-export type ToastInput = {
+export interface ToastInput {
   /**
    * Identity, and the whole of the de-duplication rule. A caller that pushes the same key
    * twice does not get a second card — the live one is re-timed and re-announced instead.
@@ -53,50 +53,50 @@ export type ToastInput = {
    * column of eight identical ones. It is also the handle `update` and `dismiss` take, which
    * is what lets a transfer mutate its own card from `uploading` through to `success`.
    */
-  key: string
-  kind: ToastKind
+  key: string;
+  kind: ToastKind;
   /** Figma's title line, 1359:1030 — the file's own name, truncated rather than wrapped. */
-  name: string
+  name: string;
   /** bytes moved so far, and the file's length; both drive the caption and the bar */
-  loaded?: number
-  total?: number
+  loaded?: number;
+  total?: number;
   /** overrides `TOAST_REASON` / `TOAST_WRONG_TYPE` — used for the over-size limit copy */
-  reason?: string
+  reason?: string;
   /** the pause square on 1359:1024; absent means the control is not drawn */
-  onPause?: () => void
+  onPause?: () => void;
   /** the square on 1359:1142 */
-  onResume?: () => void
+  onResume?: () => void;
   /** the curved arrow on 1359:1161 */
-  onRetry?: () => void
+  onRetry?: () => void;
   /**
    * What the dismiss cross means on a card that is mid-transfer. On 1359:1024 and 1359:1142
    * the cross is the only control that can end the transfer — there is nothing else it could
    * mean — so a transfer toast passes an aborter here and the slot is emptied with it. On the
    * three settled states there is nothing to cancel and the cross only closes the card.
    */
-  onCancel?: () => void
+  onCancel?: () => void;
 }
 
 export type Toast = ToastInput & {
   /** render identity, stable for the life of the transfer so the card is never remounted */
-  id: string
+  id: string;
   /** flipped to `false` one frame before removal, which is what plays the exit */
-  open: boolean
+  open: boolean;
   /**
    * Incremented when a duplicate key is pushed. Nothing reads it for layout — it exists so
    * React re-runs the announcement for a repeat of an identical message, which an unchanged
    * live region would otherwise swallow.
    */
-  bump: number
-}
+  bump: number;
+};
 
-export type ToastApi = {
+export interface ToastApi {
   /** raise a toast, or re-time and re-announce the one already holding this key */
-  push: (toast: ToastInput) => void
+  push: (toast: ToastInput) => void;
   /** merge into a live toast; a no-op if it has already been dismissed */
-  update: (key: string, patch: Partial<Omit<ToastInput, 'key'>>) => void
+  update: (key: string, patch: Partial<Omit<ToastInput, "key">>) => void;
   /** begin the exit; the card is removed once it has played */
-  dismiss: (key: string) => void
+  dismiss: (key: string) => void;
 }
 
 /**
@@ -110,12 +110,12 @@ export type ToastApi = {
  * is the only chance to read it.
  */
 export const TOAST_LIFE: Record<ToastKind, number> = {
-  uploading: 0,
-  paused: 0,
-  success: 4000,
   failed: 7000,
+  paused: 0,
   rejected: 7000,
-}
+  success: 4000,
+  uploading: 0,
+};
 
 /**
  * How many cards are visible at once. The rest of the queue waits its turn and its timer
@@ -124,7 +124,7 @@ export const TOAST_LIFE: Record<ToastKind, number> = {
  * registration step has six upload slots, so overflow is a real case rather than a
  * theoretical one.
  */
-export const TOAST_VISIBLE = 3
+export const TOAST_VISIBLE = 3;
 
 /**
  * A no-op default rather than a throw. `useFileSlot` lives in form/Field.tsx and is used by
@@ -133,12 +133,12 @@ export const TOAST_VISIBLE = 3
  * on a notification it did not ask for. The upload still works without a provider; it just
  * has nothing to say.
  */
-const NOOP: ToastApi = { push: () => {}, update: () => {}, dismiss: () => {} }
+const NOOP: ToastApi = { dismiss: () => {}, push: () => {}, update: () => {} };
 
-export const ToastContext = createContext<ToastApi>(NOOP)
+export const ToastContext = createContext<ToastApi>(NOOP);
 
 export function useToast() {
-  return useContext(ToastContext)
+  return useContext(ToastContext);
 }
 
 /**
@@ -150,14 +150,16 @@ export function useToast() {
  * 1024-based, to agree with the limit form/Field.tsx enforces (`maxMB * 1024 * 1024`). A
  * mebibyte limit reported in megabytes is how a 5.0 MB file gets refused for being over 5 MB.
  */
-const KB = 1024
-const MB = 1024 * KB
+const KB = 1024;
+const MB = 1024 * KB;
 
 export function formatBytes(loaded: number | undefined, total: number | undefined) {
-  if (total === undefined) return undefined
-  const unit = total >= 0.1 * MB ? { div: MB, label: 'MB' } : { div: KB, label: 'KB' }
-  const part = (n: number) => (n / unit.div).toFixed(1)
+  if (total === undefined) {
+    return;
+  }
+  const unit = total >= 0.1 * MB ? { div: MB, label: "MB" } : { div: KB, label: "KB" };
+  const part = (n: number) => (n / unit.div).toFixed(1);
   return loaded === undefined || loaded >= total
     ? `${part(total)} ${unit.label}`
-    : `${part(loaded)} ${unit.label} of ${part(total)} ${unit.label}`
+    : `${part(loaded)} ${unit.label} of ${part(total)} ${unit.label}`;
 }

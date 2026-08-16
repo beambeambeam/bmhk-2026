@@ -36,3 +36,39 @@ export function getAdminUserListQueryOptions(
     queryKey: [...orpc.adminUsers.list.queryKey({ input }), { userId }],
   });
 }
+
+export function getStaffRegistrationListQueryOptions() {
+  return orpc.staffRegistrations.list.queryOptions({});
+}
+
+export function getStaffRegistrationQueryOptions(id: string) {
+  return orpc.staffRegistrations.get.queryOptions({ input: { id } });
+}
+
+export function getParticipationListQueryOptions() {
+  return orpc.teams.list.queryOptions({ input: { limit: 100, offset: 0 } });
+}
+
+export function getParticipationQueryOptions(teamId: string) {
+  return orpc.teams.get.queryOptions({ input: { id: teamId } });
+}
+
+export function getParticipationParticipantsQueryOptions(teamId: string) {
+  return orpc.teamParticipants.list.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationAdvisorQueryOptions(teamId: string) {
+  return orpc.teamAdvisors.get.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationConsentQueryOptions(teamId: string) {
+  return orpc.teamConsents.get.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationStatusQueryOptions(teamId: string) {
+  return orpc.teamRegistrationStatus.getByTeamId.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationReviewQueryOptions(teamId: string) {
+  return orpc.teamRegistrationReviews.get.queryOptions({ input: { teamId } });
+}

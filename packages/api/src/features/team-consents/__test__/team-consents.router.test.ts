@@ -82,9 +82,7 @@ describe("team consents router", () => {
     });
     const router = createRouter(
       repository,
-      createTestAuthReader(
-        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
     );
     const { context } = createTestContext();
 
@@ -406,9 +404,7 @@ describe("team consents router", () => {
     });
     const router = createRouter(
       createRepository({ update }),
-      createTestAuthReader(
-        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
     );
     const { context, log } = createTestContext();
 

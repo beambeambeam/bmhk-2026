@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import { AuthTopBar } from './account-menu'
-import { ColourBlockBackdrop } from './auth-backdrop'
-import { useOwnArrival } from './form/wizard-nav'
+import type { ReactNode } from "react";
+import { AuthTopBar } from "./account-menu";
+import { ColourBlockBackdrop } from "./auth-backdrop";
+import { useOwnArrival } from "./form/wizard-nav";
 
 /**
  * Figma 708:1174 / 708:2022 / 708:2260 — the colour-block page shared by the
@@ -41,8 +41,8 @@ export default function AuthPageShell({
   children,
 }: {
   /** The error screen swaps the brand blocks for grey ones. */
-  muted?: boolean
-  children: ReactNode
+  muted?: boolean;
+  children: ReactNode;
 }) {
   return (
     <div className="relative flex h-dvh flex-col overflow-clip bg-white">
@@ -73,7 +73,7 @@ export default function AuthPageShell({
         {children}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -99,7 +99,7 @@ export default function AuthPageShell({
  * `708:2032`'s (`gap-5`, unchanged at 1440).
  */
 export const RESULT_ACTION =
-  'mm-press flex h-[calc(48.714px_+_11.286*var(--fl))] w-full items-center justify-center gap-[calc(15.896px_+_4.104*var(--fl))] rounded-[calc(15.896px_+_4.104*var(--fl))] bg-brand-red px-6 py-4 font-display text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] font-semibold text-white transition-opacity hover:opacity-90'
+  "mm-press flex h-[calc(48.714px_+_11.286*var(--fl))] w-full items-center justify-center gap-[calc(15.896px_+_4.104*var(--fl))] rounded-[calc(15.896px_+_4.104*var(--fl))] bg-brand-red px-6 py-4 font-display text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] font-semibold text-white transition-opacity hover:opacity-90";
 
 /**
  * The success/error card: a 302 illustration, a centred message and one full-width
@@ -138,21 +138,21 @@ export const RESULT_ACTION =
 export function ResultCard({
   image,
   title,
-  titleClassName = '',
+  titleClassName = "",
   lines,
   action,
 }: {
-  image: string
-  title: string
-  titleClassName?: string
-  lines: string[]
-  action: ReactNode
+  image: string;
+  title: string;
+  titleClassName?: string;
+  lines: string[];
+  action: ReactNode;
 }) {
-  const own = useOwnArrival()
+  const own = useOwnArrival();
 
   return (
     <div
-      {...(own ? { 'data-auth-entrance': '' } : {})}
+      {...(own ? { "data-auth-entrance": "" } : {})}
       /*
        * TWO CHANGES HERE, both forced by the top row becoming Figma's 80/92 plate.
        *
@@ -263,5 +263,5 @@ export function ResultCard({
         {action}
       </div>
     </div>
-  )
+  );
 }

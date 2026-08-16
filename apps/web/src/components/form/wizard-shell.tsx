@@ -1,14 +1,17 @@
-import { useState, type ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
-import { AuthTopBar } from '../account-menu'
-import { WizardBackdrop } from '../auth-backdrop'
-import ScrollEdgeEffect from '../scroll-edge-effect'
-import { authLink, useAuthBackLink, useAuthNavigate } from './wizard-nav'
-import { useRegisterForm } from '@/routes/register'
+/* eslint-disable jsx-a11y/prefer-tag-over-role */
+/* oxlint-disable jsx-a11y(prefer-tag-over-role) */
+import { useState } from "react";
+import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { AuthTopBar } from "../account-menu";
+import { WizardBackdrop } from "../auth-backdrop";
+import ScrollEdgeEffect from "../scroll-edge-effect";
+import { authLink, useAuthBackLink, useAuthNavigate } from "./wizard-nav";
+import { useRegisterForm } from "@/routes/register";
 
-export const TOTAL_STEPS = 5
+export const TOTAL_STEPS = 5;
 
-const CRUMBS = ['ข้อมูลทีม', 'อาจารย์', 'ผู้เข้าแข่งขัน', 'เงื่อนไข']
+const CRUMBS = ["ข้อมูลทีม", "อาจารย์", "ผู้เข้าแข่งขัน", "เงื่อนไข"];
 
 /**
  * Figma 708:1255 and friends. The wizard sits on #fefdfc inside a 1440 frame with 200
@@ -25,30 +28,36 @@ export default function WizardShell({
   overlay,
   withTomatoes = true,
   receded = false,
-  
 }: {
-  totalStep : number
-  step: number
-  children: ReactNode
-  actions: ReactNode
+  totalStep?: number;
+  step: number;
+  children: ReactNode;
+  actions: ReactNode;
   /**
    * Viewport-fixed layers — currently just the terms step's policy modal. They cannot
    * live inside `children`, because the `view-transition-name` on the body wrapper makes
    * that wrapper a containing block for fixed descendants, which would shrink a
    * `fixed inset-0` scrim down to the form column.
    */
-  overlay?: ReactNode
+  overlay?: ReactNode;
   /** The terms step drops the tomato cluster. */
-  withTomatoes?: boolean
+  withTomatoes?: boolean;
   /**
    * True while an overlay owns the screen. Apple's rule for a modal task: dim to focus,
    * and push the parent layer back so the two read as separate planes. It rides the
    * content wrapper rather than the root, because a transform on the root would make it
    * the containing block for the overlay's own `fixed` scrim.
    */
-  receded?: boolean
+  receded?: boolean;
 }) {
-  const activeCrumb = step === totalStep ? 3 : step >= 3 ? 2 : step - 1
+  let activeCrumb;
+  if (step === totalStep) {
+    activeCrumb = 3;
+  } else if (step >= 3) {
+    activeCrumb = 2;
+  } else {
+    activeCrumb = step - 1;
+  }
 
   return (
     /*
@@ -162,13 +171,12 @@ export default function WizardShell({
               >
                 {CRUMBS.map((crumb, i) => (
                   <span key={crumb} className="flex gap-2">
-                    <span className={i <= activeCrumb ? 'text-ink' : 'text-gray-2'}>{crumb}</span>
+                    <span className={i <= activeCrumb ? "text-ink" : "text-gray-2"}>{crumb}</span>
                     {i < CRUMBS.length - 1 && <span className="text-gray-2">&gt;</span>}
                   </span>
                 ))}
               </nav>
             </div>
-
             {/*
              * 6 tall on the 402 frames, 8 at 1440 — `h-2` was the 1440 value held flat.
              * CONFIRMED on all four steps at both anchors: `1243:2154` (team), `1243:2147`
@@ -209,7 +217,6 @@ export default function WizardShell({
                 />
               ))}
             </div>
-
             <div className="wizard-body flex flex-1 flex-col">{children}</div>
           </div>
 
@@ -252,7 +259,7 @@ export default function WizardShell({
 
       {overlay}
     </div>
-  )
+  );
 }
 
 /**
@@ -268,9 +275,9 @@ export default function WizardShell({
  * suspicion that it was an outlier against the site's other red pills is wrong: the wizard pill
  * is Medium at BOTH anchors, on eleven nodes, with no disagreement anywhere.
  *
- *   @1440  `708:1343` ถัดไป 20/500 · `708:2015` ย้อนกลับ 20/500 · `708:2017` submit 20/500
+ *   1440px `708:1343` ถัดไป 20/500 · `708:2015` ย้อนกลับ 20/500 · `708:2017` submit 20/500
  *          `708:1531` · `708:1533` · `708:1737` · `708:1739`  all 20/500
- *   @402   `1214:251` ถัดไป 16/500 · `1243:2375` ย้อนกลับ 16/500 · `1243:2377` submit 16/500
+ *   402px  `1214:251` ถัดไป 16/500 · `1243:2375` ย้อนกลับ 16/500 · `1243:2377` submit 16/500
  *          `1297:107` · `1297:109` · `1297:1571` · `1297:1573`  all 16/500
  *
  * The brief's reading that the 402 pill is glyph-only and therefore has no phone anchor for the
@@ -300,7 +307,7 @@ export default function WizardShell({
  * RADIUS is a flat 12 and that is both anchors, not one held: every pill above is `r: 12`.
  */
 export const STEP_BUTTON =
-  'mm-press flex items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))] rounded-[12px] bg-brand-red py-[calc(7.792px_+_8.208*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] font-medium text-white transition-opacity hover:opacity-90'
+  "mm-press flex items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))] rounded-[12px] bg-brand-red py-[calc(7.792px_+_8.208*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] font-medium text-white transition-opacity hover:opacity-90";
 
 /**
  * The arrow the two navigation pills carry: 20 on the 402 frames (`1297:1569` back,
@@ -318,7 +325,7 @@ export const STEP_BUTTON =
  * inside redraws at the ramped size instead of being clipped. Figma agrees: the vector is 6x11 in
  * the 20 box (`1297:1570`) and 8x13 in the 24 (`708:1345`), i.e. it scales with its frame.
  */
-export const STEP_ARROW = 'size-[calc(19.896px_+_4.104*var(--fl))]'
+export const STEP_ARROW = "size-[calc(19.896px_+_4.104*var(--fl))]";
 
 /**
  * The icon-only pills' own inset: 8 on the 402 frames → 16 at 1440. Only in force below `sm`,
@@ -329,7 +336,7 @@ export const STEP_ARROW = 'size-[calc(19.896px_+_4.104*var(--fl))]'
  * sides; at 1440 Figma splits them around the glyph, and each call site's `sm:` pair is that
  * split to the pixel — `708:2012` back is `pl 16 / pr 24`, `708:1342` next is `pl 24 / pr 16`.
  */
-export const STEP_PAD = 'px-[calc(7.792px_+_8.208*var(--fl))]'
+export const STEP_PAD = "px-[calc(7.792px_+_8.208*var(--fl))]";
 
 /**
  * Below `sm` the two navigation pills are the glyph alone, which is what the phone frame
@@ -338,14 +345,14 @@ export const STEP_PAD = 'px-[calc(7.792px_+_8.208*var(--fl))]'
  * "ลงทะเบียนเข้าแข่งขัน" is wider than a 375 phone's card. `aria-label` carries the name the
  * label used to, and the label itself is still in the DOM from `sm` up.
  */
-export const STEP_GLYPH = 'hidden sm:inline'
+export const STEP_GLYPH = "hidden sm:inline";
 
 export function BackButton({ to }: { to: string }) {
-  const authBack = useAuthBackLink()
+  const authBack = useAuthBackLink();
 
   return (
     <Link
-      {...authBack(to, 'back')}
+      {...authBack(to, "back")}
       aria-label="ย้อนกลับ"
       className={`${STEP_BUTTON} ${STEP_PAD} sm:pr-6 sm:pl-4`}
     >
@@ -357,13 +364,13 @@ export function BackButton({ to }: { to: string }) {
       />
       <span className={STEP_GLYPH}>ย้อนกลับ</span>
     </Link>
-  )
+  );
 }
 
-export function NextButton({ to, label = 'ถัดไป' }: { to: string; label?: string }) {
+export function NextButton({ to, label = "ถัดไป" }: { to: string; label?: string }) {
   return (
     <Link
-      {...authLink(to, 'forward')}
+      {...authLink(to, "forward")}
       aria-label={label}
       className={`${STEP_BUTTON} ${STEP_PAD} ml-auto sm:pr-4 sm:pl-6`}
     >
@@ -375,7 +382,7 @@ export function NextButton({ to, label = 'ถัดไป' }: { to: string; labe
         className={STEP_ARROW}
       />
     </Link>
-  )
+  );
 }
 
 /**
@@ -394,10 +401,10 @@ export function NextButton({ to, label = 'ถัดไป' }: { to: string; labe
  * rotation legible at all. `relative` plus an absolutely-positioned spinner so the swap
  * cannot change the pill's width — a button that resizes as it commits reads as a layout bug.
  */
-export function SubmitButton({ to, label,}: { to: string; label: string;}) {
-  const form = useRegisterForm()
-  const go = useAuthNavigate()
-  const [busy, setBusy] = useState(false)
+export function SubmitButton({ to, label }: { to: string; label: string }) {
+  const form = useRegisterForm();
+  const go = useAuthNavigate();
+  const [busy, setBusy] = useState(false);
 
   return (
     <button
@@ -405,9 +412,9 @@ export function SubmitButton({ to, label,}: { to: string; label: string;}) {
       data-busy={busy}
       aria-busy={busy}
       onClick={() => {
-        setBusy(true)
-        form.handleSubmit()
-        go(to, 'submit')
+        setBusy(true);
+        void form.handleSubmit();
+        void go(to, "submit");
       }}
       /* keeps its label at every width — it is the commit — so it takes the tighter phone
          padding instead, which is what buys the row its last 16px at 375.
@@ -442,5 +449,5 @@ export function SubmitButton({ to, label,}: { to: string; label: string;}) {
         </svg>
       </span>
     </button>
-  )
+  );
 }

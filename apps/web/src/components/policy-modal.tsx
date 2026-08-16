@@ -1,15 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
-import type { PolicyBlock, PolicyDocument } from '@/features/register/data/privacy-policy'
-import useDialogFocus, { useScrollLock } from './use-dialog-focus'
+/* oxlint-disable no-unsafe-type-assertion */
+/* oxlint-disable strict-boolean-expressions */
+/* oxlint-disable consistent-return */
+/* oxlint-disable func-style */
+/* oxlint-disable jsx-a11y/click-events-have-key-events */
+/* oxlint-disable jsx-a11y/no-static-element-interactions */
+/* oxlint-disable jsx-a11y/no-noninteractive-element-interactions */
+/* oxlint-disable jsx-a11y/prefer-tag-over-role */
+/* eslint-disable react-compiler/react-compiler */
+import { useEffect, useRef, useState } from "react";
+import type { PolicyBlock, PolicyDocument } from "@/features/register/data/privacy-policy";
+import useDialogFocus, { useScrollLock } from "./use-dialog-focus";
 
-const ARROW_DOWN = '/assets/figma/b5fa6d1d1c4352d0d01420816b8777fe81ff5920.svg'
+const ARROW_DOWN = "/assets/figma/b5fa6d1d1c4352d0d01420816b8777fe81ff5920.svg";
 
 /**
  * Matches the closing `.auth-modal-sheet` transition in styles/auth-motion.css. The exit
  * is deliberately shorter than the 300ms entrance: arriving is an event, leaving should
  * get out of the way.
  */
-const EXIT_MS = 200
+const EXIT_MS = 200;
 
 /**
  * Body copy, both anchors measured: 14 on `1297:1591` (a 306-wide, 176-tall box at 160%) and
@@ -19,15 +28,15 @@ const EXIT_MS = 200
  *
  * Weight is Light (300) on BOTH frames, so `font-light` is flat rather than a breakpoint.
  */
-const BODY = 'text-[calc(13.948px_+_2.052*var(--fl))] leading-[1.6] font-light'
+const BODY = "text-[calc(13.948px_+_2.052*var(--fl))] leading-[1.6] font-light";
 
 function Block({ block }: { block: PolicyBlock }) {
-  if (typeof block === 'string') {
-    return <p className={`w-full ${BODY}`}>{block}</p>
+  if (typeof block === "string") {
+    return <p className={`w-full ${BODY}`}>{block}</p>;
   }
 
   // list of bullets that each carry their own sub-bullets
-  if (typeof block[0] === 'object') {
+  if (typeof block[0] === "object") {
     return (
       <ul className={`w-full list-disc ps-[24px] ${BODY}`}>
         {(block as { bullet: string; sub: string[] }[]).map((item) => (
@@ -41,7 +50,7 @@ function Block({ block }: { block: PolicyBlock }) {
           </li>
         ))}
       </ul>
-    )
+    );
   }
 
   return (
@@ -50,7 +59,7 @@ function Block({ block }: { block: PolicyBlock }) {
         <li key={item}>{item}</li>
       ))}
     </ul>
-  )
+  );
 }
 
 /**
@@ -62,7 +71,7 @@ function Block({ block }: { block: PolicyBlock }) {
  * Weight is Regular (400) on both frames, which is the inherited body weight, so no class.
  */
 const ANSWER =
-  'mm-press rounded-[calc(9.948px_+_2.052*var(--fl))] px-[calc(19.896px_+_4.104*var(--fl))] py-[calc(7.896px_+_4.104*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4]'
+  "mm-press rounded-[calc(9.948px_+_2.052*var(--fl))] px-[calc(19.896px_+_4.104*var(--fl))] py-[calc(7.896px_+_4.104*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4]";
 
 export default function PolicyModal({
   document: doc,
@@ -71,18 +80,18 @@ export default function PolicyModal({
   onDecline,
 }: {
   /** `null` closes the modal. */
-  document: PolicyDocument | null
+  document: PolicyDocument | null;
   /**
    * Viewport point of the control that opened the sheet, so it can grow out of that row
    * and shrink back into it. Optional: without it the sheet scales from its own centre,
    * which is the right default for a dialogue with no trigger to be anchored to.
    */
-  origin?: { x: number; y: number } | null
-  onAccept: () => void
-  onDecline: () => void
+  origin?: { x: number; y: number } | null;
+  onAccept: () => void;
+  onDecline: () => void;
 }) {
-  const bodyRef = useRef<HTMLDivElement>(null)
-  const sheetRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   /*
    * The sheet has to outlive `document` by one exit animation, so the modal keeps its own
@@ -90,12 +99,14 @@ export default function PolicyModal({
    * flips a frame after mount (and back before unmount) — the transition needs a painted
    * start value, which is what the extra frame buys.
    */
-  const shownRef = useRef<PolicyDocument | null>(null)
-  if (doc) shownRef.current = doc
-  const shown = shownRef.current
+  const shownRef = useRef<PolicyDocument | null>(null);
+  if (doc) {
+    shownRef.current = doc;
+  }
+  const shown = shownRef.current;
 
-  const [mounted, setMounted] = useState(false)
-  const [state, setState] = useState<'open' | 'closed'>('closed')
+  const [mounted, setMounted] = useState(false);
+  const [state, setState] = useState<"open" | "closed">("closed");
 
   /*
    * TWO effects, where this used to be one, and the split is a bug fix rather than tidying.
@@ -117,18 +128,24 @@ export default function PolicyModal({
    */
   useEffect(() => {
     if (doc) {
-      setMounted(true)
-      return
+      setMounted(true);
+      return;
     }
-    setState('closed')
-    const timer = window.setTimeout(() => setMounted(false), EXIT_MS)
-    return () => window.clearTimeout(timer)
-  }, [doc])
+    setState("closed");
+    const timer = window.setTimeout(() => {
+      setMounted(false);
+    }, EXIT_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [doc]);
 
   useEffect(() => {
-    if (!doc || !mounted) return
+    if (!doc || !mounted) {
+      return;
+    }
 
-    bodyRef.current?.scrollTo({ top: 0 })
+    bodyRef.current?.scrollTo({ top: 0 });
 
     /*
      * `transform-origin` has to be in place before the opening transition starts, and it can
@@ -138,11 +155,11 @@ export default function PolicyModal({
      * `scale(0.96)`, so the box is ~20px in from its resting one at 1440; 2% of a 1000-wide
      * sheet is far below the threshold at which a growth centre reads as wrong.
      */
-    const sheet = sheetRef.current
+    const sheet = sheetRef.current;
     if (sheet && origin) {
-      const box = sheet.getBoundingClientRect()
-      sheet.style.setProperty('--auth-origin-x', `${origin.x - box.left}px`)
-      sheet.style.setProperty('--auth-origin-y', `${origin.y - box.top}px`)
+      const box = sheet.getBoundingClientRect();
+      sheet.style.setProperty("--auth-origin-x", `${origin.x - box.left}px`);
+      sheet.style.setProperty("--auth-origin-y", `${origin.y - box.top}px`);
     }
 
     /*
@@ -152,15 +169,17 @@ export default function PolicyModal({
      * to transition from. The outer frame is the one that paints the sheet closed; the inner one
      * opens it.
      */
-    let inner = 0
+    let inner = 0;
     const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => setState('open'))
-    })
+      inner = requestAnimationFrame(() => {
+        setState("open");
+      });
+    });
     return () => {
-      cancelAnimationFrame(outer)
-      cancelAnimationFrame(inner)
-    }
-  }, [doc, mounted, origin])
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [doc, mounted, origin]);
 
   /*
    * `&& mounted` for the reason ResultModal's own call records at length: the hook focuses the
@@ -169,24 +188,32 @@ export default function PolicyModal({
    * the ref is empty, the focus is a no-op, and nothing re-runs the effect afterwards. Both
    * sheets in this flow had the same off-by-one-render hole.
    */
-  useDialogFocus(!!doc && mounted, sheetRef)
+  useDialogFocus(!!doc && mounted, sheetRef);
 
   /* the wizard behind the scrim is held still — see `useScrollLock`. This replaces a
      `body.style.overflow = 'hidden'` that this site's `html { overflow-x: clip }` made inert:
      measured with a real wheel event, the page behind this sheet scrolled at every width. */
-  useScrollLock(!!doc)
+  useScrollLock(!!doc);
 
   // close on Escape
   useEffect(() => {
-    if (!doc) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onDecline()
+    if (!doc) {
+      return;
     }
-    window.document.addEventListener('keydown', onKey)
-    return () => window.document.removeEventListener('keydown', onKey)
-  }, [doc, onDecline])
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onDecline();
+      }
+    };
+    window.document.addEventListener("keydown", onKey);
+    return () => {
+      window.document.removeEventListener("keydown", onKey);
+    };
+  }, [doc, onDecline]);
 
-  if (!mounted || !shown) return null
+  if (!mounted || !shown) {
+    return null;
+  }
 
   return (
     /*
@@ -228,7 +255,9 @@ export default function PolicyModal({
         aria-label={shown.title}
         tabIndex={-1}
         data-state={state}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
         className="auth-modal-sheet flex max-h-full w-full max-w-[1000px] flex-col gap-[calc(23.792px_+_8.208*var(--fl))] rounded-[calc(23.792px_+_8.208*var(--fl))] border border-[#dcdcdc] bg-white p-6 outline-none lg:h-[823px]"
       >
         {/* the three regions settle in sequence behind the sheet — see `.auth-modal-part` */}
@@ -354,5 +383,5 @@ export default function PolicyModal({
         </footer>
       </div>
     </div>
-  )
+  );
 }

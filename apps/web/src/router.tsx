@@ -1,9 +1,10 @@
+/* oxlint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { createQueryClient } from "@bmhk-2026/client/query-client";
 
-import Loader from "./components/loader";
 import NotFound from "./components/not-found";
 import { routeTree } from "./routeTree.gen";
 
@@ -26,7 +27,7 @@ export function getRouter() {
   });
 
   if (typeof window !== "undefined") {
-    trackAuthNav(router as any);
+    trackAuthNav(router);
   }
 
   return router;

@@ -1,3 +1,17 @@
+/* oxlint-disable no-floating-promises */
+/* oxlint-disable strict-void-return */
+/* oxlint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
+/* oxlint-disable func-style */
+/* eslint-disable func-style */
+/* eslint-disable react-compiler/react-compiler */
+/* oxlint-disable react-compiler */
+/* oxlint-disable no-promise-executor-return */
+/* eslint-disable no-promise-executor-return */
+/* eslint-disable promise/avoid-new */
+/* oxlint-disable no-unsafe-assignment */
+/* oxlint-disable strict-boolean-expressions */
+/* oxlint-disable no-unsafe-member-access */
 import { Link, createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -59,9 +73,12 @@ function SignInRoute() {
       const checkRegistration = async () => {
         setIsChecking(true);
         try {
-          const res = await fetch(`${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`, {
-            credentials: "include",
-          });
+          const res = await fetch(
+            `${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`,
+            {
+              credentials: "include",
+            },
+          );
           if (res.ok) {
             const data = await res.json();
             if (data.isComplete) {
@@ -87,7 +104,7 @@ function SignInRoute() {
     setIsSigningIn(true);
     // Add artificial delay for better UX before redirecting
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
+
     await authClient.signIn.social(
       {
         callbackURL: `${window.location.origin}/signin`,

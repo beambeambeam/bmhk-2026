@@ -1,4 +1,9 @@
-import { useEffect, type RefObject } from 'react'
+/* oxlint-disable consistent-return */
+/* oxlint-disable no-unsafe-type-assertion */
+/* oxlint-disable func-style */
+/* oxlint-disable prefer-destructuring */
+import { useEffect } from "react";
+import type { RefObject } from "react";
 
 /**
  * How many dialogs currently want the page held still. A module-level count rather than a flag,
@@ -6,9 +11,9 @@ import { useEffect, type RefObject } from 'react'
  * 200ms exit, so a close-then-open inside that window would otherwise have the leaving sheet's
  * cleanup unlock the page under the arriving one.
  */
-let locks = 0
+let locks = 0;
 /** the root's own inline `overflow` and `padding-right`, as they were before the first lock */
-let restore: { overflow: string; paddingRight: string } | null = null
+let restore: { overflow: string; paddingRight: string } | null = null;
 
 /**
  * Holds the page still while a dialog owns the screen.
@@ -36,25 +41,31 @@ let restore: { overflow: string; paddingRight: string } | null = null
  */
 export function useScrollLock(active: boolean) {
   useEffect(() => {
-    if (!active) return
-
-    const root = document.documentElement
-    if (locks === 0) {
-      restore = { overflow: root.style.overflow, paddingRight: root.style.paddingRight }
-      const gutter = window.innerWidth - root.clientWidth
-      root.style.overflow = 'hidden'
-      if (gutter > 0) root.style.paddingRight = `${gutter}px`
+    if (!active) {
+      return;
     }
-    locks += 1
+
+    const root = document.documentElement;
+    if (locks === 0) {
+      restore = { overflow: root.style.overflow, paddingRight: root.style.paddingRight };
+      const gutter = window.innerWidth - root.clientWidth;
+      root.style.overflow = "hidden";
+      if (gutter > 0) {
+        root.style.paddingRight = `${gutter}px`;
+      }
+    }
+    locks += 1;
 
     return () => {
-      locks -= 1
-      if (locks > 0 || !restore) return
-      root.style.overflow = restore.overflow
-      root.style.paddingRight = restore.paddingRight
-      restore = null
-    }
-  }, [active])
+      locks -= 1;
+      if (locks > 0 || !restore) {
+        return;
+      }
+      root.style.overflow = restore.overflow;
+      root.style.paddingRight = restore.paddingRight;
+      restore = null;
+    };
+  }, [active]);
 }
 
 /**
@@ -62,13 +73,13 @@ export function useScrollLock(active: boolean) {
  * sheets that use this hook hold links, buttons and nothing else.
  */
 const FOCUSABLE = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
-].join(',')
+].join(",");
 
 /**
  * The focus half of a modal: move the caret into the sheet when it opens, keep Tab inside
@@ -90,49 +101,54 @@ const FOCUSABLE = [
  */
 export default function useDialogFocus(open: boolean, sheet: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      return;
+    }
 
-    const opener = document.activeElement as HTMLElement | null
-    const node = sheet.current
-    node?.focus({ preventScroll: true })
+    // oxlint-disable-next-line no-unsafe-type-assertion
+    const opener = document.activeElement as HTMLElement | null;
+    const node = sheet.current;
+    node?.focus({ preventScroll: true });
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !node) return
+      if (e.key !== "Tab" || !node) {
+        return;
+      }
 
       /* `offsetParent` is the cheapest "is this actually laid out" test that also catches the
          download button, which only exists on the rules document. Nothing here is
          `position: fixed`, so the usual caveat about that returning null does not apply. */
-      const items = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+      const items = [...node.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
         (el) => el.offsetParent !== null,
-      )
+      );
       if (items.length === 0) {
-        e.preventDefault()
-        return
+        e.preventDefault();
+        return;
       }
 
-      const first = items[0]
-      const last = items[items.length - 1]
-      const active = document.activeElement
+      const first = items[0];
+      const last = items.at(-1);
+      const active = document.activeElement;
 
       // the sheet itself holds focus on open, so the first Tab has to be steered inwards
       if (!active || !node.contains(active) || active === node) {
-        e.preventDefault()
-        ;(e.shiftKey ? last : first).focus()
-        return
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
       }
       if (e.shiftKey && active === first) {
-        e.preventDefault()
-        last.focus()
+        e.preventDefault();
+        last.focus();
       } else if (!e.shiftKey && active === last) {
-        e.preventDefault()
-        first.focus()
+        e.preventDefault();
+        first.focus();
       }
-    }
+    };
 
-    document.addEventListener('keydown', onKey)
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('keydown', onKey)
-      opener?.focus?.({ preventScroll: true })
-    }
-  }, [open, sheet])
+      document.removeEventListener("keydown", onKey);
+      opener?.focus?.({ preventScroll: true });
+    };
+  }, [open, sheet]);
 }

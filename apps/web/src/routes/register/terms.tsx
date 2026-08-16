@@ -1,16 +1,15 @@
-import { useState } from 'react'
-import WizardShell, { BackButton, STEP_BUTTON } from '@/components/form/wizard-shell'
-import { CHECK_MARK, CheckMark } from '@/components/form/field'
-import PolicyModal from '@/components/policy-modal'
-import { CONSENTS, REQUIRED_DOCUMENTS } from '@/features/register/data/registration-data'
-import {createFileRoute } from '@tanstack/react-router'
-import { useRegisterForm, RegistrationFormData } from '../register'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import { useAuthNavigate } from '@/components/form/wizard-nav'
-import { client } from '@bmhk-2026/client/orpc'
-
-
+import { useState } from "react";
+import WizardShell, { BackButton, STEP_BUTTON } from "@/components/form/wizard-shell";
+import { CHECK_MARK, CheckMark } from "@/components/form/field";
+import PolicyModal from "@/components/policy-modal";
+import { CONSENTS, REQUIRED_DOCUMENTS } from "@/features/register/data/registration-data";
+import { createFileRoute } from "@tanstack/react-router";
+import type { RegistrationFormData } from "../register";
+import { useRegisterForm } from "../register";
+import { z } from "zod";
+import { toast } from "sonner";
+import { useAuthNavigate } from "@/components/form/wizard-nav";
+import { client } from "@bmhk-2026/client/orpc";
 
 /**
  * Figma 708:1952 at 1440 and `1243:2161` at 402. Two groups of rounded rows: mandatory documents
@@ -41,10 +40,10 @@ import { client } from '@bmhk-2026/client/orpc'
  */
 const ROW_GLYPH = {
   /* 24 @402 (`1243:2386` hand, `1243:2394` document, `1243:2402` image) → 40 @1440 */
-  24: 'size-[calc(23.584px_+_16.416*var(--fl))]',
+  24: "size-[calc(23.584px_+_16.416*var(--fl))]",
   /* 28 @402 (`1243:2450`, `1243:2467`, `1243:2484`) → 40 @1440 */
-  28: 'size-[calc(27.688px_+_12.312*var(--fl))]',
-} as const
+  28: "size-[calc(27.688px_+_12.312*var(--fl))]",
+} as const;
 
 /**
  * And the RADIUS splits on the same axis, which is why it can no longer be the flat `rounded-[16px]`
@@ -58,16 +57,15 @@ const ROW_GLYPH = {
  * the two kinds and a second flag would let them drift apart.
  */
 const ROW_RADIUS = {
-  24: 'rounded-[calc(11.896px_+_4.104*var(--fl))]',
-  28: 'rounded-[16px]',
-} as const
+  24: "rounded-[calc(11.896px_+_4.104*var(--fl))]",
+  28: "rounded-[16px]",
+} as const;
 
-const DOC_FIELD_MAP : Record<string, keyof RegistrationFormData['terms']> = {
-  'นโยบายความเป็นส่วนตัว': 'privacyPolicyAccepted',
-  'กฏกติกาการแข่งขัน' : 'competitionRulesAccepted',
-  'ข้อกำหนดการใช้งาน Codern' : 'codernTermsAccepted'
-
-} 
+const DOC_FIELD_MAP: Record<string, keyof RegistrationFormData["terms"]> = {
+  กฏกติกาการแข่งขัน: "competitionRulesAccepted",
+  "ข้อกำหนดการใช้งาน Codern": "codernTermsAccepted",
+  นโยบายความเป็นส่วนตัว: "privacyPolicyAccepted",
+};
 
 export const Route = createFileRoute("/register/terms")({
   component: TermsStep,
@@ -76,74 +74,87 @@ export const Route = createFileRoute("/register/terms")({
   }),
 });
 
-function consentFieldMap(i : number) {
+function consentFieldMap(i: number) {
   switch (i) {
-    case 0:
-      return "healthDataConsent"
-    case 1:
-      return "guardianConsentObtained"
-    case 2:
-      return "publicityMediaConsent"
-    default:
-      return "healthDataConsent"
-
+    case 0: {
+      return "healthDataConsent";
+    }
+    case 1: {
+      return "guardianConsentObtained";
+    }
+    case 2: {
+      return "publicityMediaConsent";
+    }
+    default: {
+      return "healthDataConsent";
+    }
   }
-} 
+}
 
 const termsSchema = z.object({
-  privacyPolicyAccepted: z.literal(true, { message: 'กรุณายอมรับนโยบายความเป็นส่วนตัว' }),
-  competitionRulesAccepted: z.literal(true, { message: 'กรุณายอมรับกฏกติกาการแข่งขัน' }),
-  codernTermsAccepted: z.literal(true, { message: 'กรุณายอมรับข้อกำหนดการใช้งาน Codern' }),
-  healthDataConsent: z.boolean().optional(),
+  codernTermsAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งาน Codern" }),
+  competitionRulesAccepted: z.literal(true, { message: "กรุณายอมรับกฏกติกาการแข่งขัน" }),
   guardianConsentObtained: z.boolean().optional(),
+  healthDataConsent: z.boolean().optional(),
+  privacyPolicyAccepted: z.literal(true, { message: "กรุณายอมรับนโยบายความเป็นส่วนตัว" }),
   publicityMediaConsent: z.boolean().optional(),
-})
+});
 
 export function TermsSubmitButton({ to, label }: { to: string; label: string }) {
-  const form = useRegisterForm()
-  const go = useAuthNavigate()
-  const [busy, setBusy] = useState(false)
+  const form = useRegisterForm();
+  const go = useAuthNavigate();
+  const [busy, setBusy] = useState(false);
 
   return (
     <button
       type="button"
       data-busy={busy}
       aria-busy={busy}
-      onClick={async () => {
-        setBusy(true)
-        try {
-          const terms = form.getFieldValue('terms')
-          const status = form.getFieldValue('status')
-          if (!status || !status.teamId) {
-            toast.error('กรุณาสร้างทีมก่อน')
-            setBusy(false)
-            return
+      onClick={() => {
+        void (async () => {
+          setBusy(true);
+          try {
+            const terms = form.getFieldValue("terms");
+            const rawStatus: unknown = form.getFieldValue("status");
+            const teamId: string | null =
+              typeof rawStatus === "object" &&
+              rawStatus !== null &&
+              "teamId" in rawStatus &&
+              typeof rawStatus.teamId === "string" &&
+              rawStatus.teamId !== ""
+                ? rawStatus.teamId
+                : null;
+            if (teamId === null) {
+              toast.error("กรุณาสร้างทีมก่อน");
+              setBusy(false);
+              return;
+            }
+
+            const validData = termsSchema.parse(terms);
+
+            const finalResult = await client.teamConsents.create({
+              teamId,
+              ...validData,
+            });
+
+            form.setFieldValue("terms", {
+              ...terms,
+              ...finalResult,
+            });
+
+            void form.handleSubmit();
+            await go(to, "submit");
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              toast.error(error.issues[0].message);
+            } else {
+              console.error(error);
+              toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
+            }
+          } finally {
+            setBusy(false);
           }
-
-          const validData = termsSchema.parse(terms)
-
-          let finalResult = await client.teamConsents.create({
-             teamId: status.teamId,
-             ...validData
-          })
-
-          form.setFieldValue('terms', {
-            ...terms,
-            ...finalResult
-          })
-
-          form.handleSubmit()
-          go(to, 'submit')
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-             toast.error(error.issues[0].message)
-          } else {
-             console.error(error)
-             toast.error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูล')
-          }
-        } finally {
-          setBusy(false)
-        }
+        })();
       }}
       className={`auth-submit relative ${STEP_BUTTON} ml-auto px-[calc(15.792px_+_8.208*var(--fl))] sm:px-6`}
     >
@@ -168,7 +179,7 @@ export function TermsSubmitButton({ to, label }: { to: string; label: string }) 
         </svg>
       </span>
     </button>
-  )
+  );
 }
 
 function Row({
@@ -180,14 +191,14 @@ function Row({
   glyph,
   children,
 }: {
-  icon: string
-  title: string
-  description: string
-  rounded?: boolean
-  padding: string
+  icon: string;
+  title: string;
+  description: string;
+  rounded?: boolean;
+  padding: string;
   /** The mark's size on the 402 frame — 24 for a document row, 28 for a consent row. */
-  glyph: keyof typeof ROW_GLYPH
-  children: React.ReactNode
+  glyph: keyof typeof ROW_GLYPH;
+  children: React.ReactNode;
 }) {
   return (
     <div
@@ -218,7 +229,7 @@ function Row({
           aria-hidden
           /* the image row's own corner is 4 @402 (`1243:2402`) → 8 @1440 (`724:393`); it was the
              1440 value held flat. The glow is not from Figma and is left alone. */
-          className={`shrink-0 ${ROW_GLYPH[glyph]} ${rounded ? 'rounded-[calc(3.896px_+_4.104*var(--fl))] shadow-[0_0_30px_rgba(255,255,255,0.2)]' : ''}`}
+          className={`shrink-0 ${ROW_GLYPH[glyph]} ${rounded === true ? "rounded-[calc(3.896px_+_4.104*var(--fl))] shadow-[0_0_30px_rgba(255,255,255,0.2)]" : ""}`}
         />
         {/* `min-w-0` because below `sm` this block is now a flex ITEM beside the glyph rather than
             a full-width column child, and a flex item's automatic minimum size is its content's —
@@ -240,7 +251,7 @@ function Row({
       </div>
       {children}
     </div>
-  )
+  );
 }
 
 /**
@@ -253,14 +264,18 @@ function Row({
  * the tick is simply *there* on arrival and travels only for a real choice. No timing changed.
  */
 
-
-function ConsentChoice({ name,consentProperties }: 
-  { name: string 
-    consentProperties: 'healthDataConsent' | 'guardianConsentObtained' | 'publicityMediaConsent'
-  }) {
-  const form = useRegisterForm()
-  const [value, setValue] = useState<'yes' | 'no'>(() => form.getFieldValue(`terms.${consentProperties}`) ? 'yes' : 'no')
-  const [touched, setTouched] = useState(false)
+function ConsentChoice({
+  name,
+  consentProperties,
+}: {
+  name: string;
+  consentProperties: "healthDataConsent" | "guardianConsentObtained" | "publicityMediaConsent";
+}) {
+  const form = useRegisterForm();
+  const [value, setValue] = useState<"yes" | "no">(() =>
+    form.getFieldValue(`terms.${consentProperties}`) ? "yes" : "no",
+  );
+  const [touched, setTouched] = useState(false);
 
   return (
     /*
@@ -273,8 +288,8 @@ function ConsentChoice({ name,consentProperties }:
     <div className="flex w-full items-center sm:w-auto sm:shrink-0 sm:gap-6 lg:gap-10">
       {(
         [
-          ['yes', 'ยอมรับ'],
-          ['no', 'ไม่ยอมรับ'],
+          ["yes", "ยอมรับ"],
+          ["no", "ไม่ยอมรับ"],
         ] as const
       ).map(([key, label]) => (
         <label
@@ -288,10 +303,10 @@ function ConsentChoice({ name,consentProperties }:
             name={name}
             checked={value === key}
             onChange={() => {
-              setValue(key)
-              setTouched(true)
-              form.setFieldValue(`terms.${consentProperties}`,key === 'yes' ? true : false)
-              console.log(form.getFieldValue(`terms.${consentProperties}`))
+              setValue(key);
+              setTouched(true);
+              form.setFieldValue(`terms.${consentProperties}`, key === "yes");
+              console.log(form.getFieldValue(`terms.${consentProperties}`));
             }}
             className="sr-only"
           />
@@ -315,7 +330,7 @@ function ConsentChoice({ name,consentProperties }:
            */}
           <span
             className={`flex size-[calc(15.792px_+_8.208*var(--fl))] shrink-0 items-center justify-center rounded-[calc(3.948px_+_2.052*var(--fl))] p-[calc(1.948px_+_2.052*var(--fl))] transition-colors ${
-              value === key ? 'bg-brand-red' : 'border border-[#dcdcdc]'
+              value === key ? "bg-brand-red" : "border border-[#dcdcdc]"
             }`}
           >
             {value === key && <CheckMark className={`${CHECK_MARK} text-white`} drawn={touched} />}
@@ -326,36 +341,46 @@ function ConsentChoice({ name,consentProperties }:
         </label>
       ))}
     </div>
-  )
+  );
 }
 
 /** The row that opened the sheet, so the sheet can grow out of it and shrink back into it. */
-type OpenDoc = { title: string; x: number; y: number }
+interface OpenDoc {
+  title: string;
+  x: number;
+  y: number;
+}
 
 export default function TermsStep() {
-  const form = useRegisterForm()
-  const [openDoc, setOpenDoc] = useState<OpenDoc | null>(null)
+  const form = useRegisterForm();
+  const [openDoc, setOpenDoc] = useState<OpenDoc | null>(null);
   const [accepted, setAccepted] = useState<string[]>(() => {
-    const terms = form.getFieldValue('terms')
-    const acc: string[] = []
-    if (terms.privacyPolicyAccepted) acc.push('นโยบายความเป็นส่วนตัว')
-    if (terms.competitionRulesAccepted) acc.push('กฏกติกาการแข่งขัน')
-    if (terms.codernTermsAccepted) acc.push('ข้อกำหนดการใช้งาน Codern')
-    return acc
-  })
-
-
+    const terms = form.getFieldValue("terms");
+    const acc: string[] = [];
+    if (terms.privacyPolicyAccepted) {
+      acc.push("นโยบายความเป็นส่วนตัว");
+    }
+    if (terms.competitionRulesAccepted) {
+      acc.push("กฏกติกาการแข่งขัน");
+    }
+    if (terms.codernTermsAccepted) {
+      acc.push("ข้อกำหนดการใช้งาน Codern");
+    }
+    return acc;
+  });
 
   return (
     <WizardShell
-      totalStep={Number(form.getFieldValue('team.teamSize') ?? 2) + 3}
-      step={Number(form.getFieldValue('team.teamSize') ?? 2) + 3}
+      totalStep={((form.getFieldValue("team.teamSize") as number | null | undefined) ?? 2) + 3}
+      step={((form.getFieldValue("team.teamSize") as number | null | undefined) ?? 2) + 3}
       withTomatoes={false}
       /* the page behind the sheet drops back a hair while it is open */
       receded={openDoc !== null}
       actions={
         <>
-          <BackButton to={`/register/entrant/${Number(form.getFieldValue('team.teamSize') ?? 2)}`} />
+          <BackButton
+            to={`/register/entrant/${(form.getFieldValue("team.teamSize") as number | null | undefined) ?? 2}`}
+          />
           <TermsSubmitButton to="/register/success" label="ลงทะเบียนเข้าแข่งขัน" />
         </>
       }
@@ -364,17 +389,19 @@ export default function TermsStep() {
         <PolicyModal
           document={REQUIRED_DOCUMENTS.find((d) => d.title === openDoc?.title)?.document ?? null}
           origin={openDoc}
-          onDecline={() => {setOpenDoc(null)}}
+          onDecline={() => {
+            setOpenDoc(null);
+          }}
           onAccept={() => {
             if (openDoc) {
-               setAccepted((prev) => [...new Set([...prev, openDoc.title])])
-              const key = DOC_FIELD_MAP[openDoc.title ? openDoc.title :'นโยบายความเป็นส่วนตัว']
+              setAccepted((prev) => [...new Set([...prev, openDoc.title])]);
+              const key = DOC_FIELD_MAP[openDoc.title || "นโยบายความเป็นส่วนตัว"];
               if (key) {
-                form.setFieldValue(`terms.${key}`, true)
-                console.log(`terms.${key}`+form.getFieldValue(`terms.${key}`))
+                form.setFieldValue(`terms.${key}`, true);
+                console.log(`terms.${key}${form.getFieldValue(`terms.${key}`)}`);
               }
             }
-            setOpenDoc(null)
+            setOpenDoc(null);
           }}
         />
       }
@@ -395,9 +422,9 @@ export default function TermsStep() {
             เอกสารบังคับ
           </h2>
           <div className="flex w-full flex-col items-start gap-5">
-            {REQUIRED_DOCUMENTS.map(({ document, ...doc }) => {
-              const isAccepted = accepted.includes(doc.title)
-              const key = DOC_FIELD_MAP[doc.title]
+            {REQUIRED_DOCUMENTS.map(({ document: _document, ...doc }) => {
+              const isAccepted = accepted.includes(doc.title);
+              const key = DOC_FIELD_MAP[doc.title];
               // if (key){
               //   form.setFieldValue(`terms.${key}`,false)
               // }
@@ -408,19 +435,19 @@ export default function TermsStep() {
                     /* the button's own centre, so the sheet grows from the control the
                        user actually pressed rather than from the middle of the screen */
                     onClick={(e) => {
-                      if (isAccepted){
-                        setAccepted((prev) => prev.filter((t) => t !== doc.title))
-                        if (key){
-                          form.setFieldValue(`terms.${key}`,false)
+                      if (isAccepted) {
+                        setAccepted((prev) => prev.filter((t) => t !== doc.title));
+                        if (key) {
+                          form.setFieldValue(`terms.${key}`, false);
                         }
                       } else {
-                      const box = e.currentTarget.getBoundingClientRect()
-                      setOpenDoc({
-                        title: doc.title,
-                        x: box.left + box.width / 2,
-                        y: box.top + box.height / 2,
-                      })
-                    }
+                        const box = e.currentTarget.getBoundingClientRect();
+                        setOpenDoc({
+                          title: doc.title,
+                          x: box.left + box.width / 2,
+                          y: box.top + box.height / 2,
+                        });
+                      }
                     }}
                     /* `mm-press` matters here more than anywhere: this is the element the
                        policy sheet measures `--auth-origin-x/y` from, so the sheet grows out
@@ -435,16 +462,16 @@ export default function TermsStep() {
                        exactly: 8 + 19.6 + 8 = 36 and 12 + 28 + 12 = 52. */
                     className={`mm-press flex shrink-0 items-center justify-center gap-2 rounded-[calc(7.896px_+_4.104*var(--fl))] px-6 py-[calc(7.896px_+_4.104*var(--fl))] text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.4] transition-colors ${
                       isAccepted
-                        ? 'bg-brand-red text-white'
-                        : 'bg-brand-red/10 text-brand-red hover:bg-brand-red/20'
+                        ? "bg-brand-red text-white"
+                        : "bg-brand-red/10 text-brand-red hover:bg-brand-red/20"
                     }`}
                   >
                     {/* accepting a policy in the sheet is a decision, so this one does draw */}
                     {isAccepted && <CheckMark drawn />}
-                    {isAccepted ? 'ยอมรับแล้ว' : 'อ่านและยอมรับ'}
+                    {isAccepted ? "ยอมรับแล้ว" : "อ่านและยอมรับ"}
                   </button>
                 </Row>
-              )
+              );
             })}
           </div>
         </section>
@@ -468,5 +495,5 @@ export default function TermsStep() {
         </section>
       </div>
     </WizardShell>
-  )
+  );
 }

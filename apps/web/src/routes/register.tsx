@@ -1,256 +1,455 @@
-import { createContext, useContext, useMemo } from 'react'
-import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import {useForm} from '@tanstack/react-form'
+import { createContext, useContext, useEffect, useMemo } from "react";
+import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useForm } from "@tanstack/react-form";
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { client } from "@bmhk-2026/client/orpc";
+import { useUserSession } from "@/contexts/user-context";
 
-export interface teamFormData{
-  name: string                                                                                                          
-  school: string                                                                                                        
-  teamSize: number                                                                                                      
-  photoFile: File | null 
-  photoUrl?: string | null
-  photoName?: string | null
+export interface teamFormData {
+  name: string;
+  school: string;
+  teamSize: number;
+  photoFile: File | null;
+  photoUrl?: string | null;
+  photoName?: string | null;
 }
 
-export interface advisorFormData{
-  titleTh: string                                                                                                       
-  firstNameTh: string
-  middleNameTh: string                                                                                                   
-  lastNameTh: string                                                                                                    
-  titleEn: string                                                                                                       
-  firstNameEn: string   
-  middleNameEn: string                                                                                                
-  lastNameEn: string                                                                                                    
-  email: string                                                                                                         
-  phone: string                                                                                                         
-  lineId: string
-  foodAllergies: string
-  dietaryRequirements: string
-  drugAllergies: string
-  chronicConditionsAndFirstAidNotes: string
-  identityDocumentFile: File | null
-  identityDocumentUrl?: string | null
-  identityDocumentName?: string | null
-  teacherStatusDocumentFile: File | null
-  teacherStatusDocumentUrl?: string | null
-  teacherStatusDocumentName?: string | null
+export interface advisorFormData {
+  titleTh: string;
+  firstNameTh: string;
+  middleNameTh: string;
+  lastNameTh: string;
+  titleEn: string;
+  firstNameEn: string;
+  middleNameEn: string;
+  lastNameEn: string;
+  email: string;
+  phone: string;
+  lineId: string;
+  foodAllergies: string;
+  dietaryRequirements: string;
+  drugAllergies: string;
+  chronicConditionsAndFirstAidNotes: string;
+  identityDocumentFile: File | null;
+  identityDocumentUrl?: string | null;
+  identityDocumentName?: string | null;
+  teacherStatusDocumentFile: File | null;
+  teacherStatusDocumentUrl?: string | null;
+  teacherStatusDocumentName?: string | null;
 }
-export interface entrantFormData{
-  titleTh: string,
-  firstNameTh: string,
-  middleNameTh: string,
-  lastNameTh: string,                                                                   
-  titleEn: string,
-  firstNameEn: string, 
-  middleNameEn: string,
-  lastNameEn: string,                                                                   
-  dateOfBirth: string,
-  email: string, 
-  phone: string,
-  lineId: string,                                                              
-  foodAllergies: string,
-  dietaryRequirements: string,
-  drugAllergies: string,                                                  
-  chronicConditionsAndFirstAidNotes: string,                                                                          
-  portraitPhotoFile: File | null,
-  portraitPhotoUrl?: string | null,
-  portraitPhotoName?: string | null,
-  identityDocumentFile: File | null,
-  identityDocumentUrl?: string | null,
-  identityDocumentName?: string | null,
-  academicRecordDocumentFile: File | null,
-  academicRecordDocumentUrl?: string | null,
-  academicRecordDocumentName?: string | null,
+export interface entrantFormData {
+  titleTh: string;
+  firstNameTh: string;
+  middleNameTh: string;
+  lastNameTh: string;
+  titleEn: string;
+  firstNameEn: string;
+  middleNameEn: string;
+  lastNameEn: string;
+  dateOfBirth: string;
+  email: string;
+  phone: string;
+  lineId: string;
+  foodAllergies: string;
+  dietaryRequirements: string;
+  drugAllergies: string;
+  chronicConditionsAndFirstAidNotes: string;
+  portraitPhotoFile: File | null;
+  portraitPhotoUrl?: string | null;
+  portraitPhotoName?: string | null;
+  identityDocumentFile: File | null;
+  identityDocumentUrl?: string | null;
+  identityDocumentName?: string | null;
+  academicRecordDocumentFile: File | null;
+  academicRecordDocumentUrl?: string | null;
+  academicRecordDocumentName?: string | null;
 }
 
 export interface consentFormData {
-  privacyPolicyAccepted: boolean,                                                                                        
-  competitionRulesAccepted: boolean,                                                                                  
-  codernTermsAccepted: boolean,                                                                                          
-  publicityMediaConsent: boolean,                                                                                        
-  healthDataConsent: boolean,                                                                                            
-  guardianConsentObtained: boolean,   
+  privacyPolicyAccepted: boolean;
+  competitionRulesAccepted: boolean;
+  codernTermsAccepted: boolean;
+  publicityMediaConsent: boolean;
+  healthDataConsent: boolean;
+  guardianConsentObtained: boolean;
 }
 
-export interface RegistrationFormData {                                                                                   
-  status: any,
-  team: teamFormData,                                                                                                                     
-  advisor: advisorFormData,
-  entrant1: entrantFormData,
-  entrant2: entrantFormData,
-  entrant3: entrantFormData,
-  terms: consentFormData,
-  success: any
+export interface RegistrationFormData {
+  status: unknown;
+  team: teamFormData;
+  advisor: advisorFormData;
+  entrant1: entrantFormData;
+  entrant2: entrantFormData;
+  entrant3: entrantFormData;
+  terms: consentFormData;
+  success: Record<string, unknown> | null;
 }
 
+/* eslint-disable react-hooks/rules-of-hooks */
+/* oxlint-disable react-hooks(rules-of-hooks) */
+function _infer() {
+  return useForm<RegistrationFormData>();
+}
+/* oxlint-enable react-hooks(rules-of-hooks) */
+/* eslint-enable react-hooks/rules-of-hooks */
+export type RegisterFormApi = ReturnType<typeof _infer>;
+export const RegisterFormContext = createContext<RegisterFormApi | null>(null);
 
-const _infer = () => useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>()
-export type RegisterFormApi = ReturnType<typeof _infer>
-export const RegisterFormContext = createContext<RegisterFormApi | null>(null)
-
-export function useRegisterForm(){
-  const form = useContext(RegisterFormContext)
-  if (!form){
-    throw new Error('useRegisterForm must be used within RegisterLayout only nga')
+export function useRegisterForm() {
+  const form = useContext(RegisterFormContext);
+  if (!form) {
+    throw new Error("useRegisterForm must be used within RegisterLayout only nga");
   }
-  return form
+  return form;
 }
 
-
-
-import { useEffect } from 'react'
-import { useUserSession } from '@/contexts/user-context'
-import { useNavigate } from '@tanstack/react-router'
-
-export function RegisterLayout(){
-  const { statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData } = Route.useLoaderData()
-  const session = useUserSession()
-  const navigate = useNavigate()
-  
-  useEffect(() => {
-    if (!session.isPending && !session.data) {
-      navigate({ to: '/signin' })
-    }
-
-    const handleFocus = async () => {
-      if (session.refetch) {
-        await session.refetch();
-      } else {
-        const res = await authClient.getSession();
-        if (res?.error || !res?.data) {
-          navigate({ to: '/signin' });
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [session.isPending, session.data, session.refetch, navigate])
-
-  const userEmail = session.data?.user?.email || ''
-
-  const formOptions = useMemo(() => ({
-    defaultValues: {
-      status: statusData || {},
-      team : {
-        name: teamData?.name || '',
-        school: teamData?.school || '',
-        teamSize: teamData?.memberCount || 2,
-        photoFile: null,
-        photoUrl: teamData?.image?.url || null,
-        photoName: teamData?.image?.originalName || null
-      },
-      advisor: {
-        titleTh: advisorData?.titleTh ?? '', 
-        firstNameTh: advisorData?.firstNameTh ?? '', 
-        middleNameTh: advisorData?.middleNameTh ?? '', 
-        lastNameTh: advisorData?.lastNameTh ?? '',
-        titleEn: advisorData?.titleEn ?? '', 
-        firstNameEn: advisorData?.firstNameEn ?? '', 
-        middleNameEn: advisorData?.middleNameEn ?? '', 
-        lastNameEn: advisorData?.lastNameEn ?? '',
-        email: advisorData?.email ?? '', 
-        phone: advisorData?.phone ?? '',
-        lineId: advisorData?.lineId ?? '',
-        foodAllergies: advisorData?.foodAllergies ?? '', 
-        dietaryRequirements: advisorData?.dietaryRequirements ?? '', 
-        drugAllergies: advisorData?.drugAllergies ?? '',
-        chronicConditionsAndFirstAidNotes: advisorData?.chronicConditionsAndFirstAidNotes ?? '',
-        identityDocumentFile: null, 
-        identityDocumentUrl: advisorData?.identityDocument?.url ?? null,
-        identityDocumentName: advisorData?.identityDocument?.originalName ?? null,
-        teacherStatusDocumentFile: null,
-        teacherStatusDocumentUrl: advisorData?.teacherStatusDocument?.url ?? null,
-        teacherStatusDocumentName: advisorData?.teacherStatusDocument?.originalName ?? null,
-      },
-      entrant1: {
-        titleTh: entrant1Data?.titleTh ?? '', firstNameTh: entrant1Data?.firstNameTh ?? '', middleNameTh: entrant1Data?.middleNameTh ?? '', lastNameTh: entrant1Data?.lastNameTh ?? '',                                                                   
-        titleEn: entrant1Data?.titleEn ?? '', firstNameEn: entrant1Data?.firstNameEn ?? '', middleNameEn: entrant1Data?.middleNameEn ?? '', lastNameEn: entrant1Data?.lastNameEn ?? '',                                                                   
-        dateOfBirth: entrant1Data?.dateOfBirth ?? '', email: entrant1Data?.email ?? '', phone: entrant1Data?.phone ?? '', lineId: entrant1Data?.lineId ?? '',                                                              
-        foodAllergies: entrant1Data?.foodAllergies ?? '', dietaryRequirements: entrant1Data?.dietaryRequirements ?? '', drugAllergies: entrant1Data?.drugAllergies ?? '',                                                  
-        chronicConditionsAndFirstAidNotes: entrant1Data?.chronicConditionsAndFirstAidNotes ?? '',                                                                          
-        portraitPhotoFile: null, portraitPhotoUrl: entrant1Data?.portraitPhoto?.url ?? null, portraitPhotoName: entrant1Data?.portraitPhoto?.originalName ?? null,
-        identityDocumentFile: null, identityDocumentUrl: entrant1Data?.identityDocument?.url ?? null, identityDocumentName: entrant1Data?.identityDocument?.originalName ?? null,
-        academicRecordDocumentFile: null, academicRecordDocumentUrl: entrant1Data?.academicRecordDocument?.url ?? null, academicRecordDocumentName: entrant1Data?.academicRecordDocument?.originalName ?? null,
-      },
-      entrant2: {
-        titleTh: entrant2Data?.titleTh ?? '', firstNameTh: entrant2Data?.firstNameTh ?? '', middleNameTh: entrant2Data?.middleNameTh ?? '', lastNameTh: entrant2Data?.lastNameTh ?? '',                                                                   
-        titleEn: entrant2Data?.titleEn ?? '', firstNameEn: entrant2Data?.firstNameEn ?? '', middleNameEn: entrant2Data?.middleNameEn ?? '', lastNameEn: entrant2Data?.lastNameEn ?? '',                                                                   
-        dateOfBirth: entrant2Data?.dateOfBirth ?? '', email: entrant2Data?.email ?? '', phone: entrant2Data?.phone ?? '', lineId: entrant2Data?.lineId ?? '',                                                              
-        foodAllergies: entrant2Data?.foodAllergies ?? '', dietaryRequirements: entrant2Data?.dietaryRequirements ?? '', drugAllergies: entrant2Data?.drugAllergies ?? '',                                                  
-        chronicConditionsAndFirstAidNotes: entrant2Data?.chronicConditionsAndFirstAidNotes ?? '',                                                                          
-        portraitPhotoFile: null, portraitPhotoUrl: entrant2Data?.portraitPhoto?.url ?? null, portraitPhotoName: entrant2Data?.portraitPhoto?.originalName ?? null,
-        identityDocumentFile: null, identityDocumentUrl: entrant2Data?.identityDocument?.url ?? null, identityDocumentName: entrant2Data?.identityDocument?.originalName ?? null,
-        academicRecordDocumentFile: null, academicRecordDocumentUrl: entrant2Data?.academicRecordDocument?.url ?? null, academicRecordDocumentName: entrant2Data?.academicRecordDocument?.originalName ?? null,
-      },
-      entrant3: {
-        titleTh: entrant3Data?.titleTh ?? '', firstNameTh: entrant3Data?.firstNameTh ?? '', middleNameTh: entrant3Data?.middleNameTh ?? '', lastNameTh: entrant3Data?.lastNameTh ?? '',                                                                   
-        titleEn: entrant3Data?.titleEn ?? '', firstNameEn: entrant3Data?.firstNameEn ?? '', middleNameEn: entrant3Data?.middleNameEn ?? '', lastNameEn: entrant3Data?.lastNameEn ?? '',                                                                   
-        dateOfBirth: entrant3Data?.dateOfBirth ?? '', email: entrant3Data?.email ?? '', phone: entrant3Data?.phone ?? '', lineId: entrant3Data?.lineId ?? '',                                                              
-        foodAllergies: entrant3Data?.foodAllergies ?? '', dietaryRequirements: entrant3Data?.dietaryRequirements ?? '', drugAllergies: entrant3Data?.drugAllergies ?? '',                                                  
-        chronicConditionsAndFirstAidNotes: entrant3Data?.chronicConditionsAndFirstAidNotes ?? '',                                                                          
-        portraitPhotoFile: null, portraitPhotoUrl: entrant3Data?.portraitPhoto?.url ?? null, portraitPhotoName: entrant3Data?.portraitPhoto?.originalName ?? null,
-        identityDocumentFile: null, identityDocumentUrl: entrant3Data?.identityDocument?.url ?? null, identityDocumentName: entrant3Data?.identityDocument?.originalName ?? null,
-        academicRecordDocumentFile: null, academicRecordDocumentUrl: entrant3Data?.academicRecordDocument?.url ?? null, academicRecordDocumentName: entrant3Data?.academicRecordDocument?.originalName ?? null,
-      },
-      terms: {
-        privacyPolicyAccepted: termsData?.privacyPolicyAccepted ?? false,
-        competitionRulesAccepted: termsData?.competitionRulesAccepted ?? false,
-        codernTermsAccepted: termsData?.codernTermsAccepted ?? false,
-        publicityMediaConsent: termsData?.publicityMediaConsent ?? true,
-        healthDataConsent: termsData?.healthDataConsent ?? true,
-        guardianConsentObtained: termsData?.guardianConsentObtained ?? true, 
-      },
-      success: {},
-    },
-    onSubmit: async ({value}: {value: RegistrationFormData}) => {
-      //await api
-      console.log('📦 Intercepted Payload:', JSON.stringify(value, null, 2))
-    }
-  }), [statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData])
-
-  const form = useForm<RegistrationFormData,any,any,any,any,any,any,any,any,any,any,any>(formOptions)
-
-  return( <RegisterFormContext.Provider value={form}>
-    <Outlet />
-  </RegisterFormContext.Provider>)
-
-}
-
-export const Route = createFileRoute('/register')({
+export const Route = createFileRoute("/register")({
+  component: RegisterLayout,
   loader: async () => {
     try {
-      const statusRes = await client.teamRegistrationStatus.get({})
-      if (statusRes && statusRes.teamId) {
-        const team = await client.teams.get({ id: statusRes.teamId })
-        let advisor = null
+      const statusRes = await client.teamRegistrationStatus.get({});
+      if (
+        statusRes !== null &&
+        typeof statusRes === "object" &&
+        "teamId" in statusRes &&
+        statusRes.teamId
+      ) {
+        const team = await client.teams.get({ id: statusRes.teamId });
+        let advisor = null;
         try {
-          advisor = await client.teamAdvisors.get({ teamId: statusRes.teamId })
-        } catch (e: any) {
-          if (e?.data?.code !== 'TEAM_ADVISOR_NOT_FOUND' && e?.status !== 404 && !e?.message?.includes('not found')) {
-            console.error('Error fetching advisor', e)
+          advisor = await client.teamAdvisors.get({ teamId: statusRes.teamId });
+        } catch (error: unknown) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            (error as { data?: { code?: string } }).data?.code !== "TEAM_ADVISOR_NOT_FOUND" &&
+            (error as { status?: number }).status !== 404 &&
+            (error as { message?: string }).message?.includes("not found") !== true
+          ) {
+            console.error("Error fetching advisor", error);
           }
         }
-        let entrant1 = null
-        let entrant2 = null
-        let entrant3 = null
-        try { entrant1 = await client.teamParticipants.get({ teamId: statusRes.teamId, index: 1 }) } catch (e) { }
-        try { entrant2 = await client.teamParticipants.get({ teamId: statusRes.teamId, index: 2 }) } catch (e) { }
+        let entrant1 = null;
+        let entrant2 = null;
+        let entrant3 = null;
+        try {
+          entrant1 = await client.teamParticipants.get({ index: 1, teamId: statusRes.teamId });
+        } catch {
+          // Ignore error
+        }
+        try {
+          entrant2 = await client.teamParticipants.get({ index: 2, teamId: statusRes.teamId });
+        } catch {
+          // Ignore error
+        }
         if (team?.memberCount === 3) {
-          try { entrant3 = await client.teamParticipants.get({ teamId: statusRes.teamId, index: 3 }) } catch (e) { }
+          try {
+            entrant3 = await client.teamParticipants.get({ index: 3, teamId: statusRes.teamId });
+          } catch {
+            // Ignore error
+          }
         }
 
-        let terms = null
-        try { terms = await client.teamConsents.get({ teamId: statusRes.teamId }) } catch (e) { }
+        let terms = null;
+        try {
+          terms = await client.teamConsents.get({ teamId: statusRes.teamId });
+        } catch {
+          // Ignore error
+        }
 
-        return { statusData: statusRes, teamData: team, advisorData: advisor, entrant1Data: entrant1, entrant2Data: entrant2, entrant3Data: entrant3, termsData: terms }
+        return {
+          advisorData: advisor,
+          entrant1Data: entrant1,
+          entrant2Data: entrant2,
+          entrant3Data: entrant3,
+          statusData: statusRes,
+          teamData: team,
+          termsData: terms,
+        };
       }
-      return { statusData: statusRes, teamData: null, advisorData: null, entrant1Data: null, entrant2Data: null, entrant3Data: null, termsData: null }
-    } catch (e) {
-      console.error(e)
+      return {
+        advisorData: null,
+        entrant1Data: null,
+        entrant2Data: null,
+        entrant3Data: null,
+        statusData: statusRes,
+        teamData: null,
+        termsData: null,
+      };
+    } catch (error) {
+      console.error(error);
     }
-    return { statusData: null, teamData: null, advisorData: null, entrant1Data: null, entrant2Data: null, entrant3Data: null, termsData: null }
+    return {
+      advisorData: null,
+      entrant1Data: null,
+      entrant2Data: null,
+      entrant3Data: null,
+      statusData: null,
+      teamData: null,
+      termsData: null,
+    };
   },
-  component: RegisterLayout
-})
+});
+
+// eslint-disable-next-line complexity
+function getStr(obj: unknown, key: string): string {
+  if (typeof obj === "object" && obj !== null) {
+    const val: unknown = Reflect.get(obj, key);
+    if (typeof val === "string") {
+      return val;
+    }
+  }
+  return "";
+}
+
+function getBool(obj: unknown, key: string, fallback: boolean): boolean {
+  if (typeof obj === "object" && obj !== null) {
+    const val: unknown = Reflect.get(obj, key);
+    if (typeof val === "boolean") {
+      return val;
+    }
+  }
+  return fallback;
+}
+
+function getNum(obj: unknown, key: string, fallback: number): number {
+  if (typeof obj === "object" && obj !== null) {
+    const val: unknown = Reflect.get(obj, key);
+    if (typeof val === "number") {
+      return val;
+    }
+  }
+  return fallback;
+}
+
+function getNestedStr(obj: unknown, key1: string, key2: string): string | null {
+  if (typeof obj === "object" && obj !== null) {
+    const nested: unknown = Reflect.get(obj, key1);
+    if (typeof nested === "object" && nested !== null) {
+      const val: unknown = Reflect.get(nested, key2);
+      if (typeof val === "string") {
+        return val;
+      }
+    }
+  }
+  return null;
+}
+
+function createFormOptions(
+  statusData: unknown,
+  teamData: unknown,
+  advisorData: unknown,
+  entrant1Data: unknown,
+  entrant2Data: unknown,
+  entrant3Data: unknown,
+  termsData: unknown,
+) {
+  return {
+    defaultValues: {
+      advisor: {
+        chronicConditionsAndFirstAidNotes: getStr(advisorData, "chronicConditionsAndFirstAidNotes"),
+        dietaryRequirements: getStr(advisorData, "dietaryRequirements"),
+        drugAllergies: getStr(advisorData, "drugAllergies"),
+        email: getStr(advisorData, "email"),
+        firstNameEn: getStr(advisorData, "firstNameEn"),
+        firstNameTh: getStr(advisorData, "firstNameTh"),
+        foodAllergies: getStr(advisorData, "foodAllergies"),
+        identityDocumentFile: null,
+        identityDocumentName: getNestedStr(advisorData, "identityDocument", "originalName"),
+        identityDocumentUrl: getNestedStr(advisorData, "identityDocument", "url"),
+        lastNameEn: getStr(advisorData, "lastNameEn"),
+        lastNameTh: getStr(advisorData, "lastNameTh"),
+        lineId: getStr(advisorData, "lineId"),
+        middleNameEn: getStr(advisorData, "middleNameEn"),
+        middleNameTh: getStr(advisorData, "middleNameTh"),
+        phone: getStr(advisorData, "phone"),
+        teacherStatusDocumentFile: null,
+        teacherStatusDocumentName: getNestedStr(
+          advisorData,
+          "teacherStatusDocument",
+          "originalName",
+        ),
+        teacherStatusDocumentUrl: getNestedStr(advisorData, "teacherStatusDocument", "url"),
+        titleEn: getStr(advisorData, "titleEn"),
+        titleTh: getStr(advisorData, "titleTh"),
+      },
+      entrant1: {
+        academicRecordDocumentFile: null,
+        academicRecordDocumentName: getNestedStr(
+          entrant1Data,
+          "academicRecordDocument",
+          "originalName",
+        ),
+        academicRecordDocumentUrl: getNestedStr(entrant1Data, "academicRecordDocument", "url"),
+        chronicConditionsAndFirstAidNotes: getStr(
+          entrant1Data,
+          "chronicConditionsAndFirstAidNotes",
+        ),
+        dateOfBirth: getStr(entrant1Data, "dateOfBirth"),
+        dietaryRequirements: getStr(entrant1Data, "dietaryRequirements"),
+        drugAllergies: getStr(entrant1Data, "drugAllergies"),
+        email: getStr(entrant1Data, "email"),
+        firstNameEn: getStr(entrant1Data, "firstNameEn"),
+        firstNameTh: getStr(entrant1Data, "firstNameTh"),
+        foodAllergies: getStr(entrant1Data, "foodAllergies"),
+        identityDocumentFile: null,
+        identityDocumentName: getNestedStr(entrant1Data, "identityDocument", "originalName"),
+        identityDocumentUrl: getNestedStr(entrant1Data, "identityDocument", "url"),
+        lastNameEn: getStr(entrant1Data, "lastNameEn"),
+        lastNameTh: getStr(entrant1Data, "lastNameTh"),
+        lineId: getStr(entrant1Data, "lineId"),
+        middleNameEn: getStr(entrant1Data, "middleNameEn"),
+        middleNameTh: getStr(entrant1Data, "middleNameTh"),
+        phone: getStr(entrant1Data, "phone"),
+        portraitPhotoFile: null,
+        portraitPhotoName: getNestedStr(entrant1Data, "portraitPhoto", "originalName"),
+        portraitPhotoUrl: getNestedStr(entrant1Data, "portraitPhoto", "url"),
+        titleEn: getStr(entrant1Data, "titleEn"),
+        titleTh: getStr(entrant1Data, "titleTh"),
+      },
+      entrant2: {
+        academicRecordDocumentFile: null,
+        academicRecordDocumentName: getNestedStr(
+          entrant2Data,
+          "academicRecordDocument",
+          "originalName",
+        ),
+        academicRecordDocumentUrl: getNestedStr(entrant2Data, "academicRecordDocument", "url"),
+        chronicConditionsAndFirstAidNotes: getStr(
+          entrant2Data,
+          "chronicConditionsAndFirstAidNotes",
+        ),
+        dateOfBirth: getStr(entrant2Data, "dateOfBirth"),
+        dietaryRequirements: getStr(entrant2Data, "dietaryRequirements"),
+        drugAllergies: getStr(entrant2Data, "drugAllergies"),
+        email: getStr(entrant2Data, "email"),
+        firstNameEn: getStr(entrant2Data, "firstNameEn"),
+        firstNameTh: getStr(entrant2Data, "firstNameTh"),
+        foodAllergies: getStr(entrant2Data, "foodAllergies"),
+        identityDocumentFile: null,
+        identityDocumentName: getNestedStr(entrant2Data, "identityDocument", "originalName"),
+        identityDocumentUrl: getNestedStr(entrant2Data, "identityDocument", "url"),
+        lastNameEn: getStr(entrant2Data, "lastNameEn"),
+        lastNameTh: getStr(entrant2Data, "lastNameTh"),
+        lineId: getStr(entrant2Data, "lineId"),
+        middleNameEn: getStr(entrant2Data, "middleNameEn"),
+        middleNameTh: getStr(entrant2Data, "middleNameTh"),
+        phone: getStr(entrant2Data, "phone"),
+        portraitPhotoFile: null,
+        portraitPhotoName: getNestedStr(entrant2Data, "portraitPhoto", "originalName"),
+        portraitPhotoUrl: getNestedStr(entrant2Data, "portraitPhoto", "url"),
+        titleEn: getStr(entrant2Data, "titleEn"),
+        titleTh: getStr(entrant2Data, "titleTh"),
+      },
+      entrant3: {
+        academicRecordDocumentFile: null,
+        academicRecordDocumentName: getNestedStr(
+          entrant3Data,
+          "academicRecordDocument",
+          "originalName",
+        ),
+        academicRecordDocumentUrl: getNestedStr(entrant3Data, "academicRecordDocument", "url"),
+        chronicConditionsAndFirstAidNotes: getStr(
+          entrant3Data,
+          "chronicConditionsAndFirstAidNotes",
+        ),
+        dateOfBirth: getStr(entrant3Data, "dateOfBirth"),
+        dietaryRequirements: getStr(entrant3Data, "dietaryRequirements"),
+        drugAllergies: getStr(entrant3Data, "drugAllergies"),
+        email: getStr(entrant3Data, "email"),
+        firstNameEn: getStr(entrant3Data, "firstNameEn"),
+        firstNameTh: getStr(entrant3Data, "firstNameTh"),
+        foodAllergies: getStr(entrant3Data, "foodAllergies"),
+        identityDocumentFile: null,
+        identityDocumentName: getNestedStr(entrant3Data, "identityDocument", "originalName"),
+        identityDocumentUrl: getNestedStr(entrant3Data, "identityDocument", "url"),
+        lastNameEn: getStr(entrant3Data, "lastNameEn"),
+        lastNameTh: getStr(entrant3Data, "lastNameTh"),
+        lineId: getStr(entrant3Data, "lineId"),
+        middleNameEn: getStr(entrant3Data, "middleNameEn"),
+        middleNameTh: getStr(entrant3Data, "middleNameTh"),
+        phone: getStr(entrant3Data, "phone"),
+        portraitPhotoFile: null,
+        portraitPhotoName: getNestedStr(entrant3Data, "portraitPhoto", "originalName"),
+        portraitPhotoUrl: getNestedStr(entrant3Data, "portraitPhoto", "url"),
+        titleEn: getStr(entrant3Data, "titleEn"),
+        titleTh: getStr(entrant3Data, "titleTh"),
+      },
+      status: typeof statusData === "object" && statusData !== null ? statusData : {},
+      success: {},
+      team: {
+        name: getStr(teamData, "name"),
+        photoFile: null,
+        photoName: getNestedStr(teamData, "image", "originalName"),
+        photoUrl: getNestedStr(teamData, "image", "url"),
+        school: getStr(teamData, "school"),
+        teamSize: getNum(teamData, "memberCount", 2),
+      },
+      terms: {
+        codernTermsAccepted: getBool(termsData, "codernTermsAccepted", false),
+        competitionRulesAccepted: getBool(termsData, "competitionRulesAccepted", false),
+        guardianConsentObtained: getBool(termsData, "guardianConsentObtained", true),
+        healthDataConsent: getBool(termsData, "healthDataConsent", true),
+        privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
+        publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),
+      },
+    },
+    onSubmit: ({ value }: { value: RegistrationFormData }) => {
+      //await api
+      console.log("📦 Intercepted Payload:", JSON.stringify(value, null, 2));
+    },
+  };
+}
+
+export function RegisterLayout() {
+  const { statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData } =
+    Route.useLoaderData();
+  const session = useUserSession();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!session.isPending && !session.data) {
+      void navigate({ to: "/signin" });
+    }
+
+    function handleFocus() {
+      void (async () => {
+        if (session.refetch === undefined) {
+          const res = await authClient.getSession();
+          if (res?.error || !res?.data) {
+            void navigate({ to: "/signin" });
+          }
+        } else {
+          await session.refetch();
+        }
+      })();
+    }
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [session, navigate]);
+
+  const formOptions = useMemo(
+    () =>
+      createFormOptions(
+        statusData,
+        teamData,
+        advisorData,
+        entrant1Data,
+        entrant2Data,
+        entrant3Data,
+        termsData,
+      ),
+    [statusData, teamData, advisorData, entrant1Data, entrant2Data, entrant3Data, termsData],
+  );
+
+  const form = useForm<RegistrationFormData>(formOptions);
+
+  return (
+    <RegisterFormContext.Provider value={form}>
+      <Outlet />
+    </RegisterFormContext.Provider>
+  );
+}

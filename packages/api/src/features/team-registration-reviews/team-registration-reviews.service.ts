@@ -130,9 +130,10 @@ export function createTeamRegistrationReviewService(
     list: async ({ limit, offset, reviewStatus, search }) => {
       const result = await repository.list({ limit, offset, reviewStatus, search });
       const { records, total } = result;
-      const rows = records.map(({ review, team }) => ({
+      const rows = records.map(({ review, reviewedByName, team }) => ({
         advisor: listSubjectStatus(review, "advisor"),
         id: team.id,
+        lastUpdatedAt: review?.updatedAt ?? null,
         memberCount: team.memberCount,
         name: team.name,
         participant1: listSubjectStatus(review, "participant1"),
@@ -141,6 +142,7 @@ export function createTeamRegistrationReviewService(
           team.memberCount === 2 ? NOT_APPLICABLE : listSubjectStatus(review, "participant3"),
         registrationSubmittedAt: team.registrationSubmittedAt,
         reviewStatus: review?.status ?? PENDING_REVIEW,
+        reviewedByName,
         school: team.school,
       }));
       return {

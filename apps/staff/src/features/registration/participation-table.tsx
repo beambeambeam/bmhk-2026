@@ -35,6 +35,10 @@ function formatSubmitDate(submittedAt: Date | null): string {
   return submittedAt?.toLocaleDateString() ?? "—";
 }
 
+function formatLastUpdated(updatedAt: Date | null): string {
+  return updatedAt?.toLocaleString() ?? "—";
+}
+
 function ParticipationTable({ canReview }: ParticipationTableProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -109,31 +113,33 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[16%] whitespace-normal">ทีม</TableHead>
-                <TableHead className="w-[14%] whitespace-normal">โรงเรียน</TableHead>
+                <TableHead className="w-[14%] whitespace-normal">ทีม</TableHead>
+                <TableHead className="w-[12%] whitespace-normal">โรงเรียน</TableHead>
                 <TableHead className="w-[8%] whitespace-normal">สมาชิก</TableHead>
-                <TableHead className="w-[10%] whitespace-normal">การส่งสมัคร</TableHead>
-                <TableHead className="w-[12%] whitespace-normal">วันที่ส่ง</TableHead>
-                <TableHead className="w-[12%] whitespace-normal">ตรวจสอบ</TableHead>
-                <TableHead className="w-[18%] whitespace-normal">จัดการ</TableHead>
+                <TableHead className="w-[9%] whitespace-normal">การส่งสมัคร</TableHead>
+                <TableHead className="w-[10%] whitespace-normal">วันที่ส่ง</TableHead>
+                <TableHead className="w-[10%] whitespace-normal">ตรวจสอบ</TableHead>
+                <TableHead className="w-[11%] whitespace-normal">อนุมัติโดย</TableHead>
+                <TableHead className="w-[14%] whitespace-normal">อัปเดตล่าสุด</TableHead>
+                <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {query.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
+                  <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
                 </TableRow>
               ) : null}
               {query.isError ? (
                 <TableRow>
-                  <TableCell className="text-destructive" colSpan={7}>
+                  <TableCell className="text-destructive" colSpan={9}>
                     ไม่สามารถโหลดข้อมูลการสมัครได้
                   </TableCell>
                 </TableRow>
               ) : null}
               {!query.isLoading && !query.isError && teams.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7}>ไม่พบข้อมูลการสมัคร</TableCell>
+                  <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
                 </TableRow>
               ) : null}
               {teams.map((team) => (
@@ -150,8 +156,17 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                   <TableCell>
                     <StatusChip value={team.reviewStatus} />
                   </TableCell>
+                  <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
+                  <TableCell className="whitespace-normal">
+                    {formatLastUpdated(team.lastUpdatedAt)}
+                  </TableCell>
                   <TableCell>
-                    <ParticipationReviewDialog canReview={canReview} teamId={team.id} />
+                    <ParticipationReviewDialog
+                      canReview={canReview}
+                      lastUpdatedAt={team.lastUpdatedAt}
+                      reviewedByName={team.reviewedByName}
+                      teamId={team.id}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

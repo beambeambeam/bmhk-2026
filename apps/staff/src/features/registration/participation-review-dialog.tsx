@@ -22,10 +22,17 @@ import { ParticipationReviewContent } from "./participation-review-content";
 
 interface ParticipationReviewDialogProps {
   readonly canReview: boolean;
+  readonly lastUpdatedAt: Date | null;
+  readonly reviewedByName: string | null;
   readonly teamId: string;
 }
 
-function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDialogProps) {
+function ParticipationReviewDialog({
+  canReview,
+  lastUpdatedAt,
+  reviewedByName,
+  teamId,
+}: ParticipationReviewDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   const teamQuery = useQuery({ ...getParticipationQueryOptions(teamId), enabled: isOpen });
@@ -81,7 +88,9 @@ function ParticipationReviewDialog({ canReview, teamId }: ParticipationReviewDia
           advisor={advisorQuery.data}
           isLoading={teamQuery.isLoading || advisorQuery.isLoading || participantsQuery.isLoading}
           participants={participantsQuery.data ?? []}
+          lastUpdatedAt={lastUpdatedAt}
           review={reviewQuery.data}
+          reviewedByName={reviewedByName}
           savePending={saveReview.isPending}
           team={teamQuery.data}
           teamError={teamQuery.isError}

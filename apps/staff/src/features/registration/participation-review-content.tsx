@@ -40,8 +40,10 @@ interface ParticipationReviewContentProps {
   readonly advisor: TeamAdvisorDetails | undefined;
   readonly canReview: boolean;
   readonly isLoading: boolean;
+  readonly lastUpdatedAt: Date | null;
   readonly review: TeamRegistrationReview | null | undefined;
   readonly participants: readonly TeamParticipantDetails[];
+  readonly reviewedByName: string | null;
   readonly savePending: boolean;
   readonly team: TeamDetails | undefined;
   readonly teamError: boolean;
@@ -61,8 +63,10 @@ interface ParticipationReviewContentProps {
 interface TeamSummaryProps {
   readonly advisor: TeamAdvisorDetails | undefined;
   readonly imageUrl: string | null;
+  readonly lastUpdatedAt: Date | null;
   readonly participants: readonly TeamParticipantDetails[];
   readonly review: TeamRegistrationReview | null | undefined;
+  readonly reviewedByName: string | null;
   readonly team: TeamDetails;
 }
 
@@ -230,7 +234,15 @@ function PersonPreview({
   );
 }
 
-function TeamSummary({ advisor, imageUrl, participants, review, team }: TeamSummaryProps) {
+function TeamSummary({
+  advisor,
+  imageUrl,
+  lastUpdatedAt,
+  participants,
+  review,
+  reviewedByName,
+  team,
+}: TeamSummaryProps) {
   const [selectedSubject, setSelectedSubject] = useState<PreviewSubject>("team");
   const selectedParticipant =
     typeof selectedSubject === "number"
@@ -306,6 +318,16 @@ function TeamSummary({ advisor, imageUrl, participants, review, team }: TeamSumm
             <span className="text-muted-foreground text-sm">สถานะการยืนยัน</span>
             <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
           </div>
+          <dl className="grid gap-2 rounded-lg border bg-background p-3 text-sm">
+            <div>
+              <dt className="text-muted-foreground">อนุมัติโดย</dt>
+              <dd className="font-medium">{reviewedByName ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">อัปเดตล่าสุด</dt>
+              <dd className="font-medium">{lastUpdatedAt?.toLocaleString() ?? "—"}</dd>
+            </div>
+          </dl>
         </>
       ) : (
         <PersonPreview
@@ -443,8 +465,10 @@ function ParticipationReviewContent({
   advisor,
   canReview,
   isLoading,
+  lastUpdatedAt,
   review,
   participants,
+  reviewedByName,
   savePending,
   team,
   teamError,
@@ -515,8 +539,10 @@ function ParticipationReviewContent({
           <TeamSummary
             advisor={advisor}
             imageUrl={imageUrl}
+            lastUpdatedAt={lastUpdatedAt}
             participants={participants}
             review={review}
+            reviewedByName={reviewedByName}
             team={team}
           />
           <ReviewForm

@@ -1,5 +1,5 @@
 import { os } from "@orpc/server";
-import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
+import { hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permission";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
@@ -133,12 +133,26 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     };
     return await next({ context: { teamAccess } });
   });
+  const staffProcedure = protectedProcedure.use(async ({ context, next }) => {
+    if (!hasStaffAccess(context.session.user.role)) {
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for staff access",
+        message: "Staff access required",
+        status: 403,
+        why: "The authenticated user lacks staff access permission",
+      });
+    }
+
+    return await next();
+  });
 
   return {
     adminProcedure,
     protectedProcedure,
     publicProcedure: base.use(evlog()),
     registrationProcedure,
+    staffProcedure,
     teamAccessProcedure,
     teamOwnerProcedure,
   };
@@ -149,4 +163,5 @@ export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedP
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
 export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
+export type StaffProcedure = ReturnType<typeof createProcedures>["staffProcedure"];
 export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];

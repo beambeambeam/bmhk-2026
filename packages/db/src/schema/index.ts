@@ -3,6 +3,8 @@ export * from "./audit-events";
 export * from "./auth";
 export * from "./discord";
 export * from "./files";
+export * from "./participant-check-ins";
+export * from "./staff-check-ins";
 export * from "./team-advisors";
 export * from "./team-consents";
 export * from "./team-participants";

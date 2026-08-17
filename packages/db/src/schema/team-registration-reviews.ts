@@ -22,12 +22,20 @@ export const teamRegistrationReviews = pgTable(
   "team_registration_reviews",
   {
     advisorIssueCodes: text("advisor_issue_codes").array().default([]).notNull(),
+    advisorNotes: text("advisor_notes"),
+    advisorReviewedAt: timestamp("advisor_reviewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     internalNotes: text("internal_notes"),
     participant1IssueCodes: text("participant1_issue_codes").array().default([]).notNull(),
+    participant1Notes: text("participant1_notes"),
+    participant1ReviewedAt: timestamp("participant1_reviewed_at", { withTimezone: true }),
     participant2IssueCodes: text("participant2_issue_codes").array().default([]).notNull(),
+    participant2Notes: text("participant2_notes"),
+    participant2ReviewedAt: timestamp("participant2_reviewed_at", { withTimezone: true }),
     participant3IssueCodes: text("participant3_issue_codes").array().default([]).notNull(),
+    participant3Notes: text("participant3_notes"),
+    participant3ReviewedAt: timestamp("participant3_reviewed_at", { withTimezone: true }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }).notNull(),
     reviewedByUserId: text("reviewed_by_user_id").references(() => user.id, {
       onDelete: "set null",
@@ -58,6 +66,23 @@ export const teamRegistrationReviews = pgTable(
         ${table.internalNotes} IS NULL OR
         (btrim(${table.internalNotes}) = ${table.internalNotes} AND
           length(${table.internalNotes}) BETWEEN 1 AND ${sql.raw(String(MAX_INTERNAL_NOTES_LENGTH))})
+      `,
+    ),
+    check(
+      "team_registration_reviews_subject_notes_valid",
+      sql`
+        (${table.advisorNotes} IS NULL OR
+          (btrim(${table.advisorNotes}) = ${table.advisorNotes} AND
+            length(${table.advisorNotes}) BETWEEN 1 AND ${sql.raw(String(MAX_INTERNAL_NOTES_LENGTH))})) AND
+        (${table.participant1Notes} IS NULL OR
+          (btrim(${table.participant1Notes}) = ${table.participant1Notes} AND
+            length(${table.participant1Notes}) BETWEEN 1 AND ${sql.raw(String(MAX_INTERNAL_NOTES_LENGTH))})) AND
+        (${table.participant2Notes} IS NULL OR
+          (btrim(${table.participant2Notes}) = ${table.participant2Notes} AND
+            length(${table.participant2Notes}) BETWEEN 1 AND ${sql.raw(String(MAX_INTERNAL_NOTES_LENGTH))})) AND
+        (${table.participant3Notes} IS NULL OR
+          (btrim(${table.participant3Notes}) = ${table.participant3Notes} AND
+            length(${table.participant3Notes}) BETWEEN 1 AND ${sql.raw(String(MAX_INTERNAL_NOTES_LENGTH))}))
       `,
     ),
     check(

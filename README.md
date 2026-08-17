@@ -108,11 +108,21 @@ Feature routers should remain transport adapters. Database coordination, not-fou
    - RustFS development credentials: `rustfsadmin` / `rustfssecret`
    - Create configured bucket `uploads` in the RustFS console before starting the server.
 
-   Seed local authentication accounts when needed:
+   Seed local data in this order:
 
    ```bash
-   bun db:seed:dev
+   bun run db:seed:auth # Creates or updates local authentication accounts
+   bun run db:seed:dev  # Adds example registrations and a staff check-in fixture
    ```
+
+   `db:seed:dev` does not create authentication accounts. It requires the member and
+   registration-staff and staff accounts created by `db:seed:auth`.
+
+   The staff check-in fixture records `BMHK 2026 Staff 2` as present and approved by
+   `BMHK 2026 Registration Staff`, so `/staff` has an example checked-in row.
+
+   Use `bun run db:migrate` in migration-managed environments such as staging and
+   production. It applies the committed migration history in order.
 
 4. Discord Bot setup (optional):
 

@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 /**
  * The doodle band that sits above each scope card's folder (Figma nodes 708:491 /
  * 708:531 / 708:631). Figma draws it as loose vectors that sprawl far outside the
@@ -615,32 +613,76 @@ const CS_OUTLINES = [
   { h: 44.11, rot: -14, uh: 36.387, uw: 36.387, w: 44.11, x: 240.81, y: 11.35 },
 ];
 
+/**
+ * The doodle band is a 373-wide drawing, and Figma keeps it at native px on the 402 frame
+ * too (`1190:975` is 110x170, exactly `708:492`'s 110x170) — the phone card is 354 wide, so
+ * a fraction of a percent of the composition is lost and nothing is redrawn. The card is a
+ * GRID ITEM, though, and the grid is three-up from `lg`: at 1024 the card is
+ * (861 − 2·33.75)/3 = 264.5 wide, 71% of the 373.33 the art is pinned against, so at native
+ * px the middle third of every doodle band was all that reached the screen and the outlines
+ * landed on the folder's copy. No viewport ramp can fix that — the card's width depends on
+ * the column count, not on the viewport — so the stage is scaled by the CARD's own inline
+ * size, read with a container query. `tan(atan2(a, b))` is this codebase's way to get a
+ * plain number out of two lengths (see `--decor-fit` in styles/pasta-motion.css).
+ *
+ * 373.333 and not 373: the 1440 frame's three cards are `(1200 − 2·40)/3` of the 1200
+ * column, so the ratio is exactly 1 at 1440 and the desktop render is untouched. `min(1, …)`
+ * caps it for the two-up band (768–1023 gives 311–413), where Figma's own phone treatment —
+ * art at native size in a card near 373 — is the precedent.
+ *
+ * The stage is anchored to the FOLDER's top edge, not the card's, because that is what the
+ * art is registered against in both frames: `1190:975` sits at y −186.5 over a folder at
+ * y 101, `708:492` at y −86.5 over a folder at y 201, i.e. −287.5 from the folder in both.
+ * So the items keep their card-relative Figma y and the stage carries the difference.
+ */
 const STAGE_W = 373.333;
 
+/*
+ * The modern value uses BOTH `tan()`/`atan2()` (Chrome 111+, Safari 15.4+, Firefox 108+) and
+ * `100cqw` (container queries: Chrome 105+, Safari 16+, Firefox 110+). On an engine missing
+ * either one, `--art-fit` still STORES fine — a custom property is an unvalidated token stream
+ * — and both of its consumers below go invalid at computed-value time instead, falling back to
+ * the property's INITIAL value: `top: auto` and `scale: none`. That draws every doodle band
+ * unscaled and unpositioned, straight over the folder copy — precisely the 1024 failure the
+ * note above describes, and the reason the plain-value-first habit does not help here (a
+ * pending-substitution value parses, so it WINS the cascade and wipes any earlier fallback in
+ * the same rule).
+ *
+ * So the substitute is a var the stylesheet can set instead of a declaration it has to beat:
+ * `.scope-art-stage` is a stable hook for an `@supports not (…)` block in index.css to write
+ * `--art-fit-fallback: 1` on, and because that is a DIFFERENT property from the inline one it
+ * needs no `!important` — the inline `--art-fit` simply resolves through it. Unset, `var()`
+ * takes the fallback branch, so Chromium computes exactly the value it computed before and the
+ * desktop render does not move by a pixel.
+ */
 const FIT = `var(--art-fit-fallback, min(1, tan(atan2(100cqw, ${STAGE_W}px))))`;
-
-const style: CSSProperties & Record<`--${string}`, string> = {
-  "--art-fit": FIT,
-  height: 451,
-  /* `scale`, the individual transform property, never `transform` — the items below
-             own `transform` for Figma's rotations and the two must not collide. Same rule as
-             `.decor-stage`. */
-  scale: "var(--art-fit)",
-  /* `--scope-band` is the reserved band, ramped by ScopeSection; 201 is its 1440
-             value, so at 1440 this resolves to `top: 0` and the stage is `inset-0` again. */
-  top: "calc(var(--scope-band, 201px) - 201px * var(--art-fit))",
-  transformOrigin: "top left",
-  width: STAGE_W,
-};
 
 export default function ScopeCardArt({ items, outlines }: { items: Art[]; outlines?: boolean }) {
   return (
-    <div aria-hidden className="scope-art-stage pointer-events-none absolute left-0" style={style}>
+    <div
+      aria-hidden
+      className="scope-art-stage pointer-events-none absolute left-0"
+      style={
+        {
+          "--art-fit": FIT,
+          height: 451,
+          /* `scale`, the individual transform property, never `transform` — the items below
+             own `transform` for Figma's rotations and the two must not collide. Same rule as
+             `.decor-stage`. */
+          scale: "var(--art-fit)",
+          /* `--scope-band` is the reserved band, ramped by ScopeSection; 201 is its 1440
+             value, so at 1440 this resolves to `top: 0` and the stage is `inset-0` again. */
+          top: "calc(var(--scope-band, 201px) - 201px * var(--art-fit))",
+          transformOrigin: "top left",
+          width: STAGE_W,
+        } as React.CSSProperties
+      }
+    >
       {items.map((a, i) => {
         const uw = a.uw ?? a.w;
         const uh = a.uh ?? a.h;
         const bleed = a.bleed ?? 5;
-        const spin = a.rot ?? a.flip;
+        const spin = Boolean(a.rot) || Boolean(a.flip);
         return (
           <img
             key={i}
@@ -651,16 +693,15 @@ export default function ScopeCardArt({ items, outlines }: { items: Art[]; outlin
               height: uh + bleed * 2,
               left: a.x + a.w / 2 - uw / 2 - bleed,
               top: a.y + a.h / 2 - uh / 2 - bleed,
-              transform:
-                spin === true
-                  ? `rotate(${a.rot ?? 0}deg)${a.flip === undefined ? "" : " scaleY(-1)"}`
-                  : undefined,
+              transform: spin
+                ? `rotate(${a.rot ?? 0}deg)${a.flip === true ? " scaleY(-1)" : ""}`
+                : undefined,
               width: uw + bleed * 2,
             }}
           />
         );
       })}
-      {Boolean(outlines) &&
+      {outlines === true &&
         CS_OUTLINES.map((o, i) => (
           <div
             key={i}

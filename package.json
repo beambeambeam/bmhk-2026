@@ -59,6 +59,7 @@
     "services:stop": "docker compose stop",
     "services:down": "docker compose down",
     "db:seed:dev": "vp run --filter @bmhk-2026/auth db:seed:dev",
+    "db:seed:auth": "vp run --filter @bmhk-2026/auth db:seed:auth",
     "db:seed:root": "vp run --filter @bmhk-2026/auth db:seed:root",
     "skill:update": "skills update -p",
     "prep:discord": "vp run --filter discord prep",

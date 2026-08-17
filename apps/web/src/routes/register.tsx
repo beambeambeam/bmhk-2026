@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
-import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useNavigate, useRouterState, redirect, isRedirect } from "@tanstack/react-router";
 import { WizardBackdrop } from "@/components/auth-backdrop";
 import ScrollEdgeEffect from "@/components/scroll-edge-effect";
 import { useForm } from "@tanstack/react-form";
@@ -115,6 +115,17 @@ export const Route = createFileRoute("/register")({
   loader: async () => {
     try {
       const statusRes = await client.teamRegistrationStatus.get({});
+
+      if (
+        statusRes !== null &&
+        typeof statusRes === "object" &&
+        "isComplete" in statusRes &&
+        statusRes.isComplete === true
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        throw redirect({ to: "/my-team" as any });
+      }
+
       if (
         statusRes !== null &&
         typeof statusRes === "object" &&
@@ -184,6 +195,9 @@ export const Route = createFileRoute("/register")({
         termsData: null,
       };
     } catch (error) {
+      if (isRedirect(error)) {
+        throw error;
+      }
       console.error(error);
     }
     return {

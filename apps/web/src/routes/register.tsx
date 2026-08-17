@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { Outlet, createFileRoute, useNavigate, useRouterState, redirect, isRedirect } from "@tanstack/react-router";
 import { WizardBackdrop } from "@/components/auth-backdrop";
 import ScrollEdgeEffect from "@/components/scroll-edge-effect";
+import ResumeRegistrationModal from "@/components/registration/resume-registration-modal";
 import { useForm } from "@tanstack/react-form";
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { client } from "@bmhk-2026/client/orpc";
@@ -488,6 +489,7 @@ export function RegisterLayout() {
         <WizardBackdrop withTomatoes={!isTerms} />
         <ScrollEdgeEffect className="fixed inset-x-0 top-0 z-0 h-[calc(114px_+_46*var(--fl))]" />
         <Outlet />
+        <ResumeRegistrationModal />
       </div>
     </RegisterFormContext.Provider>
   );

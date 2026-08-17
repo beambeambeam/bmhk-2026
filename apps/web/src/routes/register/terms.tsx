@@ -58,6 +58,7 @@ function consentFieldMap(i: number) {
 export const termsSchema = z.object({
   codernTermsAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งาน Codern" }),
   competitionRulesAccepted: z.literal(true, { message: "กรุณายอมรับกฏกติกาการแข่งขัน" }),
+  TermOfServicesAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งานเว็บไซต์" }),
   guardianConsentObtained: z.boolean().optional(),
   healthDataConsent: z.boolean().optional(),
   privacyPolicyAccepted: z.literal(true, { message: "กรุณายอมรับนโยบายความเป็นส่วนตัว" }),
@@ -517,11 +518,7 @@ export default function TermsStep() {
     if (terms.codernTermsAccepted) {
       acc.push("ข้อกำหนดการใช้งาน Codern");
     }
-    if (
-      terms.privacyPolicyAccepted &&
-      terms.competitionRulesAccepted &&
-      terms.codernTermsAccepted
-    ) {
+    if (terms.TermOfServicesAccepted) {
       acc.push("ข้อกำหนดการใช้งานเว็บไซต์");
     }
     return acc;
@@ -532,6 +529,7 @@ export default function TermsStep() {
     form.setFieldValue("terms.privacyPolicyAccepted", false);
     form.setFieldValue("terms.competitionRulesAccepted", false);
     form.setFieldValue("terms.codernTermsAccepted", false);
+    form.setFieldValue("terms.TermOfServicesAccepted", false);
   };
 
   const isAllAccepted = REQUIRED_DOCUMENTS.every((doc) => accepted.includes(doc.title));

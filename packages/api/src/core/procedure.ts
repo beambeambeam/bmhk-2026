@@ -3,7 +3,7 @@ import { hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permissio
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
-import type { ApiSession, AuthReader, TeamAccessContext } from "./auth";
+import type { ApiKeyVerification, ApiSession, AuthReader, TeamAccessContext } from "./auth";
 import type { ApiContext } from "./context";
 import { adminAccessDeniedAudit } from "../features/audit/audit.actions";
 
@@ -147,8 +147,55 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     return await next();
   });
 
+  const requireApiKeyAuth = base.middleware(async ({ context, next }) => {
+    const key = context.headers.get("x-api-key");
+
+    if (key === null || key.length === 0) {
+      throw createError({
+        code: "API_KEY_MISSING",
+        fix: "Provide an API key in the x-api-key header",
+        message: "API key required",
+        status: 401,
+        why: "No API key was present on this request",
+      });
+    }
+
+    let verification: ApiKeyVerification;
+    try {
+      verification = await dependencies.auth.verifyApiKey({ key });
+    } catch (error) {
+      throw createError({
+        cause: toError(error),
+        code: "API_KEY_VERIFICATION_UNAVAILABLE",
+        fix: "Try again shortly",
+        message: "API key verification temporarily unavailable",
+        status: 503,
+        why: "The server could not verify the provided API key",
+      });
+    }
+
+    if (!(verification.valid && verification.key)) {
+      throw createError({
+        code: "UNAUTHORIZED",
+        fix: "Provide a valid, unexpired API key",
+        message: "Invalid API key",
+        status: 401,
+        why: "The provided API key failed verification",
+      });
+    }
+
+    context.log.set({
+      apiKey: { id: verification.key.id, referenceId: verification.key.referenceId },
+    });
+
+    return await next({ context: { apiKey: verification.key } });
+  });
+
+  const apiKeyProcedure = base.use(evlog()).use(requireApiKeyAuth);
+
   return {
     adminProcedure,
+    apiKeyProcedure,
     protectedProcedure,
     publicProcedure: base.use(evlog()),
     registrationProcedure,
@@ -159,6 +206,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
+export type ApiKeyProcedure = ReturnType<typeof createProcedures>["apiKeyProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];

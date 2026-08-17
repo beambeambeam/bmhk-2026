@@ -425,7 +425,7 @@ export default function TeamStep() {
                 <TextField
                   label="ชื่อทีม"
                   required
-                  placeholder="มะลิ"
+                  placeholder="ตี๋มากอดเค้าเลย"
                   className="w-full"
                   value={field.state.value}
                   onChange={(val) => {
@@ -440,7 +440,7 @@ export default function TeamStep() {
                 <SchoolAutocompleteField
                   label="สถานศึกษา"
                   required
-                  placeholder="พิมพ์ชื่อสถานศึกษา"
+                  placeholder="เลือกสถานศึกษา"
                   className="w-full"
                   value={field.state.value}
                   onChange={(val) => {

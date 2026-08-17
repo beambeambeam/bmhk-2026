@@ -89,7 +89,7 @@ export default function PersonFields({
               <SelectField
                 label="คำนำหน้า"
                 required
-                placeholder="มะลิ"
+                placeholder="เลือก"
                 options={PREFIX_OPTIONS}
                 className={PREFIX}
                 value={field.state.value}
@@ -105,7 +105,7 @@ export default function PersonFields({
               <TextField
                 label="ชื่อจริง (ภาษาไทย)"
                 required
-                placeholder="มะลิ"
+                placeholder={person === "advisor" ? "นพนภา" : "สมชาย"}
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -119,7 +119,7 @@ export default function PersonFields({
             {(field) => (
               <TextField
                 label="ชื่อกลาง (ภาษาไทย)"
-                placeholder="มะลิ"
+                placeholder="ไม่ระบุ"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -134,7 +134,7 @@ export default function PersonFields({
               <TextField
                 label="นามสกุล (ภาษาไทย)"
                 required
-                placeholder="มะลิ"
+                placeholder="ณ บางมด"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -151,7 +151,7 @@ export default function PersonFields({
               <SelectField
                 label="คำนำหน้า"
                 required
-                placeholder="มะลิ"
+                placeholder="Choose"
                 options={["Mr.", "Mrs.", "Miss"]}
                 className={PREFIX}
                 value={field.state.value}
@@ -167,7 +167,7 @@ export default function PersonFields({
               <TextField
                 label="First Name"
                 required
-                placeholder="มะลิ"
+                placeholder={person === "advisor" ? "Nopnapa" : "Somchai"}
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -181,7 +181,7 @@ export default function PersonFields({
             {(field) => (
               <TextField
                 label="Middle Name"
-                placeholder="มะลิ"
+                placeholder="Optional"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -196,7 +196,7 @@ export default function PersonFields({
               <TextField
                 label="Last Name"
                 required
-                placeholder="มะลิ"
+                placeholder="Na bangmod"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -231,7 +231,7 @@ export default function PersonFields({
             {(field) => (
               <TextField
                 label="อาหารที่แพ้"
-                placeholder="มะลิ"
+                placeholder="เช่น กุ้ง, ถั่วลิสง"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -245,7 +245,7 @@ export default function PersonFields({
             {(field) => (
               <TextField
                 label="ประเภทอาหารพิเศษ"
-                placeholder="มะลิ"
+                placeholder="เช่น อาหารมุสลิม, มังสวิรัติ"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -259,7 +259,7 @@ export default function PersonFields({
             {(field) => (
               <TextField
                 label="ยาที่แพ้"
-                placeholder="มะลิ"
+                placeholder="เช่น เพนิซิลลิน"
                 className={CELL}
                 value={field.state.value}
                 onChange={(val) => {
@@ -274,7 +274,7 @@ export default function PersonFields({
           {(field) => (
             <TextArea
               label="โรคประจำตัว และวิธีปฐมพยาบาลเบื้องต้น"
-              placeholder="รายละเอียด"
+              placeholder="ระบุโรคประจำตัวและวิธีปฐมพยาบาลเบื้องต้น"
               value={field.state.value}
               onChange={(val) => {
                 field.handleChange(val);
@@ -308,7 +308,7 @@ export function ContactFields({
             <TextField
               label="อีเมล"
               required
-              placeholder="example@email.com"
+              placeholder="modhack@school.ac.th"
               className={CELL}
               value={field.state.value}
               onChange={(val) => {
@@ -336,7 +336,7 @@ export function ContactFields({
           {(field) => (
             <TextField
               label="LINE ID"
-              placeholder="มะลิ"
+              placeholder="ไอดีไลน์"
               className={CELL}
               value={field.state.value}
               onChange={(val) => {

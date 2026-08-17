@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouterState, useNavigate, useLoaderData } from "@tanstack/react-router";
 import { client } from "@bmhk-2026/client/orpc";
+import { useOwnArrival } from "@/components/form/wizard-nav";
 import "@/styles/resume-motion.css";
 
 const BODY =
@@ -152,15 +153,16 @@ let askedThisVisit = false;
 const IN_FLOW = /^\/register(\/(?!success|error).*)?$/;
 
 export default function ResumeRegistrationModal() {
-  const { pathname } = useRouterState({ select: (s) => s.location });
+  const { pathname, state } = useRouterState({ select: (s) => s.location });
   const navigate = useNavigate();
   const sheetRef = useRef<HTMLDivElement>(null);
+  const ownArrival = useOwnArrival();
 
   const { statusData, teamData, advisorData, entrant1Data, entrant2Data } = useLoaderData({ from: "/register" }) as any;
   
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [state, setState] = useState<"open" | "closed">("closed");
+  const [modalState, setModalState] = useState<"open" | "closed">("closed");
   const [busy, setBusy] = useState(false);
 
   const wasInFlow = useRef(false);
@@ -171,20 +173,21 @@ export default function ResumeRegistrationModal() {
     wasInFlow.current = inFlow;
 
     const hasDraft = statusData !== null && typeof statusData === "object" && "isComplete" in statusData && statusData.isComplete === false && "teamId" in statusData && !!statusData.teamId;
+    const isFromSignIn = !ownArrival && (state as any)?.authNav === "gate";
 
-    console.log("Modal check:", { pathname, entering, askedThisVisit, hasDraft, statusData });
+    console.log("Modal check:", { pathname, entering, askedThisVisit, hasDraft, statusData, isFromSignIn, ownArrival });
 
-    if (!entering || askedThisVisit || !hasDraft) return;
+    if (!entering || askedThisVisit || !hasDraft || isFromSignIn) return;
     
     setOpen(true);
     setMounted(true);
-  }, [pathname, statusData]);
+  }, [pathname, statusData, state, ownArrival]);
 
   useEffect(() => {
     if (!open || !mounted) return;
     let inner = 0;
     const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => setState("open"));
+      inner = requestAnimationFrame(() => setModalState("open"));
     });
     return () => {
       cancelAnimationFrame(outer);
@@ -195,7 +198,7 @@ export default function ResumeRegistrationModal() {
   const close = () => {
     askedThisVisit = true;
     setOpen(false);
-    setState("closed");
+    setModalState("closed");
     window.setTimeout(() => setMounted(false), EXIT_MS);
   };
 
@@ -260,7 +263,7 @@ export default function ResumeRegistrationModal() {
 
   return createPortal(
     <div
-      data-state={state}
+      data-state={modalState}
       onClick={() => { if (!busy) close(); }}
       className="resume-scrim fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(194,194,194,0.3)] backdrop-blur-[10px]"
       style={{ padding: ramp(16, 24) }}
@@ -271,7 +274,7 @@ export default function ResumeRegistrationModal() {
         onRestart={onRestart}
         onDismiss={close}
         busy={busy}
-        state={state}
+        state={modalState}
       />
     </div>,
     document.body

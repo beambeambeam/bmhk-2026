@@ -29,7 +29,7 @@ import {
   useFileSlot,
 } from "@/components/form/field";
 import { createFileRoute } from "@tanstack/react-router";
-import { useRegisterForm } from "@/routes/register";
+import { useRegisterForm, Route as RegisterRoute } from "@/routes/register";
 import { z } from "zod";
 import { client } from "@bmhk-2026/client/orpc";
 import { useAuthNavigate } from "@/components/form/wizard-nav";
@@ -97,6 +97,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
   const form = useRegisterForm();
   const go = useAuthNavigate();
   const [busy, setBusy] = useState(false);
+  const { termsData } = RegisterRoute.useLoaderData();
 
   return (
     <button
@@ -127,18 +128,39 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             const consentData = {
               codernTermsAccepted: terms.codernTermsAccepted ?? false,
               competitionRulesAccepted: terms.competitionRulesAccepted ?? false,
-              guardianConsentObtained: false,
+              guardianConsentObtained: terms.guardianConsentObtained ?? false,
               healthDataConsent: terms.healthDataConsent ?? false,
               privacyPolicyAccepted: terms.privacyPolicyAccepted ?? false,
               publicityMediaConsent: terms.publicityMediaConsent ?? false,
             };
 
+            const isTermsDirty = !termsData ||
+              consentData.codernTermsAccepted !== (termsData as any).codernTermsAccepted ||
+              consentData.competitionRulesAccepted !== (termsData as any).competitionRulesAccepted ||
+              consentData.guardianConsentObtained !== (termsData as any).guardianConsentObtained ||
+              consentData.healthDataConsent !== ((termsData as any).healthDataConsent ?? true) ||
+              consentData.privacyPolicyAccepted !== (termsData as any).privacyPolicyAccepted ||
+              consentData.publicityMediaConsent !== ((termsData as any).publicityMediaConsent ?? true);
+
+            if (isUpdate) {
+              if (!isTermsDirty) {
+                return;
+              }
+            }
+
             try {
               if (isUpdate) {
-                await client.teamConsents.update({
-                  teamId,
-                  data: consentData,
-                });
+                try {
+                  await client.teamConsents.update({
+                    teamId,
+                    data: consentData,
+                  });
+                } catch {
+                  await client.teamConsents.create({
+                    teamId,
+                    ...consentData,
+                  });
+                }
               } else {
                 await client.teamConsents.create({
                   teamId,

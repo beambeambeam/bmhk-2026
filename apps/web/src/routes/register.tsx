@@ -119,31 +119,60 @@ export function useRegisterForm() {
 }
 
 export function getExpectedNextStep(form: RegisterFormApi): string {
-  let nextStep = "/register/terms";
   const status = form.getFieldValue("status") as any;
+  const terms = form.getFieldValue("terms") as any;
+  const team = form.getFieldValue("team") as any;
+  const advisor = form.getFieldValue("advisor") as any;
+  const entrant1 = form.getFieldValue("entrant1") as any;
+  const entrant2 = form.getFieldValue("entrant2") as any;
 
-  if (status && status.teamId) {
-    if (status.team !== "COMPLETED") {
-      nextStep = "/register/team";
-    } else {
-      const advisor = form.getFieldValue("advisor");
-      const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl;
+  const isTermsComplete =
+    terms?.privacyPolicyAccepted &&
+    terms?.codernTermsAccepted &&
+    terms?.competitionRulesAccepted &&
+    terms?.TermOfServicesAccepted;
 
-      if (!isAdvisorComplete) {
-        nextStep = "/register/advisor";
-      } else if (status.participant1 !== "COMPLETED") {
-        nextStep = "/register/entrant/1";
-      } else if (status.participant2 !== "COMPLETED") {
-        nextStep = "/register/entrant/2";
-      } else if (status.participant3 !== "NOT_APPLICABLE" && status.participant3 !== "COMPLETED") {
-        nextStep = "/register/entrant/3";
-      } else {
-        const teamSize = (form.getFieldValue("team.teamSize") as number | undefined) ?? 2;
-        nextStep = `/register/entrant/${teamSize}`;
-      }
+  if (!isTermsComplete && !status?.teamId) {
+    return "/register/terms";
+  }
+
+  const isTeamComplete = !!(status?.team === "COMPLETED" || team?.name);
+  if (!isTeamComplete) {
+    return "/register/team";
+  }
+
+  const isAdvisorComplete = !!(
+    (advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl) ||
+    advisor?.firstNameTh
+  );
+
+  if (!isAdvisorComplete) {
+    return "/register/advisor";
+  }
+
+  const isEntrant1Complete = !!(status?.participant1 === "COMPLETED" || entrant1?.firstNameTh);
+  if (!isEntrant1Complete) {
+    return "/register/entrant/1";
+  }
+
+  const isEntrant2Complete = !!(status?.participant2 === "COMPLETED" || entrant2?.firstNameTh);
+  if (!isEntrant2Complete) {
+    return "/register/entrant/2";
+  }
+
+  const teamSize = (form.getFieldValue("team.teamSize") as number | undefined) ?? 2;
+  if (teamSize === 3) {
+    const isEntrant3Complete = !!(
+      status?.participant3 === "COMPLETED" ||
+      status?.participant3 === "NOT_APPLICABLE" ||
+      form.getFieldValue("entrant3")?.firstNameTh
+    );
+    if (!isEntrant3Complete) {
+      return "/register/entrant/3";
     }
   }
-  return nextStep;
+
+  return `/register/entrant/${teamSize}`;
 }
 
 export const STEP_RANKS: Record<string, number> = {

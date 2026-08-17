@@ -167,6 +167,7 @@ export function TermsSubmitButton({
             }
 
             const validData = termsSchema.parse(terms);
+            validData.guardianConsentObtained = validData.privacyPolicyAccepted;
 
             const finalResult = await client.teamConsents.create({
               teamId,

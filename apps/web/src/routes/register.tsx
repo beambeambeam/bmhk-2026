@@ -402,7 +402,9 @@ function createFormOptions(
           ) : false
         ),
         competitionRulesAccepted: getBool(termsData, "competitionRulesAccepted", false),
-        guardianConsentObtained: getBool(termsData, "guardianConsentObtained", false),
+        guardianConsentObtained: getBool(termsData, "guardianConsentObtained", 
+          getBool(termsData, "privacyPolicyAccepted", false)
+        ),
         healthDataConsent: getBool(termsData, "healthDataConsent", true),
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
         publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),

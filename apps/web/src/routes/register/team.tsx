@@ -128,7 +128,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             const consentData = {
               codernTermsAccepted: terms.codernTermsAccepted ?? false,
               competitionRulesAccepted: terms.competitionRulesAccepted ?? false,
-              guardianConsentObtained: terms.guardianConsentObtained ?? false,
+              guardianConsentObtained: terms.privacyPolicyAccepted ?? false,
               healthDataConsent: terms.healthDataConsent ?? false,
               privacyPolicyAccepted: terms.privacyPolicyAccepted ?? false,
               publicityMediaConsent: terms.publicityMediaConsent ?? false,

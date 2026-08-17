@@ -123,6 +123,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             validData.teamSize !== initialTeam.teamSize ||
             team.photoFile !== null;
 
+          // eslint-disable-next-line func-style
           const saveConsents = async (teamId: string, isUpdate: boolean) => {
             const terms = form.getFieldValue("terms");
             const consentData = {
@@ -134,26 +135,36 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
               publicityMediaConsent: terms.publicityMediaConsent ?? false,
             };
 
-            const isTermsDirty = !termsData ||
-              consentData.codernTermsAccepted !== (termsData as any).codernTermsAccepted ||
-              consentData.competitionRulesAccepted !== (termsData as any).competitionRulesAccepted ||
-              consentData.guardianConsentObtained !== (termsData as any).guardianConsentObtained ||
-              consentData.healthDataConsent !== ((termsData as any).healthDataConsent ?? true) ||
-              consentData.privacyPolicyAccepted !== (termsData as any).privacyPolicyAccepted ||
-              consentData.publicityMediaConsent !== ((termsData as any).publicityMediaConsent ?? true);
+            const td = termsData as
+              | {
+                  codernTermsAccepted?: boolean;
+                  competitionRulesAccepted?: boolean;
+                  guardianConsentObtained?: boolean;
+                  healthDataConsent?: boolean;
+                  privacyPolicyAccepted?: boolean;
+                  publicityMediaConsent?: boolean;
+                }
+              | undefined;
 
-            if (isUpdate) {
-              if (!isTermsDirty) {
-                return;
-              }
+            const isTermsDirty =
+              !td ||
+              consentData.codernTermsAccepted !== td.codernTermsAccepted ||
+              consentData.competitionRulesAccepted !== td.competitionRulesAccepted ||
+              consentData.guardianConsentObtained !== td.guardianConsentObtained ||
+              consentData.healthDataConsent !== (td.healthDataConsent ?? true) ||
+              consentData.privacyPolicyAccepted !== td.privacyPolicyAccepted ||
+              consentData.publicityMediaConsent !== (td.publicityMediaConsent ?? true);
+
+            if (isUpdate && !isTermsDirty) {
+              return;
             }
 
             try {
               if (isUpdate) {
                 try {
                   await client.teamConsents.update({
-                    teamId,
                     data: consentData,
+                    teamId,
                   });
                 } catch {
                   await client.teamConsents.create({
@@ -431,8 +442,10 @@ export default function TeamStep() {
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
-              />
+                  error={
+                    field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
+                  }
+                />
               )}
             />
             <form.Field
@@ -447,8 +460,10 @@ export default function TeamStep() {
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
-              />
+                  error={
+                    field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
+                  }
+                />
               )}
             />
 

@@ -50,14 +50,14 @@ function Sheet({
   onContinue: () => void;
   onRestart: () => void;
   onDismiss: () => void;
-  sheetRef: React.RefObject<HTMLDivElement | null>;
+  sheetRef: React.RefObject<HTMLDialogElement | null>;
   busy: boolean;
   state: "open" | "closed";
 }) {
   return (
-    <div
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
+    <dialog
       ref={sheetRef}
-      role="dialog"
       aria-modal="true"
       aria-labelledby="resume-title"
       tabIndex={-1}
@@ -65,17 +65,19 @@ function Sheet({
       className="resume-sheet focus:outline-none relative mx-auto flex w-full max-w-[1040px] flex-col overflow-y-auto bg-[#fdfcfa]"
       style={{
         borderRadius: ramp(20, 32),
-        padding: ramp(16, 24),
-        gap: ramp(20, 32),
         boxShadow: "0 0 0 1px #dcdcdc",
+        gap: ramp(20, 32),
         maxHeight: "100%",
+        padding: ramp(16, 24),
       }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
     >
       <div className="resume-part resume-part-1 flex items-start" style={{ gap: ramp(12, 16) }}>
         <span
           className="shrink-0 text-[#10161f]"
-          style={{ width: ramp(32, 40), height: ramp(32, 40) }}
+          style={{ height: ramp(32, 40), width: ramp(32, 40) }}
         >
           <ResumeGlyph />
         </span>
@@ -122,9 +124,9 @@ function Sheet({
           className="flex-1 cursor-pointer bg-[#efefef] text-[#282828] transition-[filter] duration-150 hover:brightness-95 disabled:opacity-50"
           style={{
             borderRadius: ramp(10, 12),
-            padding: `${ramp(10, 12)} ${ramp(16, 24)}`,
             fontSize: ramp(16, 20),
             lineHeight: 1.4,
+            padding: `${ramp(10, 12)} ${ramp(16, 24)}`,
           }}
         >
           เริ่มกรอกฟอร์มใหม่
@@ -137,29 +139,40 @@ function Sheet({
           className="flex-1 cursor-pointer bg-[#c0563e] text-white transition-[filter] duration-150 hover:brightness-105 active:brightness-95 disabled:opacity-50"
           style={{
             borderRadius: ramp(10, 12),
-            padding: `${ramp(10, 12)} ${ramp(16, 24)}`,
             fontSize: ramp(16, 20),
             lineHeight: 1.4,
+            padding: `${ramp(10, 12)} ${ramp(16, 24)}`,
           }}
         >
           กรอกฟอร์มต่อ
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }
 
 let askedThisVisit = false;
-const IN_FLOW = /^\/register(\/(?!success|error).*)?$/;
+const IN_FLOW = /^\/register(?<path>\/(?!success|error).*)?$/u;
+
+interface LoaderData {
+  statusData?: { isComplete?: boolean; teamId?: string; participant3?: string } | null;
+  teamData?: { memberCount?: number } | null;
+  advisorData?: unknown;
+  entrant1Data?: unknown;
+  entrant2Data?: unknown;
+}
 
 export default function ResumeRegistrationModal() {
   const { pathname, state } = useRouterState({ select: (s) => s.location });
   const navigate = useNavigate();
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDialogElement>(null);
   const ownArrival = useOwnArrival();
 
-  const { statusData, teamData, advisorData, entrant1Data, entrant2Data } = useLoaderData({ from: "/register" }) as any;
-  
+  // oxlint-disable-next-line no-unsafe-type-assertion
+  const { statusData, teamData, advisorData, entrant1Data, entrant2Data } = useLoaderData({
+    from: "/register",
+  }) as unknown as LoaderData;
+
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [modalState, setModalState] = useState<"open" | "closed">("closed");
@@ -172,22 +185,47 @@ export default function ResumeRegistrationModal() {
     const entering = inFlow && !wasInFlow.current;
     wasInFlow.current = inFlow;
 
-    const hasDraft = statusData !== null && typeof statusData === "object" && "isComplete" in statusData && statusData.isComplete === false && "teamId" in statusData && !!statusData.teamId;
-    const isFromSignIn = !ownArrival && (state as any)?.authNav === "gate";
+    const hasDraft =
+      statusData !== null &&
+      typeof statusData === "object" &&
+      "isComplete" in statusData &&
+      statusData.isComplete === false &&
+      "teamId" in statusData &&
+      statusData.teamId !== null &&
+      statusData.teamId !== undefined &&
+      statusData.teamId !== "";
+    const stateObj = state as { authNav?: string };
+    const isFromSignIn = !ownArrival && stateObj?.authNav === "gate";
 
-    console.log("Modal check:", { pathname, entering, askedThisVisit, hasDraft, statusData, isFromSignIn, ownArrival });
+    console.log("Modal check:", {
+      askedThisVisit,
+      entering,
+      hasDraft,
+      isFromSignIn,
+      ownArrival,
+      pathname,
+      statusData,
+    });
 
-    if (!entering || askedThisVisit || !hasDraft || isFromSignIn) return;
-    
+    if (!entering || askedThisVisit || !hasDraft || isFromSignIn) {
+      return;
+    }
+
     setOpen(true);
     setMounted(true);
   }, [pathname, statusData, state, ownArrival]);
 
   useEffect(() => {
-    if (!open || !mounted) return;
+    if (!open || !mounted) {
+      return () => {
+        // empty cleanup
+      };
+    }
     let inner = 0;
     const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => setModalState("open"));
+      inner = requestAnimationFrame(() => {
+        setModalState("open");
+      });
     });
     return () => {
       cancelAnimationFrame(outer);
@@ -195,48 +233,78 @@ export default function ResumeRegistrationModal() {
     };
   }, [open, mounted]);
 
-  const close = () => {
+  function close() {
     askedThisVisit = true;
     setOpen(false);
     setModalState("closed");
-    window.setTimeout(() => setMounted(false), EXIT_MS);
-  };
+    window.setTimeout(() => {
+      setMounted(false);
+    }, EXIT_MS);
+  }
 
-  const getResumeRoute = () => {
-    if (!statusData || !statusData.teamId) return "/register/terms";
-    
+  function getResumeRoute() {
+    if (
+      statusData === null ||
+      statusData === undefined ||
+      statusData.teamId === null ||
+      statusData.teamId === undefined ||
+      statusData.teamId === ""
+    ) {
+      return "/register/terms";
+    }
+
     // Fallbacks because statusData schema lacks some items
-    if (!teamData) return "/register/team";
-    if (!advisorData) return "/register/advisor";
-    if (!entrant1Data) return "/register/entrant/1";
-    if (!entrant2Data) return "/register/entrant/2";
-    if (teamData.memberCount === 3 && (statusData as any).participant3 === "NOT_STARTED") return "/register/entrant/3";
-    
-    return "/register/entrant/1"; // Default fallback if uncertain
-  };
+    if (teamData === null || teamData === undefined) {
+      return "/register/team";
+    }
+    if (advisorData === null || advisorData === undefined) {
+      return "/register/advisor";
+    }
+    if (entrant1Data === null || entrant1Data === undefined) {
+      return "/register/entrant/1";
+    }
+    if (entrant2Data === null || entrant2Data === undefined) {
+      return "/register/entrant/2";
+    }
+    if (teamData.memberCount === 3 && statusData.participant3 === "NOT_STARTED") {
+      return "/register/entrant/3";
+    }
 
-  const onContinue = () => {
+    // Default fallback if uncertain
+    return "/register/entrant/1";
+  }
+
+  function onContinue() {
     const to = getResumeRoute();
     close();
-    if (to !== pathname) void navigate({ to: to as any });
-  };
+    if (to !== pathname) {
+      // oxlint-disable-next-line no-unsafe-type-assertion
+      void navigate({ to: to as never });
+    }
+  }
 
-  const onRestart = async () => {
-    if (!statusData || !statusData.teamId) {
+  async function onRestart() {
+    if (
+      statusData === null ||
+      statusData === undefined ||
+      statusData.teamId === null ||
+      statusData.teamId === undefined ||
+      statusData.teamId === ""
+    ) {
       close();
       return;
     }
-    
+
     setBusy(true);
     try {
       await client.teams.delete({ id: statusData.teamId });
       close();
       window.location.href = "/register/terms";
-    } catch (e) {
-      console.error("Failed to delete team", e);
+    } catch (error) {
+      console.error("Failed to delete team", error);
       setBusy(false);
     }
-  };
+  }
 
   useEffect(() => {
     if (open) {
@@ -247,36 +315,55 @@ export default function ResumeRegistrationModal() {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) close();
-    };
+    if (!open) {
+      return () => {
+        // empty cleanup
+      };
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) {
+        close();
+      }
+    }
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open, busy]);
 
-  if (!mounted || typeof document === "undefined") return null;
+  if (!mounted || typeof document === "undefined") {
+    return null;
+  }
 
   return createPortal(
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       data-state={modalState}
-      onClick={() => { if (!busy) close(); }}
+      onClick={() => {
+        if (!busy) {
+          close();
+        }
+      }}
       className="resume-scrim fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(194,194,194,0.3)] backdrop-blur-[10px]"
       style={{ padding: ramp(16, 24) }}
     >
       <Sheet
         sheetRef={sheetRef}
         onContinue={onContinue}
-        onRestart={onRestart}
+        onRestart={() => {
+          void onRestart();
+        }}
         onDismiss={close}
         busy={busy}
         state={modalState}
       />
     </div>,
-    document.body
+    document.body,
   );
 }

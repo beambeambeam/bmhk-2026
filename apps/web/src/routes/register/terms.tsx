@@ -56,9 +56,9 @@ function consentFieldMap(i: number) {
 }
 
 export const termsSchema = z.object({
+  TermOfServicesAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งานเว็บไซต์" }),
   codernTermsAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งาน Codern" }),
   competitionRulesAccepted: z.literal(true, { message: "กรุณายอมรับกฏกติกาการแข่งขัน" }),
-  TermOfServicesAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งานเว็บไซต์" }),
   guardianConsentObtained: z.boolean().optional(),
   healthDataConsent: z.boolean().optional(),
   privacyPolicyAccepted: z.literal(true, { message: "กรุณายอมรับนโยบายความเป็นส่วนตัว" }),

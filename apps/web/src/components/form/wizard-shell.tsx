@@ -4,7 +4,13 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { AuthTopBar } from "../account-menu";
-import { authLink, useAuthBackLink, useAuthNavigate, GateProvider, useGateValidate } from "./wizard-nav";
+import {
+  authLink,
+  useAuthBackLink,
+  useAuthNavigate,
+  GateProvider,
+  useGateValidate,
+} from "./wizard-nav";
 import { useRegisterForm } from "@/routes/register";
 
 export const TOTAL_STEPS = 5;
@@ -51,7 +57,9 @@ export default function WizardShell({
   const activeCrumb = step >= 4 ? 3 : Math.max(0, step - 1);
 
   return (
-    <>      {/*
+    <>
+      {" "}
+      {/*
        * ------------------------------------------------------------------ the page gutter
        *
        * `px-4 lg:px-0` had a hole in it exactly where the tablet band is. The column is capped
@@ -113,112 +121,111 @@ export default function WizardShell({
         <GateProvider>
           <div
             className="auth-sheet flex min-h-0 flex-1 flex-col bg-white shadow-soft"
-            style={{ padding: CARD_PAD, borderRadius: CARD_RADIUS }}
+            style={{ borderRadius: CARD_RADIUS, padding: CARD_PAD }}
           >
             <div className="flex min-h-0 flex-1 flex-col gap-[calc(23.584px_+_16.416*var(--fl))]">
               {/* title and crumbs sit flush in Figma — no gap between them */}
               <div className="flex shrink-0 flex-col items-start">
-              {/* 24 @402 → 32 @1440, and SemiBold at both ends. Verified on all four steps at
+                {/* 24 @402 → 32 @1440, and SemiBold at both ends. Verified on all four steps at
                   both anchors: `1214:189` / `1236:584` / `1243:1354` / `1243:2193` are 24/600 on
                   a 34-tall box at 1.4, `708:1281` / `708:1376` / `708:1566` / `708:1978` are
                   32/600 on 45. Nothing to change — recorded because the earlier pass set this
                   before the rate limit and it was carried as unconfirmed. */}
-              <h1 className="text-[calc(23.792px_+_8.208*var(--fl))] leading-[1.4] font-semibold">
-                ลงทะเบียนเข้าแข่งขัน
-              </h1>
-              {/*
-               * 14 @402 → 18 @1440, where this was `fl-18` — whose floor is 16, so the phone
-               * crumb rendered 2px over Figma. The 21-tall box the old note read as a 16 is
-               * 14 at Noto Sans Thai's own 1.5107 leading (21.15 / 14), not 16 at 1.3.
-               *
-               * Measured on all four steps at both anchors: `1214:191`…`1214:197`,
-               * `1236:586`…`1236:592`, `1243:1356`…`1243:1362`, `1243:2195`…`1243:2201` are all
-               * 14/400/21.15; `708:1283`…`708:1289`, `708:1378`…`708:1384`, `708:1568`…`708:1574`,
-               * `708:1980`…`708:1986` are all 18/400/27.2. Weight is Regular at BOTH anchors, so
-               * the absent weight class is the right answer and not an omission.
-               *
-               * `gap-2` stays flat: `1214:190` and `708:1282` are both 8.
-               */}
-              <nav
-                aria-label="ขั้นตอน"
-                className="flex flex-wrap items-start gap-2 text-[calc(13.896px_+_4.104*var(--fl))] leading-[normal]"
-              >
-                {CRUMBS.map((crumb, i) => (
-                  <span key={crumb} className="flex gap-2">
-                    <span className={i <= activeCrumb ? "text-ink" : "text-gray-2"}>{crumb}</span>
-                    {i < CRUMBS.length - 1 && <span className="text-gray-2">&gt;</span>}
-                  </span>
-                ))}
-              </nav>
-            </div>
-            {/*
-             * 6 tall on the 402 frames, 8 at 1440 — `h-2` was the 1440 value held flat.
-             * CONFIRMED on all four steps at both anchors: `1243:2154` (team), `1243:2147`
-             * (advisor), `1243:2140` (entrant), `1243:2202` (terms) are each 314x6 with `gap: 4`
-             * and `cornerRadius: 100`; `708:1290` / `708:1385` / `708:1575` / `708:1987` are each
-             * 960x8 with the same 4 and 100. So the height ramps and the gap and radius do not —
-             * `gap-1` and `rounded-[100px]` are both anchors, not one held flat. Segment fills
-             * are #e6e6e6 empty / #c0563e filled, and each segment is fully rounded.
-             */}
-            <div
-              className="wizard-progress flex h-[calc(5.948px_+_2.052*var(--fl))] gap-1 overflow-hidden rounded-[100px]"
-              role="progressbar"
-              aria-valuenow={step}
-              aria-valuemin={1}
-              aria-valuemax={totalStep}
-              aria-label={`ขั้นตอนที่ ${step} จาก ${totalStep}`}
-            >
-              {Array.from({ length: totalStep }, (_, i) => (
-                /*
-                 * The segment this step just reached sweeps in from its left edge instead of
-                 * already being filled — the beat that tells the user the step counted.
+                <h1 className="text-[calc(23.792px_+_8.208*var(--fl))] leading-[1.4] font-semibold">
+                  ลงทะเบียนเข้าแข่งขัน
+                </h1>
+                {/*
+                 * 14 @402 → 18 @1440, where this was `fl-18` — whose floor is 16, so the phone
+                 * crumb rendered 2px over Figma. The 21-tall box the old note read as a 16 is
+                 * 14 at Noto Sans Thai's own 1.5107 leading (21.15 / 14), not 16 at 1.3.
                  *
-                 * `key={i}`, deliberately, where it used to churn the active segment's key to
-                 * force a keyframe to replay. That replay was the bug: ถัดไป and ย้อนกลับ are
-                 * adjacent, and a double-tap restarted the sweep from zero while the segment
-                 * that was mid-sweep snapped to full. `data-filled` drives a *transition*
-                 * instead (see `.wizard-progress-fill` in auth-motion.css), which retargets
-                 * from wherever the fill currently is; `data-sweep` marks the one segment that
-                 * should still draw itself on from empty when the whole bar is freshly mounted,
-                 * which is every hop that crosses a route boundary.
-                 */
-                <span
-                  key={i}
-                  data-filled={i < step}
-                  data-sweep={i === step - 1}
-                  data-sweep-reverse={i === step}
-                  className="wizard-progress-fill h-full flex-1 rounded-full bg-[#e6e6e6]"
-                />
-              ))}
+                 * Measured on all four steps at both anchors: `1214:191`…`1214:197`,
+                 * `1236:586`…`1236:592`, `1243:1356`…`1243:1362`, `1243:2195`…`1243:2201` are all
+                 * 14/400/21.15; `708:1283`…`708:1289`, `708:1378`…`708:1384`, `708:1568`…`708:1574`,
+                 * `708:1980`…`708:1986` are all 18/400/27.2. Weight is Regular at BOTH anchors, so
+                 * the absent weight class is the right answer and not an omission.
+                 *
+                 * `gap-2` stays flat: `1214:190` and `708:1282` are both 8.
+                 */}
+                <nav
+                  aria-label="ขั้นตอน"
+                  className="flex flex-wrap items-start gap-2 text-[calc(13.896px_+_4.104*var(--fl))] leading-[normal]"
+                >
+                  {CRUMBS.map((crumb, i) => (
+                    <span key={crumb} className="flex gap-2">
+                      <span className={i <= activeCrumb ? "text-ink" : "text-gray-2"}>{crumb}</span>
+                      {i < CRUMBS.length - 1 && <span className="text-gray-2">&gt;</span>}
+                    </span>
+                  ))}
+                </nav>
+              </div>
+              {/*
+               * 6 tall on the 402 frames, 8 at 1440 — `h-2` was the 1440 value held flat.
+               * CONFIRMED on all four steps at both anchors: `1243:2154` (team), `1243:2147`
+               * (advisor), `1243:2140` (entrant), `1243:2202` (terms) are each 314x6 with `gap: 4`
+               * and `cornerRadius: 100`; `708:1290` / `708:1385` / `708:1575` / `708:1987` are each
+               * 960x8 with the same 4 and 100. So the height ramps and the gap and radius do not —
+               * `gap-1` and `rounded-[100px]` are both anchors, not one held flat. Segment fills
+               * are #e6e6e6 empty / #c0563e filled, and each segment is fully rounded.
+               */}
+              <div
+                className="wizard-progress flex h-[calc(5.948px_+_2.052*var(--fl))] gap-1 overflow-hidden rounded-[100px]"
+                role="progressbar"
+                aria-valuenow={step}
+                aria-valuemin={1}
+                aria-valuemax={totalStep}
+                aria-label={`ขั้นตอนที่ ${step} จาก ${totalStep}`}
+              >
+                {Array.from({ length: totalStep }, (_, i) => (
+                  /*
+                   * The segment this step just reached sweeps in from its left edge instead of
+                   * already being filled — the beat that tells the user the step counted.
+                   *
+                   * `key={i}`, deliberately, where it used to churn the active segment's key to
+                   * force a keyframe to replay. That replay was the bug: ถัดไป and ย้อนกลับ are
+                   * adjacent, and a double-tap restarted the sweep from zero while the segment
+                   * that was mid-sweep snapped to full. `data-filled` drives a *transition*
+                   * instead (see `.wizard-progress-fill` in auth-motion.css), which retargets
+                   * from wherever the fill currently is; `data-sweep` marks the one segment that
+                   * should still draw itself on from empty when the whole bar is freshly mounted,
+                   * which is every hop that crosses a route boundary.
+                   */
+                  <span
+                    key={i}
+                    data-filled={i < step}
+                    data-sweep={i === step - 1}
+                    data-sweep-reverse={i === step}
+                    className="wizard-progress-fill h-full flex-1 rounded-full bg-[#e6e6e6]"
+                  />
+                ))}
+              </div>
+              <div
+                className="wizard-body flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-contain"
+                style={{
+                  marginInline: `calc(-1 * ${CARD_PAD})`,
+                  paddingInline: CARD_PAD,
+                }}
+              >
+                {children}
+              </div>
             </div>
+
             <div
-              className="wizard-body flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-contain"
+              className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-white"
               style={{
+                borderBottomLeftRadius: CARD_RADIUS,
+                borderBottomRightRadius: CARD_RADIUS,
+                marginBottom: `calc(-1 * ${CARD_PAD})`,
                 marginInline: `calc(-1 * ${CARD_PAD})`,
-                paddingInline: CARD_PAD,
+                marginTop: CARD_PAD,
+                padding: CARD_PAD,
               }}
             >
-              {children}
+              {actions}
             </div>
           </div>
-
-          <div
-            className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-white"
-            style={{
-              marginInline: `calc(-1 * ${CARD_PAD})`,
-              marginBottom: `calc(-1 * ${CARD_PAD})`,
-              marginTop: CARD_PAD,
-              padding: CARD_PAD,
-              borderBottomLeftRadius: CARD_RADIUS,
-              borderBottomRightRadius: CARD_RADIUS,
-            }}
-          >
-            {actions}
-          </div>
-        </div>
-      </GateProvider>
-    </div>
-
+        </GateProvider>
+      </div>
       {overlay}
     </>
   );
@@ -339,7 +346,9 @@ export function NextButton({ to, label = "ถัดไป" }: { to: string; labe
       {...authLink(to, "forward")}
       aria-label={label}
       onClick={(e) => {
-        if (!validate()) e.preventDefault();
+        if (!validate()) {
+          e.preventDefault();
+        }
       }}
       className={`${STEP_BUTTON} ${STEP_PAD} ml-auto sm:pr-4 sm:pl-6`}
     >
@@ -382,7 +391,9 @@ export function SubmitButton({ to, label }: { to: string; label: string }) {
       data-busy={busy}
       aria-busy={busy}
       onClick={() => {
-        if (!validate()) return;
+        if (!validate()) {
+          return;
+        }
         setBusy(true);
         void form.handleSubmit();
         void go(to, "submit");

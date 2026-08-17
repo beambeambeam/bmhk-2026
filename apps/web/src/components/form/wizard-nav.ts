@@ -6,7 +6,17 @@
 /* oxlint-disable no-unsafe-argument */
 /* oxlint-disable no-unsafe-assignment */
 /* oxlint-disable no-floating-promises */
-import { useState, useCallback, createContext, createElement, useContext, useId, useRef, useLayoutEffect, useMemo } from "react";
+import {
+  useState,
+  useCallback,
+  createContext,
+  createElement,
+  useContext,
+  useId,
+  useRef,
+  useLayoutEffect,
+  useMemo,
+} from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { AnyRouter, ParsedLocation, LinkOptions } from "@tanstack/react-router";

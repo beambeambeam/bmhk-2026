@@ -610,15 +610,15 @@ function FieldShell({
   className,
   children,
   gate,
-}: Omit<BaseProps, "value" | "onChange" | "error"> & { 
+}: Omit<BaseProps, "value" | "onChange" | "error"> & {
   children: ReactNode;
-  gate?: { invalid: boolean; message: string | null; messageId: string }
+  gate?: { invalid: boolean; message: string | null; messageId: string };
 }) {
   return (
     <label className={`flex flex-col items-start gap-2 w-full ${className ?? ""}`}>
       <Label required={required}>{label}</Label>
       {children}
-      {gate?.message && (
+      {gate?.message !== null && gate?.message !== undefined && gate.message !== "" && (
         <span id={gate.messageId} className="text-sm font-medium text-brand-red mt-1">
           {gate.message}
         </span>
@@ -627,22 +627,31 @@ function FieldShell({
   );
 }
 
-export function TextField({ label, required, placeholder, className, value, onChange, error }: BaseProps) {
-  const gate = useGateField<HTMLInputElement>(error ?? null);
-  
+export function TextField({
+  label,
+  required,
+  placeholder,
+  className,
+  value,
+  onChange,
+  error,
+}: BaseProps) {
+  const { ref, invalid, message, messageId } = useGateField<HTMLInputElement>(error ?? null);
+  const gate = { invalid, message, messageId };
+
   return (
     <FieldShell label={label} required={required} className={className} gate={gate}>
       <input
-        ref={gate.ref}
+        ref={ref}
         type="text"
         placeholder={placeholder}
-        className={`${BOX} ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
+        className={`${BOX} ${invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
         }}
-        aria-invalid={gate.invalid}
-        aria-describedby={gate.message ? gate.messageId : undefined}
+        aria-invalid={invalid}
+        aria-describedby={message !== null && message !== "" ? messageId : undefined}
       />
     </FieldShell>
   );
@@ -659,7 +668,8 @@ export function SchoolAutocompleteField({
 }: BaseProps) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
-  const gate = useGateField<HTMLInputElement>(error ?? null);
+  const { ref, invalid, message, messageId } = useGateField<HTMLInputElement>(error ?? null);
+  const gate = { invalid, message, messageId };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -693,12 +703,17 @@ export function SchoolAutocompleteField({
   });
 
   return (
-    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`} gate={gate}>
+    <FieldShell
+      label={label}
+      required={required}
+      className={`relative ${className ?? ""}`}
+      gate={gate}
+    >
       <input
-        ref={gate.ref}
+        ref={ref}
         type="text"
         placeholder={placeholder}
-        className={`${BOX} ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
+        className={`${BOX} ${invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -709,11 +724,13 @@ export function SchoolAutocompleteField({
         }}
         onBlur={() => {
           // Delay closing so click on suggestion registers
-          setTimeout(() => setIsOpen(false), 200);
+          setTimeout(() => {
+            setIsOpen(false);
+          }, 200);
         }}
         autoComplete="off"
-        aria-invalid={gate.invalid}
-        aria-describedby={gate.message ? gate.messageId : undefined}
+        aria-invalid={invalid}
+        aria-describedby={message !== null && message !== "" ? messageId : undefined}
       />
       {isOpen &&
         schools.length > 0 && (
@@ -783,22 +800,31 @@ const NATIVE_PICKER = [
 ].join(" ");
 
 // eslint-disable-next-line func-style
-export function DateField({ label, required, placeholder, className, value, onChange, error }: BaseProps) {
-  const gate = useGateField<HTMLInputElement>(error ?? null);
+export function DateField({
+  label,
+  required,
+  placeholder,
+  className,
+  value,
+  onChange,
+  error,
+}: BaseProps) {
+  const { ref, invalid, message, messageId } = useGateField<HTMLInputElement>(error ?? null);
+  const gate = { invalid, message, messageId };
   return (
     <FieldShell label={label} required={required} className={className} gate={gate}>
       <span className="relative w-full">
         <input
-          ref={gate.ref}
+          ref={ref}
           type="date"
           placeholder={placeholder}
-          className={`${BOX} ${TRAIL} ${NATIVE_PICKER} ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
+          className={`${BOX} ${TRAIL} ${NATIVE_PICKER} ${invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
           }}
-          aria-invalid={gate.invalid}
-          aria-describedby={gate.message ? gate.messageId : undefined}
+          aria-invalid={invalid}
+          aria-describedby={message !== null && message !== "" ? messageId : undefined}
         />
         <img
           src={`${ICON}e2f35dcd983d5c03887288d750b8cab9ac1c240b.svg`}
@@ -813,20 +839,34 @@ export function DateField({ label, required, placeholder, className, value, onCh
 
 /** The only multi-line control in the design is 100 tall and top-aligned. */
 // eslint-disable-next-line func-style
-export function TextArea({ label, required, placeholder, className, value, onChange, error }: BaseProps) {
-  const gate = useGateField<HTMLTextAreaElement>(error ?? null);
+export function TextArea({
+  label,
+  required,
+  placeholder,
+  className,
+  value,
+  onChange,
+  error,
+}: BaseProps) {
+  const { ref, invalid, message, messageId } = useGateField<HTMLTextAreaElement>(error ?? null);
+  const gate = { invalid, message, messageId };
   return (
-    <FieldShell label={label} required={required} className={`w-full ${className ?? ""}`} gate={gate}>
+    <FieldShell
+      label={label}
+      required={required}
+      className={`w-full ${className ?? ""}`}
+      gate={gate}
+    >
       <textarea
-        ref={gate.ref}
+        ref={ref}
         placeholder={placeholder}
-        className={`${BOX} h-[100px] resize-y ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
+        className={`${BOX} h-[100px] resize-y ${invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
         }}
-        aria-invalid={gate.invalid}
-        aria-describedby={gate.message ? gate.messageId : undefined}
+        aria-invalid={invalid}
+        aria-describedby={message !== null && message !== "" ? messageId : undefined}
       />
     </FieldShell>
   );
@@ -846,12 +886,18 @@ export function SelectField({
   error,
 }: BaseProps & { options?: string[] }) {
   const [isOpen, setIsOpen] = useState(false);
-  const gate = useGateField<HTMLButtonElement>(error ?? null);
+  const { ref, invalid, message, messageId } = useGateField<HTMLButtonElement>(error ?? null);
+  const gate = { invalid, message, messageId };
 
   return (
-    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`} gate={gate}>
+    <FieldShell
+      label={label}
+      required={required}
+      className={`relative ${className ?? ""}`}
+      gate={gate}
+    >
       <button
-        ref={gate.ref}
+        ref={ref}
         type="button"
         onBlur={() => {
           setIsOpen(false);
@@ -860,9 +906,8 @@ export function SelectField({
           e.preventDefault();
           setIsOpen(!isOpen);
         }}
-        className={`${BOX} ${TRAIL} appearance-none bg-white text-left relative block ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
-        aria-invalid={gate.invalid}
-        aria-describedby={gate.message ? gate.messageId : undefined}
+        className={`${BOX} ${TRAIL} appearance-none bg-white text-left relative block ${invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
+        aria-describedby={message !== null && message !== "" ? messageId : undefined}
       >
         <span className={`block w-full truncate ${value ? "text-ink" : "text-gray-1"}`}>
           {value || placeholder}

@@ -20,6 +20,8 @@ export interface PolicyDocument {
   effective?: string;
   /** Renders the ดาวน์โหลด button in the footer. */
   downloadable?: boolean;
+  /** PDF download URL for this document */
+  downloadUrl?: string;
   sections: { title: string; body: PolicyBlock[] }[];
 }
 
@@ -40,6 +42,7 @@ const EFFECTIVE = "มีผลบังคับใช้ตั้งแต่�
 
 /** Figma node 708:2169 — Competition Rules Modal. */
 export const COMPETITION_RULES: PolicyDocument = {
+  downloadUrl: "/files/BH26 - ขอบเขตเนื้อหาที่ใช้ในการแข่งขัน.pdf",
   downloadable: true,
   effective: EFFECTIVE,
   icon: "/assets/figma/176d32b711d514c6bbb10d973644f3085a117ce1.svg",
@@ -50,6 +53,7 @@ export const COMPETITION_RULES: PolicyDocument = {
 
 /** Figma node 708:2047 shell + node 719:36 content — Privacy Policy Modal. */
 export const PRIVACY_POLICY: PolicyDocument = {
+  downloadUrl: "/files/BH26 - นโยบายความเป็นส่วนตัว.pdf",
   downloadable: true,
   effective: EFFECTIVE,
   icon: "/assets/figma/8198de2c60e10732616a8a9af8fed56ad7396820.svg",

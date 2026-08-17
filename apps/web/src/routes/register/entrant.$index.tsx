@@ -260,10 +260,21 @@ function EntrantNextButton({
             if (isLast) {
               const terms = form.getFieldValue("terms");
               const validTermsData = termsSchema.parse(terms);
-              const finalConsentsResult = await client.teamConsents.create({
-                teamId,
-                ...validTermsData,
-              });
+              const { TermOfServicesAccepted, ...apiConsents } = validTermsData;
+              
+              let finalConsentsResult;
+              try {
+                finalConsentsResult = await client.teamConsents.update({
+                  teamId,
+                  data: apiConsents,
+                });
+              } catch {
+                finalConsentsResult = await client.teamConsents.create({
+                  teamId,
+                  ...apiConsents,
+                });
+              }
+              
               form.setFieldValue("terms", {
                 ...terms,
                 ...finalConsentsResult,

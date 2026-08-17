@@ -122,7 +122,36 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             validData.teamSize !== initialTeam.teamSize ||
             team.photoFile !== null;
 
+          const saveConsents = async (teamId: string, isUpdate: boolean) => {
+            const terms = form.getFieldValue("terms");
+            const consentData = {
+              codernTermsAccepted: terms.codernTermsAccepted ?? false,
+              competitionRulesAccepted: terms.competitionRulesAccepted ?? false,
+              guardianConsentObtained: false,
+              healthDataConsent: terms.healthDataConsent ?? false,
+              privacyPolicyAccepted: terms.privacyPolicyAccepted ?? false,
+              publicityMediaConsent: terms.publicityMediaConsent ?? false,
+            };
+
+            try {
+              if (isUpdate) {
+                await client.teamConsents.update({
+                  teamId,
+                  data: consentData,
+                });
+              } else {
+                await client.teamConsents.create({
+                  teamId,
+                  ...consentData,
+                });
+              }
+            } catch (error) {
+              console.error("Error saving team consents", error);
+            }
+          };
+
           if (!isDirty && status?.teamId != null) {
+            await saveConsents(status.teamId, true);
             void go(to, "forward");
             return;
           }
@@ -169,6 +198,8 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             school: finalResult.school,
             teamSize: finalResult.memberCount,
           });
+
+          await saveConsents(finalResult.id, status?.teamId != null);
 
           void go(to, "forward");
         } catch (error) {

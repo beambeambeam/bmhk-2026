@@ -72,6 +72,7 @@ export interface consentFormData {
   codernTermsAccepted: boolean;
   publicityMediaConsent: boolean;
   healthDataConsent: boolean;
+  guardianConsentObtained: boolean;
 }
 
 export interface RegistrationFormData {
@@ -391,8 +392,15 @@ function createFormOptions(
       },
       terms: {
         codernTermsAccepted: getBool(termsData, "codernTermsAccepted", false),
-        TermOfServicesAccepted: getBool(termsData, "TermsOfServicesAccepted", false),
+        TermOfServicesAccepted: getBool(termsData, "TermsOfServicesAccepted", 
+          termsData != null ? (
+            getBool(termsData, "codernTermsAccepted", false) &&
+            getBool(termsData, "competitionRulesAccepted", false) &&
+            getBool(termsData, "privacyPolicyAccepted", false)
+          ) : false
+        ),
         competitionRulesAccepted: getBool(termsData, "competitionRulesAccepted", false),
+        guardianConsentObtained: getBool(termsData, "guardianConsentObtained", false),
         healthDataConsent: getBool(termsData, "healthDataConsent", true),
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
         publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),

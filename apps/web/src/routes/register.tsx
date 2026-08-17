@@ -483,10 +483,16 @@ export function RegisterLayout() {
     defaultValues: formOptions.defaultValues as RegistrationFormData,
   });
 
+  const isGateOrResult =
+    location.pathname === "/register" ||
+    location.pathname === "/register/" ||
+    location.pathname.includes("/success") ||
+    location.pathname.includes("/error");
+
   return (
     <RegisterFormContext.Provider value={form}>
       <div className="relative flex h-dvh flex-col overflow-clip bg-[#fefdfc]">
-        <WizardBackdrop withTomatoes={!isTerms} />
+        {!isGateOrResult && <WizardBackdrop withTomatoes={!isTerms} />}
         <ScrollEdgeEffect className="fixed inset-x-0 top-0 z-0 h-[calc(114px_+_46*var(--fl))]" />
         <Outlet />
         <ResumeRegistrationModal />

@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
-import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { WizardBackdrop } from "@/components/auth-backdrop";
+import ScrollEdgeEffect from "@/components/scroll-edge-effect";
 import { useForm } from "@tanstack/react-form";
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { client } from "@bmhk-2026/client/orpc";
@@ -418,6 +420,8 @@ export function RegisterLayout() {
     Route.useLoaderData();
   const session = useUserSession();
   const navigate = useNavigate();
+  const location = useRouterState({ select: (s) => s.location });
+  const isTerms = location.pathname.includes("/terms");
 
   useEffect(() => {
     // if (!session.isPending && !session.data) {
@@ -464,7 +468,11 @@ export function RegisterLayout() {
 
   return (
     <RegisterFormContext.Provider value={form}>
-      <Outlet />
+      <div className="relative flex h-dvh flex-col overflow-clip bg-[#fefdfc]">
+        <WizardBackdrop withTomatoes={!isTerms} />
+        <ScrollEdgeEffect className="fixed inset-x-0 top-0 z-0 h-[calc(114px_+_46*var(--fl))]" />
+        <Outlet />
+      </div>
     </RegisterFormContext.Provider>
   );
 }

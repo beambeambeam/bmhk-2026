@@ -431,7 +431,8 @@ export default function TeamStep() {
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
               )}
             />
             <form.Field
@@ -446,7 +447,8 @@ export default function TeamStep() {
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
               )}
             />
 

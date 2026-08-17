@@ -4,14 +4,15 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { AuthTopBar } from "../account-menu";
-import { WizardBackdrop } from "../auth-backdrop";
-import ScrollEdgeEffect from "../scroll-edge-effect";
-import { authLink, useAuthBackLink, useAuthNavigate } from "./wizard-nav";
+import { authLink, useAuthBackLink, useAuthNavigate, GateProvider, useGateValidate } from "./wizard-nav";
 import { useRegisterForm } from "@/routes/register";
 
 export const TOTAL_STEPS = 5;
 
 const CRUMBS = ["เงื่อนไข", "ข้อมูลทีม", "อาจารย์", "ผู้เข้าแข่งขัน"];
+
+const CARD_PAD = "calc(19.896px + 4.104*var(--fl))";
+const CARD_RADIUS = "24px";
 
 /**
  * Figma 708:1255 and friends. The wizard sits on #fefdfc inside a 1440 frame with 200
@@ -26,7 +27,6 @@ export default function WizardShell({
   children,
   actions,
   overlay,
-  withTomatoes = true,
   receded = false,
 }: {
   totalStep?: number;
@@ -40,8 +40,6 @@ export default function WizardShell({
    * `fixed inset-0` scrim down to the form column.
    */
   overlay?: ReactNode;
-  /** The terms step drops the tomato cluster. */
-  withTomatoes?: boolean;
   /**
    * True while an overlay owns the screen. Apple's rule for a modal task: dim to focus,
    * and push the parent layer back so the two read as separate planes. It rides the
@@ -53,17 +51,7 @@ export default function WizardShell({
   const activeCrumb = step >= 4 ? 3 : Math.max(0, step - 1);
 
   return (
-    /*
-     * `overflow-clip`, not `overflow-hidden`: the backdrop's decorations bleed past the
-     * edge and something has to clip them, but `hidden` would make this root a scroll
-     * container that a touch drag can still pan sideways. `clip` creates no scrollport,
-     * and unlike a transform it does not become a containing block for the overlay's
-     * `fixed` scrim.
-     */
-    <div className="relative flex min-h-dvh flex-col overflow-clip bg-[#fefdfc]">
-      <WizardBackdrop withTomatoes={withTomatoes} />
-
-      {/*
+    <>      {/*
        * ------------------------------------------------------------------ the page gutter
        *
        * `px-4 lg:px-0` had a hole in it exactly where the tablet band is. The column is capped
@@ -83,7 +71,7 @@ export default function WizardShell({
        */}
       <div
         data-recede={receded}
-        className="auth-recede relative z-10 mx-auto flex w-full max-w-[1088px] flex-1 flex-col gap-[calc(23.584px_+_16.416*var(--fl))] px-6 pt-[calc(23.06px_+_36.94*var(--fl))] pb-[calc(24.624px_-_24.624*var(--fl))]"
+        className="auth-recede relative z-10 mx-auto flex w-full max-w-[1088px] flex-1 min-h-0 flex-col gap-[calc(23.584px_+_16.416*var(--fl))] px-6 pt-[calc(23.06px_+_36.94*var(--fl))] pb-[calc(24.624px_-_24.624*var(--fl))]"
       >
         {/*
          * `auth-topbar` / `wizard-progress` / `wizard-body` are view-transition names
@@ -118,25 +106,18 @@ export default function WizardShell({
          * to the new step's height without hanging out of a plate still resizing.
          */}
         {/*
-         * PADDING 20 @402 → 40 @1440, where this was 24 → 40. The old note cited `1297:1463`
-         * for the 24 and `1297:1463` is in fact 20 — as is every other phone card in the flow:
-         * `1214:187` (team), `1236:582` (advisor), `1243:1352` (entrant), `1243:2191` (terms).
-         * All five say 20; `708:1279` / `708:1374` / `708:1564` / `708:1976` all say 40. The
-         * action bar's own negative margin below is the same expression so the two cannot drift.
-         *
-         * RADIUS is a flat 24 and that is not a held 1440 value — the five phone cards and the
-         * four desktop ones are all `cornerRadius: 24`. (The phone PAGE frame `1214:157` and its
-         * top bar `1214:177` are 20, which is what the ramp on `AuthTopBar`'s plate is for; the
-         * form card is not.)
-         *
-         * GAP was `gap-6 lg:gap-10` — the two anchors held flat with a step at 1024, i.e. a hole
-         * in the tablet band of exactly the kind the gutter note above describes. Both ends are
-         * measured (24 on all five phone cards, 40 on all four desktop ones), so it ramps.
+         * PADDING is `CARD_PAD` — see its note. It is now a real four-sided inset rather than
+         * `p-… pb-0`: the bottom used to be handed to the action bar, which is exactly how the
+         * pill ended up on a different inset from the fields.
          */}
-        <div className="auth-sheet flex flex-1 flex-col rounded-[24px] bg-white p-[calc(19.48px_+_20.52*var(--fl))] pb-0 shadow-soft lg:min-h-[832px] lg:pb-0">
-          <div className="flex flex-1 flex-col gap-[calc(23.584px_+_16.416*var(--fl))]">
-            {/* title and crumbs sit flush in Figma — no gap between them */}
-            <div className="flex flex-col items-start">
+        <GateProvider>
+          <div
+            className="auth-sheet flex min-h-0 flex-1 flex-col bg-white shadow-soft"
+            style={{ padding: CARD_PAD, borderRadius: CARD_RADIUS }}
+          >
+            <div className="flex min-h-0 flex-1 flex-col gap-[calc(23.584px_+_16.416*var(--fl))]">
+              {/* title and crumbs sit flush in Figma — no gap between them */}
+              <div className="flex shrink-0 flex-col items-start">
               {/* 24 @402 → 32 @1440, and SemiBold at both ends. Verified on all four steps at
                   both anchors: `1214:189` / `1236:584` / `1243:1354` / `1243:2193` are 24/600 on
                   a 34-tall box at 1.4, `708:1281` / `708:1376` / `708:1566` / `708:1978` are
@@ -210,48 +191,36 @@ export default function WizardShell({
                 />
               ))}
             </div>
-            <div className="wizard-body flex flex-1 flex-col">{children}</div>
+            <div
+              className="wizard-body flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-contain"
+              style={{
+                marginInline: `calc(-1 * ${CARD_PAD})`,
+                paddingInline: CARD_PAD,
+              }}
+            >
+              {children}
+            </div>
           </div>
 
-          {/*
-           * The bar cancels the card's side padding to sit on Figma's own 20 inset, so its
-           * negative margin has to BE the card's padding ramp rather than a `-mx-6 lg:-mx-10`
-           * pair that only agreed with it at two widths. Written as a negative inside the
-           * calc() rather than as Tailwind's `-mx-[…]` so the sign is in the value.
-           *
-           * `flex-wrap` is a safety net, not a layout: at 375 the terms step's pair is a 24px
-           * icon plus "ลงทะเบียนเข้าแข่งขัน", which is within a few px of the 293 this row has,
-           * and a wrap is a far better failure than a pill hanging out of the card.
-           */}
-          {/*
-           * The bar's OWN padding is a flat 20, not a 16 → 20 ramp: `1214:249` (team),
-           * `1297:103` (advisor), `1297:93` (entrant) and `1243:2371` (terms) all inset by 20 on
-           * the 402 frame, exactly as `708:1341` / `708:1527` / `708:1733` / `708:2011` do at
-           * 1440. The arithmetic confirms it twice over — the phone bar is 76 tall around a
-           * 36-tall pill (20 + 36 + 20) and the desktop bar 100 around a 60 (20 + 60 + 20).
-           */}
-          <div className="mt-5 mx-[calc(-19.48px_-_20.52*var(--fl))] flex flex-wrap items-center justify-between gap-4 rounded-b-[24px] bg-white p-5">
+          <div
+            className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-white"
+            style={{
+              marginInline: `calc(-1 * ${CARD_PAD})`,
+              marginBottom: `calc(-1 * ${CARD_PAD})`,
+              marginTop: CARD_PAD,
+              padding: CARD_PAD,
+              borderBottomLeftRadius: CARD_RADIUS,
+              borderBottomRightRadius: CARD_RADIUS,
+            }}
+          >
             {actions}
           </div>
         </div>
-      </div>
-
-      {/*
-       * z-0, i.e. under the z-10 content wrapper, on every step. It used to sit at z-30 on
-       * the first four, on the reading that Figma softens the top bar too — but 708:1255
-       * renders that bar crisp, and over the live page the band washed the logo and the
-       * account chip out at scroll 0, before anything had even scrolled under them. What
-       * the effect is for is the decorative backdrop passing beneath the chrome.
-       */}
-      {/*
-       * Height tracks the top bar it softens — 114px at 375 up to Figma's 160 at 1440. Held at
-       * a flat 160 it overhung the bar by 46px on a phone and the ramp's tail ended on a hard
-       * line across the form below.
-       */}
-      <ScrollEdgeEffect className="fixed inset-x-0 top-0 z-0 h-[calc(114px_+_46*var(--fl))]" />
+      </GateProvider>
+    </div>
 
       {overlay}
-    </div>
+    </>
   );
 }
 
@@ -299,8 +268,10 @@ export default function WizardShell({
  *
  * RADIUS is a flat 12 and that is both anchors, not one held: every pill above is `r: 12`.
  */
-export const STEP_BUTTON =
-  "mm-press flex items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))] rounded-[12px] bg-brand-red py-[calc(7.792px_+_8.208*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] font-medium text-white transition-opacity hover:opacity-90";
+export const STEP_BUTTON_BASE =
+  "flex items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))] rounded-[12px] bg-brand-red py-[calc(7.792px_+_8.208*var(--fl))] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] font-medium text-white transition-opacity";
+
+export const STEP_BUTTON = `mm-press ${STEP_BUTTON_BASE} hover:opacity-90`;
 
 /**
  * The arrow the two navigation pills carry: 20 on the 402 frames (`1297:1569` back,
@@ -361,10 +332,15 @@ export function BackButton({ to }: { to: string }) {
 }
 
 export function NextButton({ to, label = "ถัดไป" }: { to: string; label?: string }) {
+  const validate = useGateValidate();
+
   return (
     <Link
       {...authLink(to, "forward")}
       aria-label={label}
+      onClick={(e) => {
+        if (!validate()) e.preventDefault();
+      }}
       className={`${STEP_BUTTON} ${STEP_PAD} ml-auto sm:pr-4 sm:pl-6`}
     >
       <span className={STEP_GLYPH}>{label}</span>
@@ -398,6 +374,7 @@ export function SubmitButton({ to, label }: { to: string; label: string }) {
   const form = useRegisterForm();
   const go = useAuthNavigate();
   const [busy, setBusy] = useState(false);
+  const validate = useGateValidate();
 
   return (
     <button
@@ -405,6 +382,7 @@ export function SubmitButton({ to, label }: { to: string; label: string }) {
       data-busy={busy}
       aria-busy={busy}
       onClick={() => {
+        if (!validate()) return;
         setBusy(true);
         void form.handleSubmit();
         void go(to, "submit");

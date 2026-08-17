@@ -96,6 +96,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -111,6 +112,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatThaiOnly(val));
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -125,6 +127,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatThaiOnly(val));
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -140,6 +143,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatThaiOnly(val));
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -158,6 +162,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -173,6 +178,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatEnglishOnly(val));
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -187,6 +193,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatEnglishOnly(val));
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -202,6 +209,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatEnglishOnly(val));
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -223,7 +231,8 @@ export default function PersonFields({
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
               )}
             </form.Field>
           )}
@@ -237,6 +246,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -251,6 +261,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -265,6 +276,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
               />
             )}
           </form.Field>
@@ -279,7 +291,8 @@ export default function PersonFields({
               onChange={(val) => {
                 field.handleChange(val);
               }}
-            />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
           )}
         </form.Field>
       </div>
@@ -314,7 +327,8 @@ export function ContactFields({
               onChange={(val) => {
                 field.handleChange(val);
               }}
-            />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
           )}
         </form.Field>
 
@@ -329,7 +343,8 @@ export function ContactFields({
               onChange={(val) => {
                 field.handleChange(formatPhone(val));
               }}
-            />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
           )}
         </form.Field>
         <form.Field name={`${person}.lineId`}>
@@ -342,7 +357,8 @@ export function ContactFields({
               onChange={(val) => {
                 field.handleChange(val);
               }}
-            />
+                error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              />
           )}
         </form.Field>
       </div>

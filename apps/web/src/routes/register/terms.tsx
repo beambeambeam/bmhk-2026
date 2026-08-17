@@ -548,7 +548,6 @@ export default function TermsStep() {
     <WizardShell
       totalStep={((form.getFieldValue("team.teamSize") as number | null | undefined) ?? 2) + 3}
       step={1}
-      withTomatoes={false}
       receded={openDoc !== null}
       actions={
         <>

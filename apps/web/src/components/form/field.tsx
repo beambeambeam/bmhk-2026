@@ -10,6 +10,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent, ReactNode } from "react";
 import { useToast } from "../toast/store";
 import { useQuery } from "@tanstack/react-query";
+import { useGateField } from "./wizard-nav";
 
 /**
  * Figma's field primitives (708:1311 and its siblings). Every control is a rounded-12
@@ -599,6 +600,7 @@ interface BaseProps {
   className?: string;
   value: string;
   onChange: (value: string) => void;
+  error?: string | null;
 }
 
 /** Figma's field group: label over control on an 8 gap. */
@@ -607,26 +609,40 @@ function FieldShell({
   required,
   className,
   children,
-}: Omit<BaseProps, "value" | "onChange"> & { children: ReactNode }) {
+  gate,
+}: Omit<BaseProps, "value" | "onChange" | "error"> & { 
+  children: ReactNode;
+  gate?: { invalid: boolean; message: string | null; messageId: string }
+}) {
   return (
-    <label className={`flex flex-col items-start gap-2 ${className ?? ""}`}>
+    <label className={`flex flex-col items-start gap-2 w-full ${className ?? ""}`}>
       <Label required={required}>{label}</Label>
       {children}
+      {gate?.message && (
+        <span id={gate.messageId} className="text-sm font-medium text-brand-red mt-1">
+          {gate.message}
+        </span>
+      )}
     </label>
   );
 }
 
-export function TextField({ label, required, placeholder, className, value, onChange }: BaseProps) {
+export function TextField({ label, required, placeholder, className, value, onChange, error }: BaseProps) {
+  const gate = useGateField<HTMLInputElement>(error ?? null);
+  
   return (
-    <FieldShell label={label} required={required} className={className}>
+    <FieldShell label={label} required={required} className={className} gate={gate}>
       <input
+        ref={gate.ref}
         type="text"
         placeholder={placeholder}
-        className={BOX}
+        className={`${BOX} ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
         }}
+        aria-invalid={gate.invalid}
+        aria-describedby={gate.message ? gate.messageId : undefined}
       />
     </FieldShell>
   );
@@ -639,9 +655,11 @@ export function SchoolAutocompleteField({
   className,
   value,
   onChange,
+  error,
 }: BaseProps) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
+  const gate = useGateField<HTMLInputElement>(error ?? null);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -675,11 +693,12 @@ export function SchoolAutocompleteField({
   });
 
   return (
-    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`}>
+    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`} gate={gate}>
       <input
+        ref={gate.ref}
         type="text"
         placeholder={placeholder}
-        className={BOX}
+        className={`${BOX} ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -689,9 +708,12 @@ export function SchoolAutocompleteField({
           setIsOpen(true);
         }}
         onBlur={() => {
-          setIsOpen(false);
+          // Delay closing so click on suggestion registers
+          setTimeout(() => setIsOpen(false), 200);
         }}
         autoComplete="off"
+        aria-invalid={gate.invalid}
+        aria-describedby={gate.message ? gate.messageId : undefined}
       />
       {isOpen &&
         schools.length > 0 && (
@@ -761,18 +783,22 @@ const NATIVE_PICKER = [
 ].join(" ");
 
 // eslint-disable-next-line func-style
-export function DateField({ label, required, placeholder, className, value, onChange }: BaseProps) {
+export function DateField({ label, required, placeholder, className, value, onChange, error }: BaseProps) {
+  const gate = useGateField<HTMLInputElement>(error ?? null);
   return (
-    <FieldShell label={label} required={required} className={className}>
+    <FieldShell label={label} required={required} className={className} gate={gate}>
       <span className="relative w-full">
         <input
+          ref={gate.ref}
           type="date"
           placeholder={placeholder}
-          className={`${BOX} ${TRAIL} ${NATIVE_PICKER}`}
+          className={`${BOX} ${TRAIL} ${NATIVE_PICKER} ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
           }}
+          aria-invalid={gate.invalid}
+          aria-describedby={gate.message ? gate.messageId : undefined}
         />
         <img
           src={`${ICON}e2f35dcd983d5c03887288d750b8cab9ac1c240b.svg`}
@@ -787,16 +813,20 @@ export function DateField({ label, required, placeholder, className, value, onCh
 
 /** The only multi-line control in the design is 100 tall and top-aligned. */
 // eslint-disable-next-line func-style
-export function TextArea({ label, required, placeholder, className, value, onChange }: BaseProps) {
+export function TextArea({ label, required, placeholder, className, value, onChange, error }: BaseProps) {
+  const gate = useGateField<HTMLTextAreaElement>(error ?? null);
   return (
-    <FieldShell label={label} required={required} className={`w-full ${className ?? ""}`}>
+    <FieldShell label={label} required={required} className={`w-full ${className ?? ""}`} gate={gate}>
       <textarea
+        ref={gate.ref}
         placeholder={placeholder}
-        className={`${BOX} h-[100px] resize-y`}
+        className={`${BOX} h-[100px] resize-y ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
         }}
+        aria-invalid={gate.invalid}
+        aria-describedby={gate.message ? gate.messageId : undefined}
       />
     </FieldShell>
   );
@@ -813,12 +843,15 @@ export function SelectField({
   className,
   value,
   onChange,
+  error,
 }: BaseProps & { options?: string[] }) {
   const [isOpen, setIsOpen] = useState(false);
+  const gate = useGateField<HTMLButtonElement>(error ?? null);
 
   return (
-    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`}>
+    <FieldShell label={label} required={required} className={`relative ${className ?? ""}`} gate={gate}>
       <button
+        ref={gate.ref}
         type="button"
         onBlur={() => {
           setIsOpen(false);
@@ -827,7 +860,9 @@ export function SelectField({
           e.preventDefault();
           setIsOpen(!isOpen);
         }}
-        className={`${BOX} ${TRAIL} appearance-none bg-white text-left relative block`}
+        className={`${BOX} ${TRAIL} appearance-none bg-white text-left relative block ${gate.invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
+        aria-invalid={gate.invalid}
+        aria-describedby={gate.message ? gate.messageId : undefined}
       >
         <span className={`block w-full truncate ${value ? "text-ink" : "text-gray-1"}`}>
           {value || placeholder}

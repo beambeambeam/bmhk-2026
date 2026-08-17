@@ -6,8 +6,8 @@
 /* oxlint-disable no-unsafe-argument */
 /* oxlint-disable no-unsafe-assignment */
 /* oxlint-disable no-floating-promises */
-import { useState, useCallback } from "react";
-import type { MouseEvent } from "react";
+import { useState, useCallback, createContext, createElement, useContext, useId, useRef, useLayoutEffect, useMemo } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { AnyRouter, ParsedLocation, LinkOptions } from "@tanstack/react-router";
 
@@ -259,4 +259,98 @@ export function useOwnArrival() {
       return false;
     }
   })[0];
+}
+
+/* ------------------------------------------------------------------ the step gate ---- */
+
+type GateEntry = { reason: string | null; el: () => HTMLElement | null };
+
+type GateApi = {
+  set: (id: string, entry: GateEntry) => void;
+  drop: (id: string) => void;
+  validate: () => boolean;
+};
+
+export const GateApiCtx = createContext<GateApi | null>(null);
+export const GateFlagCtx = createContext<string | null>(null);
+
+export function GateProvider({ children }: { children: ReactNode }) {
+  const fields = useRef(new Map<string, GateEntry>());
+  const [flagged, setFlagged] = useState<string | null>(null);
+
+  const api = useMemo<GateApi>(
+    () => ({
+      set: (id, entry) => {
+        fields.current.set(id, entry);
+        if (entry.reason === null) {
+          setFlagged((f) => (f === id ? null : f));
+        }
+      },
+      drop: (id) => {
+        fields.current.delete(id);
+        setFlagged((f) => (f === id ? null : f));
+      },
+
+      validate: () => {
+        const bad: { id: string; el: HTMLElement }[] = [];
+        for (const [id, entry] of fields.current) {
+          const el = entry.el();
+          if (entry.reason !== null && el) bad.push({ id, el });
+        }
+        if (bad.length === 0) {
+          setFlagged(null);
+          return true;
+        }
+        bad.sort((a, b) =>
+          a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+        );
+
+        const first = bad[0];
+        setFlagged(first.id);
+
+        window.setTimeout(() => {
+          const el = fields.current.get(first.id)?.el();
+          if (!el) return;
+          const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+          el.focus({ preventScroll: true });
+        }, 0);
+
+        return false;
+      },
+    }),
+    [],
+  );
+
+  return createElement(
+    GateApiCtx.Provider,
+    { value: api },
+    createElement(GateFlagCtx.Provider, { value: flagged }, children),
+  );
+}
+
+export function useGateField<T extends HTMLElement>(reason: string | null) {
+  const id = useId();
+  const ref = useRef<T | null>(null);
+  const api = useContext(GateApiCtx);
+  const flagged = useContext(GateFlagCtx) === id;
+
+  useLayoutEffect(() => {
+    api?.set(id, { reason, el: () => ref.current });
+  }, [api, id, reason]);
+
+  useLayoutEffect(() => () => api?.drop(id), [api, id]);
+
+  const invalid = flagged && reason !== null;
+  return {
+    ref,
+    invalid,
+    message: invalid ? reason : null,
+    messageId: `${id}-msg`,
+  };
+}
+
+export function useGateValidate() {
+  const api = useContext(GateApiCtx);
+  return () => api?.validate() ?? true;
 }

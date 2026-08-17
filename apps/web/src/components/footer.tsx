@@ -9,17 +9,48 @@ const FOOTER_PAD: React.CSSProperties = {
   paddingTop: "clamp(24px, 3.4682081vw + 10.0578035px, 60px)",
 };
 
-const LINKS_STYLE: React.CSSProperties & { "--reveal-delay"?: string } = {
-  "--reveal-delay": "70ms",
-};
+const MARK_GAP = "gap-[calc(6.87px_+_5.13*var(--fl))]";
+const RULE = "w-px shrink-0 bg-[#b9b9b9] h-[calc(33.532px_+_18.468*var(--fl))]";
 
 function BottomRow({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs leading-[1.5] font-light text-gray-1 min-[1440px]:w-max min-[1440px]:flex-nowrap ${className}`}
+      className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[calc(11.948px+2.052*var(--fl))] leading-normal font-light text-gray-1 min-[1440px]:w-max min-[1440px]:flex-nowrap ${className}`}
     >
       <span className="tabular-nums whitespace-nowrap">{VERSION_LABEL}</span>
       <p className="min-[1440px]:whitespace-nowrap">{FOOTER_ABOUT.copyright}</p>
+    </div>
+  );
+}
+
+function SponsorLockup({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-center justify-center ${MARK_GAP} ${className}`}>
+      <img
+        src="/assets/footer-kmutt.svg"
+        alt="มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี"
+        className="h-[calc(27.61px+15.39*var(--fl))] w-auto shrink-0"
+      />
+      <span aria-hidden className={RULE} />
+      <img
+        src="/assets/footer-faculty.svg"
+        alt="คณะวิศวกรรมศาสตร์ Faculty of Engineering"
+        className="h-[calc(21.714px+11.286*var(--fl))] w-auto shrink-0"
+      />
+      <span aria-hidden className={RULE} />
+      <img
+        src="/assets/footer-cpe.svg"
+        alt="ภาควิชาวิศวกรรมคอมพิวเตอร์"
+        className="h-[calc(21.688px+12.312*var(--fl))] w-auto shrink-0"
+      />
+      <span aria-hidden className={RULE} />
+      <Link to="/" viewTransition className="mm-press shrink-0">
+        <img
+          src="/assets/logo-nav.png"
+          alt="BangMod Hackathon 2026"
+          className="h-[calc(25.636px+14.364*var(--fl))] w-auto"
+        />
+      </Link>
     </div>
   );
 }
@@ -36,26 +67,8 @@ export default function Footer() {
         className={`flex flex-col items-center gap-6 text-center md:hidden ${phoneCls}`}
       >
         <div className="flex w-full flex-col items-center gap-8">
-          <div className="flex flex-col items-center gap-3">
-            <Link to="/" viewTransition className="mm-press">
-              <img src="/assets/logo-nav.png" alt="BangMod Hackathon 2026" className="h-[60px]" />
-            </Link>
-            <div className="flex items-center gap-1.5">
-              <img
-                src="/assets/figma/334492fe4cb116291b1b34c10e03a9aa49cd8960.svg"
-                alt="มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี"
-                className="h-9 w-[158.25px] shrink-0"
-              />
-              <span aria-hidden className="h-9 w-px shrink-0 bg-ink" />
-              <span className="relative block h-[22px] w-[42px] shrink-0 overflow-hidden">
-                <img
-                  src="/assets/figma/b1f497a79771a763f521a081e6006d3a027a793f.svg"
-                  alt="ภาควิชาวิศวกรรมคอมพิวเตอร์"
-                  className="absolute top-[-30.12%] left-[-7.09%] h-[160.4353%] w-[114.0625%] max-w-none"
-                />
-              </span>
-            </div>
-          </div>
+          <SponsorLockup />
+
           <div className="flex w-full flex-col gap-2">
             <p className="fl-18 leading-[1.4]">
               {FOOTER_ABOUT.titleLines.map((line) => (
@@ -64,9 +77,10 @@ export default function Footer() {
                 </span>
               ))}
             </p>
-            <p className="fl-14 leading-[1.5] text-gray-1">{FOOTER_ABOUT.body}</p>
+            <p className="fl-14 leading-normal text-gray-1">{FOOTER_ABOUT.body}</p>
           </div>
         </div>
+
         <div className="flex items-center justify-center gap-4">
           {SOCIAL_LINKS.map((social) => (
             <a
@@ -77,49 +91,27 @@ export default function Footer() {
               aria-label={social.label}
               className="mm-link mm-press flex min-h-11 items-center gap-1 fl-18 leading-[1.4] hover:text-brand-red"
             >
-              <img src={social.icon} alt="" aria-hidden className="mm-icon-pop size-6" />
+              <span
+                aria-hidden
+                style={
+                  { "--icon": `url("${social.icon}")` } as React.CSSProperties &
+                    Record<string, string>
+                }
+                className="mm-icon-pop size-6 shrink-0 bg-current [-webkit-mask-image:var(--icon)] mask-(--icon) [-webkit-mask-repeat:no-repeat] mask-no-repeat [-webkit-mask-position:center] mask-center [-webkit-mask-size:contain] mask-contain"
+              />
+
               {social.label}
             </a>
           ))}
         </div>
+
         <BottomRow className="justify-center" />
       </div>
 
-      <div className="mx-auto hidden max-w-[1320px] flex-col gap-8 md:flex lg:flex-row lg:justify-between">
-        <div
-          ref={aboutRef}
-          className={`flex max-w-[600px] flex-col justify-between gap-8 ${aboutCls}`}
-        >
+      <div className="mx-auto hidden max-w-330 flex-col gap-8 md:flex lg:flex-row lg:justify-between">
+        <div ref={aboutRef} className={`flex max-w-150 flex-col justify-between gap-8 ${aboutCls}`}>
           <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <Link to="/" viewTransition className="mm-press shrink-0">
-                <img
-                  src="/assets/logo-nav.png"
-                  alt="BangMod Hackathon 2026"
-                  className="h-8 w-auto lg:h-[calc(44px_+_16*var(--fl))]"
-                />
-              </Link>
-              <span
-                aria-hidden
-                className="h-5 w-px shrink-0 bg-ink lg:h-[calc(36px_+_12*var(--fl))]"
-              />
-              <img
-                src="/assets/figma/334492fe4cb116291b1b34c10e03a9aa49cd8960.svg"
-                alt="มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี"
-                className="h-[21px] w-[92.31px] shrink-0 lg:h-[calc(36px_+_12*var(--fl))] lg:w-[calc((36px_+_12*var(--fl))*4.3958)]"
-              />
-              <span
-                aria-hidden
-                className="h-5 w-px shrink-0 bg-ink lg:h-[calc(36px_+_12*var(--fl))]"
-              />
-              <span className="relative block h-5 w-[40.71px] shrink-0 overflow-hidden lg:h-7 lg:w-[57px]">
-                <img
-                  src="/assets/figma/b1f497a79771a763f521a081e6006d3a027a793f.svg"
-                  alt="ภาควิชาวิศวกรรมคอมพิวเตอร์"
-                  className="absolute top-[-30.12%] left-[-7.09%] h-[160.4353%] w-[114.0625%] max-w-none"
-                />
-              </span>
-            </div>
+            <SponsorLockup className="justify-start" />
 
             <div className="flex flex-col gap-2">
               <p className="fl-18 leading-[1.4]">
@@ -129,7 +121,7 @@ export default function Footer() {
                   </span>
                 ))}
               </p>
-              <p className="fl-16 leading-[1.5] text-gray-1">{FOOTER_ABOUT.body}</p>
+              <p className="fl-16 leading-normal text-gray-1">{FOOTER_ABOUT.body}</p>
             </div>
           </div>
 
@@ -137,8 +129,8 @@ export default function Footer() {
         </div>
         <div
           ref={linksRef}
-          style={LINKS_STYLE}
-          className={`grid grid-cols-2 gap-x-6 gap-y-10 lg:w-[500px] lg:gap-0 ${linksCls}`}
+          style={{ "--reveal-delay": "70ms" }}
+          className={`grid grid-cols-2 gap-x-6 gap-y-10 lg:w-125 lg:gap-0 ${linksCls}`}
         >
           {FOOTER_GROUPS.map((column, i) => (
             <div key={i} className="flex min-w-0 flex-col gap-10 lg:w-full">
@@ -157,6 +149,7 @@ export default function Footer() {
                   ))}
                 </div>
               ))}
+
               {i === 1 && (
                 <div className="flex flex-col gap-3">
                   <p className="fl-18 leading-[1.4] text-gray-2">ติดต่อเรา</p>
@@ -169,7 +162,14 @@ export default function Footer() {
                       aria-label={social.label}
                       className="mm-link mm-press flex items-center gap-2.5 fl-16 leading-[1.4] hover:text-brand-red"
                     >
-                      <img src={social.icon} alt="" aria-hidden className="mm-icon-pop size-6" />
+                      <span
+                        aria-hidden
+                        style={
+                          { "--icon": `url("${social.icon}")` } as React.CSSProperties &
+                            Record<string, string>
+                        }
+                        className="mm-icon-pop size-6 shrink-0 bg-current [-webkit-mask-image:var(--icon)] mask-(--icon) [-webkit-mask-repeat:no-repeat] [mask-repeat:no-repeat] [-webkit-mask-position:center] [mask-position:center] [-webkit-mask-size:contain] [mask-size:contain]"
+                      />
                       {social.label}
                     </a>
                   ))}

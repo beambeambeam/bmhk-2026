@@ -567,12 +567,12 @@ export function RegisterLayout() {
     }
     const maxAllowedStep = getExpectedNextStep(form);
     const maxRank = STEP_RANKS[maxAllowedStep] ?? 0;
-    
+
     let currentPath = location.pathname;
     if (currentPath.endsWith("/") && currentPath !== "/") {
       currentPath = currentPath.slice(0, -1);
     }
-    
+
     const currentRank = STEP_RANKS[currentPath] ?? 0;
 
     if (currentRank > maxRank) {

@@ -1,0 +1,169 @@
+/*
+ * Motion for the two consent surfaces: the cookie card (Figma `2074:3200`) and the
+ * resume-or-restart dialogue (Figma `2074:3241`).
+ *
+ * Imported by the components themselves rather than `@import`-ed from index.css, for the reason
+ * toast.css and scope-motion.css both record at the top of their own files: this track does not
+ * own index.css. Vite hoists a CSS import from a module into the same bundle, so the only
+ * difference is which file has to be edited to add it.
+ *
+ * `--ease-out-auth` (styles/auth-motion.css:16) is the site's one dialogue curve and is used
+ * here unchanged. Two surfaces that appear over the same pages must not decelerate differently.
+ *
+ * ---------------------------------------------------------------- the rule both halves follow
+ *
+ * OPACITY IS UNCONDITIONAL; TRAVEL AND SCALE ARE NOT. Every from-state that moves or scales
+ * lives inside `@media (prefers-reduced-motion: no-preference)`, so under `reduce` these
+ * surfaces still fade in and out — appearing and vanishing instantly is a worse answer for a
+ * card that arrives unannounced in the corner of the page. That is auth-motion.css's split and
+ * scope-motion.css's, kept identical here.
+ *
+ * `translate` / `scale`, the individual properties, NEVER the `transform` shorthand — the house
+ * rule. It matters concretely below: the cookie card and the sheet both carry layout classes,
+ * and a shorthand would blow away whatever a call site had put in `transform`.
+ *
+ * Both surfaces animate in BOTH directions. These are dismissible things — the cookie card is
+ * accepted and leaves, the dialogue is answered and leaves — so the exit is the half the user
+ * actually asked for and it gets a real animation rather than an unmount. Each component holds
+ * itself mounted for its own EXIT_MS to let it play.
+ */
+
+/* ============================================================================ the cookie card */
+
+/*
+ * `2074:3200` pinned bottom-right. It arrives by RISING, because that is where it is anchored:
+ * a card fixed to the bottom edge that slid down-to-up out of its own corner reads as belonging
+ * to that corner, where a fade in place reads as an overlay dropped on top of the page.
+ *
+ * 14px of travel and 0.98 of scale — deliberately small. This card is not modal, it does not
+ * take focus, and it appears while the user is reading something else; a large entrance would
+ * demand attention the card has not earned. Compare `.scope-sheet`'s 0.9, which is a document
+ * the user just asked for.
+ *
+ * `transform-origin` at the bottom-right corner so the scale grows out of the anchor rather than
+ * about the card's centre, which would have it creep away from the corner as it settles.
+ */
+.cookie-card {
+  opacity: 0;
+}
+
+.cookie-card[data-state="open"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cookie-card {
+    translate: 0 14px;
+    scale: 0.98;
+    transform-origin: 100% 100%;
+    /* the exit: 180ms, and no delay — dismissal should get out of the way immediately */
+    transition:
+      opacity 180ms var(--ease-out-auth),
+      translate 180ms var(--ease-out-auth),
+      scale 180ms var(--ease-out-auth);
+  }
+
+  /*
+   * The entrance is slower than the exit (260 vs 180), which is the same asymmetry every other
+   * surface on this site uses: arriving is an event, leaving should be brisk.
+   *
+   * The 400ms delay is on the OPEN state only, so it costs the exit nothing. It exists because
+   * this card is mounted on first paint of a cold visit — without it the card animates in
+   * alongside the page's own hero and reveals, and three things moving at once on first paint
+   * reads as jank rather than as a card arriving. Letting the page land first makes the card a
+   * separate, noticeable event, which is what a consent notice needs to be.
+   */
+  .cookie-card[data-state="open"] {
+    translate: 0 0;
+    scale: 1;
+    transition:
+      opacity 260ms var(--ease-out-auth) 400ms,
+      translate 260ms var(--ease-out-auth) 400ms,
+      scale 260ms var(--ease-out-auth) 400ms;
+  }
+}
+
+/* ===================================================================== the resume-or-restart */
+
+/*
+ * `2074:3241`'s overlay — #C2C2C2 at 30% over a 10px backdrop blur, the treatment every dialogue
+ * on this site shares (PolicyModal, ScopeModal), so the value is Figma's and the idiom is the
+ * repo's.
+ */
+.resume-scrim,
+.resume-sheet {
+  opacity: 0;
+}
+
+.resume-scrim[data-state="open"],
+.resume-sheet[data-state="open"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* the scrim dims first and quickly, and lifts last on the way out */
+  .resume-scrim {
+    transition: opacity 180ms var(--ease-out-auth);
+  }
+
+  .resume-scrim[data-state="open"] {
+    transition-duration: 240ms;
+  }
+
+  /*
+   * The sheet. 0.96 and 8px, matching `.auth-modal-sheet` rather than `.scope-sheet`'s 0.9 —
+   * this dialogue interrupts the register flow the way the policy sheet does, and it has no
+   * card to grow out of, so it takes the smaller nudge the auth vocabulary defines for exactly
+   * that case. `transform-origin` is left at its default centre for the same reason: there is no
+   * origin to point at.
+   *
+   * A transition rather than a keyframe, so answering the dialogue while it is still arriving
+   * retargets from wherever it currently is instead of snapping to the end and replaying.
+   */
+  .resume-sheet {
+    translate: 0 8px;
+    scale: 0.96;
+    transition:
+      opacity 190ms var(--ease-out-auth),
+      translate 190ms var(--ease-out-auth),
+      scale 190ms var(--ease-out-auth);
+  }
+
+  .resume-sheet[data-state="open"] {
+    translate: 0 0;
+    scale: 1;
+    transition:
+      opacity 280ms var(--ease-out-auth),
+      translate 280ms var(--ease-out-auth),
+      scale 280ms var(--ease-out-auth);
+  }
+
+  /*
+   * The sheet's three regions settle just behind the plate, so it does not read as one stiff
+   * board. Delays on the way IN only — on the way out everything leaves together, which is the
+   * rule auth-motion.css sets and the reason an exit never feels like a second animation.
+   */
+  .resume-part {
+    opacity: 0;
+    translate: 0 8px;
+    transition:
+      opacity 160ms var(--ease-out-auth),
+      translate 160ms var(--ease-out-auth);
+  }
+
+  .resume-sheet[data-state="open"] .resume-part {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 260ms var(--ease-out-auth),
+      translate 260ms var(--ease-out-auth);
+  }
+
+  .resume-sheet[data-state="open"] .resume-part-1 {
+    transition-delay: 60ms;
+  }
+
+  .resume-sheet[data-state="open"] .resume-part-2 {
+    transition-delay: 110ms;
+  }
+}

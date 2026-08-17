@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import CookieConsent from "@/components/cookie-consent";
 
 import appCss from "../index.css?url";
 
@@ -50,6 +51,7 @@ function RootDocument() {
       </head>
       <body className="font-thai">
         <Outlet />
+        <CookieConsent />
         <Toaster richColors />
         <TanStackRouterDevtools position="bottom-left" />
         <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />

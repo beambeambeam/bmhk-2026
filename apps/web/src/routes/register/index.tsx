@@ -14,7 +14,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import AuthPageShell from "@/components/auth-page-shell";
 import { authLink, useOwnArrival } from "@/components/form/wizard-nav";
 import { DOCUMENT_GROUPS } from "@/features/guide/data/data";
-import { useRegisterForm } from "../register";
+import { getExpectedNextStep, useRegisterForm } from "../register";
 
 export const Route = createFileRoute("/register/")({
   component: Register,
@@ -114,30 +114,7 @@ export default function Register() {
   const spring = useOwnArrival();
   const form = useRegisterForm();
 
-  let nextStep = "/register/terms";
-  const status = form.getFieldValue("status") as any;
-
-  if (status && status.teamId) {
-    if (status.team !== "COMPLETED") {
-      nextStep = "/register/team";
-    } else {
-      const advisor = form.getFieldValue("advisor");
-      const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl;
-
-      if (!isAdvisorComplete) {
-        nextStep = "/register/advisor";
-      } else if (status.participant1 !== "COMPLETED") {
-        nextStep = "/register/entrant/1";
-      } else if (status.participant2 !== "COMPLETED") {
-        nextStep = "/register/entrant/2";
-      } else if (status.participant3 !== "NOT_APPLICABLE" && status.participant3 !== "COMPLETED") {
-        nextStep = "/register/entrant/3";
-      } else {
-        const teamSize = (form.getFieldValue("team.teamSize") as number | undefined) ?? 2;
-        nextStep = `/register/entrant/${teamSize}`;
-      }
-    }
-  }
+  const nextStep = getExpectedNextStep(form);
 
   return (
     <AuthPageShell>

@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
-import { Outlet, createFileRoute, useNavigate, useRouterState, redirect, isRedirect } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  useNavigate,
+  useRouterState,
+  redirect,
+  isRedirect,
+} from "@tanstack/react-router";
 import { WizardBackdrop } from "@/components/auth-backdrop";
 import ScrollEdgeEffect from "@/components/scroll-edge-effect";
 import ResumeRegistrationModal from "@/components/registration/resume-registration-modal";
@@ -110,6 +117,44 @@ export function useRegisterForm() {
   }
   return form;
 }
+
+export function getExpectedNextStep(form: RegisterFormApi): string {
+  let nextStep = "/register/terms";
+  const status = form.getFieldValue("status") as any;
+
+  if (status && status.teamId) {
+    if (status.team !== "COMPLETED") {
+      nextStep = "/register/team";
+    } else {
+      const advisor = form.getFieldValue("advisor");
+      const isAdvisorComplete = advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl;
+
+      if (!isAdvisorComplete) {
+        nextStep = "/register/advisor";
+      } else if (status.participant1 !== "COMPLETED") {
+        nextStep = "/register/entrant/1";
+      } else if (status.participant2 !== "COMPLETED") {
+        nextStep = "/register/entrant/2";
+      } else if (status.participant3 !== "NOT_APPLICABLE" && status.participant3 !== "COMPLETED") {
+        nextStep = "/register/entrant/3";
+      } else {
+        const teamSize = (form.getFieldValue("team.teamSize") as number | undefined) ?? 2;
+        nextStep = `/register/entrant/${teamSize}`;
+      }
+    }
+  }
+  return nextStep;
+}
+
+export const STEP_RANKS: Record<string, number> = {
+  "/register/terms": 1,
+  "/register/team": 2,
+  "/register/advisor": 3,
+  "/register/entrant/1": 4,
+  "/register/entrant/2": 5,
+  "/register/entrant/3": 6,
+  "/register/success": 7,
+};
 
 export const Route = createFileRoute("/register")({
   component: RegisterLayout,
@@ -409,16 +454,20 @@ function createFormOptions(
       },
       terms: {
         codernTermsAccepted: getBool(termsData, "codernTermsAccepted", false),
-        TermOfServicesAccepted: getBool(termsData, "TermsOfServicesAccepted", 
-          termsData != null ? (
-            getBool(termsData, "codernTermsAccepted", false) &&
-            getBool(termsData, "competitionRulesAccepted", false) &&
-            getBool(termsData, "privacyPolicyAccepted", false)
-          ) : false
+        TermOfServicesAccepted: getBool(
+          termsData,
+          "TermsOfServicesAccepted",
+          termsData != null
+            ? getBool(termsData, "codernTermsAccepted", false) &&
+                getBool(termsData, "competitionRulesAccepted", false) &&
+                getBool(termsData, "privacyPolicyAccepted", false)
+            : false,
         ),
         competitionRulesAccepted: getBool(termsData, "competitionRulesAccepted", false),
-        guardianConsentObtained: getBool(termsData, "guardianConsentObtained", 
-          getBool(termsData, "privacyPolicyAccepted", false)
+        guardianConsentObtained: getBool(
+          termsData,
+          "guardianConsentObtained",
+          getBool(termsData, "privacyPolicyAccepted", false),
         ),
         healthDataConsent: getBool(termsData, "healthDataConsent", true),
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
@@ -482,6 +531,25 @@ export function RegisterLayout() {
     ...formOptions,
     defaultValues: formOptions.defaultValues as RegistrationFormData,
   });
+
+  useEffect(() => {
+    if (location.pathname === "/register" || location.pathname === "/register/") {
+      return;
+    }
+    const maxAllowedStep = getExpectedNextStep(form);
+    const maxRank = STEP_RANKS[maxAllowedStep] ?? 0;
+    
+    let currentPath = location.pathname;
+    if (currentPath.endsWith("/") && currentPath !== "/") {
+      currentPath = currentPath.slice(0, -1);
+    }
+    
+    const currentRank = STEP_RANKS[currentPath] ?? 0;
+
+    if (currentRank > maxRank) {
+      void navigate({ replace: true, to: maxAllowedStep });
+    }
+  }, [location.pathname, form, navigate]);
 
   const isGateOrResult =
     location.pathname === "/register" ||

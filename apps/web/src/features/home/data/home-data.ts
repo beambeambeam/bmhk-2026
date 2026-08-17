@@ -11,8 +11,18 @@ export const HERO_FREE_NOTE = "เปิดรับสมัคร 17 ส.ค. 
 
 /** Gradient highlight cards in the calendar section. */
 export const TIMELINE_HIGHLIGHTS = [
-  { date: "17 ส.ค. - 20 ก.ย.", label: "เปิดรับสมัคร", tone: "red" as const },
-  { date: "23 ก.ย.", label: "ประกาศรายชื่อทีมที่มีสิทธิ์เข้าแข่งขัน", tone: "yellow" as const },
+  {
+    date: "19 ส.ค. - 20 ก.ย.",
+    label: "เปิดรับสมัคร",
+    note: "ปิดรับสมัคร 23:59 น. ของวันที่ 20 ก.ย.",
+    tone: "red" as const,
+  },
+  {
+    date: "22 ก.ย.",
+    label: "ประกาศรายชื่อทีมที่มีสิทธิ์เข้าแข่งขัน",
+    note: "14:00 น.",
+    tone: "yellow" as const,
+  },
 ];
 
 /** `1235:79` — footnote under the timeline grid, 970 wide in the 1200 column. */
@@ -23,7 +33,7 @@ export const CALENDAR_NOTE =
 export const TIMELINE_STEPS = [
   { date: "26 ก.ย.", lines: ["การแข่งขันรอบคัดเลือก", "รูปแบบ Online"] },
   { date: "28 ก.ย.", lines: ["ประกาศรายชื่อทีมที่ผ่านการแข่งขัน รอบคัดเลือก"] },
-  { date: "7 พ.ย.", lines: ["การแข่งขันรองชนะเลิศและรอบชิงชนะเลิศ", "รูปแบบ Onsite ณ มจธ."] },
+  { date: "9 พ.ย.", lines: ["การแข่งขันรองชนะเลิศและรอบชิงชนะเลิศ", "รูปแบบ Onsite ณ มจธ."] },
 ];
 
 /** Copy only — each card's photo arrangement is pinned in `Steps`, not picked here. */

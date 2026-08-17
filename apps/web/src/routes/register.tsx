@@ -67,11 +67,11 @@ export interface entrantFormData {
 
 export interface consentFormData {
   privacyPolicyAccepted: boolean;
+  TermOfServicesAccepted: boolean;
   competitionRulesAccepted: boolean;
   codernTermsAccepted: boolean;
   publicityMediaConsent: boolean;
   healthDataConsent: boolean;
-  guardianConsentObtained: boolean;
 }
 
 export interface RegistrationFormData {
@@ -391,8 +391,8 @@ function createFormOptions(
       },
       terms: {
         codernTermsAccepted: getBool(termsData, "codernTermsAccepted", false),
+        TermOfServicesAccepted: getBool(termsData, "TermsOfServicesAccepted", false),
         competitionRulesAccepted: getBool(termsData, "competitionRulesAccepted", false),
-        guardianConsentObtained: getBool(termsData, "guardianConsentObtained", true),
         healthDataConsent: getBool(termsData, "healthDataConsent", true),
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
         publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),
@@ -412,9 +412,9 @@ export function RegisterLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!session.isPending && !session.data) {
-    void navigate({ to: "/signin" });
-    }
+    // if (!session.isPending && !session.data) {
+    // void navigate({ to: "/signin" });
+    // }
 
     function handleFocus() {
       void (async () => {

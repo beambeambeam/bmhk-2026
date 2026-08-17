@@ -220,6 +220,13 @@ export const PRIVACY_POLICY: PolicyDocument = {
   title: "นโยบายความเป็นส่วนตัว",
 };
 
+export const TERM_OF_SERVICE: PolicyDocument = {
+  icon: "/assets/figma/Vector.svg",
+  sections: POLICY_SECTIONS,
+  subtitle: SUBTITLE,
+  title: "ข้อกำหนดการใช้งานเว็บไซต์",
+};
+
 export const CODERN_TERMS: PolicyDocument = {
   downloadable: false,
   icon: "/assets/figma/03e489cce381543e38ddae4414d0e87ba31d38d1.png",

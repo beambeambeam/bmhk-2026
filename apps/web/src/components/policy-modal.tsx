@@ -78,11 +78,21 @@ function getDotClass(isCurrent: boolean, isItemAccepted: boolean): string {
   return "w-2.5 bg-[#dcdcdc] group-hover:bg-[#b0b0b0]";
 }
 
-function getAcceptButtonLabel(isLast: boolean, isAccepted: boolean): string {
-  if (isLast) {
-    return isAccepted ? "ยอมรับแล้ว" : "ยอมรับ";
+function getAcceptButtonLabel(
+  isLast: boolean,
+  isAccepted: boolean,
+  isAllAccepted?: boolean,
+): string {
+  if (isAllAccepted) {
+    return "ยอมรับแล้ว";
   }
-  return isAccepted ? "ยอมรับแล้ว (ถัดไป)" : "ยอมรับ";
+  if (isAccepted) {
+    return "ยอมรับแล้ว (ถัดไป)";
+  }
+  if (isLast) {
+    return "ยอมรับ";
+  }
+  return "ยอมรับ";
 }
 
 function SheetHeader({
@@ -97,6 +107,7 @@ function SheetHeader({
   onSelectIndex,
   onPrev,
   onNext,
+  onClose,
 }: {
   item: PolicyModalDocItem;
   doc: PolicyDocument;
@@ -109,6 +120,7 @@ function SheetHeader({
   onSelectIndex: (index: number) => void;
   onPrev: () => void;
   onNext: () => void;
+  onClose?: () => void;
 }) {
   const isAccepted = acceptedTitles.includes(item.title);
 
@@ -220,6 +232,25 @@ function SheetHeader({
               />
             </svg>
           </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              aria-label="ปิดหน้าต่างข้อตกลง"
+              className="ml-1 flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2] text-gray-1 transition-all hover:bg-[#e4e4e4] hover:text-black"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </header>
@@ -230,11 +261,13 @@ function SheetFooter({
   downloadable,
   isLast,
   isAccepted,
+  isAllAccepted,
   onAccept,
 }: {
   downloadable?: boolean;
   isLast: boolean;
   isAccepted: boolean;
+  isAllAccepted?: boolean;
   onAccept: () => void;
 }) {
   return (
@@ -272,7 +305,7 @@ function SheetFooter({
             />
           </svg>
         )}
-        {getAcceptButtonLabel(isLast, isAccepted)}
+        {getAcceptButtonLabel(isLast, isAccepted, isAllAccepted)}
       </button>
     </footer>
   );
@@ -282,6 +315,7 @@ function ModalSheetItem({
   item,
   isCurrent,
   isAccepted,
+  isAllAccepted,
   currentIndex,
   totalCount,
   docList,
@@ -295,10 +329,12 @@ function ModalSheetItem({
   onPrev,
   onNext,
   onAccept,
+  onClose,
 }: {
   item: PolicyModalDocItem;
   isCurrent: boolean;
   isAccepted: boolean;
+  isAllAccepted: boolean;
   currentIndex: number;
   totalCount: number;
   docList: readonly PolicyModalDocItem[];
@@ -312,6 +348,7 @@ function ModalSheetItem({
   onPrev: () => void;
   onNext: () => void;
   onAccept: () => void;
+  onClose?: () => void;
 }) {
   const doc = item.document;
 
@@ -351,6 +388,7 @@ function ModalSheetItem({
         onSelectIndex={onSelectIndex}
         onPrev={onPrev}
         onNext={onNext}
+        onClose={onClose}
       />
 
       {/* Document Sections Body — scrollable inside the box on both mobile and PC */}
@@ -384,6 +422,7 @@ function ModalSheetItem({
         downloadable={doc.downloadable}
         isLast={currentIndex === totalCount - 1}
         isAccepted={isAccepted}
+        isAllAccepted={isAllAccepted}
         onAccept={onAccept}
       />
     </div>
@@ -414,7 +453,7 @@ export default function PolicyModal({
    * Viewport point of the control that opened the sheet.
    */
   origin?: { x: number; y: number } | null;
-  onAccept: (title: string, isLast: boolean) => void;
+  onAccept: (title: string, isAllAccepted: boolean) => void;
   onDecline?: () => void;
 }) {
   const activeBodyRef = useRef<HTMLDivElement>(null);
@@ -489,6 +528,9 @@ export default function PolicyModal({
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < docList.length - 1;
 
+  const isAllAccepted =
+    docList.length > 0 && docList.every((d) => acceptedTitles.includes(d.title));
+
   const handlePrev = useCallback(() => {
     if (canGoPrev) {
       setCurrentIndex((prev) => prev - 1);
@@ -503,14 +545,38 @@ export default function PolicyModal({
 
   const handleAcceptCurrent = useCallback(() => {
     const item = docList[currentIndex];
-    const isLast = currentIndex === docList.length - 1;
-    if (item) {
-      onAccept(item.title, isLast);
+    if (!item) {
+      return;
     }
-    if (!isLast) {
-      setCurrentIndex((prev) => prev + 1);
+
+    const nextAccepted = acceptedTitles.includes(item.title)
+      ? acceptedTitles
+      : [...acceptedTitles, item.title];
+
+    const isAllDone = docList.every((d) => nextAccepted.includes(d.title));
+
+    onAccept(item.title, isAllDone);
+
+    if (!isAllDone) {
+      const nextUnacceptedIndex = docList.findIndex(
+        (d, idx) => idx > currentIndex && !nextAccepted.includes(d.title),
+      );
+      if (nextUnacceptedIndex !== -1) {
+        setCurrentIndex(nextUnacceptedIndex);
+        return;
+      }
+
+      const firstUnacceptedIndex = docList.findIndex((d) => !nextAccepted.includes(d.title));
+      if (firstUnacceptedIndex !== -1) {
+        setCurrentIndex(firstUnacceptedIndex);
+        return;
+      }
+
+      if (canGoNext) {
+        setCurrentIndex((prev) => prev + 1);
+      }
     }
-  }, [currentIndex, docList, onAccept]);
+  }, [currentIndex, docList, acceptedTitles, onAccept, canGoNext]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -606,6 +672,7 @@ export default function PolicyModal({
                   item={item}
                   isCurrent={isCurrent}
                   isAccepted={isAccepted}
+                  isAllAccepted={isAllAccepted}
                   currentIndex={currentIndex}
                   totalCount={docList.length}
                   docList={docList}
@@ -619,6 +686,7 @@ export default function PolicyModal({
                   onPrev={handlePrev}
                   onNext={handleNext}
                   onAccept={handleAcceptCurrent}
+                  onClose={onDecline}
                 />
               </div>
             );

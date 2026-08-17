@@ -15,7 +15,7 @@ export const STUDENT_DOCUMENTS = [
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable */
 /* oxlint-disable */
-import { CODERN_TERMS, COMPETITION_RULES, PRIVACY_POLICY } from "./privacy-policy";
+import { TERM_OF_SERVICE, CODERN_TERMS, COMPETITION_RULES, PRIVACY_POLICY } from "./privacy-policy";
 import type { PolicyDocument } from "./privacy-policy";
 
 /**
@@ -34,6 +34,13 @@ export const REQUIRED_DOCUMENTS: {
     document: PRIVACY_POLICY,
     icon: "/assets/figma/8198de2c60e10732616a8a9af8fed56ad7396820.svg",
     title: "นโยบายความเป็นส่วนตัว",
+  },
+  {
+    description: "เงื่อนไขการใช้งานระบบส่งโค้ดและตรวจผล",
+    document: TERM_OF_SERVICE,
+    icon: "/assets/figma/Vector.svg",
+    rounded: true,
+    title: "ข้อกำหนดการใช้งานเว็บไซต์",
   },
   {
     description: "หลักเกณฑ์และข้อปฏิบัติในการแข่งขัน",
@@ -56,11 +63,6 @@ export const CONSENTS = [
     description: "การเก็บข้อมูลแพ้อาหาร แพ้ยา และโรคประจำตัว",
     icon: "/assets/figma/bb7946494cd076deb5c70aed74d1698107420800.svg",
     title: "ความยินยอมข้อมูลสุขภาพ",
-  },
-  {
-    description: "สำหรับผู้เข้าแข่งขันอายุต่ำกว่า 20 ปี",
-    icon: "/assets/figma/0687a0a75101d7c86b25b1cda6c52c329fd14299.svg",
-    title: "คำรับรองความยินยอมจากผู้ปกครอง",
   },
   {
     description: "ใช้ภาพถ่าย/วิดีโอในกิจกรรมเพื่อประชาสัมพันธ์",

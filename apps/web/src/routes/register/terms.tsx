@@ -30,6 +30,7 @@ const ROW_RADIUS = {
 const DOC_FIELD_MAP: Record<string, keyof RegistrationFormData["terms"]> = {
   กฏกติกาการแข่งขัน: "competitionRulesAccepted",
   "ข้อกำหนดการใช้งาน Codern": "codernTermsAccepted",
+  ข้อกำหนดการใช้งานเว็บไซต์: "TermOfServicesAccepted",
   นโยบายความเป็นส่วนตัว: "privacyPolicyAccepted",
 };
 
@@ -46,9 +47,6 @@ function consentFieldMap(i: number) {
       return "healthDataConsent";
     }
     case 1: {
-      return "guardianConsentObtained";
-    }
-    case 2: {
       return "publicityMediaConsent";
     }
     default: {
@@ -452,7 +450,7 @@ function ConsentChoice({
   consentProperties,
 }: {
   name: string;
-  consentProperties: "healthDataConsent" | "guardianConsentObtained" | "publicityMediaConsent";
+  consentProperties: "healthDataConsent" | "publicityMediaConsent";
 }) {
   const form = useRegisterForm();
   const [value, setValue] = useState<"yes" | "no">(() =>
@@ -519,6 +517,13 @@ export default function TermsStep() {
     if (terms.codernTermsAccepted) {
       acc.push("ข้อกำหนดการใช้งาน Codern");
     }
+    if (
+      terms.privacyPolicyAccepted &&
+      terms.competitionRulesAccepted &&
+      terms.codernTermsAccepted
+    ) {
+      acc.push("ข้อกำหนดการใช้งานเว็บไซต์");
+    }
     return acc;
   });
 
@@ -529,10 +534,7 @@ export default function TermsStep() {
     form.setFieldValue("terms.codernTermsAccepted", false);
   };
 
-  const isAllAccepted =
-    accepted.includes("นโยบายความเป็นส่วนตัว") &&
-    accepted.includes("กฏกติกาการแข่งขัน") &&
-    accepted.includes("ข้อกำหนดการใช้งาน Codern");
+  const isAllAccepted = REQUIRED_DOCUMENTS.every((doc) => accepted.includes(doc.title));
 
   const handleOpenModal = (_index: number, e: React.MouseEvent) => {
     const box = e.currentTarget.getBoundingClientRect();
@@ -566,13 +568,13 @@ export default function TermsStep() {
           onDecline={() => {
             setOpenDoc(null);
           }}
-          onAccept={(title, isLast) => {
+          onAccept={(title, isAll) => {
             setAccepted((prev) => [...new Set([...prev, title])]);
             const key = DOC_FIELD_MAP[title || "นโยบายความเป็นส่วนตัว"];
             if (key) {
               form.setFieldValue(`terms.${key}`, true);
             }
-            if (isLast) {
+            if (isAll) {
               setOpenDoc(null);
             }
           }}

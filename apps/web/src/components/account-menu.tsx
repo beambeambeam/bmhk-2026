@@ -130,7 +130,7 @@ const PLATE_RADIUS = "rounded-[calc(19.896px_+_4.104*var(--fl))]";
  * Figma's `178 / 846`. The card was already correct; the bar above it was pushing it down.
  */
 const CHIP =
-  "mm-press flex items-center justify-center gap-[calc(7.792px_+_8.208*var(--fl))] rounded-[12px] border border-[#dcdcdc] bg-white py-[calc(7.922px_+_3.078*var(--fl))] pr-4 pl-5 fl-20 leading-[1.4] transition-colors hover:bg-black/5 data-[open=true]:bg-[#f7f7f7] sm:data-[open=true]:rounded-t-[16px] sm:data-[open=true]:rounded-b-none";
+  "mm-press flex items-center justify-center gap-[calc(7.792px_+_8.208*var(--fl))] rounded-[12px] border border-[#dcdcdc] bg-white py-[calc(7.922px_+_3.078*var(--fl))] pr-4 pl-5 fl-20 leading-[1.4] transition-colors hover:bg-black/5 data-[open=true]:bg-[#f7f7f7] md:data-[open=true]:rounded-t-[16px] md:data-[open=true]:rounded-b-none md:min-w-[180px]";
 
 /**
  * The panel's inline padding IS the chip's, flat 20 / 16, for the alignment reason above: from
@@ -257,8 +257,8 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
       >
         <GoogleLogo />
         {/* Hidden below `sm` because Figma hides it on every 402 frame — see the file header. */}
-        <span className="hidden sm:inline max-w-[120px] lg:max-w-[200px] truncate">
-          {session?.user?.name || "ชื่อบัญชีผู้ใช้"}
+        <span className="hidden md:inline max-w-[120px]  lg:max-w-[200px] truncate">
+          {session?.user?.name || "ชื่อผู้ใช้งาน"}
         </span>
         {/*
          * `up_regular` (`1359:969` / `1359:1010`) is `down_regular` upside down, so the open
@@ -330,7 +330,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
          * the panel is `left-0 right-0` — stretched to the chip, which is wide enough there —
          * so `sm:w-auto` hands it back.
          */
-        className={`absolute top-[calc(100%_+_10px)] right-0 grid w-max overflow-clip rounded-[16px] border border-[#dcdcdc] bg-white transition-[grid-template-rows,opacity] duration-[var(--mm-base)] ease-[var(--mm-ease-out)] motion-reduce:transition-none sm:top-full sm:right-0 sm:left-0 sm:w-auto sm:-mt-px sm:rounded-t-none ${
+        className={`absolute top-[calc(100%_+_10px)] right-0 grid w-max overflow-clip rounded-[16px] border border-[#dcdcdc] bg-white transition-[grid-template-rows,opacity] duration-[var(--mm-base)] ease-[var(--mm-ease-out)] motion-reduce:transition-none md:top-full md:right-0 md:left-0 md:w-auto md:-mt-px md:rounded-t-none ${
           open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
@@ -345,7 +345,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
          * accounts for. Below `sm` there is no hairline and no 4 — the 10px gap is the
          * separator.
          */}
-        <div className="min-h-0 sm:pt-1">
+        <div className="min-h-0 lg:pt-1">
           <div
             style={{
               "--reveal-delay": open ? `${REVEAL_STEP}ms` : "0ms",
@@ -361,7 +361,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
                 width, NOT full-bleed, which is why it is an element with the chip's own
                 20 / 16 margins rather than a border on the panel. Rendered at 1px, the
                 thinnest line a browser paints without dropping it. Desktop only. */}
-            <span aria-hidden className="mr-4 ml-5 hidden h-px bg-[#dcdcdc] sm:block" />
+            <span aria-hidden className="mr-4 ml-5 hidden h-px bg-[#dcdcdc] lg:block" />
 
             <button
               ref={itemRef}
@@ -388,7 +388,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
               /* `whitespace-nowrap`: ออกจากระบบ is one line, always. Belt to `w-max`'s braces —
                  the panel is now wide enough for it, but a longer label or a wider metric must
                  push the panel out rather than wrap inside it. */
-              className={`mm-press flex w-full items-center gap-2 ${PANEL_PAD} py-3 text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.511] font-normal whitespace-nowrap text-ink transition-colors hover:bg-black/5 sm:pt-4`}
+              className={`mm-press flex w-full items-center gap-2 ${PANEL_PAD} py-3 text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.511] font-normal whitespace-nowrap text-ink transition-colors hover:bg-black/5 lg:pt-4`}
             >
               {/* Both dimensions are named, so there is no over-constrained inset for a
                   replaced element to discard — the failure mode `GoogleLogo` documents. */}

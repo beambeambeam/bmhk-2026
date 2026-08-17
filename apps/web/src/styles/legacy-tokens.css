@@ -464,7 +464,7 @@
  */
 .team-decor-stage {
   translate: -50% 0;
-  scale: min(1, tan(atan2(100vw, 1440px)));
+  scale: tan(atan2(100vw, 1440px));
   transform-origin: top center;
 }
 

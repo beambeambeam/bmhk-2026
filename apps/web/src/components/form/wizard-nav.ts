@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
 /**
  * Whether this mount should play its own arrival animation, or leave the arrival to a
@@ -14,4 +15,11 @@ export function useOwnArrival() {
     }
   });
   return !transitionRunning;
+}
+
+export function useAuthNavigate() {
+  const navigate = useNavigate();
+  return (to: string) => {
+    void navigate({ to });
+  };
 }

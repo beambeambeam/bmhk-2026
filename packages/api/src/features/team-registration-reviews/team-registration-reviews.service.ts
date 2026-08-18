@@ -3,8 +3,13 @@ import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamRegistrationReviewRepository } from "./team-registration-reviews.repository";
 import type {
   SaveTeamRegistrationReviewData,
+  SaveTeamRegistrationReviewSubjectData,
   TeamRegistrationReview,
   TeamRegistrationReviewFeedback,
+  TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListSort,
+  TeamRegistrationReviewListResult,
+  TeamRegistrationReviewSubject,
   TeamRegistrationReviewStatus,
 } from "./team-registration-reviews.schema";
 
@@ -24,11 +29,53 @@ export interface TeamRegistrationReviewService {
     teamId: string,
     data: SaveTeamRegistrationReviewData,
   ) => Promise<TeamRegistrationReviewSaveResult>;
+  saveSubject: (
+    access: TeamAccessContext,
+    teamId: string,
+    data: SaveTeamRegistrationReviewSubjectData,
+  ) => Promise<TeamRegistrationReviewSaveResult>;
+  list: (input: {
+    limit: number;
+    offset: number;
+    reviewStatus: TeamRegistrationReviewListFilter;
+    search: string;
+    sortBy: TeamRegistrationReviewListSort;
+    sortDesc: boolean;
+  }) => Promise<TeamRegistrationReviewListResult>;
 }
 
 const APPROVED: TeamRegistrationReviewStatus = "APPROVED";
 const CHANGES_REQUESTED: TeamRegistrationReviewStatus = "CHANGES_REQUESTED";
 const PENDING_REVIEW: TeamRegistrationReviewStatus = "PENDING_REVIEW";
+const NOT_APPLICABLE = "NOT_APPLICABLE" as const;
+
+function listSubjectStatus(
+  review: TeamRegistrationReview | null,
+  subject: TeamRegistrationReviewSubject,
+): TeamRegistrationReviewStatus {
+  if (review === null) {
+    return PENDING_REVIEW;
+  }
+
+  const issueCodes = review[`${subject}IssueCodes`];
+  const reviewedAt = review[`${subject}ReviewedAt`];
+  const hasIndividualDecisions = [
+    review.advisorReviewedAt,
+    review.participant1ReviewedAt,
+    review.participant2ReviewedAt,
+    review.participant3ReviewedAt,
+  ].some((decision) => decision !== null);
+
+  if (!hasIndividualDecisions) {
+    return subjectFeedbackStatus(review.status, issueCodes);
+  }
+
+  if (reviewedAt === null) {
+    return PENDING_REVIEW;
+  }
+
+  return issueCodes.length > 0 ? CHANGES_REQUESTED : APPROVED;
+}
 
 function subjectFeedbackStatus(
   reviewStatus: TeamRegistrationReviewStatus,
@@ -54,10 +101,10 @@ function toReviewFeedback(review: TeamRegistrationReview | null): TeamRegistrati
   }
 
   return {
-    advisor: subjectFeedbackStatus(review.status, review.advisorIssueCodes),
-    participant1: subjectFeedbackStatus(review.status, review.participant1IssueCodes),
-    participant2: subjectFeedbackStatus(review.status, review.participant2IssueCodes),
-    participant3: subjectFeedbackStatus(review.status, review.participant3IssueCodes),
+    advisor: listSubjectStatus(review, "advisor"),
+    participant1: listSubjectStatus(review, "participant1"),
+    participant2: listSubjectStatus(review, "participant2"),
+    participant3: listSubjectStatus(review, "participant3"),
     status: review.status,
     statusUpdatedAt: review.reviewedAt,
   };
@@ -83,6 +130,40 @@ export function createTeamRegistrationReviewService(
 
       return toReviewFeedback(result.review);
     },
+    list: async ({ limit, offset, reviewStatus, search, sortBy, sortDesc }) => {
+      const result = await repository.list({
+        limit,
+        offset,
+        reviewStatus,
+        search,
+        sortBy,
+        sortDesc,
+      });
+      const { records, total } = result;
+      const rows = records.map(({ review, reviewedByName, team }) => ({
+        advisor: listSubjectStatus(review, "advisor"),
+        id: team.id,
+        lastUpdatedAt: review?.updatedAt ?? null,
+        memberCount: team.memberCount,
+        name: team.name,
+        participant1: listSubjectStatus(review, "participant1"),
+        participant2: listSubjectStatus(review, "participant2"),
+        participant3:
+          team.memberCount === 2 ? NOT_APPLICABLE : listSubjectStatus(review, "participant3"),
+        registrationSubmittedAt: team.registrationSubmittedAt,
+        reviewStatus: review?.status ?? PENDING_REVIEW,
+        reviewedByName,
+        school: team.school,
+      }));
+      return {
+        pagination: {
+          nextOffset: result.offset + limit < total ? result.offset + limit : null,
+          offset: result.offset,
+          total,
+        },
+        rows,
+      };
+    },
     save: async (access, teamId, data) => {
       const result = await repository.save(access, teamId, {
         ...data,
@@ -93,6 +174,17 @@ export function createTeamRegistrationReviewService(
         throw createTeamNotFoundError();
       }
 
+      return result;
+    },
+    saveSubject: async (access, teamId, data) => {
+      const result = await repository.saveSubject(access, teamId, {
+        ...data,
+        reviewedAt: new Date(),
+        reviewedByUserId: access.actorId,
+      });
+      if (!result) {
+        throw createTeamNotFoundError();
+      }
       return result;
     },
   };

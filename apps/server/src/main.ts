@@ -1,4 +1,4 @@
-import { createAppRouter } from "@bmhk-2026/api";
+import { createAppRouter, createDiscordRepository, createDiscordService } from "@bmhk-2026/api";
 import { auth } from "@bmhk-2026/auth";
 import { env } from "@bmhk-2026/env/server";
 import { log } from "evlog";
@@ -17,10 +17,12 @@ const authReader = createAuthReader(auth);
 const apiRouter = createAppRouter({
   auth: authReader,
 });
+const discordService = createDiscordService(createDiscordRepository());
 const app = createApp({
   apiRouter,
   auth,
   corsOrigins: env.CORS_ORIGIN,
+  discordService,
   observability: createAuditObservabilityOptions({
     hmacKeyId: env.AUDIT_HMAC_KEY_ID,
     hmacSecret: env.AUDIT_HMAC_SECRET,

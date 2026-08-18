@@ -18,5 +18,5 @@ jobs:
           test -n "$COOLIFY_WEBHOOK"
           test -n "$COOLIFY_TOKEN"
           curl --fail --show-error --silent \
-            --request GET "$COOLIFY_WEBHOOK" \
+            --request POST "$COOLIFY_WEBHOOK" \
             --header "Authorization: Bearer $COOLIFY_TOKEN"

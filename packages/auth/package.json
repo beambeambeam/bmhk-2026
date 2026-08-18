@@ -14,13 +14,16 @@
     "auth:info": "DOTENV_CONFIG_PATH=../../apps/server/.env auth info --config ./src/index.ts",
     "auth:secret": "DOTENV_CONFIG_PATH=../../apps/server/.env auth secret",
     "db:seed:dev": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts dev",
+    "db:seed:auth": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts auth",
     "db:seed:root": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts root"
   },
   "dependencies": {
     "@bmhk-2026/db": "workspace:*",
     "@bmhk-2026/env": "workspace:*",
+    "@bmhk-2026/s3": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.2",
     "zod": "catalog:"
   },
   "devDependencies": {

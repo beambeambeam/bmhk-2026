@@ -45,3 +45,13 @@ Review generated authentication schema and migration output, but make fixes at t
 - Add relations when application queries need typed relational access.
 - Avoid destructive schema changes unless data migration and rollback impact have been considered.
 - Never include secrets or local connection strings in committed files.
+
+## Seed workflow
+
+`bun run db:seed:dev` requires accounts from `bun run db:seed:auth` and
+must not change authentication credentials.
+
+## Seed workflow
+
+`bun run db:seed:dev` requires accounts from `bun run db:seed:auth` and
+must not change authentication credentials.

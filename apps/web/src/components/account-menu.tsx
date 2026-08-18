@@ -130,7 +130,7 @@ const PLATE_RADIUS = "rounded-[calc(19.896px_+_4.104*var(--fl))]";
  * Figma's `178 / 846`. The card was already correct; the bar above it was pushing it down.
  */
 const CHIP =
-  "mm-press flex items-center justify-center gap-[calc(7.792px_+_8.208*var(--fl))] rounded-[12px] border border-[#dcdcdc] bg-white py-[calc(7.922px_+_3.078*var(--fl))] pr-4 pl-5 fl-20 leading-[1.4] transition-colors hover:bg-black/5 data-[open=true]:bg-[#f7f7f7] md:data-[open=true]:rounded-t-[16px] md:data-[open=true]:rounded-b-none md:min-w-[180px]";
+  "mm-press cursor-pointer flex items-center justify-center gap-[calc(7.792px_+_8.208*var(--fl))] rounded-[12px] border border-[#dcdcdc] bg-white py-[calc(7.922px_+_3.078*var(--fl))] pr-4 pl-5 fl-20 leading-[1.4] transition-colors hover:bg-black/5 data-[open=true]:bg-[#f7f7f7] md:data-[open=true]:rounded-t-[16px] md:data-[open=true]:rounded-b-none md:min-w-[180px]";
 
 /**
  * The panel's inline padding IS the chip's, flat 20 / 16, for the alignment reason above: from
@@ -361,7 +361,6 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
                 width, NOT full-bleed, which is why it is an element with the chip's own
                 20 / 16 margins rather than a border on the panel. Rendered at 1px, the
                 thinnest line a browser paints without dropping it. Desktop only. */}
-            
 
             <button
               ref={itemRef}
@@ -388,7 +387,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
               /* `whitespace-nowrap`: ออกจากระบบ is one line, always. Belt to `w-max`'s braces —
                  the panel is now wide enough for it, but a longer label or a wider metric must
                  push the panel out rather than wrap inside it. */
-              className={`mm-press flex w-full items-center gap-2 ${PANEL_PAD} py-3 text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.511] font-normal whitespace-nowrap text-ink transition-colors hover:bg-black/5 lg:pt-4`}
+              className={`mm-press cursor-pointer flex w-full items-center gap-2 ${PANEL_PAD} py-3 text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.511] font-normal whitespace-nowrap text-ink transition-colors hover:bg-black/5 lg:pt-4`}
             >
               {/* Both dimensions are named, so there is no over-constrained inset for a
                   replaced element to discard — the failure mode `GoogleLogo` documents. */}

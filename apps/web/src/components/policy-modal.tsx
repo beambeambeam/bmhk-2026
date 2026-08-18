@@ -13,6 +13,9 @@ import { REQUIRED_DOCUMENTS } from "@/features/register/data/registration-data";
 import useDialogFocus, { useScrollLock } from "./use-dialog-focus";
 
 const ARROW_DOWN = "/assets/figma/b5fa6d1d1c4352d0d01420816b8777fe81ff5920.svg";
+
+/** Fallback for a `downloadable` document that names no `downloadUrl` of its own. */
+const DEFAULT_DOWNLOAD_URL = "https://macaroni.bangmodhackathon.com/public/BH26-PDPA-01.pdf";
 const EMPTY_ACCEPTED_TITLES: readonly string[] = [];
 
 /**
@@ -259,22 +262,26 @@ function SheetHeader({
 
 function SheetFooter({
   downloadable,
+  downloadUrl,
   isLast,
   isAccepted,
   isAllAccepted,
   onAccept,
 }: {
   downloadable?: boolean;
+  downloadUrl?: string;
   isLast: boolean;
   isAccepted: boolean;
   isAllAccepted?: boolean;
-  onAccept: () => void;
+  /** Omitted by readers that record no consent — the accept button is then not rendered. */
+  onAccept?: () => void;
 }) {
   return (
     <footer className="auth-modal-part flex w-full shrink-0 items-center justify-between gap-3 border-t border-[#f0f0f0] pt-3.5 sm:gap-4 sm:pt-4">
       {downloadable === true ? (
-        <button
-          type="button"
+        <a
+          href={downloadUrl ?? DEFAULT_DOWNLOAD_URL}
+          download
           className="mm-press flex shrink-0 items-center justify-center gap-[12px] rounded-[12px] bg-[#efefef] py-2.5 pr-5 pl-3.5 text-[calc(14.896px_+_4.104*var(--fl))] leading-[1.4] transition-colors hover:bg-[#e2e2e2] sm:py-3 sm:pr-6 sm:pl-4"
         >
           <span className="mm-icon-pop relative block size-[24px] shrink-0 overflow-clip sm:size-[28px]">
@@ -283,30 +290,32 @@ function SheetFooter({
             </span>
           </span>
           ดาวน์โหลด
-        </button>
+        </a>
       ) : (
         <div />
       )}
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onAccept();
-        }}
-        className={`${ANSWER} bg-brand-red text-white transition-opacity hover:opacity-90 flex items-center gap-2`}
-      >
-        {isAccepted && (
-          <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )}
-        {getAcceptButtonLabel(isLast, isAccepted, isAllAccepted)}
-      </button>
+      {onAccept ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAccept();
+          }}
+          className={`${ANSWER} bg-brand-red text-white transition-opacity hover:opacity-90 flex items-center gap-2`}
+        >
+          {isAccepted && (
+            <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          {getAcceptButtonLabel(isLast, isAccepted, isAllAccepted)}
+        </button>
+      ) : null}
     </footer>
   );
 }
@@ -347,7 +356,7 @@ function ModalSheetItem({
   onSelectIndex: (index: number) => void;
   onPrev: () => void;
   onNext: () => void;
-  onAccept: () => void;
+  onAccept?: () => void;
   onClose?: () => void;
 }) {
   const doc = item.document;
@@ -420,6 +429,7 @@ function ModalSheetItem({
 
       <SheetFooter
         downloadable={doc.downloadable}
+        downloadUrl={doc.downloadUrl}
         isLast={currentIndex === totalCount - 1}
         isAccepted={isAccepted}
         isAllAccepted={isAllAccepted}
@@ -453,13 +463,18 @@ export default function PolicyModal({
    * Viewport point of the control that opened the sheet.
    */
   origin?: { x: number; y: number } | null;
-  onAccept: (title: string, isAllAccepted: boolean) => void;
+  /** Omitted by readers that record no consent — the accept button is then not rendered. */
+  onAccept?: (title: string, isAllAccepted: boolean) => void;
   onDecline?: () => void;
 }) {
   const activeBodyRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  const docList = documents && documents.length > 0 ? documents : REQUIRED_DOCUMENTS;
+  const singleDocList: PolicyModalDocItem[] | null = doc
+    ? [{ description: doc.subtitle, document: doc, icon: doc.icon, title: doc.title }]
+    : null;
+  const docList =
+    documents && documents.length > 0 ? documents : (singleDocList ?? REQUIRED_DOCUMENTS);
   const isVisible = open ?? doc !== null;
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -555,7 +570,7 @@ export default function PolicyModal({
 
     const isAllDone = docList.every((d) => nextAccepted.includes(d.title));
 
-    onAccept(item.title, isAllDone);
+    onAccept?.(item.title, isAllDone);
 
     if (!isAllDone) {
       const nextUnacceptedIndex = docList.findIndex(
@@ -685,7 +700,7 @@ export default function PolicyModal({
                   onSelectIndex={setCurrentIndex}
                   onPrev={handlePrev}
                   onNext={handleNext}
-                  onAccept={handleAcceptCurrent}
+                  onAccept={onAccept ? handleAcceptCurrent : undefined}
                   onClose={onDecline}
                 />
               </div>

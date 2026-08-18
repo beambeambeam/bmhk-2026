@@ -14,6 +14,8 @@ export interface PolicyDocument {
   effective?: string;
   /** Renders the ดาวน์โหลด button in the footer. */
   downloadable?: boolean;
+  /** PDF download URL for this document. */
+  downloadUrl?: string;
   sections: { title: string; body: PolicyBlock[] }[];
 }
 

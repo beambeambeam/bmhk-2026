@@ -1,0 +1,169 @@
+/*
+ * The ขอบเขตเนื้อหา reader — the sheet that grows out of the scope card the user pressed.
+ *
+ * Imported by ScopeModal.tsx itself rather than `@import`-ed beside the other four in
+ * index.css, for the reason toast.css records at the top of its own file: this track does not
+ * own index.css. Vite hoists a CSS import from a module into the same bundle, so the only
+ * difference is which file has to be edited to add it.
+ *
+ * ---------------------------------------------------------------- why not `.auth-modal-sheet`
+ *
+ * That vocabulary (auth-motion.css) is the right idiom and this file is deliberately built on
+ * its parts — `--ease-out-auth`, the `data-state` flip, the `--auth-origin-x/y` measurement,
+ * the staggered regions. What it cannot supply is the GROW: `.auth-modal-sheet` starts at
+ * `scale(0.96)`, which is a nudge appropriate to a sheet opening from a row in a list, and this
+ * sheet has to read as a document coming out of a folder that is 373px wide inside a 1200px
+ * plate. So the scale is the one value that is restated here; everything else is the same
+ * gesture at the same times, and the two must not drift apart.
+ *
+ * The `--scope-origin-*` names are separate from `--auth-origin-*` on purpose. They are
+ * measured the same way and mean the same thing, but a marketing page can mount this sheet
+ * while an auth sheet is open elsewhere in the tree, and a custom property INHERITS — sharing
+ * the name would let one sheet's origin leak into the other's `transform-origin`.
+ */
+
+/*
+ * Opacity is outside the reduced-motion guard, exactly as auth-motion.css puts it: a dialogue
+ * always fades, and only the travel and the scale are conditional. With `prefers-reduced-motion:
+ * reduce` this is the whole animation — the sheet appears at full size, in place, over 190/300ms
+ * of opacity, which is "fewer and gentler", not "none".
+ */
+.scope-scrim,
+.scope-sheet {
+  opacity: 0;
+}
+
+.scope-scrim[data-state="open"],
+.scope-sheet[data-state="open"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* the scrim dims first and quickly, and lifts last on the way out */
+  .scope-scrim {
+    transition: opacity 180ms var(--ease-out-auth);
+  }
+
+  .scope-scrim[data-state="open"] {
+    transition-duration: 240ms;
+  }
+
+  /*
+   * THE MORPH.
+   *
+   * `--scope-origin-x/y` are the pressed card's CENTRE expressed in the sheet's own box, written
+   * once per open by ScopeModal (see the note there on why it has to be measured after mount).
+   * With `transform-origin` at that point, a plain `scale()` is already the whole morph: at
+   * `scale(0.9)` the sheet is a smaller plate sitting centred on the card, and it grows out of it
+   * in place. No `translate` is needed to carry it there and none is used — a translate would
+   * fight the origin and make the path curve.
+   *
+   * 0.9 and not 373/1200 = 0.31, which is what "starts at the card's actual footprint" would
+   * mean. Sampled at 1440, the literal version spends its first third as unreadably small type
+   * being zoomed — the sheet reads as a photograph being enlarged rather than as a document
+   * being drawn out, and the effect gets worse the more of the document is on screen. 0.9 is
+   * enough grow to be read as emerging, and the thing that actually carries "out of THAT card"
+   * is the origin, which is exact. The regions' own stagger below covers the first 120ms in any
+   * case, so what little type is scaled is not yet visible.
+   *
+   * `translate`/`scale`/`rotate`, the individual properties, NEVER the `transform` shorthand —
+   * the house rule, and auth-motion.css records the two occasions this repo was bitten by it.
+   * The open state names both longhands rather than writing `transform: none`, so a layout
+   * `-translate-x-1/2` from a call site cannot be cleared out from under the sheet.
+   *
+   * 300ms in / 190ms out: arriving is an event, leaving should get out of the way. Both are
+   * inside the 300ms ceiling for UI, and both are transitions rather than keyframes so a
+   * double-click retargets from wherever the sheet currently is instead of restarting.
+   */
+  .scope-sheet {
+    scale: 0.9;
+    transform-origin: var(--scope-origin-x, 50%) var(--scope-origin-y, 50%);
+    transition:
+      opacity 190ms var(--ease-out-auth),
+      scale 190ms var(--ease-out-auth);
+  }
+
+  .scope-sheet[data-state="open"] {
+    scale: 1;
+    transition:
+      opacity 300ms var(--ease-out-auth),
+      scale 300ms var(--ease-out-auth);
+  }
+
+  /*
+   * The document's regions settle behind the plate rather than with it — the stagger is what
+   * stops a sheet this large reading as one stiff board, and it is also what hides the scaled
+   * type during the grow. Delays only on the way in; on the way out everything leaves at once,
+   * which is auth-motion.css's rule and the reason an exit never feels like a second animation.
+   */
+  .scope-part {
+    opacity: 0;
+    translate: 0 10px;
+    transition:
+      opacity 160ms var(--ease-out-auth),
+      translate 160ms var(--ease-out-auth);
+  }
+
+  .scope-sheet[data-state="open"] .scope-part {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 280ms var(--ease-out-auth),
+      translate 280ms var(--ease-out-auth);
+  }
+
+  .scope-sheet[data-state="open"] .scope-part-1 {
+    transition-delay: 70ms;
+  }
+
+  .scope-sheet[data-state="open"] .scope-part-2 {
+    transition-delay: 120ms;
+  }
+
+  /*
+   * The folder tab closes around the document. It rises from the sheet's own bottom edge —
+   * `100%` is by definition its own height, so the bar starts entirely below the sheet's clip
+   * and is invisible rather than merely offset — and drops back through the same edge on the
+   * way out. That is the beat that makes the metaphor legible: the plate grows out of the card,
+   * then the folder comes up around it.
+   *
+   * It runs LAST (170ms) because a folder closing around a document that is not there yet is
+   * the gesture backwards.
+   */
+  .scope-tab {
+    translate: 0 100%;
+    transition: translate 190ms var(--ease-out-auth);
+  }
+
+  .scope-sheet[data-state="open"] .scope-tab {
+    translate: 0 0;
+    transition: translate 320ms var(--ease-out-auth) 170ms;
+  }
+}
+
+/*
+ * Switching category from the pager does NOT re-run the morph — the sheet is already open and
+ * has not moved, so only its contents change. A short cross-fade keyed on the category is
+ * enough to stop the two documents reading as one that jumped, and it is a plain animation
+ * rather than a transition because there is no state to interpolate FROM: the old subtree is
+ * unmounted and a new one takes its place.
+ *
+ * Gated, because this one is pure comprehension aid rather than affordance, and under
+ * `prefers-reduced-motion` an instant swap is the honest answer.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .scope-page-in {
+    animation: scope-page-in 240ms var(--ease-out-auth) both;
+  }
+}
+
+@keyframes scope-page-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}

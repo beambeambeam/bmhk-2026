@@ -8,6 +8,8 @@
 @import "./styles/reveal.css";
 @import "./styles/hall-of-fame.css";
 @import "./styles/legacy-tokens.css";
+@import "./styles/scope-motion.css";
+@import "./styles/consent-motion.css";
 
 @source "./**/*.{ts,tsx}";
 @custom-variant dark (&:is(.dark *));

@@ -1,7 +1,10 @@
 import { GatewayIntentBits, Partials } from "discord.js";
 import { loadEvents } from "./loaders/events.js";
 import { loadInteractions } from "./loaders/interactions.js";
+import { getDb } from "./lib/db.js";
 import { BotClient } from "./types.js";
+
+getDb();
 
 const client = new BotClient({
   intents: [

@@ -1,4 +1,4 @@
-import type { AdminUserListQuery } from "@bmhk-2026/api";
+import type { AdminUserListQuery, TeamRegistrationReviewListInput } from "@bmhk-2026/api";
 
 import { orpc } from "./orpc";
 
@@ -35,4 +35,32 @@ export function getAdminUserListQueryOptions(
     input,
     queryKey: [...orpc.adminUsers.list.queryKey({ input }), { userId }],
   });
+}
+
+export function getTeamRegistrationReviewListQueryOptions(input: TeamRegistrationReviewListInput) {
+  return orpc.teamRegistrationReviews.list.queryOptions({ input });
+}
+
+export function getParticipationQueryOptions(teamId: string) {
+  return orpc.teams.get.queryOptions({ input: { id: teamId } });
+}
+
+export function getParticipationParticipantsQueryOptions(teamId: string) {
+  return orpc.teamParticipants.list.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationAdvisorQueryOptions(teamId: string) {
+  return orpc.teamAdvisors.get.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationConsentQueryOptions(teamId: string) {
+  return orpc.teamConsents.get.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationStatusQueryOptions(teamId: string) {
+  return orpc.teamRegistrationStatus.getByTeamId.queryOptions({ input: { teamId } });
+}
+
+export function getParticipationReviewQueryOptions(teamId: string) {
+  return orpc.teamRegistrationReviews.get.queryOptions({ input: { teamId } });
 }

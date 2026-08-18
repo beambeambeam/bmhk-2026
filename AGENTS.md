@@ -153,3 +153,13 @@ Oxlint + Oxfmt's linter will catch most issues automatically. Focus your attenti
 4. **Edge cases** - Handle boundary conditions and error states
 5. **User experience** - Accessibility, performance, and usability considerations
 6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
+
+## Seed workflow
+
+Run `bun run db:seed:auth` before `bun run db:seed:dev`. Auth creates local
+accounts; development fixtures add registration data without changing credentials.
+
+## Seed workflow
+
+Run `bun run db:seed:auth` before `bun run db:seed:dev`. Auth creates local
+accounts; development fixtures add registration data without changing credentials.

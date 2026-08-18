@@ -35,3 +35,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # auto-generated manifests (scripts/gen-*-manifest.ts)
 src/*.manifest.ts
+
+# local sqlite db (src/lib/db.ts)
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

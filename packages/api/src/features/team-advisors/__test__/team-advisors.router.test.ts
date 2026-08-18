@@ -163,9 +163,7 @@ describe("team advisors router", () => {
     });
     const router = createRouter(
       repository,
-      createTestAuthReader(
-        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
     );
     const { context } = createTestContext();
 

@@ -41,6 +41,7 @@ const USER_ID = "user-1";
 
 const expectedAwards = [
   "NO_ACHIEVEMENT",
+  "REGISTRATION_COMPLETED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",
@@ -109,7 +110,7 @@ function createRouter(
 }
 
 function createRegistrationAuthReader(): AuthReader {
-  return createAuthReader(createTestSession({ user: { role: "registrationStaff" } }));
+  return createAuthReader(createTestSession({ user: { role: "staff" } }));
 }
 
 describe("teams router", () => {
@@ -393,7 +394,7 @@ describe("teams router", () => {
   it("requires registration permission to list teams", async () => {
     const router = createRouter(
       createTeamRepository(),
-      createAuthReader(createTestSession({ user: { role: "staff" } })),
+      createAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context } = createContext();
 
@@ -423,9 +424,7 @@ describe("teams router", () => {
     });
     const router = createRouter(
       repository,
-      createAuthReader(
-        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
-      ),
+      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
     );
     const { context } = createContext();
 
@@ -563,9 +562,7 @@ describe("teams router", () => {
     const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(
       repository,
-      createAuthReader(
-        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
-      ),
+      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
       fileRepository,
     );
     const { context } = createContext();
@@ -889,9 +886,7 @@ describe("teams router", () => {
     });
     const router = createRouter(
       repository,
-      createAuthReader(
-        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
-      ),
+      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
     );
     const { context, log } = createContext();
 

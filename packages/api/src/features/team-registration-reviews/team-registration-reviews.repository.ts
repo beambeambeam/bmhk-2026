@@ -175,6 +175,8 @@ export function createTeamRegistrationReviewRepository(
                             ilike(teamParticipants.firstNameTh, searchPattern),
                             ilike(teamParticipants.lastNameEn, searchPattern),
                             ilike(teamParticipants.lastNameTh, searchPattern),
+                            ilike(teamParticipants.nicknameEn, searchPattern),
+                            ilike(teamParticipants.nicknameTh, searchPattern),
                             ilike(
                               sql<string>`concat_ws(' ', ${teamParticipants.firstNameEn}, ${teamParticipants.middleNameEn}, ${teamParticipants.lastNameEn})`,
                               searchPattern,

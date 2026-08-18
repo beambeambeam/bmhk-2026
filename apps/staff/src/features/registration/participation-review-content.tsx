@@ -255,6 +255,18 @@ function PersonPreview({
           <dt className="text-muted-foreground">ไลน์ไอดี</dt>
           <dd className="font-medium">{person.lineId ?? "—"}</dd>
         </div>
+        {isParticipant ? (
+          <>
+            <div>
+              <dt className="text-muted-foreground">ชื่อเล่นภาษาไทย</dt>
+              <dd className="font-medium">{participant.nicknameTh}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">ชื่อเล่นภาษาอังกฤษ</dt>
+              <dd className="font-medium">{participant.nicknameEn}</dd>
+            </div>
+          </>
+        ) : null}
         <div>
           <dt className="text-muted-foreground">การแพ้อาหาร</dt>
           <dd className="font-medium">{person.foodAllergies ?? "—"}</dd>

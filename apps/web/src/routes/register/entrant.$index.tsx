@@ -470,7 +470,7 @@ export default function EntrantStep() {
         </section>
 
         <Separator />
-        <PersonFields person={currentEntrantKey} title={`ข้อมูลผู้เข้าแข่งขันคนที่ ${n}`} withBirthDate />
+        <PersonFields person={currentEntrantKey} title={`ข้อมูลผู้เข้าแข่งขันคนที่ ${n}`} withBirthDate withNickName />
         <Separator />
         <ContactFields person={currentEntrantKey} />
       </div>

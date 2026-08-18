@@ -27,11 +27,11 @@ export interface teamFormData {
 export interface advisorFormData {
   titleTh: string;
   firstNameTh: string;
-  middleNameTh: string;
+  // middleNameTh: string;
   lastNameTh: string;
   titleEn: string;
   firstNameEn: string;
-  middleNameEn: string;
+  // middleNameEn: string;
   lastNameEn: string;
   email: string;
   phone: string;
@@ -50,12 +50,14 @@ export interface advisorFormData {
 export interface entrantFormData {
   titleTh: string;
   firstNameTh: string;
-  middleNameTh: string;
+  // middleNameTh: string;
   lastNameTh: string;
+  nickNameTh: string;
   titleEn: string;
   firstNameEn: string;
-  middleNameEn: string;
+  // middleNameEn: string;
   lastNameEn: string;
+  nickNameEn: string;
   dateOfBirth: string;
   email: string;
   phone: string;
@@ -356,8 +358,8 @@ function createFormOptions(
         lastNameEn: getStr(advisorData, "lastNameEn"),
         lastNameTh: getStr(advisorData, "lastNameTh"),
         lineId: getStr(advisorData, "lineId"),
-        middleNameEn: getStr(advisorData, "middleNameEn"),
-        middleNameTh: getStr(advisorData, "middleNameTh"),
+        // middleNameEn: getStr(advisorData, "middleNameEn"),
+        // middleNameTh: getStr(advisorData, "middleNameTh"),
         phone: getStr(advisorData, "phone"),
         teacherStatusDocumentFile: null,
         teacherStatusDocumentName: getNestedStr(
@@ -394,8 +396,10 @@ function createFormOptions(
         lastNameEn: getStr(entrant1Data, "lastNameEn"),
         lastNameTh: getStr(entrant1Data, "lastNameTh"),
         lineId: getStr(entrant1Data, "lineId"),
-        middleNameEn: getStr(entrant1Data, "middleNameEn"),
-        middleNameTh: getStr(entrant1Data, "middleNameTh"),
+        // middleNameEn: getStr(entrant1Data, "middleNameEn"),
+        // middleNameTh: getStr(entrant1Data, "middleNameTh"),
+        nickNameTh: getStr(entrant1Data, "nickNameTh"),
+        nickNameEn: getStr(entrant1Data, "nickNameEn"),
         phone: getStr(entrant1Data, "phone"),
         portraitPhotoFile: null,
         portraitPhotoName: getNestedStr(entrant1Data, "portraitPhoto", "originalName"),
@@ -428,8 +432,10 @@ function createFormOptions(
         lastNameEn: getStr(entrant2Data, "lastNameEn"),
         lastNameTh: getStr(entrant2Data, "lastNameTh"),
         lineId: getStr(entrant2Data, "lineId"),
-        middleNameEn: getStr(entrant2Data, "middleNameEn"),
-        middleNameTh: getStr(entrant2Data, "middleNameTh"),
+        // middleNameEn: getStr(entrant2Data, "middleNameEn"),
+        // middleNameTh: getStr(entrant2Data, "middleNameTh"),
+        nickNameTh: getStr(entrant1Data, "nickNameTh"),
+        nickNameEn: getStr(entrant1Data, "nickNameEn"),
         phone: getStr(entrant2Data, "phone"),
         portraitPhotoFile: null,
         portraitPhotoName: getNestedStr(entrant2Data, "portraitPhoto", "originalName"),
@@ -462,8 +468,10 @@ function createFormOptions(
         lastNameEn: getStr(entrant3Data, "lastNameEn"),
         lastNameTh: getStr(entrant3Data, "lastNameTh"),
         lineId: getStr(entrant3Data, "lineId"),
-        middleNameEn: getStr(entrant3Data, "middleNameEn"),
-        middleNameTh: getStr(entrant3Data, "middleNameTh"),
+        // middleNameEn: getStr(entrant3Data, "middleNameEn"),
+        // middleNameTh: getStr(entrant3Data, "middleNameTh"),
+        nickNameTh: getStr(entrant1Data, "nickNameTh"),
+        nickNameEn: getStr(entrant1Data, "nickNameEn"),
         phone: getStr(entrant3Data, "phone"),
         portraitPhotoFile: null,
         portraitPhotoName: getNestedStr(entrant3Data, "portraitPhoto", "originalName"),
@@ -519,9 +527,9 @@ export function RegisterLayout() {
   const isTerms = location.pathname.includes("/terms");
 
   useEffect(() => {
-    // if (!session.isPending && !session.data) {
-    // void navigate({ to: "/signin" });
-    // }
+    if (!session.isPending && !session.data) {
+    void navigate({ to: "/signin" });
+    }
 
     function handleFocus() {
       void (async () => {
@@ -580,7 +588,7 @@ export function RegisterLayout() {
     }
   }, [location.pathname, form, navigate]);
 
-  const isGateOrResult =
+  const isGateOrResult = 
     location.pathname === "/register" ||
     location.pathname === "/register/" ||
     location.pathname.includes("/success") ||

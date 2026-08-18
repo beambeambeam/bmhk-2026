@@ -53,11 +53,13 @@ export default function PersonFields({
   title,
   withBirthDate = false,
   headingGap = "gap-6",
+  withNickName = false,
 }: {
   person: "advisor" | "entrant1" | "entrant2" | "entrant3";
   title: string;
   withBirthDate?: boolean;
   headingGap?: string;
+  withNickName?: boolean;
 }) {
   const form = useRegisterForm();
 
@@ -72,6 +74,10 @@ export default function PersonFields({
     form.setFieldValue(`${person}.lastNameEn` as any, "");
     if (withBirthDate) {
       form.setFieldValue(`${person}.dateOfBirth` as any, "");
+    }
+    if (withNickName) {
+      form.setFieldValue(`${person}.nickNameTh` as any, "");
+      form.setFieldValue(`${person}.nickNameEn` as any, "");
     }
     form.setFieldValue(`${person}.foodAllergies` as any, "");
     form.setFieldValue(`${person}.dietaryRequirements` as any, "");
@@ -120,7 +126,7 @@ export default function PersonFields({
               />
             )}
           </form.Field>
-
+{/* 
           <form.Field name={`${person}.middleNameTh`}>
             {(field) => (
               <TextField
@@ -136,7 +142,7 @@ export default function PersonFields({
                 }
               />
             )}
-          </form.Field>
+          </form.Field> */}
 
           <form.Field name={`${person}.lastNameTh`}>
             {(field) => (
@@ -155,6 +161,25 @@ export default function PersonFields({
               />
             )}
           </form.Field>
+
+          {withNickName && (<form.Field name={`${person as "entrant1" | "entrant2" | "entrant3" }.nickNameTh`}>
+            {(field) => (
+              <TextField
+                label="ชื่อเล่น (ภาษาไทย)"
+                required
+                placeholder="ณ บางมด"
+                className={CELL}
+                value={field.state.value}
+                onChange={(val) => {
+                  field.handleChange(formatThaiOnly(val));
+                }}
+                error={
+                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
+                }
+              />
+            )}
+          </form.Field>
+        )}
         </div>
 
         <div className={ROW}>
@@ -195,7 +220,7 @@ export default function PersonFields({
             )}
           </form.Field>
 
-          <form.Field name={`${person}.middleNameEn`}>
+          {/* <form.Field name={`${person}.middleNameEn`}>
             {(field) => (
               <TextField
                 label="Middle Name"
@@ -210,7 +235,7 @@ export default function PersonFields({
                 }
               />
             )}
-          </form.Field>
+          </form.Field> */}
 
           <form.Field name={`${person}.lastNameEn`}>
             {(field) => (
@@ -229,6 +254,25 @@ export default function PersonFields({
               />
             )}
           </form.Field>
+
+          {withNickName && (<form.Field name={`${person as "entrant1" | "entrant2" | "entrant3" }.nickNameEn`}>
+            {(field) => (
+              <TextField
+                label="NickName"
+                required
+                placeholder="ณ บางมด"
+                className={CELL}
+                value={field.state.value}
+                onChange={(val) => {
+                  field.handleChange(formatThaiOnly(val));
+                }}
+                error={
+                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
+                }
+              />
+            )}
+          </form.Field>
+        )}
         </div>
 
         <div className={ROW}>

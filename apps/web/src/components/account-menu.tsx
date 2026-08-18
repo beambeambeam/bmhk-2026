@@ -345,7 +345,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
          * accounts for. Below `sm` there is no hairline and no 4 — the 10px gap is the
          * separator.
          */}
-        <div className="min-h-0 lg:pt-1">
+        <div className="min-h-0">
           <div
             style={{
               "--reveal-delay": open ? `${REVEAL_STEP}ms` : "0ms",
@@ -361,7 +361,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
                 width, NOT full-bleed, which is why it is an element with the chip's own
                 20 / 16 margins rather than a border on the panel. Rendered at 1px, the
                 thinnest line a browser paints without dropping it. Desktop only. */}
-            <span aria-hidden className="mr-4 ml-5 hidden h-px bg-[#dcdcdc] lg:block" />
+            
 
             <button
               ref={itemRef}

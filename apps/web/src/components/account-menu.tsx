@@ -19,7 +19,7 @@ const GLYPH_20_24 = "size-[calc(19.896px_+_4.104*var(--fl))]";
 const PLATE_RADIUS = "rounded-[calc(19.896px_+_4.104*var(--fl))]";
 
 const CHIP =
-  "mm-press flex items-center justify-center gap-[calc(7.792px_+_8.208*var(--fl))] rounded-[12px] border border-[#dcdcdc] bg-white py-[calc(7.922px_+_3.078*var(--fl))] pr-4 pl-5 fl-20 leading-[1.4] transition-colors hover:bg-black/5 data-[open=true]:bg-[#f7f7f7] sm:data-[open=true]:rounded-t-[16px] sm:data-[open=true]:rounded-b-none";
+  "mm-press cursor-pointer flex items-center justify-center gap-[calc(7.792px_+_8.208*var(--fl))] rounded-[12px] border border-[#dcdcdc] bg-white py-[calc(7.922px_+_3.078*var(--fl))] pr-4 pl-5 fl-20 leading-[1.4] transition-colors hover:bg-black/5 data-[open=true]:bg-[#f7f7f7] sm:data-[open=true]:rounded-t-[16px] sm:data-[open=true]:rounded-b-none";
 
 const PANEL_PAD = "pr-4 pl-5";
 
@@ -150,7 +150,7 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
                 setOpen(false);
                 logOut();
               }}
-              className={`mm-press flex w-full items-center gap-2 ${PANEL_PAD} py-3 text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.511] font-normal whitespace-nowrap text-ink transition-colors hover:bg-black/5 sm:pt-4`}
+              className={`mm-press cursor-pointer flex w-full items-center gap-2 ${PANEL_PAD} py-3 text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.511] font-normal whitespace-nowrap text-ink transition-colors hover:bg-black/5 sm:pt-4`}
             >
               {/* Both dimensions are named, so there is no over-constrained inset for a
                   replaced element to discard — the failure mode `GoogleLogo` documents. */}

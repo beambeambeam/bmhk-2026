@@ -125,7 +125,7 @@ function SignInRoute() {
                 void handleGoogleSignIn();
               }}
               data-rise={3}
-              className="auth-rise auth-rise-sm mm-press flex h-[calc(44.61px_+_15.39*var(--fl))] w-full items-center justify-center gap-[calc(15.896px_+_4.104*var(--fl))] rounded-[20px] bg-[#f6f6f6] px-6 py-[calc(9.844px_+_6.156*var(--fl))] font-display text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] font-semibold transition-colors hover:bg-[#ececec] disabled:opacity-50"
+              className="auth-rise auth-rise-sm mm-press flex h-[calc(44.61px_+_15.39*var(--fl))] w-full items-center justify-center gap-[calc(15.896px_+_4.104*var(--fl))] rounded-[20px] bg-[#f6f6f6] px-6 py-[calc(9.844px_+_6.156*var(--fl))] font-display text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] font-semibold transition-colors hover:bg-[#ececec] cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             >
               <GoogleLogo />
               {isSigningIn ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบด้วย Google"}

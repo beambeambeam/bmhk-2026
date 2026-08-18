@@ -10,6 +10,7 @@ import z from "zod";
 import { Card, CardContent } from "@/components/card";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
+import { cn } from "@/lib/utils";
 
 import Loader from "@/components/loader";
 
@@ -132,7 +133,7 @@ export default function SignInForm() {
             <div className="flex flex-col gap-2">
               <Button
                 type="button"
-                className="h-10 w-full gap-2"
+                className={cn("h-10 w-full gap-2", isSigningIn && "cursor-wait opacity-50")}
                 disabled={isSigningIn}
                 onClick={() => {
                   void signInWithMicrosoft();

@@ -245,6 +245,8 @@ function participantData(
     lineId: `${firstNameEn.toLowerCase()}-${lastNameEn.toLowerCase()}`,
     middleNameEn: "Sample",
     middleNameTh: "ตัวอย่าง",
+    nicknameEn: firstNameEn,
+    nicknameTh: `ผู้เข้าร่วม${index}`,
     phone: `08123456${index}${index}`,
     teamId,
     titleEn: "Mr.",

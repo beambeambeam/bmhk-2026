@@ -54,6 +54,8 @@ const participant = {
   lineId: null,
   middleNameEn: null,
   middleNameTh: null,
+  nicknameEn: "Stu",
+  nicknameTh: "นักเรียน",
   phone: "080-000-0000",
   portraitPhotoFileId: null,
   teamId: TEAM_ID,
@@ -136,6 +138,8 @@ function input() {
     index: 1,
     lastNameEn: " One ",
     lastNameTh: " หนึ่ง ",
+    nicknameEn: " Stu ",
+    nicknameTh: " นักเรียน ",
     phone: " 080-000-0000 ",
     teamId: TEAM_ID,
     titleEn: " Mr. ",
@@ -171,7 +175,13 @@ describe("team participants router", () => {
     const { context } = createTestContext();
     await expect(
       call(router.create, input(), { context, path: ["teamParticipants", "create"] }),
-    ).resolves.toMatchObject({ email: "student@example.com", firstNameEn: "Student", index: 1 });
+    ).resolves.toMatchObject({
+      email: "student@example.com",
+      firstNameEn: "Student",
+      index: 1,
+      nicknameEn: "Stu",
+      nicknameTh: "นักเรียน",
+    });
     expect(create).toHaveBeenCalledWith(ownerAccess, {
       ...input(),
       email: "student@example.com",
@@ -179,6 +189,8 @@ describe("team participants router", () => {
       firstNameTh: "นักเรียน",
       lastNameEn: "One",
       lastNameTh: "หนึ่ง",
+      nicknameEn: "Stu",
+      nicknameTh: "นักเรียน",
       phone: "080-000-0000",
       titleEn: "Mr.",
       titleTh: "นาย",
@@ -238,10 +250,18 @@ describe("team participants router", () => {
     await expect(
       call(
         router.update,
-        { data: { email: "new@example.com", foodAllergies: null }, index: 1, teamId: TEAM_ID },
+        {
+          data: { email: "new@example.com", foodAllergies: null, nicknameEn: " New Stu " },
+          index: 1,
+          teamId: TEAM_ID,
+        },
         { context, path: ["teamParticipants", "update"] },
       ),
-    ).resolves.toMatchObject({ email: "new@example.com", foodAllergies: null });
+    ).resolves.toMatchObject({
+      email: "new@example.com",
+      foodAllergies: null,
+      nicknameEn: "New Stu",
+    });
     await expect(
       call(
         router.update,

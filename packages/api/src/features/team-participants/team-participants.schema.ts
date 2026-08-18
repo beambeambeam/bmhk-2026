@@ -12,6 +12,8 @@ import {
 const refinements = {
   ...registrationPersonFieldRefinements,
   dateOfBirth: (schema: z.ZodString) => schema.trim().regex(/^\d{4}-\d{2}-\d{2}$/u),
+  nicknameEn: (schema: z.ZodString) => schema.trim().min(1).max(100),
+  nicknameTh: (schema: z.ZodString) => schema.trim().min(1).max(100),
 };
 
 const insert = createInsertSchema(teamParticipants, refinements);
@@ -20,6 +22,8 @@ const update = createUpdateSchema(teamParticipants, refinements);
 const writable = {
   ...registrationPersonWritableFields,
   dateOfBirth: true,
+  nicknameEn: true,
+  nicknameTh: true,
 } as const;
 
 export const teamParticipantSchema = createSelectSchema(teamParticipants).strict();

@@ -49,6 +49,8 @@ export const teamParticipants = pgTable(
     lineId: text("line_id"),
     middleNameEn: text("middle_name_en"),
     middleNameTh: text("middle_name_th"),
+    nicknameEn: text("nickname_en").notNull(),
+    nicknameTh: text("nickname_th").notNull(),
     phone: text("phone").notNull(),
     portraitPhotoFileId: uuid("portrait_photo_file_id").references(() => files.id, {
       onDelete: "restrict",
@@ -101,6 +103,8 @@ export const teamParticipants = pgTable(
     check("team_participants_first_name_en_valid", requiredTextCheck(table.firstNameEn, 100)),
     check("team_participants_middle_name_en_valid", optionalTextCheck(table.middleNameEn, 100)),
     check("team_participants_last_name_en_valid", requiredTextCheck(table.lastNameEn, 100)),
+    check("team_participants_nickname_en_valid", requiredTextCheck(table.nicknameEn, 100)),
+    check("team_participants_nickname_th_valid", requiredTextCheck(table.nicknameTh, 100)),
     check("team_participants_food_allergies_valid", optionalTextCheck(table.foodAllergies, 1000)),
     check(
       "team_participants_dietary_requirements_valid",

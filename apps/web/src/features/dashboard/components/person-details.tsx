@@ -127,6 +127,12 @@ export default function PersonDetails({ person }: { person: Person }) {
             <Field label="วัน/เดือน/ปีเกิด">{formatThaiDate(person.dateOfBirth)}</Field>
           </FieldRow>
         )}
+        {isAdvisor ? null : (
+          <FieldRow cols={2}>
+            <Field label="ชื่อเล่น">{person.nicknameTh}</Field>
+            <Field label="Nickname">{person.nicknameEn}</Field>
+          </FieldRow>
+        )}
       </Section>
 
       <Separator />

@@ -42,6 +42,8 @@ export interface TeamParticipantApi {
   lineId: string | null;
   middleNameEn: string | null;
   middleNameTh: string | null;
+  nicknameEn: string;
+  nicknameTh: string;
   phone: string;
   portraitPhoto: DocumentFile | null;
   teamId: string;
@@ -93,6 +95,8 @@ export interface Person {
   lineId: string;
   middleNameEn: string;
   middleNameTh: string;
+  nicknameEn: string;
+  nicknameTh: string;
   phone: string;
   /** Tab label. */
   tab: string;
@@ -157,6 +161,8 @@ export const EMPTY_SHARED = {
   lineId: "-",
   middleNameEn: "-",
   middleNameTh: "-",
+  nicknameEn: "-",
+  nicknameTh: "-",
   phone: "-",
   titleEn: "-",
   titleTh: "-",

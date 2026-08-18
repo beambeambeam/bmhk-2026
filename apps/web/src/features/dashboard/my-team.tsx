@@ -373,6 +373,8 @@ function mapParticipant(p: ParticipantType | undefined, mockMember: MockMemberTy
     lineId: val(p.lineId),
     middleNameEn: p.middleNameEn ?? "",
     middleNameTh: p.middleNameTh ?? "",
+    nicknameEn: p.nicknameEn,
+    nicknameTh: p.nicknameTh,
     phone: p.phone,
     titleEn: val(p.titleEn),
     titleTh: val(p.titleTh),

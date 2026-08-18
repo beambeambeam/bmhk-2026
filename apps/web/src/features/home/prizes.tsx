@@ -72,7 +72,10 @@ function PrizeCard({ prize, i }: { prize: (typeof PRIZES)[number]; i: number }) 
           placeholders rather than as podiums. Safe here because nothing else on this box owns
           `scale`, and it GROWS into its final size inside a square that is already its own
           layout box, so no neighbour moves. */}
-      <div className="mm-settle aspect-square rounded-xl bg-white" />
+      <div
+        style={{ backgroundImage: `url(${prize.image})` }}
+        className="mm-settle aspect-square rounded-xl bg-contain bg-no-repeat bg-center"
+      />
       {/* `min-w-0` for the same reason as the card: this is the box the caption must not
           outgrow, and it is exactly the plate's box above it (708:277 is x0 w320 in a 320
           card — the description spans the full card, so "text width" IS "card width"). */}

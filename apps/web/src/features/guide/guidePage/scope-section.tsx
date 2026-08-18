@@ -319,7 +319,7 @@ export default function ScopeSection() {
              * user's call, not a parity fix.
              */}
             <a
-              href="/files/BH26 - ขอบเขตเนื้อหาที่ใช้ในการแข่งขัน.pdf"
+              href="https://macaroni.bangmodhackathon.com/public/BH26-AC-02.pdf"
               download
               /* `rounded-[100px]` is Figma's on both frames (`1190:969`, and `708:486` is a
                  325x60 pill), so it is flat rather than a ramp.

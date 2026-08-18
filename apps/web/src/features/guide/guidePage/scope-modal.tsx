@@ -488,7 +488,7 @@ export default function ScopeModal({
              * not disagree about that. Both want the real path in one edit when it exists.
              */}
             <a
-              href="/files/BH26 - ขอบเขตเนื้อหาที่ใช้ในการแข่งขัน.pdf"
+              href="https://macaroni.bangmodhackathon.com/public/BH26-AC-02.pdf"
               download
               className="mm-press flex shrink-0 items-center rounded-[100px] bg-white/20 transition-colors hover:bg-white/30"
               style={{

@@ -362,7 +362,9 @@ export default function PolicyModal({
         <footer className="auth-modal-part flex w-full shrink-0 flex-wrap items-center justify-end gap-4">
           {shown.downloadable === true && (
             <a
-              href={shown.downloadUrl ?? "/files/BH26 - นโยบายความเป็นส่วนตัว.pdf"}
+              href={
+                shown.downloadUrl ?? "https://macaroni.bangmodhackathon.com/public/BH26-PDPA-01.pdf"
+              }
               download
               className="mm-press me-auto flex shrink-0 items-center justify-center gap-[12px] rounded-[12px] bg-[#efefef] py-3 pr-6 pl-4 text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] transition-colors hover:bg-[#e2e2e2]"
             >

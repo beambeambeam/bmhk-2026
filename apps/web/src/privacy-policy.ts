@@ -40,9 +40,19 @@ const SUBTITLE = "โครงการแข่งขันแก้ไขป�
  */
 const EFFECTIVE = "มีผลบังคับใช้ตั้งแต่วันที่ 19 สิงหาคม 2569";
 
+export const SCOPE: PolicyDocument = {
+  downloadUrl: "https://macaroni.bangmodhackathon.com/public/BH26-AC-02.pdf",
+  downloadable: true,
+  effective: EFFECTIVE,
+  icon: "/assets/figma/176d32b711d514c6bbb10d973644f3085a117ce1.svg",
+  sections: COMPETITION_RULES_SECTIONS,
+  subtitle: SUBTITLE,
+  title: "ขอบเขตเนื้อหาการแข่งขัน",
+};
+
 /** Figma node 708:2169 — Competition Rules Modal. */
 export const COMPETITION_RULES: PolicyDocument = {
-  downloadUrl: "/files/BH26 - ขอบเขตเนื้อหาที่ใช้ในการแข่งขัน.pdf",
+  downloadUrl: "https://macaroni.bangmodhackathon.com/public/BH26-AC-01.pdf",
   downloadable: true,
   effective: EFFECTIVE,
   icon: "/assets/figma/176d32b711d514c6bbb10d973644f3085a117ce1.svg",
@@ -53,7 +63,7 @@ export const COMPETITION_RULES: PolicyDocument = {
 
 /** Figma node 708:2047 shell + node 719:36 content — Privacy Policy Modal. */
 export const PRIVACY_POLICY: PolicyDocument = {
-  downloadUrl: "/files/BH26 - นโยบายความเป็นส่วนตัว.pdf",
+  downloadUrl: "https://macaroni.bangmodhackathon.com/public/BH26-PDPA-01.pdf",
   downloadable: true,
   effective: EFFECTIVE,
   icon: "/assets/figma/8198de2c60e10732616a8a9af8fed56ad7396820.svg",
@@ -63,6 +73,7 @@ export const PRIVACY_POLICY: PolicyDocument = {
 };
 
 export const WEBSITE_TERMS: PolicyDocument = {
+  downloadUrl: "https://macaroni.bangmodhackathon.com/public/BH26-TOS-02.pdf",
   downloadable: true,
   effective: EFFECTIVE,
   icon: "/assets/figma/176d32b711d514c6bbb10d973644f3085a117ce1.svg",
@@ -72,6 +83,7 @@ export const WEBSITE_TERMS: PolicyDocument = {
 };
 
 export const CODERN_TERMS: PolicyDocument = {
+  downloadUrl: "https://macaroni.bangmodhackathon.com/public/BH26-TOS-01.pdf",
   downloadable: true,
   effective: EFFECTIVE,
   icon: "/assets/figma/03e489cce381543e38ddae4414d0e87ba31d38d1.png",

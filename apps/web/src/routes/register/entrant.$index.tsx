@@ -5,7 +5,7 @@
 /* oxlint-disable typescript(no-unsafe-assignment) */
 /* eslint-disable complexity */
 import { client } from "@bmhk-2026/client/orpc";
-import { useParams, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { DocumentRow, Separator } from "@/components/form/field";
 import PersonFields, { ContactFields } from "@/components/registration/person-field";
 import { STUDENT_DOCUMENTS } from "@/features/register/data/registration-data";
@@ -286,7 +286,13 @@ function EntrantNextButton({
                 ...finalConsentsResult,
               });
 
-              void form.handleSubmit();
+              try {
+                const submittedStatus = await client.teamRegistrationStatus.submit({ teamId });
+                form.setFieldValue("status", submittedStatus);
+              } catch {
+                await go("/register/error", "submit");
+                return;
+              }
               await go(to, "submit");
             } else {
               await go(to, "forward");
@@ -385,7 +391,12 @@ function isValidN(val: number): val is 1 | 2 | 3 {
 
 export default function EntrantStep() {
   const form = useRegisterForm();
-  const { index } = useParams({ strict: false });
+  const routeParams: unknown = Route.useParams();
+  const rawIndex: unknown =
+    typeof routeParams === "object" && routeParams !== null
+      ? Reflect.get(routeParams, "index")
+      : undefined;
+  const index = typeof rawIndex === "string" ? rawIndex : undefined;
   const parse = Math.trunc(Number(index ?? ""));
   const n = isValidN(parse) ? parse : 1;
   const steps = n;

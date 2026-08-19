@@ -2,7 +2,7 @@
 /* oxlint-disable strict-boolean-expressions */
 /* oxlint-disable func-style */
 import { useEffect, useState } from "react";
-import WizardShell, { BackButton, NextButton, STEP_BUTTON } from "@/components/form/wizard-shell";
+import WizardShell, { BackButton, NextButton } from "@/components/form/wizard-shell";
 import { CHECK_MARK, CheckMark } from "@/components/form/field";
 import PolicyModal from "@/components/policy-modal";
 import { CONSENTS, REQUIRED_DOCUMENTS } from "@/features/register/data/registration-data";
@@ -10,9 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { RegistrationFormData } from "../register";
 import { useRegisterForm } from "../register";
 import { z } from "zod";
-import { toast } from "sonner";
-import { useAuthNavigate, useGateField } from "@/components/form/wizard-nav";
-import { client } from "@bmhk-2026/client/orpc";
+import { useGateField } from "@/components/form/wizard-nav";
 
 /**
  * The four documents the one agreement checkbox stands for. The sentence beside it names all
@@ -45,98 +43,6 @@ export const termsSchema = z.object({
   privacyPolicyAccepted: z.literal(true, { message: "กรุณายอมรับนโยบายความเป็นส่วนตัว" }),
   publicityMediaConsent: z.boolean().optional(),
 });
-
-export function TermsSubmitButton({
-  to,
-  label = "ลงทะเบียนเข้าแข่งขัน",
-}: {
-  to: string;
-  label?: string;
-}) {
-  const form = useRegisterForm();
-  const go = useAuthNavigate();
-  const [busy, setBusy] = useState(false);
-
-  return (
-    <button
-      type="button"
-      data-busy={busy}
-      aria-busy={busy}
-      onClick={() => {
-        void (async () => {
-          setBusy(true);
-          try {
-            const terms = form.getFieldValue("terms");
-            const rawStatus: unknown = form.getFieldValue("status");
-            const teamId: string | null =
-              typeof rawStatus === "object" &&
-              rawStatus !== null &&
-              "teamId" in rawStatus &&
-              typeof rawStatus.teamId === "string" &&
-              rawStatus.teamId !== ""
-                ? rawStatus.teamId
-                : null;
-            if (teamId === null) {
-              toast.error("กรุณาสร้างทีมก่อน");
-              setBusy(false);
-              return;
-            }
-
-            const validData = termsSchema.parse(terms);
-            validData.guardianConsentObtained = validData.privacyPolicyAccepted;
-
-            const finalResult = await client.teamConsents.create({
-              teamId,
-              ...validData,
-            });
-
-            form.setFieldValue("terms", {
-              ...terms,
-              ...finalResult,
-            });
-
-            void form.handleSubmit();
-            await go(to, "submit");
-          } catch (error) {
-            if (error instanceof z.ZodError) {
-              toast.error(error.issues[0].message);
-            } else {
-              toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
-            }
-          } finally {
-            setBusy(false);
-          }
-        })();
-      }}
-      className={`auth-submit relative ${STEP_BUTTON} ml-auto px-[calc(15.792px_+_8.208*var(--fl))] sm:px-6`}
-    >
-      <span className="auth-submit-label" style={{ opacity: busy ? 0 : 1 }}>
-        {label}
-      </span>
-      {busy && (
-        <span
-          aria-hidden
-          className="auth-submit-spin pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          <svg viewBox="0 0 20 20" fill="none" className="auth-submit-spinner size-5">
-            <path
-              d="M10 2a8 8 0 0 1 8 8"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <path
-              d="M10 18a8 8 0 0 1-8-8"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-      )}
-    </button>
-  );
-}
 
 /**
  * Figma `2053:159` (`Frame 2043683181`), a 928x100 clip holding three rounded sheets.

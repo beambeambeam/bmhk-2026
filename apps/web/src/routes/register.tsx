@@ -96,18 +96,15 @@ export interface RegistrationFormData {
   success: Record<string, unknown> | null;
 }
 
-/* eslint-disable react-hooks/rules-of-hooks */
 /* oxlint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable */
 /* oxlint-disable */
-/* oxlint-disable no-unsafe-member-access */
-function _infer() {
+function useRegisterFormType() {
   return useForm({ defaultValues: {} as RegistrationFormData });
 }
-/* oxlint-enable react-hooks(rules-of-hooks) */
-/* eslint-enable react-hooks/rules-of-hooks */
-export type RegisterFormApi = ReturnType<typeof _infer>;
+
+export type RegisterFormApi = ReturnType<typeof useRegisterFormType>;
 export const RegisterFormContext = createContext<RegisterFormApi | null>(null);
 
 export function useRegisterForm() {
@@ -502,9 +499,6 @@ function createFormOptions(
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
         publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),
       },
-    },
-    onSubmit: () => {
-      //await api
     },
   };
 }

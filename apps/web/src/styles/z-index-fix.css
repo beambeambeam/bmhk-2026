@@ -1,0 +1,36 @@
+::view-transition-group(root) {
+  z-index: 0;
+}
+::view-transition-group(auth-block-red),
+::view-transition-group(auth-block-green),
+::view-transition-group(auth-block-amber) {
+  z-index: 1;
+}
+
+::view-transition-group(auth-food-pan),
+::view-transition-group(auth-food-egg-1),
+::view-transition-group(auth-food-egg-2),
+::view-transition-group(auth-food-egg-3),
+::view-transition-group(auth-food-ring) {
+  z-index: 2;
+}
+
+::view-transition-group(wizard-pasta),
+::view-transition-group(wizard-tomatoes) {
+  z-index: 3;
+}
+
+::view-transition-group(auth-sheet),
+::view-transition-group(auth-result) {
+  z-index: 10;
+}
+
+::view-transition-group(wizard-progress) {
+  z-index: 11;
+}
+::view-transition-group(wizard-body) {
+  z-index: 12;
+}
+::view-transition-group(auth-topbar) {
+  z-index: 20;
+}

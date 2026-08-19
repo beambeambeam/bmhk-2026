@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import CookieConsent from "@/components/cookie-consent";
+import { UserProvider } from "@/contexts/user-context";
 
 import appCss from "../index.css?url";
 
@@ -50,12 +51,14 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body className="font-thai">
-        <Outlet />
-        <CookieConsent />
-        <Toaster richColors />
-        <TanStackRouterDevtools position="bottom-left" />
-        <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-        <Scripts />
+        <UserProvider>
+          <Outlet />
+          <CookieConsent />
+          <Toaster richColors />
+          <TanStackRouterDevtools position="bottom-left" />
+          <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+          <Scripts />
+        </UserProvider>
       </body>
     </html>
   );

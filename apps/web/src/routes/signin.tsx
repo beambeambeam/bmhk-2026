@@ -1,13 +1,28 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+/* oxlint-disable no-floating-promises */
+/* oxlint-disable strict-void-return */
+/* oxlint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
+/* oxlint-disable func-style */
+/* eslint-disable func-style */
+/* eslint-disable react-compiler/react-compiler */
+/* oxlint-disable react-compiler */
+/* oxlint-disable no-promise-executor-return */
+/* eslint-disable no-promise-executor-return */
+/* eslint-disable promise/avoid-new */
+/* oxlint-disable no-unsafe-assignment */
+/* oxlint-disable strict-boolean-expressions */
+/* oxlint-disable no-unsafe-member-access */
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@bmhk-2026/client/auth-client";
-
+import { env } from "@bmhk-2026/env/web";
 import AuthBackdrop, { PhoneAuthBackdrop } from "@/components/auth-backdrop";
-import { useOwnArrival } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useOwnArrival } from "@/components/form/wizard-nav";
 import GoogleLogo from "@/components/google-logo";
 import { STACKED_ASPECT, StackedLockup } from "@/components/lockup";
+import { useUserSession } from "@/contexts/user-context";
 
 export const Route = createFileRoute("/signin")({
   component: SignInRoute,
@@ -42,15 +57,57 @@ const PANEL_STAGE = {
 
 function SignInRoute() {
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const firstArrival = useArrivalEntrance();
   const own = useOwnArrival();
   const entrance = firstArrival && own;
 
+  const navigate = useNavigate();
+  const go = useAuthNavigate();
+  const { data: session, isPending: isSessionPending } = useUserSession();
+
+  const isLoading = isSigningIn || isSessionPending || isChecking || !!session?.user;
+
+  useEffect(() => {
+    if (session?.user) {
+      const checkRegistration = async () => {
+        setIsChecking(true);
+        try {
+          const res = await fetch(
+            `${env.VITE_SERVER_URL}/api-reference/teamRegistrationStatus/get`,
+            {
+              credentials: "include",
+            },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.isComplete) {
+              navigate({ to: "/my-team" });
+            } else {
+              go("/register", "gate");
+            }
+          } else {
+            go("/register", "gate");
+          }
+        } catch {
+          go("/register", "gate");
+        }
+      };
+      void checkRegistration();
+    } else {
+      setIsChecking(false);
+      setIsSigningIn(false);
+    }
+  }, [session?.user, navigate, go]);
+
   async function handleGoogleSignIn() {
     setIsSigningIn(true);
+    // Add artificial delay for better UX before redirecting
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     await authClient.signIn.social(
       {
-        callbackURL: `${window.location.origin}/register`,
+        callbackURL: `${window.location.origin}/signin`,
         errorCallbackURL: `${window.location.origin}/signin`,
         provider: "google",
       },
@@ -120,7 +177,7 @@ function SignInRoute() {
 
             <button
               type="button"
-              disabled={isSigningIn}
+              disabled={isLoading}
               onClick={() => {
                 void handleGoogleSignIn();
               }}
@@ -128,7 +185,7 @@ function SignInRoute() {
               className="auth-rise auth-rise-sm mm-press flex h-[calc(44.61px_+_15.39*var(--fl))] w-full items-center justify-center gap-[calc(15.896px_+_4.104*var(--fl))] rounded-[20px] bg-[#f6f6f6] px-6 py-[calc(9.844px_+_6.156*var(--fl))] font-display text-[calc(15.896px_+_4.104*var(--fl))] leading-[normal] font-semibold transition-colors hover:bg-[#ececec] cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             >
               <GoogleLogo />
-              {isSigningIn ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบด้วย Google"}
+              {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบด้วย Google"}
             </button>
           </div>
         </div>

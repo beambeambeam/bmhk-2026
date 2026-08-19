@@ -848,6 +848,48 @@
   ::view-transition-group(root) {
     animation-duration: 360ms;
     animation-timing-function: var(--ease-out-auth);
+    z-index: 0;
+  }
+
+  /* Explicit paint order for view transition groups since they are siblings */
+  ::view-transition-group(auth-block-red),
+  ::view-transition-group(auth-block-green),
+  ::view-transition-group(auth-block-amber) {
+    z-index: 1;
+  }
+
+  ::view-transition-group(auth-food-pan),
+  ::view-transition-group(auth-food-egg-1),
+  ::view-transition-group(auth-food-egg-2),
+  ::view-transition-group(auth-food-egg-3),
+  ::view-transition-group(auth-food-ring) {
+    z-index: 2;
+  }
+
+  /* Image assets (pasta, tomatoes) should sit behind the form */
+  ::view-transition-group(wizard-pasta),
+  ::view-transition-group(wizard-tomatoes) {
+    z-index: 3;
+  }
+
+  /* The form plate */
+  ::view-transition-group(auth-sheet),
+  ::view-transition-group(auth-result) {
+    z-index: 10;
+  }
+
+  /* The progress bar and form content */
+  ::view-transition-group(wizard-progress) {
+    z-index: 11;
+  }
+
+  ::view-transition-group(wizard-body) {
+    z-index: 12;
+  }
+
+  /* The top bar (navigation / account chip) should always be on top */
+  ::view-transition-group(auth-topbar) {
+    z-index: 20;
   }
 }
 
@@ -1395,8 +1437,14 @@
 }
 
 @starting-style {
-  .wizard-progress-fill[data-sweep="true"][data-filled="true"]::after {
+  :root:not([data-auth-nav$="back"])
+    .wizard-progress-fill[data-sweep="true"][data-filled="true"]::after {
     transform: scaleX(0);
+  }
+
+  :root[data-auth-nav$="back"]
+    .wizard-progress-fill[data-sweep-reverse="true"]:not([data-filled="true"])::after {
+    transform: scaleX(1);
   }
 }
 

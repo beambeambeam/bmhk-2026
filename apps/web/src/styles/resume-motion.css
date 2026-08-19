@@ -1,0 +1,61 @@
+.resume-scrim,
+.resume-sheet {
+  opacity: 0;
+}
+
+.resume-scrim[data-state="open"],
+.resume-sheet[data-state="open"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .resume-scrim {
+    transition: opacity 180ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .resume-scrim[data-state="open"] {
+    transition-duration: 240ms;
+  }
+
+  .resume-sheet {
+    translate: 0 8px;
+    scale: 0.96;
+    transition:
+      opacity 190ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1)),
+      translate 190ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1)),
+      scale 190ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .resume-sheet[data-state="open"] {
+    translate: 0 0;
+    scale: 1;
+    transition:
+      opacity 280ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1)),
+      translate 280ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1)),
+      scale 280ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .resume-part {
+    opacity: 0;
+    translate: 0 8px;
+    transition:
+      opacity 160ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1)),
+      translate 160ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .resume-sheet[data-state="open"] .resume-part {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 260ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1)),
+      translate 260ms var(--ease-out-auth, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .resume-sheet[data-state="open"] .resume-part-1 {
+    transition-delay: 60ms;
+  }
+
+  .resume-sheet[data-state="open"] .resume-part-2 {
+    transition-delay: 110ms;
+  }
+}

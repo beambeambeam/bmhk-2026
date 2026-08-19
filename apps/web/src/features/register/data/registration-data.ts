@@ -57,16 +57,26 @@ export const REQUIRED_DOCUMENTS: {
   },
 ];
 
-/** Opt-in consents, each answered ยอมรับ / ไม่ยอมรับ. */
-export const CONSENTS = [
+/**
+ * Opt-in consents, each answered ยอมรับ / ไม่ยอมรับ. Figma `2053:108`'s "ความยินยอม" section —
+ * only the health row carries a required asterisk (`2053:157`); the media-release row does not.
+ */
+export const CONSENTS: {
+  icon: string;
+  title: string;
+  description: string;
+  required?: boolean;
+}[] = [
   {
-    description: "การเก็บข้อมูลแพ้อาหาร แพ้ยา และโรคประจำตัว",
-    icon: "/assets/figma/bb7946494cd076deb5c70aed74d1698107420800.svg",
-    title: "ความยินยอมข้อมูลสุขภาพ",
+    description:
+      "อาหารที่แพ้ ประเภทอาหารพิเศษ ยาที่แพ้ โรคประจำตัวของผู้เข้าแข่งขันและอาจารย์ ใช้จัดเตรียมอาหาร และเจ้าหน้าที่ประสานห้องพยาบาลในรอบ on-site",
+    icon: "/assets/figma/7f4dd2c6e6ebec96d5fe71c224a5e8bf0d93d3df.svg",
+    required: true,
+    title: "ข้อมูลสุขภาพและอาหาร",
   },
   {
-    description: "ใช้ภาพถ่าย/วิดีโอในกิจกรรมเพื่อประชาสัมพันธ์",
-    icon: "/assets/figma/2ba7d78a18660c503f44006d5ff633ec6fc1f6aa.svg",
-    title: "ความยินยอมใช้ภาพเพื่อประชาสัมพันธ์",
+    description: "ไม่รวมภาพที่บันทึกเพื่อควบคุมการแข่งขัน",
+    icon: "/assets/figma/d22d5df5522d34211a6a4ec618ee81b722ec8af8.svg",
+    title: "ใช้ภาพถ่ายและวิดีโอกิจกรรมเพื่อประชาสัมพันธ์",
   },
 ];

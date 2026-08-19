@@ -1,11 +1,8 @@
 /* oxlint-disable no-unsafe-type-assertion */
 /* oxlint-disable strict-boolean-expressions */
 /* oxlint-disable func-style */
-/* oxlint-disable jsx-a11y/click-events-have-key-events */
-/* oxlint-disable jsx-a11y/no-static-element-interactions */
-/* oxlint-disable jsx-a11y/prefer-tag-over-role */
 import { useEffect, useState } from "react";
-import WizardShell, { BackButton, STEP_BUTTON } from "@/components/form/wizard-shell";
+import WizardShell, { BackButton, NextButton, STEP_BUTTON } from "@/components/form/wizard-shell";
 import { CHECK_MARK, CheckMark } from "@/components/form/field";
 import PolicyModal from "@/components/policy-modal";
 import { CONSENTS, REQUIRED_DOCUMENTS } from "@/features/register/data/registration-data";
@@ -14,25 +11,23 @@ import type { RegistrationFormData } from "../register";
 import { useRegisterForm } from "../register";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useAuthNavigate } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useGateField } from "@/components/form/wizard-nav";
 import { client } from "@bmhk-2026/client/orpc";
 
-const ROW_GLYPH = {
-  24: "size-[calc(23.584px_+_16.416*var(--fl))]",
-  28: "size-[calc(27.688px_+_12.312*var(--fl))]",
-} as const;
+/**
+ * The four documents the one agreement checkbox stands for. The sentence beside it names all
+ * four, so ticking it accepts all four — these are written together and read together by
+ * `termsSchema` and by `/register`'s completeness check.
+ */
+const ACCEPTED_FIELDS = [
+  "privacyPolicyAccepted",
+  "competitionRulesAccepted",
+  "codernTermsAccepted",
+  "TermOfServicesAccepted",
+] as const satisfies readonly (keyof RegistrationFormData["terms"])[];
 
-const ROW_RADIUS = {
-  24: "rounded-[calc(11.896px_+_4.104*var(--fl))]",
-  28: "rounded-[16px]",
-} as const;
-
-const DOC_FIELD_MAP: Record<string, keyof RegistrationFormData["terms"]> = {
-  กฏกติกาการแข่งขัน: "competitionRulesAccepted",
-  "ข้อกำหนดการใช้งาน Codern": "codernTermsAccepted",
-  ข้อกำหนดการใช้งานเว็บไซต์: "TermOfServicesAccepted",
-  นโยบายความเป็นส่วนตัว: "privacyPolicyAccepted",
-};
+/** `CONSENTS[i]` stores its answer in `CONSENT_FIELDS[i]`; the two lists are parallel. */
+const CONSENT_FIELDS = ["healthDataConsent", "publicityMediaConsent"] as const;
 
 export const Route = createFileRoute("/register/terms")({
   component: TermsStep,
@@ -40,20 +35,6 @@ export const Route = createFileRoute("/register/terms")({
     meta: [{ content: "noindex, nofollow", name: "robots" }],
   }),
 });
-
-function consentFieldMap(i: number) {
-  switch (i) {
-    case 0: {
-      return "healthDataConsent";
-    }
-    case 1: {
-      return "publicityMediaConsent";
-    }
-    default: {
-      return "healthDataConsent";
-    }
-  }
-}
 
 export const termsSchema = z.object({
   TermOfServicesAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งานเว็บไซต์" }),
@@ -64,71 +45,6 @@ export const termsSchema = z.object({
   privacyPolicyAccepted: z.literal(true, { message: "กรุณายอมรับนโยบายความเป็นส่วนตัว" }),
   publicityMediaConsent: z.boolean().optional(),
 });
-
-export function TermsNextButton({ to, label = "ถัดไป" }: { to: string; label?: string }) {
-  const form = useRegisterForm();
-  const go = useAuthNavigate();
-  const [busy, setBusy] = useState(false);
-
-  return (
-    <button
-      type="button"
-      data-busy={busy}
-      aria-busy={busy}
-      onClick={() => {
-        void (async () => {
-          setBusy(true);
-          try {
-            const terms = form.getFieldValue("terms");
-            termsSchema.parse(terms);
-            await go(to, "forward");
-          } catch (error) {
-            if (error instanceof z.ZodError) {
-              toast.error(error.issues[0].message);
-            } else {
-              toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
-            }
-          } finally {
-            setBusy(false);
-          }
-        })();
-      }}
-      className={`auth-submit relative ${STEP_BUTTON} ml-auto flex items-center gap-2 px-[calc(15.792px_+_8.208*var(--fl))] sm:px-6`}
-    >
-      <span className="auth-submit-label" style={{ opacity: busy ? 0 : 1 }}>
-        {label}
-      </span>
-      <img
-        src="/assets/figma/a275512325b630305418a611fed5319ba90acfc8.svg"
-        alt=""
-        aria-hidden
-        className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
-        style={{ opacity: busy ? 0 : 1 }}
-      />
-      {busy && (
-        <span
-          aria-hidden
-          className="auth-submit-spin pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          <svg viewBox="0 0 20 20" fill="none" className="auth-submit-spinner size-5">
-            <path
-              d="M10 2a8 8 0 0 1 8 8"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <path
-              d="M10 18a8 8 0 0 1-8-8"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-      )}
-    </button>
-  );
-}
 
 export function TermsSubmitButton({
   to,
@@ -261,13 +177,17 @@ const DECK_CSS = `
 }
 `;
 
-function AgreementStack({
-  closed,
-  onClick,
-}: {
-  closed: boolean;
-  onClick: (e: React.MouseEvent) => void;
-}) {
+/**
+ * The deck is decorative art, not a control — `aria-hidden`, and nothing in it is clickable.
+ * It closes while a policy owns the screen and spreads again when the sheet goes away.
+ */
+function AgreementStack({ closed }: { closed: boolean }) {
+  /*
+   * The entrance flag, flipped one task after mount so the browser has painted the closed
+   * pose for the transition to run out of. A `setTimeout` and not `requestAnimationFrame`:
+   * `useEffect` already runs after the commit, and a zero-delay task lands after the paint
+   * that follows it.
+   */
   const [entered, setEntered] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -281,8 +201,7 @@ function AgreementStack({
   return (
     <div
       aria-hidden
-      onClick={onClick}
-      className="agreement-deck relative w-full cursor-pointer overflow-hidden"
+      className="agreement-deck relative w-full overflow-hidden"
       data-entered={entered}
       data-fan={closed || !entered ? "closed" : "open"}
       style={{ aspectRatio: `${CLIP.width} / ${CLIP.height}` }}
@@ -311,6 +230,10 @@ function AgreementStack({
   );
 }
 
+/**
+ * The sentence's four document names, each a span `REQUIRED_DOCUMENTS` can be looked up by.
+ * The titles must match that list exactly — they are the lookup key for the reader.
+ */
 const AGREEMENT_SEGMENTS = [
   "ข้าพเจ้าได้อ่านและยอมรับ ",
   { link: "กฏกติกาการแข่งขัน" },
@@ -323,123 +246,61 @@ const AGREEMENT_SEGMENTS = [
   "แล้ว",
 ] as const;
 
-function AgreementCard({
-  isAccepted,
-  closed,
-  onClick,
-  onToggleOff,
-}: {
-  isAccepted: boolean;
-  closed: boolean;
-  onClick: (e: React.MouseEvent) => void;
-  onToggleOff: () => void;
-}) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onClick(e as unknown as React.MouseEvent);
-        }
-      }}
-      className="group relative flex w-full cursor-pointer flex-col items-center gap-6 rounded-2xl border border-[#dcdcdc] p-4 transition-all duration-200 hover:border-[#c0c0c0] hover:shadow-md"
-    >
-      {/* The fanned document stack from BH2026 */}
-      <AgreementStack closed={closed} onClick={onClick} />
+/** The one checkbox's own box: the same 16→24 ramp `ConsentChoice` uses below, so both
+ *  controls on this step read as the one checkbox design. */
+const AGREEMENT_BOX =
+  "flex size-[calc(15.792px_+_8.208*var(--fl))] shrink-0 items-center justify-center rounded-[calc(3.948px_+_2.052*var(--fl))] p-[calc(1.948px_+_2.052*var(--fl))] transition-colors";
 
-      {/* Checkbox and Agreement Text */}
-      <div className="flex w-full items-start gap-4">
-        <button
-          type="button"
-          aria-label={isAccepted ? "ยกเลิกการยอมรับข้อตกลง" : "ยอมรับข้อตกลง"}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isAccepted) {
-              onToggleOff();
-            } else {
-              onClick(e);
-            }
-          }}
-          className={`flex size-[calc(15.792px_+_8.208*var(--fl))] shrink-0 cursor-pointer items-center justify-center rounded-[calc(3.948px_+_2.052*var(--fl))] p-[calc(1.948px_+_2.052*var(--fl))] transition-colors ${
-            isAccepted ? "bg-brand-red text-white" : "border border-[#dcdcdc]"
-          }`}
-        >
-          {isAccepted && (
-            <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5 sm:size-4">
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          )}
-        </button>
+/** The row's leading mark — 40 flat at every width (`2053:157` / `2053:181`). */
+const ROW_GLYPH = "size-10";
 
-        <p className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.4] text-black">
-          {AGREEMENT_SEGMENTS.map((seg, i) =>
-            typeof seg === "string" ? (
-              <span key={i}>{seg}</span>
-            ) : (
-              <button
-                key={i}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick(e);
-                }}
-                className="text-brand-red underline underline-offset-2 hover:opacity-80"
-              >
-                {seg.link}
-              </button>
-            ),
-          )}
-        </p>
-      </div>
-    </div>
-  );
-}
+/** 16 → 20: consent row titles. */
+const T_16_20 = "text-[calc(15.896px_+_4.104*var(--fl))]";
+/** 14 → 20: section headings, the agreement sentence, the ยอมรับ / ไม่ยอมรับ labels. */
+const T_14_20 = "text-[calc(13.844px_+_6.156*var(--fl))]";
+/** 12 → 18: consent row descriptions. */
+const T_12_18 = "text-[calc(11.844px_+_6.156*var(--fl))]";
+/** 12 → 16: the flow's smallest rank — field error notes. */
+const T_12_16 = "text-[calc(11.896px_+_4.104*var(--fl))]";
 
 function Row({
   icon,
   title,
+  required,
   description,
-  rounded,
-  padding,
-  glyph,
+  invalid,
+  message,
   children,
 }: {
   icon: string;
   title: string;
+  required?: boolean;
   description: string;
-  rounded?: boolean;
-  padding: string;
-  glyph: keyof typeof ROW_GLYPH;
+  /** the row's own border turns red with its choice pair, so the refusal reads at row scale */
+  invalid?: boolean;
+  /** the gate's sentence, rendered under the description where the row's copy already is */
+  message?: { id: string; text: string } | null;
   children: React.ReactNode;
 }) {
   return (
     <div
-      className={`flex w-full flex-col gap-3 border border-[#dcdcdc] sm:flex-row sm:items-center sm:gap-[calc(7.792px_+_8.208*var(--fl))] ${ROW_RADIUS[glyph]} ${padding}`}
+      className={`flex w-full flex-col gap-3 rounded-[16px] border py-3 pr-6 pl-3 sm:flex-row sm:items-center sm:gap-4 ${
+        invalid === true ? "border-[#ea4335]" : "border-[#dcdcdc]"
+      }`}
     >
       <div className="flex items-start gap-2 sm:contents">
-        <img
-          src={icon}
-          alt=""
-          aria-hidden
-          className={`shrink-0 ${ROW_GLYPH[glyph]} ${
-            rounded === true
-              ? "rounded-[calc(3.896px_+_4.104*var(--fl))] shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-              : ""
-          }`}
-        />
+        <img src={icon} alt="" aria-hidden className={`shrink-0 ${ROW_GLYPH}`} />
         <div className="flex min-w-0 flex-1 flex-col items-start justify-center">
-          <p className="text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.4] font-medium text-black">
+          <p className={`${T_16_20} leading-[1.4] font-medium text-black`}>
             {title}
+            {required === true && <span className="ml-1 text-[#ea4335]">*</span>}
           </p>
-          <p className="text-[calc(11.844px_+_6.156*var(--fl))] leading-[normal] text-gray-1">
-            {description}
-          </p>
+          <p className={`${T_12_18} leading-[normal] text-gray-1`}>{description}</p>
+          {message && (
+            <p id={message.id} className={`mt-1 ${T_12_16} leading-[normal] text-[#ea4335]`}>
+              {message.text}
+            </p>
+          )}
         </div>
       </div>
       {children}
@@ -447,21 +308,44 @@ function Row({
   );
 }
 
+/**
+ * Radio pair styled as the design's 24 check boxes — unchecked is an empty outline.
+ *
+ * CONTROLLED, and starting at NEITHER option on a fresh registration. A consent that arrives
+ * already granted is not a consent the user gave, and a pre-ticked required row makes the
+ * asterisk beside it meaningless. Resuming a saved registration is the one case that seeds an
+ * answer, because there the user really did give it.
+ */
 function ConsentChoice({
   name,
-  consentProperties,
+  value,
+  onChange,
+  gateRef,
+  invalid,
+  messageId,
+  described,
 }: {
   name: string;
-  consentProperties: "healthDataConsent" | "publicityMediaConsent";
+  value: "yes" | "no" | null;
+  onChange: (value: "yes" | "no") => void;
+  gateRef: React.RefObject<HTMLDivElement | null>;
+  invalid: boolean;
+  messageId: string;
+  described: boolean;
 }) {
-  const form = useRegisterForm();
-  const [value, setValue] = useState<"yes" | "no">(() =>
-    form.getFieldValue(`terms.${consentProperties}`) ? "yes" : "no",
-  );
   const [touched, setTouched] = useState(false);
 
   return (
-    <div className="flex w-full items-center sm:w-auto sm:shrink-0 sm:gap-6 lg:gap-10">
+    /* the pair is the control, so the pair is what the gate points at — `tabIndex={-1}` gives
+       it something to focus, since an unanswered radio group has no focusable member of its own */
+    <div
+      ref={gateRef}
+      tabIndex={-1}
+      role="radiogroup"
+      aria-invalid={invalid || undefined}
+      aria-describedby={described ? messageId : undefined}
+      className="flex w-full items-center focus:outline-none sm:w-auto sm:shrink-0 sm:gap-6 lg:gap-10"
+    >
       {(
         [
           ["yes", "ยอมรับ"],
@@ -477,23 +361,79 @@ function ConsentChoice({
             name={name}
             checked={value === key}
             onChange={() => {
-              setValue(key);
+              onChange(key);
               setTouched(true);
-              form.setFieldValue(`terms.${consentProperties}`, key === "yes");
             }}
             className="sr-only"
           />
           <span
-            className={`flex size-[calc(15.792px_+_8.208*var(--fl))] shrink-0 items-center justify-center rounded-[calc(3.948px_+_2.052*var(--fl))] p-[calc(1.948px_+_2.052*var(--fl))] transition-colors ${
-              value === key ? "bg-brand-red" : "border border-[#dcdcdc]"
-            }`}
+            className={`${AGREEMENT_BOX} ${value === key ? "bg-brand-red" : "border border-[#dcdcdc]"}`}
           >
             {value === key && <CheckMark className={`${CHECK_MARK} text-white`} drawn={touched} />}
           </span>
-          <span className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[1.4]">{label}</span>
+          <span className={`${T_14_20} leading-[1.4]`}>{label}</span>
         </label>
       ))}
     </div>
+  );
+}
+
+/**
+ * One consent row and its own claim on the step. A component rather than a `useGateField` call
+ * inside the `CONSENTS.map()` below, because a hook in a loop ties the hook COUNT to the length
+ * of a list — safe while that list is a module constant and a defect the moment it is not.
+ */
+function ConsentRow({
+  consent,
+  index,
+  field,
+}: {
+  consent: (typeof CONSENTS)[number];
+  index: number;
+  field: (typeof CONSENT_FIELDS)[number];
+}) {
+  const form = useRegisterForm();
+
+  /*
+   * UNANSWERED on a fresh registration, seeded only when this step has been completed before —
+   * the four document flags are the marker for that, since they are set on this same step.
+   * Without the guard a stored `false` and "never asked" are the same value, and every fresh
+   * visitor would arrive with ไม่ยอมรับ already chosen for them.
+   */
+  const [value, setValue] = useState<"yes" | "no" | null>(() => {
+    const terms = form.getFieldValue("terms");
+    if (!ACCEPTED_FIELDS.every((key) => terms[key])) {
+      return null;
+    }
+    return terms[field] ? "yes" : "no";
+  });
+
+  const { ref, invalid, message, messageId } = useGateField<HTMLDivElement>(
+    consent.required && value !== "yes" ? `ต้องยอมรับ${consent.title}เพื่อดำเนินการต่อ` : null,
+  );
+
+  return (
+    <Row
+      icon={consent.icon}
+      title={consent.title}
+      description={consent.description}
+      required={consent.required}
+      invalid={invalid}
+      message={message === null ? null : { id: messageId, text: message }}
+    >
+      <ConsentChoice
+        name={`consent-${index}`}
+        value={value}
+        gateRef={ref}
+        invalid={invalid}
+        messageId={messageId}
+        described={message !== null}
+        onChange={(next) => {
+          setValue(next);
+          form.setFieldValue(`terms.${field}`, next === "yes");
+        }}
+      />
+    </Row>
   );
 }
 
@@ -504,46 +444,117 @@ interface OpenDoc {
   y: number;
 }
 
+/**
+ * The illustration plate, the agreement checkbox and its claim on the step.
+ *
+ * A COMPONENT and not part of `TermsStep`, for the same reason `ConsentRow` is one: the gate's
+ * provider wraps the card INSIDE `WizardShell`, so a hook called in `TermsStep` — which renders
+ * `WizardShell` and is therefore above it — registers with nothing at all and the checkbox
+ * silently stops gating.
+ *
+ * ONE checkbox, FOUR stored fields. The sentence names all four documents, so ticking it is
+ * accepting all four: it writes `privacyPolicyAccepted`, `competitionRulesAccepted`,
+ * `codernTermsAccepted` and `TermOfServicesAccepted` together, which is exactly what
+ * `termsSchema` and the `/register` completeness check already read.
+ */
+function AgreementCard({
+  closed,
+  onOpenDoc,
+}: {
+  closed: boolean;
+  onOpenDoc: (doc: OpenDoc) => void;
+}) {
+  const form = useRegisterForm();
+  const [agreed, setAgreed] = useState(() => {
+    const terms = form.getFieldValue("terms");
+    return ACCEPTED_FIELDS.every((key) => terms[key]);
+  });
+  const [agreedTouched, setAgreedTouched] = useState(false);
+
+  /* the focus target is the `sr-only` `<input>` itself — a real focusable control, so a press
+     of ถัดไป with nothing ticked lands the caret on the checkbox that has to be ticked */
+  const { ref, invalid, message, messageId } = useGateField<HTMLInputElement>(
+    agreed ? null : "ต้องยอมรับข้อตกลงการเข้าร่วมเพื่อดำเนินการต่อ",
+  );
+
+  return (
+    <section className="flex w-full flex-col items-start justify-center gap-3">
+      <h2 className={`${T_14_20} leading-[normal] text-gray-1`}>ข้อตกลงการเข้าร่วม</h2>
+      {/* the illustration plate + checkbox sentence, one bordered card */}
+      <div
+        className={`flex w-full flex-col items-center gap-6 rounded-2xl border p-4 ${
+          invalid ? "border-[#ea4335]" : "border-[#dcdcdc]"
+        }`}
+      >
+        {/* the deck closes while a policy owns the screen and spreads again when it goes */}
+        <AgreementStack closed={closed} />
+        <label className="flex w-full cursor-pointer items-start gap-4">
+          <input
+            ref={ref}
+            type="checkbox"
+            checked={agreed}
+            aria-invalid={invalid || undefined}
+            aria-describedby={message === null ? undefined : messageId}
+            onChange={() => {
+              const next = !agreed;
+              setAgreed(next);
+              setAgreedTouched(true);
+              for (const key of ACCEPTED_FIELDS) {
+                form.setFieldValue(`terms.${key}`, next);
+              }
+            }}
+            className="sr-only"
+          />
+          <span
+            className={`${AGREEMENT_BOX} ${agreed ? "bg-brand-red" : "border border-[#dcdcdc]"}`}
+          >
+            {agreed && <CheckMark className={`${CHECK_MARK} text-white`} drawn={agreedTouched} />}
+          </span>
+          <p className={`${T_14_20} leading-[1.4] text-black`}>
+            {AGREEMENT_SEGMENTS.map((seg, i) =>
+              typeof seg === "string" ? (
+                <span key={i}>{seg}</span>
+              ) : (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={(e) => {
+                    /* the links sit inside the <label>, so without this a press would open the
+                       document AND toggle the checkbox the label is for */
+                    e.preventDefault();
+                    const box = e.currentTarget.getBoundingClientRect();
+                    onOpenDoc({
+                      title: seg.link,
+                      x: box.left + box.width / 2,
+                      y: box.top + box.height / 2,
+                    });
+                  }}
+                  className="cursor-pointer text-brand-red underline underline-offset-2 hover:opacity-80"
+                >
+                  {seg.link}
+                </button>
+              ),
+            )}
+          </p>
+        </label>
+        {message !== null && (
+          <p id={messageId} className={`w-full ${T_12_16} leading-[normal] text-[#ea4335]`}>
+            {message}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function TermsStep() {
   const form = useRegisterForm();
   const [openDoc, setOpenDoc] = useState<OpenDoc | null>(null);
-  const [accepted, setAccepted] = useState<string[]>(() => {
-    const terms = form.getFieldValue("terms");
-    const acc: string[] = [];
-    if (terms.privacyPolicyAccepted) {
-      acc.push("นโยบายความเป็นส่วนตัว");
-    }
-    if (terms.competitionRulesAccepted) {
-      acc.push("กฏกติกาการแข่งขัน");
-    }
-    if (terms.codernTermsAccepted) {
-      acc.push("ข้อกำหนดการใช้งาน Codern");
-    }
-    if (terms.TermOfServicesAccepted) {
-      acc.push("ข้อกำหนดการใช้งานเว็บไซต์");
-    }
-    return acc;
-  });
 
-  const handleToggleOff = () => {
-    setAccepted([]);
-    form.setFieldValue("terms.privacyPolicyAccepted", false);
-    form.setFieldValue("terms.competitionRulesAccepted", false);
-    form.setFieldValue("terms.codernTermsAccepted", false);
-    form.setFieldValue("terms.TermOfServicesAccepted", false);
-  };
-
-  const isAllAccepted = REQUIRED_DOCUMENTS.every((doc) => accepted.includes(doc.title));
-
-  const handleOpenModal = (_index: number, e: React.MouseEvent) => {
-    const box = e.currentTarget.getBoundingClientRect();
-    const [docItem] = REQUIRED_DOCUMENTS;
-    setOpenDoc({
-      title: docItem?.title ?? "นโยบายความเป็นส่วนตัว",
-      x: box.left + box.width / 2,
-      y: box.top + box.height / 2,
-    });
-  };
+  const openedDocument =
+    openDoc === null
+      ? null
+      : (REQUIRED_DOCUMENTS.find((item) => item.title === openDoc.title)?.document ?? null);
 
   return (
     <WizardShell
@@ -553,58 +564,33 @@ export default function TermsStep() {
       actions={
         <>
           <BackButton to="/register" />
-          <TermsNextButton to="/register/team" label="ถัดไป" />
+          <NextButton to="/register/team" />
         </>
       }
       overlay={
         <PolicyModal
-          open={openDoc !== null}
-          documents={REQUIRED_DOCUMENTS}
-          initialIndex={0}
-          acceptedTitles={accepted}
+          document={openedDocument}
           origin={openDoc}
           onDecline={() => {
             setOpenDoc(null);
           }}
-          onAccept={(title, isAll) => {
-            setAccepted((prev) => [...new Set([...prev, title])]);
-            const key = DOC_FIELD_MAP[title || "นโยบายความเป็นส่วนตัว"];
-            if (key) {
-              form.setFieldValue(`terms.${key}`, true);
-            }
-            if (isAll) {
-              setOpenDoc(null);
-            }
-          }}
         />
       }
     >
+      {/* 24 @1440 (`2053:108`'s outer stack) between the two sections, flat. */}
       <div className="flex w-full flex-col items-center justify-center gap-6">
-        {/* Top Agreements Section matching BH2026 fanned deck */}
-        <section className="flex w-full flex-col items-start justify-center gap-[calc(16.104px_-_4.104*var(--fl))]">
-          <h2 className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal] text-gray-1">
-            ข้อตกลงการเข้าร่วม
-          </h2>
-          <AgreementCard
-            isAccepted={isAllAccepted}
-            closed={openDoc !== null}
-            onClick={(e) => {
-              handleOpenModal(0, e);
-            }}
-            onToggleOff={handleToggleOff}
-          />
-        </section>
+        <AgreementCard closed={openDoc !== null} onOpenDoc={setOpenDoc} />
 
-        {/* Consents Section */}
-        <section className="flex w-full flex-col items-start justify-center gap-[calc(16.104px_-_4.104*var(--fl))]">
-          <h2 className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal] text-gray-1">
-            ความยินยอมเฉพาะเรื่อง
-          </h2>
+        <section className="flex w-full flex-col items-start justify-center gap-3">
+          <h2 className={`${T_14_20} leading-[normal] text-gray-1`}>ความยินยอม</h2>
           <div className="flex w-full flex-col items-start gap-5">
             {CONSENTS.map((consent, i) => (
-              <Row key={consent.title} {...consent} padding="py-3 pl-3 pr-6" glyph={28}>
-                <ConsentChoice consentProperties={consentFieldMap(i)} name={`consent-${i}`} />
-              </Row>
+              <ConsentRow
+                key={consent.title}
+                consent={consent}
+                index={i}
+                field={CONSENT_FIELDS[i] ?? "healthDataConsent"}
+              />
             ))}
           </div>
         </section>

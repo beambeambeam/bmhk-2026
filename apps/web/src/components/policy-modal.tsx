@@ -164,11 +164,20 @@ function SheetHeader({
 
       {/* Slide queue indicators — placed below the title on mobile, on the right on desktop */}
       <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto sm:justify-end">
-        <span className="rounded-full bg-[#f2f2f2] px-3 py-1 text-[calc(11.844px_+_2.156*var(--fl))] font-medium text-gray-1">
-          เอกสาร {currentIndex + 1} / {totalCount}
-        </span>
+        {/* A single document has nothing to queue, so its counter, dots and arrows all go — a
+            "1 / 1" pill, one lone dot and two permanently disabled arrows are carousel
+            affordances for a carousel that is not there. The close button stays either way. */}
+        {totalCount > 1 && (
+          <span className="rounded-full bg-[#f2f2f2] px-3 py-1 text-[calc(11.844px_+_2.156*var(--fl))] font-medium text-gray-1">
+            เอกสาร {currentIndex + 1} / {totalCount}
+          </span>
+        )}
 
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="เอกสาร">
+        <div
+          className={`items-center gap-1.5 ${totalCount > 1 ? "flex" : "hidden"}`}
+          role="tablist"
+          aria-label="เอกสาร"
+        >
           {docList.map((docItem, idx) => {
             const isDotCurrent = idx === currentIndex;
             const isDotAccepted = acceptedTitles.includes(docItem.title);
@@ -198,43 +207,47 @@ function SheetHeader({
 
         <div className="flex items-center gap-1">
           {/* Go Back button uses the same icon as Go Next rotated 180 degrees */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPrev();
-            }}
-            disabled={!canGoPrev}
-            aria-label="เอกสารก่อนหน้า"
-            className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2] text-gray-1 transition-all hover:bg-[#e4e4e4] hover:text-black disabled:pointer-events-none disabled:opacity-30"
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 rotate-180">
-              <path
-                fillRule="evenodd"
-                d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
+          {totalCount > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPrev();
+              }}
+              disabled={!canGoPrev}
+              aria-label="เอกสารก่อนหน้า"
+              className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2] text-gray-1 transition-all hover:bg-[#e4e4e4] hover:text-black disabled:pointer-events-none disabled:opacity-30"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4 rotate-180">
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          )}
           {/* Go Next button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onNext();
-            }}
-            disabled={!canGoNext}
-            aria-label="เอกสารถัดไป"
-            className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2] text-gray-1 transition-all hover:bg-[#e4e4e4] hover:text-black disabled:pointer-events-none disabled:opacity-30"
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
-              <path
-                fillRule="evenodd"
-                d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
+          {totalCount > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNext();
+              }}
+              disabled={!canGoNext}
+              aria-label="เอกสารถัดไป"
+              className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2] text-gray-1 transition-all hover:bg-[#e4e4e4] hover:text-black disabled:pointer-events-none disabled:opacity-30"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          )}
           {onClose && (
             <button
               type="button"

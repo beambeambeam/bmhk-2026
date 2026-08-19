@@ -197,16 +197,6 @@ export default function ResumeRegistrationModal() {
     const stateObj = state as { authNav?: string };
     const isFromSignIn = !ownArrival && stateObj?.authNav === "gate";
 
-    console.log("Modal check:", {
-      askedThisVisit,
-      entering,
-      hasDraft,
-      isFromSignIn,
-      ownArrival,
-      pathname,
-      statusData,
-    });
-
     if (!entering || askedThisVisit || !hasDraft || isFromSignIn) {
       return;
     }

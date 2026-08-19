@@ -503,9 +503,8 @@ function createFormOptions(
         publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),
       },
     },
-    onSubmit: ({ value }: { value: RegistrationFormData }) => {
+    onSubmit: () => {
       //await api
-      console.log("📦 Intercepted Payload:", JSON.stringify(value, null, 2));
     },
   };
 }

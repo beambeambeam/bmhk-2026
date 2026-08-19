@@ -34,8 +34,9 @@ import { ADVISOR_DOCUMENTS } from "@/features/register/data/registration-data";
 import { useRegisterForm } from "@/routes/register";
 import { z } from "zod";
 import { useState } from "react";
-import { useAuthNavigate } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
 import { toast } from "sonner";
+import { fieldErrorReader } from "@/features/register/lib/field-errors";
 import { client } from "@bmhk-2026/client/orpc";
 
 const advisorSchema = z.object({
@@ -67,6 +68,7 @@ function AdvisorNextButton({ to, label = "ถัดไป" }: { to: string; labe
   const form = useRegisterForm();
   const go = useAuthNavigate();
   const [busy, setBusy] = useState(false);
+  const validate = useGateValidate();
 
   return (
     <button
@@ -74,23 +76,19 @@ function AdvisorNextButton({ to, label = "ถัดไป" }: { to: string; labe
       data-busy={busy}
       aria-busy={busy}
       onClick={async () => {
+        /* Every field and document on this step states its own claim, so the gate is the whole
+           check: it flags the first unmet one, scrolls to it and focuses it. */
+        if (!validate()) {
+          return;
+        }
         setBusy(true);
         try {
           const advisor = form.getFieldValue("advisor");
           const status = form.getFieldValue("status") as { teamId?: string } | null | undefined;
 
+          /* Not a field problem — there is no control on this step to point at. */
           if (!status || !status.teamId) {
             toast.error("กรุณาสร้างทีมก่อน");
-            setBusy(false);
-            return;
-          }
-
-          const hasIdentityDoc = advisor.identityDocumentFile || advisor.identityDocumentUrl;
-          const hasTeacherStatusDoc =
-            advisor.teacherStatusDocumentFile || advisor.teacherStatusDocumentUrl;
-
-          if (!hasIdentityDoc || !hasTeacherStatusDoc) {
-            toast.error("กรุณาอัปโหลดเอกสารให้ครบถ้วน");
             setBusy(false);
             return;
           }
@@ -196,12 +194,10 @@ function AdvisorNextButton({ to, label = "ถัดไป" }: { to: string; labe
 
           void go(to, "forward");
         } catch (error) {
-          if (error instanceof z.ZodError) {
-            toast.error(error.issues[0].message);
-          } else {
-            console.error(error);
-            toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
-          }
+          /* The gate reads the same schema, so a ZodError here means the two disagreed — a bug
+             rather than a user mistake, and there is no one field to blame for it. */
+          console.error(error);
+          toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
         } finally {
           setBusy(false);
         }
@@ -251,6 +247,9 @@ export const Route = createFileRoute("/register/advisor")({
 
 export default function AdvisorStep() {
   const form = useRegisterForm();
+  /* Bound to this step's schema; each field reads its own message inside its own
+     `<form.Field>`, so the sentence tracks what is being typed. */
+  const readError = fieldErrorReader(advisorSchema);
   return (
     <WizardShell
       totalStep={((form.getFieldValue("team.teamSize") as number | null | undefined) ?? 2) + 3}
@@ -287,6 +286,7 @@ export default function AdvisorStep() {
                 <DocumentRow
                   index={1}
                   text={ADVISOR_DOCUMENTS[0]}
+                  requiredLabel="เอกสารข้อ 1"
                   onChange={(f) => {
                     field.handleChange(f);
                   }}
@@ -300,6 +300,7 @@ export default function AdvisorStep() {
                 <DocumentRow
                   index={2}
                   text={ADVISOR_DOCUMENTS[1]}
+                  requiredLabel="เอกสารข้อ 2"
                   onChange={(f) => {
                     field.handleChange(f);
                   }}
@@ -313,9 +314,14 @@ export default function AdvisorStep() {
         </section>
 
         <Separator />
-        <PersonFields person="advisor" title="ข้อมูลอาจารย์" headingGap="gap-5" />
+        <PersonFields
+          person="advisor"
+          title="ข้อมูลอาจารย์"
+          headingGap="gap-5"
+          readError={readError}
+        />
         <Separator />
-        <ContactFields person="advisor" />
+        <ContactFields person="advisor" readError={readError} />
       </div>
     </WizardShell>
   );

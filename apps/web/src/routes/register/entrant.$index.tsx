@@ -12,7 +12,8 @@ import { STUDENT_DOCUMENTS } from "@/features/register/data/registration-data";
 import { z } from "zod";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAuthNavigate } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
+import { fieldErrorReader } from "@/features/register/lib/field-errors";
 import { useRegisterForm } from "../register";
 import WizardShell, {
   BackButton,
@@ -99,6 +100,7 @@ function EntrantNextButton({
   const form = useRegisterForm();
   const go = useAuthNavigate();
   const [busy, setBusy] = useState(false);
+  const validate = useGateValidate();
 
   return (
     <button
@@ -107,6 +109,11 @@ function EntrantNextButton({
       aria-busy={busy}
       onClick={() => {
         void (async () => {
+          /* Every field and document on this step states its own claim, so the gate is the
+             whole check: it flags the first unmet one, scrolls to it and focuses it. */
+          if (!validate()) {
+            return;
+          }
           setBusy(true);
           try {
             const entrant = form.getFieldValue(entrantKey);
@@ -120,6 +127,7 @@ function EntrantNextButton({
                 ? rawStatus.teamId
                 : null;
 
+            /* Not a field problem — there is no control on this step to point at. */
             if (teamId === null) {
               toast.error("กรุณาสร้างทีมก่อน");
               setBusy(false);
@@ -129,6 +137,9 @@ function EntrantNextButton({
             const validData = entrantSchema.parse(entrant);
             const index = Math.trunc(Number(entrantKey.replace("entrant", "")));
 
+            /* Which documents this step is carrying. The gate above has already refused the
+               press if any of the three is missing, so these only decide what to UPLOAD and
+               whether the record is dirty enough to write. */
             const pFile = getFile(entrant, "portraitPhotoFile");
             const pUrl = getStr(entrant, "portraitPhotoUrl");
             const hasPortrait =
@@ -146,12 +157,6 @@ function EntrantNextButton({
             const hasAcademicRecord =
               (aFile !== undefined && aFile !== null) ||
               (aUrl !== undefined && aUrl !== null && aUrl !== "");
-
-            if (!hasPortrait || !hasIdentityDoc || !hasAcademicRecord) {
-              toast.error("กรุณาอัปโหลดเอกสารให้ครบถ้วน");
-              setBusy(false);
-              return;
-            }
 
             const payload = {
               chronicConditionsAndFirstAidNotes: toOpt(validData.chronicConditionsAndFirstAidNotes),
@@ -287,12 +292,10 @@ function EntrantNextButton({
               await go(to, "forward");
             }
           } catch (error) {
-            if (error instanceof z.ZodError) {
-              toast.error(error.issues[0].message);
-            } else {
-              console.error(error);
-              toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
-            }
+            /* The gate reads the same schema, so a ZodError here means the two disagreed — a
+               bug rather than a user mistake, and there is no one field to blame for it. */
+            console.error(error);
+            toast.error("เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
           } finally {
             setBusy(false);
           }
@@ -394,6 +397,10 @@ export default function EntrantStep() {
   const entrantKeyMap = { 1: "entrant1", 2: "entrant2", 3: "entrant3" } as const;
   const currentEntrantKey = entrantKeyMap[n];
 
+  /* Bound to this step's schema; each field reads its own message inside its own
+     `<form.Field>`, so the sentence tracks what is being typed. */
+  const readError = fieldErrorReader(entrantSchema);
+
   return (
     <WizardShell
       totalStep={totalStep}
@@ -424,6 +431,7 @@ export default function EntrantStep() {
                 <DocumentRow
                   index={1}
                   text={STUDENT_DOCUMENTS[0]}
+                  requiredLabel="เอกสารข้อ 1"
                   onChange={(f) => {
                     field.handleChange(f);
                   }}
@@ -441,6 +449,7 @@ export default function EntrantStep() {
                 <DocumentRow
                   index={2}
                   text={STUDENT_DOCUMENTS[1]}
+                  requiredLabel="เอกสารข้อ 2"
                   onChange={(f) => {
                     field.handleChange(f);
                   }}
@@ -456,6 +465,7 @@ export default function EntrantStep() {
                 <DocumentRow
                   index={3}
                   text={STUDENT_DOCUMENTS[2]}
+                  requiredLabel="เอกสารข้อ 3"
                   onChange={(f) => {
                     field.handleChange(f);
                   }}
@@ -470,9 +480,14 @@ export default function EntrantStep() {
         </section>
 
         <Separator />
-        <PersonFields person={currentEntrantKey} title={`ข้อมูลผู้เข้าแข่งขันคนที่ ${n}`} withBirthDate />
+        <PersonFields
+          person={currentEntrantKey}
+          title={`ข้อมูลผู้เข้าแข่งขันคนที่ ${n}`}
+          withBirthDate
+          readError={readError}
+        />
         <Separator />
-        <ContactFields person={currentEntrantKey} />
+        <ContactFields person={currentEntrantKey} readError={readError} />
       </div>
     </WizardShell>
   );

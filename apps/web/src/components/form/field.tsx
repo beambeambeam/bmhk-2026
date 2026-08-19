@@ -999,6 +999,7 @@ export function UploadBox({
   maxMB = 10,
   onChange,
   file,
+  requiredLabel,
 }: {
   from?: string;
   hint?: string;
@@ -1006,9 +1007,22 @@ export function UploadBox({
   maxMB?: number;
   onChange?: (file: File | null) => void;
   file?: File | null | string;
+  /**
+   * Names this document to the gate. Given, an empty box is a claim on the step exactly as an
+   * empty required TextField is — ถัดไป scrolls to it and says what is missing, instead of a
+   * toast reading "กรุณาอัปโหลดเอกสารให้ครบถ้วน" that named none of the six.
+   */
+  requiredLabel?: string;
 }) {
   /* six of these per entrant step, and none of them used to answer a drag at all */
   const slot = useFileSlot({ kind, maxMB, onChange });
+
+  /* A document already on the server arrives as its file NAME, so the slot being empty is not
+     the same as the requirement being unmet — either one satisfies it. */
+  const held = typeof file === "string" ? file !== "" : file !== null && file !== undefined;
+  const { ref, invalid, message, messageId } = useGateField<HTMLLabelElement>(
+    requiredLabel !== undefined && !slot.file && !held ? `ต้องแนบ${requiredLabel}` : null,
+  );
 
   return (
     /*
@@ -1028,7 +1042,15 @@ export function UploadBox({
        */}
       <label
         {...slot.drop}
-        className="auth-drop mm-press flex h-[calc(79.48px_+_20.52*var(--fl))] w-full cursor-pointer flex-col items-center justify-center gap-2.5 rounded-[20px] border border-dashed border-[#dcdcdc] hover:border-brand-red"
+        ref={ref}
+        /* the label is the whole drop target, and it is what the gate sends the reader to —
+           `tabIndex={-1}` gives it something to focus, since the <input> inside is hidden */
+        tabIndex={-1}
+        aria-invalid={invalid || undefined}
+        aria-describedby={message === null ? undefined : messageId}
+        className={`auth-drop mm-press flex h-[calc(79.48px_+_20.52*var(--fl))] w-full cursor-pointer flex-col items-center justify-center gap-2.5 rounded-[20px] border border-dashed hover:border-brand-red focus:outline-none ${
+          invalid ? "border-[#ea4335]" : "border-[#dcdcdc]"
+        }`}
       >
         {slot.preview !== null && slot.preview !== "" ? (
           /* the thumbnail stands in for the glyph, so it takes the glyph's own ramp scaled to
@@ -1069,10 +1091,16 @@ export function UploadBox({
           under a control is the one caption that may go to 12 — it is not an input's own text,
           so the 16px iOS-zoom floor that pins `BOX` does not apply to it. */}
       <p
+        id={messageId}
         aria-live="polite"
-        className={`w-full truncate text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${slot.error !== null && slot.error !== "" ? "text-[#ea4335]" : "text-gray-1"}`}
+        className={`w-full truncate text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${
+          (slot.error !== null && slot.error !== "") || message !== null
+            ? "text-[#ea4335]"
+            : "text-gray-1"
+        }`}
       >
-        {slot.error ?? hint}
+        {/* a rejected file is the more urgent of the two, so it outranks the gate's sentence */}
+        {slot.error ?? message ?? hint}
       </p>
     </div>
   );
@@ -1090,6 +1118,7 @@ export function DocumentRow({
   kind,
   hint,
   maxMB,
+  requiredLabel,
 }: {
   index: number;
   text: string;
@@ -1098,6 +1127,8 @@ export function DocumentRow({
   kind?: "image" | "pdf";
   hint?: string;
   maxMB?: number;
+  /** See `UploadBox` — names this document to the gate so ถัดไป can point at it. */
+  requiredLabel?: string;
 }) {
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
@@ -1106,7 +1137,14 @@ export function DocumentRow({
           {text}
         </li>
       </ol>
-      <UploadBox onChange={onChange} file={file} kind={kind} hint={hint} maxMB={maxMB} />
+      <UploadBox
+        onChange={onChange}
+        file={file}
+        kind={kind}
+        hint={hint}
+        maxMB={maxMB}
+        requiredLabel={requiredLabel}
+      />
     </div>
   );
 }

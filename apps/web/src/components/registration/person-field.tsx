@@ -53,11 +53,18 @@ export default function PersonFields({
   title,
   withBirthDate = false,
   headingGap = "gap-6",
+  readError,
 }: {
   person: "advisor" | "entrant1" | "entrant2" | "entrant3";
   title: string;
   withBirthDate?: boolean;
   headingGap?: string;
+  /**
+   * Reads one field's message off the step's own schema. Supplying it is what lets the gate
+   * find and scroll to the first empty required control — nothing is shown until ถัดไป flags
+   * a field. See `fieldErrorReader`.
+   */
+  readError?: (field: string, value: unknown) => string | null;
 }) {
   const form = useRegisterForm();
 
@@ -96,9 +103,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("titleTh", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -114,9 +119,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatThaiOnly(val));
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("firstNameTh", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -131,9 +134,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatThaiOnly(val));
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("middleNameTh", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -149,9 +150,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatThaiOnly(val));
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("lastNameTh", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -170,9 +169,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("titleEn", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -188,9 +185,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatEnglishOnly(val));
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("firstNameEn", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -205,9 +200,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatEnglishOnly(val));
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("middleNameEn", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -223,9 +216,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(formatEnglishOnly(val));
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("lastNameEn", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -247,9 +238,7 @@ export default function PersonFields({
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                  error={
-                    field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                  }
+                  error={readError?.("dateOfBirth", field.state.value) ?? null}
                 />
               )}
             </form.Field>
@@ -264,9 +253,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("foodAllergies", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -281,9 +268,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("dietaryRequirements", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -298,9 +283,7 @@ export default function PersonFields({
                 onChange={(val) => {
                   field.handleChange(val);
                 }}
-                error={
-                  field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                }
+                error={readError?.("drugAllergies", field.state.value) ?? null}
               />
             )}
           </form.Field>
@@ -315,7 +298,7 @@ export default function PersonFields({
               onChange={(val) => {
                 field.handleChange(val);
               }}
-              error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              error={readError?.("chronicConditionsAndFirstAidNotes", field.state.value) ?? null}
             />
           )}
         </form.Field>
@@ -326,8 +309,11 @@ export default function PersonFields({
 
 export function ContactFields({
   person,
+  readError,
 }: {
   person: "advisor" | "entrant1" | "entrant2" | "entrant3";
+  /** See `PersonFields` — reads this person's messages off the step's schema. */
+  readError?: (field: string, value: unknown) => string | null;
 }) {
   const form = useRegisterForm();
 
@@ -351,7 +337,7 @@ export function ContactFields({
               onChange={(val) => {
                 field.handleChange(val);
               }}
-              error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              error={readError?.("email", field.state.value) ?? null}
             />
           )}
         </form.Field>
@@ -367,7 +353,7 @@ export function ContactFields({
               onChange={(val) => {
                 field.handleChange(formatPhone(val));
               }}
-              error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              error={readError?.("phone", field.state.value) ?? null}
             />
           )}
         </form.Field>
@@ -381,7 +367,7 @@ export function ContactFields({
               onChange={(val) => {
                 field.handleChange(val);
               }}
-              error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null}
+              error={readError?.("lineId", field.state.value) ?? null}
             />
           )}
         </form.Field>

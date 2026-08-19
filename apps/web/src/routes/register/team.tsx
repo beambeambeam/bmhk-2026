@@ -32,7 +32,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRegisterForm, Route as RegisterRoute } from "@/routes/register";
 import { z } from "zod";
 import { client } from "@bmhk-2026/client/orpc";
-import { useAuthNavigate } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
+import { fieldErrorReader } from "@/features/register/lib/field-errors";
 import { toast } from "sonner";
 import { env } from "@bmhk-2026/env/web";
 
@@ -97,6 +98,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
   const form = useRegisterForm();
   const go = useAuthNavigate();
   const [busy, setBusy] = useState(false);
+  const validate = useGateValidate();
   const { termsData } = RegisterRoute.useLoaderData();
 
   return (
@@ -105,6 +107,11 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
       data-busy={busy}
       aria-busy={busy}
       onClick={async () => {
+        /* Every required control on this step states its own claim, so the gate is the whole
+           check: it flags the first unmet one, scrolls to it and focuses it. */
+        if (!validate()) {
+          return;
+        }
         setBusy(true);
         try {
           const team = form.getFieldValue("team");
@@ -236,12 +243,10 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
 
           void go(to, "forward");
         } catch (error) {
-          if (error instanceof z.ZodError) {
-            toast.error(error.issues[0].message);
-          } else {
-            console.error(error);
-            toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-          }
+          /* The gate reads the same schema, so a ZodError here means the two disagreed — a bug
+             rather than a user mistake, and there is no one field to blame for it. */
+          console.error(error);
+          toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         } finally {
           setBusy(false);
         }
@@ -287,6 +292,10 @@ export default function TeamStep() {
   /* the caption says จำกัดขนาดไม่เกิน 5 MB, so 5 MB is what the box enforces */
   const photo = useFileSlot({ kind: "image", maxMB: 5 });
   const form = useRegisterForm();
+
+  /* Bound to this step's schema; each field reads its own message inside its own
+     `<form.Field>`, so the sentence tracks what is being typed. */
+  const readError = fieldErrorReader(teamSchema);
 
   /*
    * Team size is tracked here only so the choice can be *confirmed*: the box used to swap its
@@ -442,9 +451,7 @@ export default function TeamStep() {
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                  error={
-                    field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                  }
+                  error={readError("name", field.state.value)}
                 />
               )}
             />
@@ -460,9 +467,7 @@ export default function TeamStep() {
                   onChange={(val) => {
                     field.handleChange(val);
                   }}
-                  error={
-                    field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : null
-                  }
+                  error={readError("school", field.state.value)}
                 />
               )}
             />

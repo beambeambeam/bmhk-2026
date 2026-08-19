@@ -172,7 +172,7 @@ export function getExpectedNextStep(form: RegisterFormApi): string {
     }
   }
 
-  return `/register/entrant/${teamSize}`;
+  return "/register/success";
 }
 
 export const STEP_RANKS: Record<string, number> = {

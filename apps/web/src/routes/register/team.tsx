@@ -238,6 +238,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             school: finalResult.school,
             teamSize: finalResult.memberCount,
           });
+          form.setFieldValue("status", { ...status, teamId: finalResult.id });
 
           await saveConsents(finalResult.id, status?.teamId != null);
 

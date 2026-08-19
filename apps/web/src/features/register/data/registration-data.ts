@@ -15,8 +15,8 @@ export const STUDENT_DOCUMENTS = [
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable */
 /* oxlint-disable */
-import { TERM_OF_SERVICE, CODERN_TERMS, COMPETITION_RULES, PRIVACY_POLICY } from "./privacy-policy";
-import type { PolicyDocument } from "./privacy-policy";
+import { WEBSITE_TERMS, CODERN_TERMS, COMPETITION_RULES, PRIVACY_POLICY } from "@/privacy-policy";
+import type { PolicyDocument } from "@/privacy-policy";
 
 /**
  * Documents the entrant must read and accept before submitting.
@@ -37,7 +37,7 @@ export const REQUIRED_DOCUMENTS: {
   },
   {
     description: "เงื่อนไขการใช้งานระบบส่งโค้ดและตรวจผล",
-    document: TERM_OF_SERVICE,
+    document: WEBSITE_TERMS,
     icon: "/assets/figma/Vector.svg",
     rounded: true,
     title: "ข้อกำหนดการใช้งานเว็บไซต์",

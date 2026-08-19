@@ -181,7 +181,7 @@ function StepCard({ card, i }: { card: (typeof STEP_CARDS)[number]; i: number })
 
   return (
     <article
-      className={`flex flex-col ${PLATE_GAP} ${CARD} ${STEP_PAD} ${revealCls}`}
+      className={`flex flex-col h-full ${PLATE_GAP} ${CARD} ${STEP_PAD} ${revealCls}`}
       ref={revealRef}
       style={style}
     >

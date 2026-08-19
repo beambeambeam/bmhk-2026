@@ -160,7 +160,7 @@ export default function PersonFields({
           <form.Field name={`${person}.titleEn`}>
             {(field) => (
               <SelectField
-                label="คำนำหน้า"
+                label="Title"
                 required
                 placeholder="Choose"
                 options={["Mr.", "Mrs.", "Miss"]}

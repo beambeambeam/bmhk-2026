@@ -176,6 +176,13 @@
       "when": 1786903234782,
       "tag": "0024_sudden_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786955470409,
+      "tag": "0025_quick_scrambler",
+      "breakpoints": true
     }
   ]
 }

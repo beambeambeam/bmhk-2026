@@ -7,12 +7,14 @@ import { env } from "@bmhk-2026/env/server";
 import { Elysia } from "elysia";
 import type { AnyElysia } from "elysia";
 
+const isProduction = env.BMHK_ENVIRONMENT === "production";
+
 export function initializeObservability(config: Omit<LoggerConfig, "env"> = {}) {
   initLogger({
     drain:
-      env.BETTER_STACK_API_KEY === undefined
-        ? undefined
-        : createBetterStackDrain({ apiKey: env.BETTER_STACK_API_KEY }),
+      isProduction && env.BETTER_STACK_API_KEY !== undefined
+        ? createBetterStackDrain({ apiKey: env.BETTER_STACK_API_KEY })
+        : undefined,
     ...config,
     env: { service: "bmhk-2026-server" },
   });

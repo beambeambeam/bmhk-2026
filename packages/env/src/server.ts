@@ -31,6 +31,7 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
     BETTER_STACK_API_KEY: z.string().min(1).optional(),
+    BMHK_ENVIRONMENT: z.enum(["staging", "production"]).default("staging"),
     CORS_ORIGIN: corsOrigins,
     DATABASE_URL: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),

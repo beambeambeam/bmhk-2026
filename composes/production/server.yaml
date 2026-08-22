@@ -36,6 +36,7 @@ services:
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:?AWS_ENDPOINT_URL_S3 is required}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:?AWS_S3_BUCKET is required}
+      BETTER_STACK_API_KEY: ${BETTER_STACK_API_KEY:?BETTER_STACK_API_KEY is required}
     depends_on:
       postgres:
         condition: service_healthy

@@ -6,6 +6,7 @@ const featureFlagsShape = {
   finalRound: z.boolean(),
   qualifyingResultsAnnouncement: z.boolean(),
   qualifyingRound: z.boolean(),
+  qualifyingRoundIdentityConfirmation: z.boolean(),
   registration: z.boolean(),
 } satisfies Record<FeatureFlagKey, z.ZodBoolean>;
 

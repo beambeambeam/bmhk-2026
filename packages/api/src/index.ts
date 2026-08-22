@@ -5,6 +5,7 @@ export type { AdminUserRepository } from "./features/admin-users/admin-users.rep
 export type { StaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
 export type { ParticipantCheckInRepository } from "./features/participant-check-ins/participant-check-ins.repository";
 export type {
+  CheckInRound,
   StaffCheckInColumnFilter,
   StaffCheckInListQuery,
   StaffCheckInListResult,
@@ -52,6 +53,8 @@ export type {
   TeamDetails,
   TeamListPagination,
   TeamListResult,
+  TeamListRegistrationStatus,
+  TeamListRow,
   UpdateTeamData,
 } from "./features/teams/teams.schema";
 export type {

@@ -10,6 +10,7 @@ import { createRepositoryExecutor } from "../../core/repository";
 import { getTableOffset } from "../../core/table-query";
 import { staffCheckInRepositoryError } from "./staff-check-ins.errors";
 import type {
+  CheckInRound,
   StaffCheckInColumnFilter,
   StaffCheckInListQuery,
   StaffCheckInListResult,
@@ -17,8 +18,12 @@ import type {
 } from "./staff-check-ins.schema";
 
 export interface StaffCheckInRepository {
-  cancel: (userId: string) => Promise<boolean>;
-  checkIn: (userId: string, checkedInByUserId: string) => Promise<boolean | null>;
+  cancel: (userId: string, round: CheckInRound) => Promise<boolean>;
+  checkIn: (
+    userId: string,
+    checkedInByUserId: string,
+    round: CheckInRound,
+  ) => Promise<boolean | null>;
   list: (query: StaffCheckInListQuery) => Promise<StaffCheckInListResult>;
 }
 
@@ -50,16 +55,16 @@ export function createStaffCheckInRepository(database: Database = db): StaffChec
   const execute = createRepositoryExecutor(staffCheckInRepositoryError);
 
   return {
-    cancel: async (userId) =>
+    cancel: async (userId, round) =>
       await execute(async () => {
         const cancelled = await database
           .delete(staffCheckIns)
-          .where(eq(staffCheckIns.userId, userId))
+          .where(and(eq(staffCheckIns.userId, userId), eq(staffCheckIns.round, round)))
           .returning({ userId: staffCheckIns.userId });
 
         return cancelled.length > 0;
       }),
-    checkIn: async (userId, checkedInByUserId) =>
+    checkIn: async (userId, checkedInByUserId, round) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -76,14 +81,14 @@ export function createStaffCheckInRepository(database: Database = db): StaffChec
 
             const created = await transaction
               .insert(staffCheckIns)
-              .values({ checkedInByUserId, userId })
-              .onConflictDoNothing()
+              .values({ checkedInByUserId, round, userId })
+              .onConflictDoNothing({ target: [staffCheckIns.userId, staffCheckIns.round] })
               .returning({ userId: staffCheckIns.userId });
 
             return created.length > 0;
           }),
       ),
-    list: async ({ columnFilters, pagination, sorting }) =>
+    list: async ({ columnFilters, pagination, round, sorting }) =>
       await execute(
         async () =>
           await database.transaction(
@@ -103,7 +108,10 @@ export function createStaffCheckInRepository(database: Database = db): StaffChec
                   name: user.name,
                 })
                 .from(user)
-                .leftJoin(staffCheckIns, eq(staffCheckIns.userId, user.id))
+                .leftJoin(
+                  staffCheckIns,
+                  and(eq(staffCheckIns.userId, user.id), eq(staffCheckIns.round, round)),
+                )
                 .leftJoin(checkedInByUser, eq(checkedInByUser.id, staffCheckIns.checkedInByUserId))
                 .where(where)
                 .orderBy(

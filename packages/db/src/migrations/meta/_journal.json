@@ -176,6 +176,20 @@
       "when": 1786903234782,
       "tag": "0024_sudden_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787422140654,
+      "tag": "0025_steady_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787427683663,
+      "tag": "0026_familiar_wallop",
+      "breakpoints": true
     }
   ]
 }

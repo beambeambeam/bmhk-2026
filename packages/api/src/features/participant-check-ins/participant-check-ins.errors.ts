@@ -24,6 +24,16 @@ export function createParticipantCheckInNotFoundError() {
   });
 }
 
+export function createParticipantNotRoundEligibleError() {
+  return createError({
+    code: "PARTICIPANT_NOT_ROUND_ELIGIBLE",
+    fix: "Confirm the team advanced before checking this participant in",
+    message: "This participant's team is not eligible for this round",
+    status: 409,
+    why: "The team has not been awarded a result that qualifies it for the requested round",
+  });
+}
+
 export function createParticipantCheckInTargetNotFoundError() {
   return createError({
     code: "PARTICIPANT_CHECK_IN_TARGET_NOT_FOUND",

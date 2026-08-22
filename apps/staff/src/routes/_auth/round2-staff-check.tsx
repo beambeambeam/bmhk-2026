@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { StaffCheckInTable } from "@/features/staff-check-ins/staff-check-in-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_auth/round1-staff-check")({
+export const Route = createFileRoute("/_auth/round2-staff-check")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role;
     if (role !== "admin" && role !== "registrationStaff") {
@@ -20,11 +20,11 @@ function StaffCheckInPage() {
     <section>
       <Card>
         <CardHeader>
-          <CardTitle>ลงทะเบียนเข้างานทีมงาน</CardTitle>
-          <CardDescription>บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างาน</CardDescription>
+          <CardTitle>ลงทะเบียนเข้างานทีมงาน (รอบ 2)</CardTitle>
+          <CardDescription>บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างานรอบชิงชนะเลิศ</CardDescription>
         </CardHeader>
         <CardContent>
-          <StaffCheckInTable actorId={session.data?.user.id} round="ROUND_1" />
+          <StaffCheckInTable actorId={session.data?.user.id} round="ROUND_2" />
         </CardContent>
       </Card>
     </section>

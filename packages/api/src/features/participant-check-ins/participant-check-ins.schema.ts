@@ -1,3 +1,4 @@
+import { checkInRoundValues } from "@bmhk-2026/db/schema/check-in-round";
 import { participantCheckInFlagValues } from "@bmhk-2026/db/schema/participant-check-ins";
 import { z } from "zod";
 
@@ -5,6 +6,7 @@ import { createTableListResultSchema, createTableQuerySchema } from "../../core/
 
 export { participantCheckInFlagValues } from "@bmhk-2026/db/schema/participant-check-ins";
 
+export const checkInRoundSchema = z.enum(checkInRoundValues);
 export const participantCheckInFlagSchema = z.enum(participantCheckInFlagValues);
 export const participantCheckInSchema = z
   .object({
@@ -33,15 +35,22 @@ export const listParticipantCheckInsSchema = createTableQuerySchema({
   defaultSorting: [{ desc: false, id: "name" }],
   maxColumnFilters: 3,
   sortableColumnIds: ["email", "name", "teamName", "checkedInAt", "flag"],
-});
+}).extend({ round: checkInRoundSchema });
 export const participantCheckInListResultSchema = createTableListResultSchema(
   participantCheckInParticipantSchema,
 );
-export const createParticipantCheckInSchema = z.object({ participantId: z.uuid() }).strict();
+export const createParticipantCheckInSchema = z
+  .object({ participantId: z.uuid(), round: checkInRoundSchema })
+  .strict();
 export const updateParticipantCheckInFlagSchema = z
-  .object({ flag: participantCheckInFlagSchema.nullable(), participantId: z.uuid() })
+  .object({
+    flag: participantCheckInFlagSchema.nullable(),
+    participantId: z.uuid(),
+    round: checkInRoundSchema,
+  })
   .strict();
 
+export type CheckInRound = z.infer<typeof checkInRoundSchema>;
 export type ParticipantCheckInColumnFilter = z.infer<typeof participantCheckInColumnFilterSchema>;
 export type ParticipantCheckInFlag = z.infer<typeof participantCheckInFlagSchema>;
 export type ParticipantCheckInListQuery = z.output<typeof listParticipantCheckInsSchema>;

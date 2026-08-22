@@ -1,3 +1,4 @@
+import { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -57,11 +58,19 @@ export const teamListPaginationSchema = z
     totalPages: z.int().nonnegative(),
   })
   .strict();
+// Registration status is read live from the team's review record rather than stored on
+// the team, so approving on the review flow is reflected here with nothing to keep in sync.
+export const teamListRegistrationStatusSchema = z.enum(teamRegistrationReviewStatusValues);
+export const teamListRowSchema = teamSchema
+  .extend({ registrationStatus: teamListRegistrationStatusSchema })
+  .strict();
 export const teamListResultSchema = z
-  .object({ data: z.array(teamSchema), pagination: teamListPaginationSchema })
+  .object({ data: z.array(teamListRowSchema), pagination: teamListPaginationSchema })
   .strict();
 
 export type Team = z.output<typeof teamSchema>;
+export type TeamListRow = z.output<typeof teamListRowSchema>;
+export type TeamListRegistrationStatus = z.output<typeof teamListRegistrationStatusSchema>;
 export type TeamDetails = z.output<typeof teamDetailsSchema>;
 export type TeamAward = Team["award"];
 export type CreateTeamData = z.output<typeof createTeamSchema>;

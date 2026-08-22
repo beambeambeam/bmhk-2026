@@ -1,6 +1,9 @@
+import { checkInRoundValues } from "@bmhk-2026/db/schema/check-in-round";
 import { z } from "zod";
 
 import { createTableListResultSchema, createTableQuerySchema } from "../../core/table-query";
+
+export const checkInRoundSchema = z.enum(checkInRoundValues);
 
 export const staffCheckInSchema = z
   .object({
@@ -29,12 +32,15 @@ export const listStaffCheckInsSchema = createTableQuerySchema({
   defaultSorting: [{ desc: false, id: "name" }],
   maxColumnFilters: 2,
   sortableColumnIds: ["email", "name", "checkedInAt"],
-});
+}).extend({ round: checkInRoundSchema });
 
 export const staffCheckInListResultSchema = createTableListResultSchema(staffCheckInStaffSchema);
 
-export const createStaffCheckInSchema = z.object({ staffUserId: z.string().min(1) }).strict();
+export const createStaffCheckInSchema = z
+  .object({ round: checkInRoundSchema, staffUserId: z.string().min(1) })
+  .strict();
 
+export type CheckInRound = z.infer<typeof checkInRoundSchema>;
 export type StaffCheckInColumnFilter = z.infer<typeof staffCheckInColumnFilterSchema>;
 export type StaffCheckInListQuery = z.output<typeof listStaffCheckInsSchema>;
 export type StaffCheckInListResult = z.output<typeof staffCheckInListResultSchema>;

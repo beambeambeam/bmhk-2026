@@ -9,6 +9,7 @@ import type {
   Team,
   TeamAccessContext,
   TeamAward,
+  TeamListRow,
   TeamRepository,
 } from "../../../index";
 import { createAppRouter } from "../../../index";
@@ -42,6 +43,7 @@ const USER_ID = "user-1";
 const expectedAwards = [
   "NO_ACHIEVEMENT",
   "REGISTRATION_COMPLETED",
+  "NOT_QUALIFIED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",
@@ -64,6 +66,12 @@ const testTeam = {
   userId: USER_ID,
 } satisfies Team;
 
+// teams.list joins the team's review record, so its rows carry registration status.
+const testTeamListRow = {
+  ...testTeam,
+  registrationStatus: "PENDING_REVIEW",
+} satisfies TeamListRow;
+
 const testImage: StoredFile = {
   bucket: "uploads",
   contentType: "image/png",
@@ -83,7 +91,8 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
     delete: overrides.delete ?? (async () => await Promise.resolve(true)),
     findById: overrides.findById ?? (async () => await Promise.resolve(testTeam)),
     findByUserId: overrides.findByUserId ?? (async () => await Promise.resolve(null)),
-    list: overrides.list ?? (async () => await Promise.resolve({ data: [testTeam], total: 1 })),
+    list:
+      overrides.list ?? (async () => await Promise.resolve({ data: [testTeamListRow], total: 1 })),
     replaceImage:
       overrides.replaceImage ??
       (async (_userId, _id, file) =>
@@ -353,8 +362,8 @@ describe("teams router", () => {
     async function list(
       _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
-    ): Promise<{ data: Team[]; total: number }> {
-      return await Promise.resolve({ data: total > 0 ? [testTeam] : [], total });
+    ): Promise<{ data: TeamListRow[]; total: number }> {
+      return await Promise.resolve({ data: total > 0 ? [testTeamListRow] : [], total });
     }
 
     const repository = createTeamRepository({ list });
@@ -371,11 +380,11 @@ describe("teams router", () => {
 
   it("rejects malformed list output", async () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as Team;
+    const malformedTeam = { ...testTeamListRow, id: "not-a-uuid" } as unknown as TeamListRow;
     async function list(
       _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
-    ): Promise<{ data: Team[]; total: number }> {
+    ): Promise<{ data: TeamListRow[]; total: number }> {
       return await Promise.resolve({ data: [malformedTeam], total: 1 });
     }
 

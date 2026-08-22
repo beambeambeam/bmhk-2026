@@ -399,7 +399,7 @@ async function seedRegistrationData(database: ReturnType<typeof createDb>): Prom
 
   await database
     .insert(staffCheckIns)
-    .values({ checkedInByUserId: reviewer.id, userId: checkedInStaff.id })
+    .values({ checkedInByUserId: reviewer.id, round: "ROUND_1", userId: checkedInStaff.id })
     .onConflictDoNothing();
 
   await seedRegistrationFiles(database, owner1.id);

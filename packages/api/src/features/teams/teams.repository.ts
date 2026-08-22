@@ -1,8 +1,9 @@
 import { db } from "@bmhk-2026/db";
+import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, getTableColumns } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
@@ -11,7 +12,7 @@ import {
   createTeamRepositoryError,
   teamRepositoryError,
 } from "./teams.errors";
-import type { CreateTeamData, Team, TeamAward, UpdateTeamData } from "./teams.schema";
+import type { CreateTeamData, Team, TeamAward, TeamListRow, UpdateTeamData } from "./teams.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 
@@ -23,7 +24,7 @@ export interface TeamRepository {
   list: (
     access: TeamAccessContext,
     pagination: { limit: number; offset: number },
-  ) => Promise<{ data: Team[]; total: number }>;
+  ) => Promise<{ data: TeamListRow[]; total: number }>;
   update: (
     access: TeamAccessContext,
     id: string,
@@ -125,16 +126,25 @@ export function createTeamRepository(database: Database = db): TeamRepository {
                 .select({ value: count() })
                 .from(teams)
                 .where(access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId));
-              const data = await transaction
-                .select()
+              const records = await transaction
+                .select({
+                  ...getTableColumns(teams),
+                  registrationStatus: teamRegistrationReviews.status,
+                })
                 .from(teams)
+                .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
                 .where(access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId))
                 .orderBy(asc(teams.index))
                 .limit(limit)
                 .offset(offset);
 
               return {
-                data,
+                // A team with no review row yet has not been looked at, which is the same
+                // state a freshly created review carries.
+                data: records.map(({ registrationStatus, ...team }) => ({
+                  ...team,
+                  registrationStatus: registrationStatus ?? "PENDING_REVIEW",
+                })),
                 total: totalResult?.value ?? 0,
               };
             },

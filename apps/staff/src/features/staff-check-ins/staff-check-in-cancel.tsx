@@ -14,16 +14,23 @@ import { orpc } from "@bmhk-2026/client/orpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { CheckInRound } from "@bmhk-2026/api";
 
 import { getStaffCheckInErrorMessage } from "./staff-check-in-utils";
 
 interface StaffCheckInCancelProps {
+  readonly round: CheckInRound;
   readonly staffName: string;
   readonly staffUserId: string;
   readonly onCancelled: () => void;
 }
 
-function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckInCancelProps) {
+function StaffCheckInCancel({
+  round,
+  staffName,
+  staffUserId,
+  onCancelled,
+}: StaffCheckInCancelProps) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const cancelMutation = useMutation(
@@ -37,7 +44,7 @@ function StaffCheckInCancel({ staffName, staffUserId, onCancelled }: StaffCheckI
 
   async function cancelCheckIn(): Promise<void> {
     try {
-      await cancelMutation.mutateAsync({ staffUserId });
+      await cancelMutation.mutateAsync({ round, staffUserId });
       toast.success(`ยกเลิกการเข้างานของ ${staffName} แล้ว`);
       onCancelled();
       setIsOpen(false);

@@ -14,7 +14,14 @@ import {
 import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { ClipboardCheck, LayoutDashboard, LogOut, UserCheck, UsersRound } from "lucide-react";
+import {
+  ClipboardCheck,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  UserCheck,
+  UsersRound,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
@@ -28,6 +35,7 @@ interface StaffSidebarProps {
 interface StaffNavItem {
   readonly label: string;
   readonly to:
+    | "/admin/api-keys"
     | "/admin/users"
     | "/dashboard"
     | "/participations"
@@ -42,6 +50,7 @@ const baseNavItems: readonly StaffNavItem[] = [
 
 const adminNavItems: readonly StaffNavItem[] = [
   { icon: UsersRound, label: "Users", to: "/admin/users" },
+  { icon: KeyRound, label: "API Keys", to: "/admin/api-keys" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [

@@ -7,6 +7,10 @@ import type { AdminUserRepository } from "./features/admin-users/admin-users.rep
 import { createAdminUserRepository } from "./features/admin-users/admin-users.repository";
 import { createAdminUsersRouter } from "./features/admin-users/admin-users.router";
 import { createAdminUserService } from "./features/admin-users/admin-users.service";
+import type { ApiKeyRepository } from "./features/api-keys/api-keys.repository";
+import { createApiKeyRepository } from "./features/api-keys/api-keys.repository";
+import { createApiKeysRouter } from "./features/api-keys/api-keys.router";
+import { createApiKeyService } from "./features/api-keys/api-keys.service";
 import { createHealthRouter } from "./features/health/health.router";
 import { createFileRepository } from "./features/files/files.repository";
 import { createFilesRouter } from "./features/files/files.router";
@@ -52,6 +56,7 @@ import { createParticipantCheckInService } from "./features/participant-check-in
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
+  apiKeys?: ApiKeyRepository;
   auth: AuthReader;
   featureFlagClock?: () => Temporal.Instant;
   fileStorage?: FileStorage;
@@ -78,6 +83,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     teamOwnerProcedure,
   } = createProcedures(dependencies);
   const adminUserRepository = dependencies.adminUsers ?? createAdminUserRepository();
+  const apiKeyRepository = dependencies.apiKeys ?? createApiKeyRepository();
   const teamAdvisorRepository = dependencies.teamAdvisors ?? createTeamAdvisorRepository();
   const teamRepository = dependencies.teams ?? createTeamRepository();
   const teamParticipantRepository =
@@ -95,6 +101,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
 
   return {
     adminUsers: createAdminUsersRouter(adminProcedure, createAdminUserService(adminUserRepository)),
+    apiKeys: createApiKeysRouter(
+      adminProcedure,
+      createApiKeyService(apiKeyRepository, dependencies.auth),
+    ),
     featureFlags: createFeatureFlagsRouter(
       publicProcedure,
       createFeatureFlagService(dependencies.featureFlagClock),

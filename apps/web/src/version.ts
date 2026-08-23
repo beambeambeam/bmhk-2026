@@ -10,16 +10,17 @@
  *   is never hand-typed. See the `define` block in vite.config.ts.
  */
 
+import { env } from "@bmhk-2026/env/web";
+
 declare const __BUILD_DATE__: string;
 
-/** Bump manually on release. */
-export const APP_VERSION = "0.0.1";
-
 /** Release channel: `dev`, `rc`, `stable`, … Bump manually alongside APP_VERSION. */
-export const VERSION_CHANNEL = "dev";
+export const VERSION_CHANNEL = env.VITE_BMHK_ENV;
 
 /** The date half, `YYYYMMDD`, injected at build time. */
 export const BUILD_DATE = __BUILD_DATE__;
 
+export const COMMIT_SHA = env.VITE_COMMIT_SHA;
+
 /** What the footer renders. */
-export const VERSION_LABEL = `v${APP_VERSION}-${VERSION_CHANNEL}.${BUILD_DATE}`;
+export const VERSION_LABEL = `v${VERSION_CHANNEL}.${BUILD_DATE}-${COMMIT_SHA.slice(0, 7)}`;

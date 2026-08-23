@@ -118,3 +118,17 @@ export const teamRegistrationReviewChangedAudit = defineAuditAction(
     target: "team-registration-review",
   },
 );
+
+export const apiKeyCreatedAudit = defineAuditAction("api-key.created", {
+  description: "An Administrator created an API key",
+  requiresChanges: true,
+  severity: "critical",
+  target: "api-key",
+});
+
+export const apiKeyRevokedAudit = defineAuditAction("api-key.revoked", {
+  description: "An Administrator revoked an API key",
+  requiresChanges: true,
+  severity: "critical",
+  target: "api-key",
+});

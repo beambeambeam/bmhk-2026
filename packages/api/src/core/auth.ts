@@ -10,6 +10,26 @@ export interface TeamAccessContext {
   scope: "ALL_TEAMS" | "OWN_TEAM";
 }
 
+export interface ApiKeyVerification {
+  key: { id: string; referenceId: string } | null;
+  valid: boolean;
+}
+
+export interface IssuedApiKey {
+  createdAt: Date;
+  expiresAt: Date | null;
+  id: string;
+  key: string;
+  name: string | null;
+  start: string | null;
+}
+
 export interface AuthReader {
+  createApiKey: (options: {
+    expiresIn: number | null;
+    name: string;
+    userId: string;
+  }) => Promise<IssuedApiKey>;
   getSession: (options: { headers: Headers }) => Promise<ApiSession | null>;
+  verifyApiKey: (options: { key: string }) => Promise<ApiKeyVerification>;
 }

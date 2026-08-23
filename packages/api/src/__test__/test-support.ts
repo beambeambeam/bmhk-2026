@@ -51,9 +51,15 @@ export function createTestSession(overrides: TestSessionOverrides = {}): ApiSess
 
 type TestSessionSource = ApiSession | null | AuthReader["getSession"];
 
-export function createTestAuthReader(source: TestSessionSource = createTestSession()): AuthReader {
+export function createTestAuthReader(
+  source: TestSessionSource = createTestSession(),
+  verifyApiKey: AuthReader["verifyApiKey"] = createUnusedMethod("AuthReader", "verifyApiKey"),
+  createApiKey: AuthReader["createApiKey"] = createUnusedMethod("AuthReader", "createApiKey"),
+): AuthReader {
   return {
+    createApiKey,
     getSession: typeof source === "function" ? source : async () => await Promise.resolve(source),
+    verifyApiKey,
   };
 }
 

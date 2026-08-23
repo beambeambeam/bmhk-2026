@@ -8,6 +8,7 @@ const runtimeEnv = import.meta.env;
 export const env = createEnv({
   client: {
     VITE_BMHK_ENV: z.enum(["staging", "production"]).default("staging"),
+    VITE_COMMIT_SHA: z.string().default("unknown"),
     VITE_SERVER_URL: z.url(),
   },
   clientPrefix: "VITE_",

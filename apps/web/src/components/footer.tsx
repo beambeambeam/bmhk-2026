@@ -17,7 +17,7 @@ function BottomRow({ className = "" }: { className?: string }) {
     <div
       className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[calc(11.948px+2.052*var(--fl))] leading-normal font-light text-gray-1 min-[1440px]:w-max min-[1440px]:flex-nowrap ${className}`}
     >
-      <span className="tabular-nums whitespace-nowrap">{VERSION_LABEL}</span>
+      <span className="tabular-nums whitespace-nowrap">Version: {VERSION_LABEL}</span>
       <p className="min-[1440px]:whitespace-nowrap">{FOOTER_ABOUT.copyright}</p>
     </div>
   );

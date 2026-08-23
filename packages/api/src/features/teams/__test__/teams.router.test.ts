@@ -400,6 +400,49 @@ describe("teams router", () => {
     });
   });
 
+  it("applies safe defaults when listing teams without arguments", async () => {
+    const list = vi.fn<TeamRepository["list"]>(
+      async () => await Promise.resolve({ data: [], total: 0 }),
+    );
+    const router = createRouter(createTeamRepository({ list }), createRegistrationAuthReader());
+    const { context } = createContext();
+
+    await call(router.teams.list, {}, { context, path: ["teams", "list"] });
+
+    expect(list).toHaveBeenCalledWith(expect.anything(), {
+      award: "ALL",
+      limit: 25,
+      offset: 0,
+      search: "",
+      sortBy: "name",
+      sortDesc: false,
+    });
+  });
+
+  it("forwards search, award filter, and sorting to the repository", async () => {
+    const list = vi.fn<TeamRepository["list"]>(
+      async () => await Promise.resolve({ data: [], total: 0 }),
+    );
+    const router = createRouter(createTeamRepository({ list }), createRegistrationAuthReader());
+    const { context } = createContext();
+    const input = {
+      award: "ROUND_1_COMPLETED" as const,
+      limit: 10,
+      offset: 10,
+      search: "  Bangmod  ",
+      sortBy: "memberCount" as const,
+      sortDesc: true,
+    };
+
+    await call(router.teams.list, input, { context, path: ["teams", "list"] });
+
+    expect(list).toHaveBeenCalledWith(expect.anything(), {
+      ...input,
+      // the schema trims the search term before it reaches the repository
+      search: "Bangmod",
+    });
+  });
+
   it("requires registration permission to list teams", async () => {
     const router = createRouter(
       createTeamRepository(),

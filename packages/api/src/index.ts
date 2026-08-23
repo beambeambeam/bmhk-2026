@@ -53,8 +53,11 @@ export type {
   TeamDetails,
   TeamListPagination,
   TeamListResult,
+  TeamAwardFilter,
+  TeamListInput,
   TeamListRegistrationStatus,
   TeamListRow,
+  TeamListSort,
   UpdateTeamData,
 } from "./features/teams/teams.schema";
 export type {

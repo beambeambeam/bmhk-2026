@@ -1,4 +1,4 @@
-import type { TeamAward, TeamListRegistrationStatus } from "@bmhk-2026/api";
+import type { TeamAward, TeamAwardFilter, TeamListRegistrationStatus } from "@bmhk-2026/api";
 
 // Declared locally rather than imported from @bmhk-2026/api: that package is a
 // server barrel, so a runtime (non-type) import pulls drizzle/pg/node:async_hooks
@@ -48,4 +48,20 @@ const registrationStatusLabels = {
   PENDING_REVIEW: "รอตรวจสอบ",
 } satisfies Record<TeamListRegistrationStatus, string>;
 
-export { achievementLabels, getAwardOptions, isTeamAward, registrationStatusLabels };
+// Filter options for the list. Unlike achievementOptions this keeps every award —
+// filtering by a value a team already holds must stay possible even when setting it does
+// not — and prepends "ALL" to clear the filter.
+const awardFilters = [
+  { label: "ทุกผลงาน", value: "ALL" },
+  { label: achievementLabels.NO_ACHIEVEMENT, value: "NO_ACHIEVEMENT" },
+  { label: achievementLabels.REGISTRATION_COMPLETED, value: "REGISTRATION_COMPLETED" },
+  { label: achievementLabels.NOT_QUALIFIED, value: "NOT_QUALIFIED" },
+  { label: achievementLabels.ROUND_1_COMPLETED, value: "ROUND_1_COMPLETED" },
+  { label: achievementLabels.ROUND_2_COMPLETED, value: "ROUND_2_COMPLETED" },
+  { label: achievementLabels.HONORABLE_MENTION, value: "HONORABLE_MENTION" },
+  { label: achievementLabels.THIRD_PLACE, value: "THIRD_PLACE" },
+  { label: achievementLabels.SECOND_PLACE, value: "SECOND_PLACE" },
+  { label: achievementLabels.FIRST_PLACE, value: "FIRST_PLACE" },
+] as const satisfies readonly { label: string; value: TeamAwardFilter }[];
+
+export { achievementLabels, awardFilters, getAwardOptions, isTeamAward, registrationStatusLabels };

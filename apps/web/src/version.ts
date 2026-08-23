@@ -23,4 +23,4 @@ export const BUILD_DATE = __BUILD_DATE__;
 export const COMMIT_SHA = env.VITE_COMMIT_SHA;
 
 /** What the footer renders. */
-export const VERSION_LABEL = `v${VERSION_CHANNEL}.${BUILD_DATE}-${COMMIT_SHA.slice(0, 7)}`;
+export const VERSION_LABEL = `${VERSION_CHANNEL}.${BUILD_DATE}-${COMMIT_SHA.slice(0, 7)}`;

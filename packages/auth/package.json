@@ -18,6 +18,7 @@
     "db:seed:root": "DOTENV_CONFIG_PATH=../../apps/server/.env bun src/seed/index.ts root"
   },
   "dependencies": {
+    "@better-auth/api-key": "^1.6.29",
     "@bmhk-2026/db": "workspace:*",
     "@bmhk-2026/env": "workspace:*",
     "@bmhk-2026/s3": "workspace:*",

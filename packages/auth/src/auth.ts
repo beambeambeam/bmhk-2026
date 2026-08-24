@@ -1,6 +1,7 @@
 import { createDb } from "@bmhk-2026/db";
 import * as schema from "@bmhk-2026/db/schema/auth";
 import { env } from "@bmhk-2026/env/server";
+import { apiKey } from "@better-auth/api-key";
 import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username, admin as adminPlugin } from "better-auth/plugins";
@@ -64,6 +65,7 @@ export function createAuth(database: AuthDatabase = createDb()) {
         defaultRole: "user",
         roles,
       }),
+      apiKey(),
     ],
     secret: env.BETTER_AUTH_SECRET,
     socialProviders: {

@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardCheck,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Trophy,
@@ -36,6 +37,7 @@ interface StaffNavItem {
   readonly label: string;
   readonly to:
     | "/achievements"
+    | "/admin/api-keys"
     | "/admin/users"
     | "/dashboard"
     | "/participations"
@@ -52,6 +54,7 @@ const baseNavItems: readonly StaffNavItem[] = [
 
 const adminNavItems: readonly StaffNavItem[] = [
   { icon: UsersRound, label: "Users", to: "/admin/users" },
+  { icon: KeyRound, label: "API Keys", to: "/admin/api-keys" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [

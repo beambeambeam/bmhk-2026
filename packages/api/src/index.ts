@@ -2,6 +2,14 @@ export { createAppRouter } from "./router";
 export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { AdminUserRepository } from "./features/admin-users/admin-users.repository";
+export type { ApiKeyRepository } from "./features/api-keys/api-keys.repository";
+export type {
+  ApiKey,
+  CreateApiKeyInput,
+  CreateApiKeyResult,
+  ListApiKeysResult,
+  RevokeApiKeyInput,
+} from "./features/api-keys/api-keys.schema";
 export type { StaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
 export type { ParticipantCheckInRepository } from "./features/participant-check-ins/participant-check-ins.repository";
 export type {

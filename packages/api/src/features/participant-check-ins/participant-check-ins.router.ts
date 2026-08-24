@@ -30,9 +30,12 @@ export function createParticipantCheckInsRouter(
           }),
           deniedErrorCodes: ["PARTICIPANT_CHECK_IN_NOT_FOUND"],
           execute: async () => {
-            await service.cancel(input.participantId);
+            await service.cancel(input.participantId, input.round);
           },
           log: context.log,
+          // A participant can hold a check-in per round, so the round is what makes this
+          // destructive record identifiable in the audit trail.
+          onSuccess: () => ({ changes: { before: { round: input.round, status: "checked-in" } } }),
         });
         return input;
       }),
@@ -48,10 +51,10 @@ export function createParticipantCheckInsRouter(
           }),
           deniedErrorCodes: ["PARTICIPANT_CHECK_IN_TARGET_NOT_FOUND"],
           execute: async () => {
-            await service.checkIn(input.participantId, context.session.user.id);
+            await service.checkIn(input.participantId, context.session.user.id, input.round);
           },
           log: context.log,
-          onSuccess: () => ({ changes: { after: { status: "checked-in" } } }),
+          onSuccess: () => ({ changes: { after: { round: input.round, status: "checked-in" } } }),
         });
         return input;
       }),
@@ -72,10 +75,10 @@ export function createParticipantCheckInsRouter(
           }),
           deniedErrorCodes: ["PARTICIPANT_CHECK_IN_NOT_FOUND"],
           execute: async () => {
-            await service.updateFlag(input.participantId, input.flag);
+            await service.updateFlag(input.participantId, input.flag, input.round);
           },
           log: context.log,
-          onSuccess: () => ({ changes: { after: { flag: input.flag } } }),
+          onSuccess: () => ({ changes: { after: { flag: input.flag, round: input.round } } }),
         });
         return input;
       }),

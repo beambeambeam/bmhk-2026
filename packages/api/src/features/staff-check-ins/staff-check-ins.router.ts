@@ -25,9 +25,12 @@ export function createStaffCheckInsRouter(
           }),
           deniedErrorCodes: ["STAFF_CHECK_IN_NOT_FOUND"],
           execute: async () => {
-            await service.cancel(input.staffUserId);
+            await service.cancel(input.staffUserId, input.round);
           },
           log: context.log,
+          // A person can hold a check-in per round, so the round is what makes this
+          // destructive record identifiable in the audit trail.
+          onSuccess: () => ({ changes: { before: { round: input.round, status: "checked-in" } } }),
         });
 
         return input;
@@ -44,10 +47,10 @@ export function createStaffCheckInsRouter(
           }),
           deniedErrorCodes: ["STAFF_CHECK_IN_TARGET_NOT_FOUND"],
           execute: async () => {
-            await service.checkIn(input.staffUserId, context.session.user.id);
+            await service.checkIn(input.staffUserId, context.session.user.id, input.round);
           },
           log: context.log,
-          onSuccess: () => ({ changes: { after: { status: "checked-in" } } }),
+          onSuccess: () => ({ changes: { after: { round: input.round, status: "checked-in" } } }),
         });
 
         return input;

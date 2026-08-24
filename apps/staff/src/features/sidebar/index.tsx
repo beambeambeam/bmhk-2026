@@ -19,6 +19,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  Trophy,
   UserCheck,
   UsersRound,
 } from "lucide-react";
@@ -35,12 +36,15 @@ interface StaffSidebarProps {
 interface StaffNavItem {
   readonly label: string;
   readonly to:
+    | "/achievements"
     | "/admin/api-keys"
     | "/admin/users"
     | "/dashboard"
     | "/participations"
     | "/round1-participants-check"
-    | "/round1-staff-check";
+    | "/round1-staff-check"
+    | "/round2-participants-check"
+    | "/round2-staff-check";
   readonly icon: LucideIcon;
 }
 
@@ -57,12 +61,24 @@ const registrationNavItems: readonly StaffNavItem[] = [
   { icon: ClipboardCheck, label: "Participations", to: "/participations" },
 ];
 
+const achievementsNavItems: readonly StaffNavItem[] = [
+  { icon: Trophy, label: "ผลงานการแข่งขัน", to: "/achievements" },
+];
+
 const staffNavItems: readonly StaffNavItem[] = [
   { icon: UserCheck, label: "ลงทะเบียนทีมงาน", to: "/round1-staff-check" },
 ];
 
 const participantCheckInNavItems: readonly StaffNavItem[] = [
   { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม", to: "/round1-participants-check" },
+];
+
+const round2StaffNavItems: readonly StaffNavItem[] = [
+  { icon: UserCheck, label: "ลงทะเบียนทีมงาน (รอบ 2)", to: "/round2-staff-check" },
+];
+
+const round2ParticipantCheckInNavItems: readonly StaffNavItem[] = [
+  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม (รอบ 2)", to: "/round2-participants-check" },
 ];
 
 interface StaffNavGroup {
@@ -124,16 +140,26 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     navGroups = [
       { items: baseNavItems, label: "Navigation" },
       { items: registrationNavItems, label: "Registration" },
+      { items: achievementsNavItems, label: "Achievements" },
       { items: [...participantCheckInNavItems, ...staffNavItems], label: "Round 1 Check-in" },
+      {
+        items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems],
+        label: "Round 2 Check-in",
+      },
       { items: adminNavItems, label: "Admin" },
     ];
   } else if (canAccessParticipations) {
     navGroups = [
       { items: registrationNavItems, label: "Registration" },
+      { items: achievementsNavItems, label: "Achievements" },
       { items: participantCheckInNavItems, label: "Round 1 Check-in" },
+      { items: round2ParticipantCheckInNavItems, label: "Round 2 Check-in" },
     ];
   } else if (canAccessStaffCheckIn) {
-    navGroups = [{ items: staffNavItems, label: "Round 1 Check-in" }];
+    navGroups = [
+      { items: staffNavItems, label: "Round 1 Check-in" },
+      { items: round2StaffNavItems, label: "Round 2 Check-in" },
+    ];
   }
 
   async function handleSignOut() {

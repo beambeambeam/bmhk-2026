@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ParticipantCheckInTable } from "@/features/participant-check-ins/participant-check-in-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_auth/round1-participants-check")({
+export const Route = createFileRoute("/_auth/round2-participants-check")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role;
     if (role !== "admin" && role !== "staff") {
@@ -19,11 +19,13 @@ function ParticipantCheckInPage() {
     <section>
       <Card>
         <CardHeader>
-          <CardTitle>ลงทะเบียนเข้างานผู้เข้าร่วม</CardTitle>
-          <CardDescription>บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงาน</CardDescription>
+          <CardTitle>ลงทะเบียนเข้างานผู้เข้าร่วม (รอบ 2)</CardTitle>
+          <CardDescription>
+            บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงานรอบชิงชนะเลิศ เฉพาะทีมที่ผ่านรอบคัดเลือก
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <ParticipantCheckInTable actorId={session.data?.user.id} round="ROUND_1" />
+          <ParticipantCheckInTable actorId={session.data?.user.id} round="ROUND_2" />
         </CardContent>
       </Card>
     </section>

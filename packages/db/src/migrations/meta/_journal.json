@@ -183,6 +183,13 @@
       "when": 1786955470409,
       "tag": "0025_quick_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787605828071,
+      "tag": "0026_unusual_adam_warlock",
+      "breakpoints": true
     }
   ]
 }

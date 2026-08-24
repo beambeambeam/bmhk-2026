@@ -1,9 +1,9 @@
 export const featureFlags = {
   eligibleTeamsAnnouncement: {
-    startsAt: "2026-09-23T00:00:00+07:00",
+    startsAt: "2026-09-22T00:00:00+07:00",
   },
   finalRound: {
-    startsAt: "2026-11-07T00:00:00+07:00",
+    startsAt: "2026-11-09T00:00:00+07:00",
   },
   qualifyingResultsAnnouncement: {
     startsAt: "2026-09-28T00:00:00+07:00",
@@ -11,9 +11,13 @@ export const featureFlags = {
   qualifyingRound: {
     startsAt: "2026-09-26T09:00:00+07:00",
   },
+  qualifyingRoundIdentityConfirmation: {
+    endsAt: "2026-09-26T00:00:00+07:00",
+    startsAt: "2026-09-22T00:00:00+07:00",
+  },
   registration: {
-    endsAt: "2026-09-21T00:00:00+07:00",
-    startsAt: "2026-08-17T00:00:00+07:00",
+    endsAt: "2026-09-20T00:00:00+07:00",
+    startsAt: "2026-08-19T00:00:00+07:00",
   },
 } as const;
 

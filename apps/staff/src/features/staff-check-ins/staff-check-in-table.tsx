@@ -8,6 +8,7 @@ import { ArrowUpDown, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-r
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type {
+  CheckInRound,
   StaffCheckInColumnFilter,
   StaffCheckInListQuery,
   StaffCheckInSort,
@@ -25,6 +26,7 @@ function noop(): undefined {
 
 interface StaffCheckInTableProps {
   readonly actorId: string | undefined;
+  readonly round: CheckInRound;
 }
 
 interface SearchValues {
@@ -43,7 +45,7 @@ const sortableColumns: readonly SortableColumn[] = [
   { id: "checkedInAt", label: "สถานะการเข้างาน" },
 ];
 
-function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
+function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
   const queryClient = useQueryClient();
   const [searches, setSearches] = useState<SearchValues>({ email: "", name: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
@@ -81,9 +83,10 @@ function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
     () => ({
       columnFilters,
       pagination: { pageIndex, pageSize: PAGE_SIZE },
+      round,
       sorting: [sorting],
     }),
-    [columnFilters, pageIndex, sorting],
+    [columnFilters, pageIndex, round, sorting],
   );
   const staffQuery = useQuery({
     ...orpc.staffCheckIns.list.queryOptions({
@@ -121,7 +124,7 @@ function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
 
   async function checkIn(staffUserId: string, staffName: string): Promise<void> {
     try {
-      await checkInMutation.mutateAsync({ staffUserId });
+      await checkInMutation.mutateAsync({ round, staffUserId });
       toast.success(`ลงทะเบียนเข้างานสำหรับ ${staffName} แล้ว`);
     } catch (error) {
       toast.error(getStaffCheckInErrorMessage(error, "ไม่สามารถลงทะเบียนเข้างานได้ กรุณาลองใหม่อีกครั้ง"));
@@ -230,6 +233,7 @@ function StaffCheckInTable({ actorId }: StaffCheckInTableProps) {
                           </span>
                           <StaffCheckInCancel
                             onCancelled={handleCheckInCancelled}
+                            round={round}
                             staffName={staffMember.name || staffMember.email}
                             staffUserId={staffMember.id}
                           />

@@ -1,17 +1,27 @@
 import { db } from "@bmhk-2026/db";
+import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, ilike, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
 
+import { escapeLikePattern } from "../../core/query-builder";
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import {
   createTeamAlreadyExistsError,
   createTeamRepositoryError,
   teamRepositoryError,
 } from "./teams.errors";
-import type { CreateTeamData, Team, TeamAward, UpdateTeamData } from "./teams.schema";
+import type {
+  CreateTeamData,
+  Team,
+  TeamAward,
+  TeamListInput,
+  TeamListRow,
+  UpdateTeamData,
+} from "./teams.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 
@@ -22,8 +32,8 @@ export interface TeamRepository {
   findByUserId: (userId: string) => Promise<Team | null>;
   list: (
     access: TeamAccessContext,
-    pagination: { limit: number; offset: number },
-  ) => Promise<{ data: Team[]; total: number }>;
+    input: TeamListInput,
+  ) => Promise<{ data: TeamListRow[]; total: number }>;
   update: (
     access: TeamAccessContext,
     id: string,
@@ -57,6 +67,29 @@ export function createTeamAccessCondition(access: TeamAccessContext, teamId: str
   return access.scope === "ALL_TEAMS"
     ? targetTeam
     : and(targetTeam, eq(teams.userId, access.actorId));
+}
+
+// registrationStatus lives on the joined review row; every other column is on teams.
+const teamListSortColumns = {
+  award: teams.award,
+  memberCount: teams.memberCount,
+  name: teams.name,
+  registrationStatus: teamRegistrationReviews.status,
+  school: teams.school,
+} as const;
+
+function createTeamListCondition(
+  access: TeamAccessContext,
+  search: string,
+  award: TeamListInput["award"],
+): SQL | undefined {
+  const scope = access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId);
+  const pattern = `%${escapeLikePattern(search)}%`;
+  const searchCondition =
+    search.length > 0 ? or(ilike(teams.name, pattern), ilike(teams.school, pattern)) : undefined;
+  const awardCondition = award === "ALL" ? undefined : eq(teams.award, award);
+
+  return and(scope, searchCondition, awardCondition);
 }
 
 export function createTeamRepository(database: Database = db): TeamRepository {
@@ -116,25 +149,37 @@ export function createTeamRepository(database: Database = db): TeamRepository {
 
         return team ?? null;
       }),
-    list: async (access, { limit, offset }) =>
+    list: async (access, { award, limit, offset, search, sortBy, sortDesc }) =>
       await execute(
         async () =>
           await database.transaction(
             async (transaction) => {
+              const condition = createTeamListCondition(access, search, award);
+              const sortColumn = teamListSortColumns[sortBy];
               const [totalResult] = await transaction
                 .select({ value: count() })
                 .from(teams)
-                .where(access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId));
-              const data = await transaction
-                .select()
+                .where(condition);
+              const records = await transaction
+                .select({
+                  ...getTableColumns(teams),
+                  registrationStatus: teamRegistrationReviews.status,
+                })
                 .from(teams)
-                .where(access.scope === "ALL_TEAMS" ? undefined : eq(teams.userId, access.actorId))
-                .orderBy(asc(teams.index))
+                .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
+                .where(condition)
+                // teams.index breaks ties so paging stays deterministic on repeated values.
+                .orderBy(sortDesc ? desc(sortColumn) : asc(sortColumn), asc(teams.index))
                 .limit(limit)
                 .offset(offset);
 
               return {
-                data,
+                // A team with no review row yet has not been looked at, which is the same
+                // state a freshly created review carries.
+                data: records.map(({ registrationStatus, ...team }) => ({
+                  ...team,
+                  registrationStatus: registrationStatus ?? "PENDING_REVIEW",
+                })),
                 total: totalResult?.value ?? 0,
               };
             },

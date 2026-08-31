@@ -513,9 +513,9 @@ export function RegisterLayout() {
   const isTerms = location.pathname.includes("/terms");
 
   useEffect(() => {
-    // if (!session.isPending && !session.data) {
-    // void navigate({ to: "/signin" });
-    // }
+    if (!session.isPending && !session.data) {
+      void navigate({ to: "/signin" });
+    }
 
     function handleFocus() {
       void (async () => {

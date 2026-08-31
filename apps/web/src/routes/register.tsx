@@ -184,6 +184,7 @@ export const STEP_RANKS: Record<string, number> = {
 
 export const Route = createFileRoute("/register")({
   component: RegisterLayout,
+  ssr: false,
   loader: async () => {
     try {
       const statusRes = await client.teamRegistrationStatus.get({});

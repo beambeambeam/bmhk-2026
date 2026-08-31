@@ -419,8 +419,13 @@ export default function AccountMenu({ className = "" }: { className?: string }) 
 function useLogOut() {
   const go = useAuthNavigate();
   return async () => {
-    await authClient.signOut();
-    go("/signin", "leave");
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          go("/signin", "leave");
+        },
+      },
+    });
   };
 }
 

@@ -184,6 +184,16 @@ export const STEP_RANKS: Record<string, number> = {
 
 export const Route = createFileRoute("/register")({
   component: RegisterLayout,
+  ssr: false,
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (!session?.data) {
+      // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
+      throw redirect({
+        to: "/signin",
+      });
+    }
+  },
   loader: async () => {
     try {
       const statusRes = await client.teamRegistrationStatus.get({});
@@ -512,10 +522,6 @@ export function RegisterLayout() {
   const isTerms = location.pathname.includes("/terms");
 
   useEffect(() => {
-    // if (!session.isPending && !session.data) {
-    // void navigate({ to: "/signin" });
-    // }
-
     function handleFocus() {
       void (async () => {
         if (session.refetch === undefined) {

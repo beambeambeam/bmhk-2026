@@ -1,4 +1,11 @@
-import type { ApiSession, DiscordService, FileRepository, TeamRepository } from "@bmhk-2026/api";
+import type {
+  ApiSession,
+  AuthReader,
+  DiscordService,
+  DiscordTeamGroupsService,
+  FileRepository,
+  TeamRepository,
+} from "@bmhk-2026/api";
 import { createAppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
 import { clearMemoryLogs, createMemoryDrain, readMemoryLogs } from "evlog/memory";
@@ -91,7 +98,33 @@ function createTestTeamRepository(): TeamRepository {
   };
 }
 
-function createTestApp(getSession?: GetSession) {
+const TEST_API_KEY = "test-api-key";
+
+function createTestTeamGroupsService(
+  overrides: Partial<DiscordTeamGroupsService> = {},
+): DiscordTeamGroupsService {
+  return {
+    list: async () => await Promise.resolve([]),
+    recordCategoryId: async () => await Promise.resolve(true),
+    recordChannelId: async () => await Promise.resolve(true),
+    ...overrides,
+  };
+}
+
+function createTestVerifyApiKey(): AuthReader["verifyApiKey"] {
+  return async ({ key }) =>
+    await Promise.resolve(
+      key === TEST_API_KEY
+        ? { key: { id: "key-1", referenceId: "user-1" }, valid: true }
+        : { key: null, valid: false },
+    );
+}
+
+function createTestApp(
+  getSession?: GetSession,
+  teamGroupsService: DiscordTeamGroupsService = createTestTeamGroupsService(),
+  verifyApiKey: AuthReader["verifyApiKey"] = createTestVerifyApiKey(),
+) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
     auth: createAuthReader(testAuth.auth),
@@ -111,6 +144,8 @@ function createTestApp(getSession?: GetSession) {
       observability: {
         drain: createMemoryDrain({ store }),
       },
+      teamGroupsService,
+      verifyApiKey,
     }),
     async events(expectedCount = 1) {
       await vi.waitFor(() => {
@@ -377,5 +412,120 @@ describe("server app", () => {
       path: "/missing",
       status: 404,
     });
+  });
+
+  it("rejects team-groups requests without a valid api key", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups"),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("returns team groups for a valid api key", async () => {
+    const testApp = createTestApp(
+      undefined,
+      createTestTeamGroupsService({
+        list: async () =>
+          await Promise.resolve([
+            {
+              category_id: null,
+              has_overseer: false,
+              id: "group-1",
+              index: 1,
+              members: [],
+              name: "หมวดที่ 1",
+            },
+          ]),
+      }),
+    );
+
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups", {
+        headers: { "x-api-key": TEST_API_KEY },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toStrictEqual([
+      {
+        category_id: null,
+        has_overseer: false,
+        id: "group-1",
+        index: 1,
+        members: [],
+        name: "หมวดที่ 1",
+      },
+    ]);
+  });
+
+  it("records a group's category id via PATCH and 404s for an unknown group", async () => {
+    let recordedArgs: [string, string] | null = null;
+    const testApp = createTestApp(
+      undefined,
+      createTestTeamGroupsService({
+        recordCategoryId: async (groupId, categoryId) => {
+          recordedArgs = [groupId, categoryId];
+          return await Promise.resolve(groupId === "group-1");
+        },
+      }),
+    );
+
+    const okResponse = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups/group-1", {
+        body: JSON.stringify({ category_id: "cat-1" }),
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+        method: "PATCH",
+      }),
+    );
+    expect(okResponse.status).toBe(200);
+    expect(recordedArgs).toStrictEqual(["group-1", "cat-1"]);
+
+    const missingResponse = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups/missing", {
+        body: JSON.stringify({ category_id: "cat-1" }),
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+        method: "PATCH",
+      }),
+    );
+    expect(missingResponse.status).toBe(404);
+  });
+
+  it("records a member's channel id via PATCH", async () => {
+    let recordedArgs: [string, string] | null = null;
+    const testApp = createTestApp(
+      undefined,
+      createTestTeamGroupsService({
+        recordChannelId: async (memberId, channelId) => {
+          recordedArgs = [memberId, channelId];
+          return await Promise.resolve(true);
+        },
+      }),
+    );
+
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-group-members/member-1", {
+        body: JSON.stringify({ channel_id: "channel-1" }),
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+        method: "PATCH",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(recordedArgs).toStrictEqual(["member-1", "channel-1"]);
+  });
+
+  it("rejects a PATCH with an invalid body", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups/group-1", {
+        body: JSON.stringify({}),
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+        method: "PATCH",
+      }),
+    );
+
+    expect(response.status).toBe(400);
   });
 });

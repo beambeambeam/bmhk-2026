@@ -1,3 +1,4 @@
+import { env } from "@bmhk-2026/env/discord";
 import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types.js";
 import { getSettingsStore } from "../../lib/settings-store.js";
@@ -6,7 +7,7 @@ const DEFAULT_VERIFY_PROMPT =
   `# โปรดยืนยันตัวตนเพื่อเชื่อมบัญชี Discord\n\n` +
   `ใช้คำสั่ง \`/verify\` เพื่อเริ่มกระบวนการยืนยันตัวตนและเชื่อมต่อบัญชี ` +
   `จากนั้นใส่รหัสยืนยันที่ได้รับจากระบบ หากยังไม่มีรหัสยืนยันสามารถรับได้บน[เว็บไซต์]` +
-  `(${process.env.WEBSITE_BASE_URL}/my-team)`;
+  `(${env.WEBSITE_BASE_URL}/my-team)`;
 
 const createVerifyPrompt: Command = {
   data: new SlashCommandBuilder()

@@ -1,3 +1,4 @@
+import { env } from "@bmhk-2026/env/discord";
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types.js";
 
@@ -10,14 +11,14 @@ const version: Command = {
       .setTitle("BMHK Discord App Version Info")
       .setColor(2_326_507)
       .addFields(
-        { name: "Commit", value: process.env.COMMIT_SHA ?? "unknown" },
-        { name: "Commit Message", value: process.env.COMMIT_MSG ?? "unknown" },
-        { name: "Committer", value: process.env.BUILD_TRIGGERED_BY ?? "unknown" },
-        { name: "Build Date", value: process.env.BUILD_TIMESTAMP ?? "unknown" },
-        { name: "Environment", value: process.env.BMHK_ENV ?? "unknown" },
+        { name: "Commit", value: env.COMMIT_SHA },
+        { name: "Commit Message", value: env.COMMIT_MSG },
+        { name: "Committer", value: env.BUILD_TRIGGERED_BY },
+        { name: "Build Date", value: env.BUILD_TIMESTAMP },
+        { name: "Environment", value: env.BMHK_ENV },
       )
       .setTimestamp()
-      .setURL(`https://github.com/beambeambeam/bmhk-2026/commit/${process.env.COMMIT_SHA ?? ""}`);
+      .setURL(`https://github.com/beambeambeam/bmhk-2026/commit/${env.COMMIT_SHA}`);
     await interaction.editReply({ embeds: [msg] });
   },
 };

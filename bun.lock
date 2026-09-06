@@ -26,6 +26,7 @@
     "apps/discord": {
       "name": "discord",
       "dependencies": {
+        "@bmhk-2026/env": "workspace:*",
         "discord.js": "^14.27.0",
         "dotenv": "^17.4.2",
       },

@@ -144,3 +144,5 @@ export type {
   DiscordTeamGroupResponse,
   DiscordTeamGroupsListResponse,
 } from "./features/discord-team-groups/discord-team-groups.schema";
+export { createDiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
+export type { DiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";

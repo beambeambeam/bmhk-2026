@@ -21,6 +21,11 @@ cp .env.example .env
 | `SERVER_BASE_URL`             | yes      | Base URL of the `apps/server` deployment this bot talks to (e.g. `http://localhost:3000` in development).                                                                                                                              |
 | `SERVER_API_KEY`              | yes      | API key for `apps/server`'s discord team-group routes. Create one for a dedicated admin/service account via the "API keys" page under `/admin/api-keys` in `apps/staff`, then paste it here.                                           |
 
+The discord bot and `apps/server` deploy as separate compose stacks/containers, so
+`SERVER_BASE_URL` must resolve to wherever the server is actually reachable from the
+bot's container network — an internal service DNS name or a public URL, depending on
+the environment — pick the right one when setting up staging/production.
+
 Before the bot can read message content or see full member lists, enable
 **Server Members Intent** and **Message Content Intent** under your
 application's **Bot** settings in the Developer Portal.

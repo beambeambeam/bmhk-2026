@@ -1,4 +1,10 @@
-import { createAppRouter, createDiscordRepository, createDiscordService } from "@bmhk-2026/api";
+import {
+  createAppRouter,
+  createDiscordRepository,
+  createDiscordService,
+  createDiscordTeamGroupsRepository,
+  createDiscordTeamGroupsService,
+} from "@bmhk-2026/api";
 import { auth } from "@bmhk-2026/auth";
 import { env } from "@bmhk-2026/env/server";
 import { log } from "evlog";
@@ -22,6 +28,7 @@ const apiRouter = createAppRouter({
   auth: authReader,
 });
 const discordService = createDiscordService(createDiscordRepository());
+const teamGroupsService = createDiscordTeamGroupsService(createDiscordTeamGroupsRepository());
 const auditObservability = createAuditObservabilityOptions({
   hmacKeyId: env.AUDIT_HMAC_KEY_ID,
   hmacSecret: env.AUDIT_HMAC_SECRET,
@@ -36,6 +43,8 @@ const app = createApp({
     ...auditObservability,
     drain: composeDrains(auditObservability.drain, createBetterStackDrain()),
   },
+  teamGroupsService,
+  verifyApiKey: authReader.verifyApiKey,
 });
 
 app.listen(env.PORT, ({ hostname, port }) => {

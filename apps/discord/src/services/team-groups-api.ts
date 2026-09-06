@@ -1,3 +1,5 @@
+import { env } from "@bmhk-2026/env/discord";
+
 // Wire contract mirrors packages/api/src/features/discord-team-groups/discord-team-groups.schema.ts.
 // Defined locally (not imported) because apps/discord must not depend on
 // @bmhk-2026/api directly — see apps/discord/CLAUDE.md.
@@ -16,29 +18,13 @@ export interface TeamGroup {
   name: string;
 }
 
-function getServerBaseUrl(): string {
-  const baseUrl = process.env.SERVER_BASE_URL ?? "";
-  if (baseUrl === "") {
-    throw new Error("Missing environment variable: SERVER_BASE_URL");
-  }
-  return baseUrl;
-}
-
-function getServerApiKey(): string {
-  const apiKey = process.env.SERVER_API_KEY ?? "";
-  if (apiKey === "") {
-    throw new Error("Missing environment variable: SERVER_API_KEY");
-  }
-  return apiKey;
-}
-
 async function serverFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const response = await fetch(new URL(path, getServerBaseUrl()), {
+  const response = await fetch(new URL(path, env.SERVER_BASE_URL), {
     ...init,
     headers: {
       ...Object.fromEntries(new Headers(init.headers)),
       "content-type": "application/json",
-      "x-api-key": getServerApiKey(),
+      "x-api-key": env.SERVER_API_KEY,
     },
   });
 

@@ -1,3 +1,4 @@
+import { env } from "@bmhk-2026/env/discord";
 import { GatewayIntentBits, Partials } from "discord.js";
 import { loadEvents } from "./loaders/events.js";
 import { loadInteractions } from "./loaders/interactions.js";
@@ -19,9 +20,4 @@ const client = new BotClient({
 loadEvents(client);
 loadInteractions(client);
 
-const token = Bun.env.DISCORD_TOKEN;
-if (token === undefined || token === "") {
-  throw new Error("Missing environment variable: DISCORD_TOKEN");
-}
-
-await client.login(token);
+await client.login(env.DISCORD_TOKEN);

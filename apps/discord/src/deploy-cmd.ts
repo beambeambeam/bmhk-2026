@@ -3,20 +3,13 @@
  *
  * Command list is baked in at build time via src/commands-manifest.ts.
  */
+import { env } from "@bmhk-2026/env/discord";
 import { REST, Routes } from "discord.js";
 import { commands } from "./commands.manifest.js";
 
-const token = process.env.DISCORD_TOKEN ?? "";
-const clientId = process.env.DISCORD_CLIENT_ID ?? "";
-const guildId = process.env.DISCORD_GUILD_ID ?? "";
-const isGlobal = process.env.GLOBAL === "true";
+const { DISCORD_CLIENT_ID: clientId, DISCORD_TOKEN: token, GLOBAL: isGlobal } = env;
+const guildId = env.DISCORD_GUILD_ID ?? "";
 
-if (token === "") {
-  throw new Error("Missing environment variable: DISCORD_TOKEN");
-}
-if (clientId === "") {
-  throw new Error("Missing environment variable: DISCORD_CLIENT_ID");
-}
 if (!isGlobal && guildId === "") {
   throw new Error("Missing environment variable: DISCORD_GUILD_ID (or set GLOBAL=true)");
 }

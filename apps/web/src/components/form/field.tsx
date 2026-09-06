@@ -601,6 +601,7 @@ interface BaseProps {
   value: string;
   onChange: (value: string) => void;
   error?: string | null;
+  maxLength?: number;
 }
 
 /** Figma's field group: label over control on an 8 gap. */
@@ -610,7 +611,7 @@ function FieldShell({
   className,
   children,
   gate,
-}: Omit<BaseProps, "value" | "onChange" | "error"> & {
+}: Omit<BaseProps, "value" | "onChange" | "error" | "maxLength"> & {
   children: ReactNode;
   gate?: { invalid: boolean; message: string | null; messageId: string };
 }) {
@@ -635,6 +636,7 @@ export function TextField({
   value,
   onChange,
   error,
+  maxLength,
 }: BaseProps) {
   const { ref, invalid, message, messageId } = useGateField<HTMLInputElement>(error ?? null);
   const gate = { invalid, message, messageId };
@@ -645,6 +647,7 @@ export function TextField({
         ref={ref}
         type="text"
         placeholder={placeholder}
+        maxLength={maxLength}
         className={`${BOX} ${invalid ? "border-brand-red ring-1 ring-brand-red" : ""}`}
         value={value}
         onChange={(e) => {

@@ -260,6 +260,30 @@ describe("teams router", () => {
       input: { name: "", school: "School" },
       name: "empty name",
     },
+    {
+      input: { name: "a".repeat(18), school: "School" },
+      name: "name exceeding 17 characters",
+    },
+    {
+      input: { name: "Team@1", school: "School" },
+      name: "name with @ symbol",
+    },
+    {
+      input: { name: "Team+1", school: "School" },
+      name: "name with plus",
+    },
+    {
+      input: { name: "ทีม#1", school: "School" },
+      name: "name with hash symbol",
+    },
+    {
+      input: { name: "Team!1", school: "School" },
+      name: "name with exclamation mark",
+    },
+    {
+      input: { name: "Team.1", school: "School" },
+      name: "name with dot",
+    },
   ])("rejects invalid create input: $name", async ({ input }) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
@@ -271,6 +295,40 @@ describe("teams router", () => {
         path: ["teams", "create"],
       }),
     ).rejects.toBeInstanceOf(Error);
+  });
+
+  it.each([
+    { name: "Team 1", scenario: "English letters, numbers, and space" },
+    { name: "Team-1", scenario: "English letters, numbers, and hyphen" },
+    { name: "Team_1", scenario: "English letters, numbers, and underscore" },
+    { name: "ทีมหมูปิ้ง 1", scenario: "Thai characters, numbers, and space" },
+    { name: "ทีม-1", scenario: "Thai characters, numbers, and hyphen" },
+    { name: "ทีม_1", scenario: "Thai characters, numbers, and underscore" },
+    { name: "ทีม Alpha 1", scenario: "mixed Thai and English with numbers and space" },
+    { name: "12345678901234567", scenario: "exactly 17 characters" },
+  ])("accepts valid team name on create: $scenario", async ({ name }) => {
+    let createdName: string | null = null;
+    const repository = createTeamRepository({
+      create: async (_access, data) => {
+        createdName = data.name;
+        return await Promise.resolve({
+          ...testTeam,
+          name: data.name,
+          school: data.school,
+        });
+      },
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name, school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).resolves.toMatchObject({ name });
+    expect(createdName).toBe(name);
   });
 
   it("rejects unknown create fields", async () => {
@@ -782,6 +840,20 @@ describe("teams router", () => {
         { context, path: ["teams", "update"] },
       ),
     ).resolves.toMatchObject({ name: "Updated Team" });
+  });
+
+  it.each([
+    { data: { name: "a".repeat(18) }, scenario: "name exceeding 17 characters" },
+    { data: { name: "Team@1" }, scenario: "name with special characters" },
+    { data: { name: "ทีม#1" }, scenario: "Thai name with hash symbol" },
+  ])("rejects invalid team name on update: $scenario", async ({ data }) => {
+    const repository = createTeamRepository();
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.update, { data, id: TEAM_ID }, { context, path: ["teams", "update"] }),
+    ).rejects.toBeInstanceOf(Error);
   });
 
   it.each(expectedAwards)("rejects owner update to staff-controlled %s award", async (award) => {

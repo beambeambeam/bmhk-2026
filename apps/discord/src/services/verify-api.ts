@@ -22,6 +22,7 @@ export interface BMHKDiscordQueryResponse {
 export interface BMHKDiscordVerifyResponse {
   status: BMHKDiscordStatus;
   nickname: string | null;
+  channel_id: string | null;
 }
 
 // ponytail: mocked, replace with real fetch against apps/server once the two
@@ -42,6 +43,7 @@ export async function queryDiscordCode(_code: string): Promise<BMHKDiscordQueryR
 // interaction-side tasks land.
 export async function verifyDiscordCode(_code: string): Promise<BMHKDiscordVerifyResponse> {
   return await Promise.resolve({
+    channel_id: null,
     nickname: "1 - แก๊งน้องห่าน - เมทิกา",
     status: bmhkDiscordStatus.SUCCESS,
   });

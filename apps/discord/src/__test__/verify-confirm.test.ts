@@ -11,7 +11,11 @@ const ROLE_ID = "1234567890";
 describe(resolveVerifyConfirm, () => {
   it("applies the nickname and role when the code verifies", () => {
     const outcome = resolveVerifyConfirm(
-      { nickname: "1 - แก๊งน้องห่าน - เมทิกา", status: bmhkDiscordStatus.SUCCESS },
+      {
+        channel_id: null,
+        nickname: "1 - แก๊งน้องห่าน - เมทิกา",
+        status: bmhkDiscordStatus.SUCCESS,
+      },
       ROLE_ID,
     );
 
@@ -25,7 +29,11 @@ describe(resolveVerifyConfirm, () => {
 
   it("still applies the nickname when no participant role is configured", () => {
     const outcome = resolveVerifyConfirm(
-      { nickname: "1 - แก๊งน้องห่าน - เมทิกา", status: bmhkDiscordStatus.SUCCESS },
+      {
+        channel_id: null,
+        nickname: "1 - แก๊งน้องห่าน - เมทิกา",
+        status: bmhkDiscordStatus.SUCCESS,
+      },
       null,
     );
 
@@ -34,7 +42,7 @@ describe(resolveVerifyConfirm, () => {
 
   it("reports an unknown code without touching the member", () => {
     const outcome = resolveVerifyConfirm(
-      { nickname: null, status: bmhkDiscordStatus.NOT_FOUND },
+      { channel_id: null, nickname: null, status: bmhkDiscordStatus.NOT_FOUND },
       ROLE_ID,
     );
 
@@ -47,7 +55,7 @@ describe(resolveVerifyConfirm, () => {
 
   it("reports a code that has already been redeemed", () => {
     const outcome = resolveVerifyConfirm(
-      { nickname: null, status: bmhkDiscordStatus.ALREADY_REDEEMED },
+      { channel_id: null, nickname: null, status: bmhkDiscordStatus.ALREADY_REDEEMED },
       ROLE_ID,
     );
 
@@ -60,7 +68,7 @@ describe(resolveVerifyConfirm, () => {
 
   it("does not apply anything when a success response carries no nickname", () => {
     const outcome = resolveVerifyConfirm(
-      { nickname: null, status: bmhkDiscordStatus.SUCCESS },
+      { channel_id: null, nickname: null, status: bmhkDiscordStatus.SUCCESS },
       ROLE_ID,
     );
 

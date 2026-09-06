@@ -80,7 +80,7 @@ function createTestFileRepository(): FileRepository {
 function createTestDiscordService(): DiscordService {
   return {
     query: async () => await Promise.resolve({ data: null, status: 1 }),
-    verify: async () => await Promise.resolve({ nickname: null, status: 1 }),
+    verify: async () => await Promise.resolve({ channel_id: null, nickname: null, status: 1 }),
   };
 }
 

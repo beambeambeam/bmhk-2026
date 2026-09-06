@@ -36,16 +36,17 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
     verify: async (code, discordUserId) => {
       const result = await repository.redeem(code, discordUserId);
       if (result.outcome === "not_found") {
-        return { nickname: null, status: discordStatus.NOT_FOUND };
+        return { channel_id: null, nickname: null, status: discordStatus.NOT_FOUND };
       }
 
       if (result.outcome === "already_redeemed") {
-        return { nickname: null, status: discordStatus.ALREADY_REDEEMED };
+        return { channel_id: null, nickname: null, status: discordStatus.ALREADY_REDEEMED };
       }
 
       const name = toDisplayName(result.firstNameEn, result.lastNameEn);
 
       return {
+        channel_id: result.channelId,
         nickname: result.wasAlt ? `${name} [ALT]` : name,
         status: discordStatus.SUCCESS,
       };

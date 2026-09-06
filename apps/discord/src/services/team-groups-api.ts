@@ -33,22 +33,13 @@ function getServerApiKey(): string {
 }
 
 async function serverFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const mergedHeaders: Record<string, string> = {};
-
-  if (typeof init.headers === "object" && init.headers !== null && !Array.isArray(init.headers)) {
-    for (const [key, value] of Object.entries(init.headers)) {
-      if (typeof value === "string") {
-        mergedHeaders[key] = value;
-      }
-    }
-  }
-
-  mergedHeaders["content-type"] = "application/json";
-  mergedHeaders["x-api-key"] = getServerApiKey();
-
   const response = await fetch(new URL(path, getServerBaseUrl()), {
     ...init,
-    headers: mergedHeaders,
+    headers: {
+      ...Object.fromEntries(new Headers(init.headers)),
+      "content-type": "application/json",
+      "x-api-key": getServerApiKey(),
+    },
   });
 
   if (!response.ok) {

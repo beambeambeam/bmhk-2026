@@ -69,7 +69,8 @@ describe(createDiscordTeamGroupsService, () => {
 
     const updated = await service.recordCategoryId("group-1", "cat-1");
 
-    expect(updated).toBeTruthy();
+    // oxlint-disable-next-line vitest/prefer-to-be-truthy
+    expect(updated).toBe(true);
     expect(recordedArgs).toStrictEqual(["group-1", "cat-1"]);
   });
 
@@ -85,7 +86,8 @@ describe(createDiscordTeamGroupsService, () => {
 
     const updated = await service.recordChannelId("member-1", "channel-1");
 
-    expect(updated).toBeTruthy();
+    // oxlint-disable-next-line vitest/prefer-to-be-truthy
+    expect(updated).toBe(true);
     expect(recordedArgs).toStrictEqual(["member-1", "channel-1"]);
   });
 
@@ -97,6 +99,7 @@ describe(createDiscordTeamGroupsService, () => {
 
     const updated = await service.recordCategoryId("missing-group", "cat-1");
 
-    expect(updated).toBeFalsy();
+    // oxlint-disable-next-line vitest/prefer-to-be-falsy
+    expect(updated).toBe(false);
   });
 });

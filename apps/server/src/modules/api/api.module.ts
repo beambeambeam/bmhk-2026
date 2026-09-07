@@ -16,11 +16,14 @@ function useApiContext(request: Request): ApiContext {
 export function createApiModule(router: AppRouter) {
   const rpcHandler = new RPCHandler(router);
   const openApiHandler = new OpenAPIHandler(router, {
-    plugins: [
-      new OpenAPIReferencePlugin({
-        schemaConverters: [new ZodToJsonSchemaConverter()],
-      }),
-    ],
+    plugins:
+      process.env.NODE_ENV === "development"
+        ? [
+            new OpenAPIReferencePlugin({
+              schemaConverters: [new ZodToJsonSchemaConverter()],
+            }),
+          ]
+        : [],
   });
 
   const api = new Elysia({ name: "api" })

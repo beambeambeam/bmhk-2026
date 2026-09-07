@@ -2,7 +2,7 @@ import type { ApiSession, DiscordService, FileRepository, TeamRepository } from 
 import { createAppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
 import { clearMemoryLogs, createMemoryDrain, readMemoryLogs } from "evlog/memory";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../app";
 import { initializeObservability } from "../infrastructure/observability";
@@ -131,6 +131,43 @@ describe("server app", () => {
       },
       silent: true,
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each(["production", "staging", "test"])(
+    "hides API documentation and schema in %s while keeping API endpoints available",
+    async (environment) => {
+      vi.stubEnv("NODE_ENV", environment);
+      const { app } = createTestApp();
+
+      const responses = await Promise.all(
+        ["/api-reference", "/api-reference/", "/api-reference/spec.json"].map(async (path) =>
+          app.handle(new Request(`http://localhost${path}`)),
+        ),
+      );
+      expect(responses.map((response) => response.status)).toStrictEqual([404, 404, 404]);
+
+      const response = await app.handle(
+        new Request("http://localhost/api-reference/teamRegistrationStatus/get"),
+      );
+      expect(response.status).toBe(401);
+    },
+  );
+
+  it("serves API documentation and schema in development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const { app } = createTestApp();
+
+    const docs = await app.handle(new Request("http://localhost/api-reference"));
+    expect(docs.status).toBe(200);
+    expect(docs.headers.get("content-type")).toContain("text/html");
+
+    const schema = await app.handle(new Request("http://localhost/api-reference/spec.json"));
+    expect(schema.status).toBe(200);
+    await expect(schema.json()).resolves.toHaveProperty("openapi");
   });
 
   it("emits one request event with Elysia lifecycle fields", async () => {

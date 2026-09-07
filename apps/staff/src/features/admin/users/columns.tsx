@@ -47,7 +47,7 @@ const adminUsersColumns = columnHelper.columns([
       const { meta } = table.options;
       const user = row.original;
 
-      if (!meta) {
+      if (!meta || meta.currentUserId === user.id || !meta.roles.includes(user.role)) {
         return user.role;
       }
 

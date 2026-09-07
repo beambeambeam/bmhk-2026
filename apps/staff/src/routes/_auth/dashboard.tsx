@@ -1,10 +1,11 @@
+import { hasAdminAccess } from "@bmhk-2026/auth/permission";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/dashboard")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role ?? "user";
 
-    if (role === "admin") {
+    if (hasAdminAccess(role)) {
       return;
     }
 

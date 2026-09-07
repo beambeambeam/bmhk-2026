@@ -1,3 +1,4 @@
+import { hasAdminAccess } from "@bmhk-2026/auth/permission";
 import {
   Sidebar,
   SidebarContent,
@@ -131,7 +132,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isAdmin = role === "admin";
+  const isAdmin = hasAdminAccess(role);
   const canAccessParticipations = isAdmin || role === "staff";
   const canAccessStaffCheckIn = isAdmin || role === "registrationStaff";
   const homeRoute = getHomeRoute(isAdmin, canAccessParticipations);

@@ -62,6 +62,7 @@
       "dependencies": {
         "@base-ui/react": "^1.6.0",
         "@bmhk-2026/api": "workspace:*",
+        "@bmhk-2026/auth": "workspace:*",
         "@bmhk-2026/client": "workspace:*",
         "@tailwindcss/vite": "^4.3.2",
         "@tanstack/react-form": "^1.33.0",
@@ -186,6 +187,7 @@
       "name": "@bmhk-2026/client",
       "dependencies": {
         "@bmhk-2026/api": "workspace:*",
+        "@bmhk-2026/auth": "workspace:*",
         "@bmhk-2026/env": "workspace:*",
         "@bmhk-2026/feature-flags": "workspace:*",
         "@orpc/client": "catalog:",

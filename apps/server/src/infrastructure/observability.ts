@@ -1,3 +1,4 @@
+import { createLokiDrain } from "evlog/loki";
 import { evlog } from "evlog/elysia";
 import { initLogger } from "evlog";
 import type { DrainFn, LoggerConfig } from "evlog";
@@ -8,6 +9,7 @@ import { Elysia } from "elysia";
 import type { AnyElysia } from "elysia";
 
 const isProduction = env.BMHK_ENVIRONMENT === "production";
+const logEnvironment = env.NODE_ENV === "production" ? env.BMHK_ENVIRONMENT : env.NODE_ENV;
 
 export function createBetterStackDrain(): DrainFn | undefined {
   if (!isProduction || env.BETTER_STACK_API_KEY === undefined) {
@@ -22,7 +24,7 @@ export function createBetterStackDrain(): DrainFn | undefined {
 /**
  * evlog's per-framework `drain` option replaces the global drain rather than
  * composing with it, so a plugin-level drain (e.g. the audit DB writer) must
- * be combined with Better Stack explicitly to reach both sinks.
+ * be combined with the telemetry drains explicitly to reach every sink.
  */
 export function composeDrains(...drains: (DrainFn | undefined)[]): DrainFn {
   const active = drains.filter((drain): drain is DrainFn => drain !== undefined);
@@ -35,11 +37,18 @@ export function composeDrains(...drains: (DrainFn | undefined)[]): DrainFn {
   };
 }
 
+export function createTelemetryDrain(): DrainFn {
+  return composeDrains(
+    createBetterStackDrain(),
+    env.LOKI_ENDPOINT === undefined ? undefined : createLokiDrain(),
+  );
+}
+
 export function initializeObservability(config: Omit<LoggerConfig, "env"> = {}) {
   initLogger({
-    drain: createBetterStackDrain(),
+    drain: createTelemetryDrain(),
     ...config,
-    env: { service: "bmhk-2026-server" },
+    env: { environment: logEnvironment, service: "bmhk-2026-server" },
   });
 }
 

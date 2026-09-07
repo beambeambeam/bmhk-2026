@@ -9,6 +9,7 @@ import type {
   Team,
   TeamAccessContext,
   TeamAward,
+  TeamListRow,
   TeamRepository,
 } from "../../../index";
 import { createAppRouter } from "../../../index";
@@ -42,6 +43,7 @@ const USER_ID = "user-1";
 const expectedAwards = [
   "NO_ACHIEVEMENT",
   "REGISTRATION_COMPLETED",
+  "NOT_QUALIFIED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",
@@ -64,6 +66,12 @@ const testTeam = {
   userId: USER_ID,
 } satisfies Team;
 
+// teams.list joins the team's review record, so its rows carry registration status.
+const testTeamListRow = {
+  ...testTeam,
+  registrationStatus: "PENDING_REVIEW",
+} satisfies TeamListRow;
+
 const testImage: StoredFile = {
   bucket: "uploads",
   contentType: "image/png",
@@ -83,7 +91,8 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
     delete: overrides.delete ?? (async () => await Promise.resolve(true)),
     findById: overrides.findById ?? (async () => await Promise.resolve(testTeam)),
     findByUserId: overrides.findByUserId ?? (async () => await Promise.resolve(null)),
-    list: overrides.list ?? (async () => await Promise.resolve({ data: [testTeam], total: 1 })),
+    list:
+      overrides.list ?? (async () => await Promise.resolve({ data: [testTeamListRow], total: 1 })),
     replaceImage:
       overrides.replaceImage ??
       (async (_userId, _id, file) =>
@@ -353,8 +362,8 @@ describe("teams router", () => {
     async function list(
       _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
-    ): Promise<{ data: Team[]; total: number }> {
-      return await Promise.resolve({ data: total > 0 ? [testTeam] : [], total });
+    ): Promise<{ data: TeamListRow[]; total: number }> {
+      return await Promise.resolve({ data: total > 0 ? [testTeamListRow] : [], total });
     }
 
     const repository = createTeamRepository({ list });
@@ -371,11 +380,11 @@ describe("teams router", () => {
 
   it("rejects malformed list output", async () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    const malformedTeam = { ...testTeam, id: "not-a-uuid" } as unknown as Team;
+    const malformedTeam = { ...testTeamListRow, id: "not-a-uuid" } as unknown as TeamListRow;
     async function list(
       _access: TeamAccessContext,
       _pagination: { limit: number; offset: number },
-    ): Promise<{ data: Team[]; total: number }> {
+    ): Promise<{ data: TeamListRow[]; total: number }> {
       return await Promise.resolve({ data: [malformedTeam], total: 1 });
     }
 
@@ -388,6 +397,49 @@ describe("teams router", () => {
     ).rejects.toMatchObject({
       code: "INTERNAL_SERVER_ERROR",
       message: "Output validation failed",
+    });
+  });
+
+  it("applies safe defaults when listing teams without arguments", async () => {
+    const list = vi.fn<TeamRepository["list"]>(
+      async () => await Promise.resolve({ data: [], total: 0 }),
+    );
+    const router = createRouter(createTeamRepository({ list }), createRegistrationAuthReader());
+    const { context } = createContext();
+
+    await call(router.teams.list, {}, { context, path: ["teams", "list"] });
+
+    expect(list).toHaveBeenCalledWith(expect.anything(), {
+      award: "ALL",
+      limit: 25,
+      offset: 0,
+      search: "",
+      sortBy: "name",
+      sortDesc: false,
+    });
+  });
+
+  it("forwards search, award filter, and sorting to the repository", async () => {
+    const list = vi.fn<TeamRepository["list"]>(
+      async () => await Promise.resolve({ data: [], total: 0 }),
+    );
+    const router = createRouter(createTeamRepository({ list }), createRegistrationAuthReader());
+    const { context } = createContext();
+    const input = {
+      award: "ROUND_1_COMPLETED" as const,
+      limit: 10,
+      offset: 10,
+      search: "  Bangmod  ",
+      sortBy: "memberCount" as const,
+      sortDesc: true,
+    };
+
+    await call(router.teams.list, input, { context, path: ["teams", "list"] });
+
+    expect(list).toHaveBeenCalledWith(expect.anything(), {
+      ...input,
+      // the schema trims the search term before it reaches the repository
+      search: "Bangmod",
     });
   });
 

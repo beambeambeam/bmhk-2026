@@ -8,10 +8,15 @@ const permissionStatement = {
 
 const ac = createAccessControl(permissionStatement);
 
-const authRoleValues = ["admin", "registrationStaff", "staff", "user"] as const;
+const authRoleValues = ["superAdmin", "admin", "registrationStaff", "staff", "user"] as const;
 export type AuthRole = (typeof authRoleValues)[number];
 
 const admin = ac.newRole({
+  staff: ["access", "registration_access"],
+  ...adminAc.statements,
+});
+
+const superAdmin = ac.newRole({
   staff: ["access", "registration_access"],
   ...adminAc.statements,
 });
@@ -34,8 +39,20 @@ const roles = {
   admin,
   registrationStaff,
   staff,
+  superAdmin,
   user,
 } as const satisfies Record<AuthRole, unknown>;
+
+function hasAdminAccess(role: string | null | undefined): boolean {
+  return role === "admin" || role === "superAdmin";
+}
+
+function getManageableRoles(role: string | null | undefined): readonly AuthRole[] {
+  if (role === "superAdmin") {
+    return authRoleValues;
+  }
+  return role === "admin" ? ["registrationStaff", "staff", "user"] : [];
+}
 
 function isAuthRole(role: string): role is AuthRole {
   return Object.hasOwn(roles, role);
@@ -62,11 +79,14 @@ export {
   admin,
   authRoleValues,
   isAuthRole,
+  hasAdminAccess,
+  getManageableRoles,
   hasRegistrationAccess,
   hasStaffAccess,
   permissionStatement,
   registrationStaff,
   roles,
   staff,
+  superAdmin,
   user,
 };

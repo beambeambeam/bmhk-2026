@@ -19,7 +19,7 @@ function AdminUsersPage() {
         <CardContent className="px-0 pb-2">
           <Card>
             <CardContent className="px-4">
-              <AdminUserTable actorId={session.data?.user.id} />
+              <AdminUserTable actorId={session.data?.user.id} actorRole={session.data?.user.role} />
             </CardContent>
           </Card>
         </CardContent>

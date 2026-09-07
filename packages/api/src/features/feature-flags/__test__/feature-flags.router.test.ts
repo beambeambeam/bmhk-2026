@@ -28,16 +28,29 @@ describe("feature flags", () => {
       finalRound: false,
       qualifyingResultsAnnouncement: false,
       qualifyingRound: false,
+      qualifyingRoundIdentityConfirmation: true,
       registration: false,
     });
   });
 
   it("includes the start and excludes the end of registration", async () => {
-    const atStart = createRouter("2026-08-16T17:00:00.000Z");
-    const atEnd = createRouter("2026-09-20T17:00:00.000Z");
+    const atStart = createRouter("2026-08-18T17:00:00.000Z");
+    const atEnd = createRouter("2026-09-19T17:00:00.000Z");
 
     await expect(getAll(atStart)).resolves.toMatchObject({ registration: true });
     await expect(getAll(atEnd)).resolves.toMatchObject({ registration: false });
+  });
+
+  it("includes the start and excludes the end of qualifying round identity confirmation", async () => {
+    const atStart = createRouter("2026-09-21T17:00:00.000Z");
+    const atEnd = createRouter("2026-09-25T17:00:00.000Z");
+
+    await expect(getAll(atStart)).resolves.toMatchObject({
+      qualifyingRoundIdentityConfirmation: true,
+    });
+    await expect(getAll(atEnd)).resolves.toMatchObject({
+      qualifyingRoundIdentityConfirmation: false,
+    });
   });
 
   it("keeps an open-ended flag available after its start", async () => {

@@ -1,5 +1,5 @@
 import { os } from "@orpc/server";
-import { hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permission";
+import { hasAdminAccess, hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permission";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
@@ -75,7 +75,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 
   const protectedProcedure = base.use(evlog()).use(requireAuth);
   const adminProcedure = protectedProcedure.use(async ({ context, next, path }) => {
-    if (context.session.user.role !== "admin") {
+    if (!hasAdminAccess(context.session.user.role)) {
       context.log.audit(
         adminAccessDeniedAudit({
           actor: { id: context.session.user.id, type: "user" },

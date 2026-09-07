@@ -35,7 +35,7 @@ describe("admin user role", () => {
     cleanup();
   });
 
-  it("edits a displayed role through a confirmed dialog", async () => {
+  it.each(["admin", "superAdmin"] as const)("sets %s through a confirmed dialog", async (role) => {
     const handleRoleUpdated = vi.fn<(role: AuthRole) => void>();
     const queryClient = new QueryClient();
 
@@ -43,7 +43,7 @@ describe("admin user role", () => {
       <QueryClientProvider client={queryClient}>
         <AdminUserRole
           isCurrentUser={false}
-          roles={["admin", "staff", "user"]}
+          roles={["superAdmin", "admin", "staff", "user"]}
           user={user}
           onRoleUpdated={handleRoleUpdated}
         />
@@ -59,7 +59,7 @@ describe("admin user role", () => {
     expect(roleDialog).toBeTruthy();
 
     fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
-    const adminOption = await screen.findByRole("option", { name: "admin" });
+    const adminOption = await screen.findByRole("option", { name: role });
     fireEvent.pointerDown(adminOption);
     fireEvent.click(adminOption);
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
@@ -67,12 +67,12 @@ describe("admin user role", () => {
     const confirmationDialog = await screen.findByRole("alertdialog", {
       name: "Confirm role change?",
     });
-    expect(confirmationDialog.textContent).toContain("from staff to admin");
+    expect(confirmationDialog.textContent).toContain(`from staff to ${role}`);
 
     fireEvent.click(screen.getByRole("button", { name: "Confirm change" }));
 
     await waitFor(() => {
-      expect(handleRoleUpdated).toHaveBeenCalledWith("admin");
+      expect(handleRoleUpdated).toHaveBeenCalledWith(role);
     });
     expect(screen.queryByRole("dialog", { name: "Edit user role" })).toBeNull();
   });

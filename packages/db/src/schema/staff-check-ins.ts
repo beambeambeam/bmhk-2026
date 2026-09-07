@@ -1,6 +1,7 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { checkInRoundEnum } from "./check-in-round";
 
 export const staffCheckIns = pgTable(
   "staff_check_ins",
@@ -9,9 +10,13 @@ export const staffCheckIns = pgTable(
     checkedInByUserId: text("checked_in_by_user_id")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
+    round: checkInRoundEnum("round").notNull(),
     userId: text("user_id")
-      .primaryKey()
+      .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("staff_check_ins_checked_in_by_user_id_idx").on(table.checkedInByUserId)],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.round] }),
+    index("staff_check_ins_checked_in_by_user_id_idx").on(table.checkedInByUserId),
+  ],
 );

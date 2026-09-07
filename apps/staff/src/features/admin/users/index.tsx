@@ -1,3 +1,4 @@
+import { getManageableRoles } from "@bmhk-2026/auth/permission";
 import type { AdminUserColumnFilter, AdminUserListQuery, AdminUserSort } from "@bmhk-2026/api";
 import {
   getAdminUserFilterQueryOptions,
@@ -22,6 +23,7 @@ interface AdminUserSearches {
 
 interface AdminUserTableProps {
   readonly actorId: string | undefined;
+  readonly actorRole: string | null | undefined;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -42,7 +44,7 @@ function toAdminUserSorting(sorting: SortingState): AdminUserSort[] {
   );
 }
 
-function AdminUserTable({ actorId }: AdminUserTableProps) {
+function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
   const [searches, setSearches] = useState<AdminUserSearches>({ email: "", name: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<AdminUserSearches>({
     email: "",
@@ -171,7 +173,7 @@ function AdminUserTable({ actorId }: AdminUserTableProps) {
         isError={queryError !== null}
         isLoading={usersQuery.isLoading || filterOptionsQuery.isLoading}
         pagination={pagination}
-        roles={roles}
+        roles={getManageableRoles(actorRole)}
         sorting={sorting}
         totalUsers={totalUsers}
         users={users}

@@ -62,6 +62,10 @@ export function createFeatureFlagService(
       featureFlags.qualifyingResultsAnnouncement,
     ),
     qualifyingRound: parseDefinition("qualifyingRound", featureFlags.qualifyingRound),
+    qualifyingRoundIdentityConfirmation: parseDefinition(
+      "qualifyingRoundIdentityConfirmation",
+      featureFlags.qualifyingRoundIdentityConfirmation,
+    ),
     registration: parseDefinition("registration", featureFlags.registration),
   } satisfies Record<FeatureFlagKey, ParsedFeatureFlagDefinition>;
 
@@ -78,6 +82,16 @@ export function createFeatureFlagService(
           0,
         qualifyingRound:
           Temporal.Instant.compare(currentTime, schedule.qualifyingRound.startsAt) >= 0,
+        qualifyingRoundIdentityConfirmation:
+          Temporal.Instant.compare(
+            currentTime,
+            schedule.qualifyingRoundIdentityConfirmation.startsAt,
+          ) >= 0 &&
+          (schedule.qualifyingRoundIdentityConfirmation.endsAt === undefined ||
+            Temporal.Instant.compare(
+              currentTime,
+              schedule.qualifyingRoundIdentityConfirmation.endsAt,
+            ) < 0),
         registration:
           Temporal.Instant.compare(currentTime, schedule.registration.startsAt) >= 0 &&
           (schedule.registration.endsAt === undefined ||

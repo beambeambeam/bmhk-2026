@@ -18,6 +18,7 @@ import type {
   Team,
   TeamAward,
   TeamDetails,
+  TeamListInput,
   TeamListPagination,
   TeamListResult,
   UpdateTeamData,
@@ -32,10 +33,7 @@ export interface TeamService {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
   delete: (access: TeamAccessContext, id: string) => Promise<{ id: string }>;
   get: (access: TeamAccessContext, id: string) => Promise<TeamDetails>;
-  list: (
-    access: TeamAccessContext,
-    pagination: { limit: number; offset: number },
-  ) => Promise<TeamListResult>;
+  list: (access: TeamAccessContext, input: TeamListInput) => Promise<TeamListResult>;
   setAward: (access: TeamAccessContext, id: string, award: TeamAward) => Promise<TeamAwardChange>;
   update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team>;
   uploadImage: (input: {
@@ -109,12 +107,13 @@ export function createTeamService(
         image: team.image === null ? null : await toPublicFileWithUrl(team.image, storage),
       };
     },
-    list: async (access, pagination) => {
-      const result = await repository.list(access, pagination);
+    list: async (access, input) => {
+      const result = await repository.list(access, input);
       return {
         data: result.data,
         pagination: createTeamListPagination({
-          ...pagination,
+          limit: input.limit,
+          offset: input.offset,
           total: result.total,
         }),
       };

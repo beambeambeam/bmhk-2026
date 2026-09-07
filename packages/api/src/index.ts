@@ -13,6 +13,7 @@ export type {
 export type { StaffCheckInRepository } from "./features/staff-check-ins/staff-check-ins.repository";
 export type { ParticipantCheckInRepository } from "./features/participant-check-ins/participant-check-ins.repository";
 export type {
+  CheckInRound,
   StaffCheckInColumnFilter,
   StaffCheckInListQuery,
   StaffCheckInListResult,
@@ -60,6 +61,11 @@ export type {
   TeamDetails,
   TeamListPagination,
   TeamListResult,
+  TeamAwardFilter,
+  TeamListInput,
+  TeamListRegistrationStatus,
+  TeamListRow,
+  TeamListSort,
   UpdateTeamData,
 } from "./features/teams/teams.schema";
 export type {

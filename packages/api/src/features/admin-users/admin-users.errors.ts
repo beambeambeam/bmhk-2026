@@ -31,3 +31,13 @@ export const adminUserRepositoryError = {
   code: ADMIN_USER_REPOSITORY_ERROR_CODE,
   create: createAdminUserRepositoryError,
 } as const;
+
+export function createAdminUserRoleForbiddenError() {
+  return createError({
+    code: "ADMIN_USER_ROLE_FORBIDDEN",
+    fix: "Ask a super administrator to manage this account",
+    message: "Role change not permitted",
+    status: 403,
+    why: "Administrators may only manage lower roles and cannot change their own role",
+  });
+}

@@ -52,7 +52,7 @@ describe("admin users router", () => {
     await expect(
       call(router.filter, undefined, { context, path: ["adminUsers", "filter"] }),
     ).resolves.toStrictEqual({
-      roles: ["admin", "registrationStaff", "staff", "user"],
+      roles: ["superAdmin", "admin", "registrationStaff", "staff", "user"],
     });
   });
 
@@ -199,7 +199,11 @@ describe("admin users router", () => {
         { context, path: ["adminUsers", "setRole"] },
       ),
     ).resolves.toStrictEqual({ role: "registrationStaff", userId: TARGET_USER_ID });
-    expect(setRole).toHaveBeenCalledWith(TARGET_USER_ID, "registrationStaff");
+    expect(setRole).toHaveBeenCalledWith(TARGET_USER_ID, "registrationStaff", [
+      "registrationStaff",
+      "staff",
+      "user",
+    ]);
     expect(log.audit).toHaveBeenCalledWith({
       action: "user.role.changed",
       actor: { id: ACTOR_ID, type: "user" },
@@ -289,6 +293,58 @@ describe("admin users router", () => {
     });
   });
 
+  it.each(["admin", "superAdmin"] as const)("denies admin promotion to %s", async (role) => {
+    const setRole = vi.fn<AdminUserRepository["setRole"]>();
+    const router = createRouter(createRepository({ setRole }));
+    const { context, log } = createTestContext();
+    await expect(
+      call(router.setRole, { role, userId: TARGET_USER_ID }, { context }),
+    ).rejects.toMatchObject({ code: "ADMIN_USER_ROLE_FORBIDDEN", status: 403 });
+    expect(setRole).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "user.role.changed", outcome: "denied" }),
+    );
+  });
+
+  it("allows superAdmins to grant superAdmin", async () => {
+    const router = createRouter(
+      createRepository(),
+      createTestAuthReader(createTestSession({ user: { id: ACTOR_ID, role: "superAdmin" } })),
+    );
+    const { context } = createTestContext();
+    await expect(
+      call(router.setRole, { role: "superAdmin", userId: TARGET_USER_ID }, { context }),
+    ).resolves.toStrictEqual({ role: "superAdmin", userId: TARGET_USER_ID });
+  });
+
+  it("denies self role changes even for superAdmins", async () => {
+    const setRole = vi.fn<AdminUserRepository["setRole"]>();
+    const router = createRouter(
+      createRepository({ setRole }),
+      createTestAuthReader(createTestSession({ user: { id: ACTOR_ID, role: "superAdmin" } })),
+    );
+    const { context } = createTestContext();
+    await expect(
+      call(router.setRole, { role: "user", userId: ACTOR_ID }, { context }),
+    ).rejects.toMatchObject({ code: "ADMIN_USER_ROLE_FORBIDDEN", status: 403 });
+    expect(setRole).not.toHaveBeenCalled();
+  });
+
+  it("audits a protected target rejected atomically by the repository", async () => {
+    const router = createRouter(createRepository({ setRole: async () => "forbidden" }));
+    const { context, log } = createTestContext();
+    await expect(
+      call(router.setRole, { role: "user", userId: TARGET_USER_ID }, { context }),
+    ).rejects.toMatchObject({ code: "ADMIN_USER_ROLE_FORBIDDEN", status: 403 });
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "user.role.changed",
+        outcome: "denied",
+        reason: "ADMIN_USER_ROLE_FORBIDDEN",
+      }),
+    );
+  });
+
   it("rejects unsupported roles before repository invocation", async () => {
     const setRole = vi.fn<AdminUserRepository["setRole"]>();
     const router = createRouter(createRepository({ setRole }));
@@ -298,7 +354,7 @@ describe("admin users router", () => {
       call(
         router.setRole,
         // @ts-expect-error -- verifies runtime rejection of an unsupported authorization role
-        { role: "superAdmin", userId: TARGET_USER_ID },
+        { role: "invalidRole", userId: TARGET_USER_ID },
         { context, path: ["adminUsers", "setRole"] },
       ),
     ).rejects.toBeInstanceOf(Error);

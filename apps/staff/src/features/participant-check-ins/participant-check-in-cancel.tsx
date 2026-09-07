@@ -14,15 +14,18 @@ import { orpc } from "@bmhk-2026/client/orpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { CheckInRound } from "@bmhk-2026/api";
 
 interface ParticipantCheckInCancelProps {
   readonly participantId: string;
   readonly participantName: string;
+  readonly round: CheckInRound;
 }
 
 function ParticipantCheckInCancel({
   participantId,
   participantName,
+  round,
 }: ParticipantCheckInCancelProps) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +40,7 @@ function ParticipantCheckInCancel({
 
   async function cancelCheckIn(): Promise<void> {
     try {
-      await cancelMutation.mutateAsync({ participantId });
+      await cancelMutation.mutateAsync({ participantId, round });
       toast.success(`ยกเลิกการเข้างานของ ${participantName} แล้ว`);
       setIsOpen(false);
     } catch {

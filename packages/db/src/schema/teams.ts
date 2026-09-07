@@ -15,6 +15,9 @@ import { files } from "./files";
 export const teamAwardValues = [
   "NO_ACHIEVEMENT",
   "REGISTRATION_COMPLETED",
+  // Judged and did not advance to the qualifying round. Distinct from NO_ACHIEVEMENT,
+  // which means the team has not been judged yet.
+  "NOT_QUALIFIED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",
@@ -24,6 +27,15 @@ export const teamAwardValues = [
 ] as const;
 
 export const teamAwardEnum = pgEnum("team_award", teamAwardValues);
+
+export const roundTwoEligibleAwardValues = [
+  "ROUND_1_COMPLETED",
+  "ROUND_2_COMPLETED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+] as const satisfies readonly (typeof teamAwardValues)[number][];
 
 export const teams = pgTable(
   "teams",

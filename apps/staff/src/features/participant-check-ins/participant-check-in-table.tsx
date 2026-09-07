@@ -4,6 +4,7 @@ import { Input } from "@/components/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import type {
+  CheckInRound,
   ParticipantCheckInColumnFilter,
   ParticipantCheckInFlag,
   ParticipantCheckInListQuery,
@@ -43,6 +44,7 @@ function getTableMessage(isError: boolean, isLoading: boolean): string {
 
 interface ParticipantCheckInTableProps {
   readonly actorId: string | undefined;
+  readonly round: CheckInRound;
 }
 interface SearchValues {
   readonly email: string;
@@ -63,7 +65,7 @@ const sortableColumns: readonly SortableColumn[] = [
   { id: "flag", label: "หมายเหตุ" },
 ];
 
-function ParticipantCheckInTable({ actorId }: ParticipantCheckInTableProps) {
+function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProps) {
   const queryClient = useQueryClient();
   const [searches, setSearches] = useState<SearchValues>({ email: "", name: "", teamName: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
@@ -104,9 +106,10 @@ function ParticipantCheckInTable({ actorId }: ParticipantCheckInTableProps) {
     () => ({
       columnFilters,
       pagination: { pageIndex, pageSize: PAGE_SIZE },
+      round,
       sorting: [sorting],
     }),
-    [columnFilters, pageIndex, sorting],
+    [columnFilters, pageIndex, round, sorting],
   );
   const participantQuery = useQuery({
     ...orpc.participantCheckIns.list.queryOptions({
@@ -135,7 +138,7 @@ function ParticipantCheckInTable({ actorId }: ParticipantCheckInTableProps) {
   const pageCount = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
   async function checkIn(participantId: string, name: string): Promise<void> {
     try {
-      await checkInMutation.mutateAsync({ participantId });
+      await checkInMutation.mutateAsync({ participantId, round });
       toast.success(`ลงทะเบียนเข้างานสำหรับ ${name} แล้ว`);
     } catch {
       toast.error("ไม่สามารถลงทะเบียนเข้างานได้ กรุณาลองใหม่อีกครั้ง");
@@ -147,7 +150,7 @@ function ParticipantCheckInTable({ actorId }: ParticipantCheckInTableProps) {
         return;
       }
       const flag = participantCheckInFlagValues.find((flagValue) => flagValue === value) ?? null;
-      await flagMutation.mutateAsync({ flag, participantId });
+      await flagMutation.mutateAsync({ flag, participantId, round });
     } catch {
       toast.error("ไม่สามารถบันทึกหมายเหตุได้ กรุณาลองใหม่อีกครั้ง");
     }
@@ -283,6 +286,7 @@ function ParticipantCheckInTable({ actorId }: ParticipantCheckInTableProps) {
                           <ParticipantCheckInCancel
                             participantId={participant.id}
                             participantName={participant.name}
+                            round={round}
                           />
                         </span>
                       ) : (

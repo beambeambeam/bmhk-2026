@@ -37,6 +37,7 @@ describe("staff check-ins router", () => {
         { id: "name" as const, value: "Beam" },
       ],
       pagination: { pageIndex: 1, pageSize: 25 },
+      round: "ROUND_1" as const,
       sorting: [{ desc: true, id: "checkedInAt" as const }],
     };
     const list = vi.fn<StaffCheckInRepository["list"]>(
@@ -59,11 +60,12 @@ describe("staff check-ins router", () => {
     const { context } = createTestContext();
 
     await expect(
-      call(router.list, {}, { context, path: ["staffCheckIns", "list"] }),
+      call(router.list, { round: "ROUND_1" }, { context, path: ["staffCheckIns", "list"] }),
     ).resolves.toStrictEqual({ rowCount: 0, rows: [] });
     expect(list).toHaveBeenCalledWith({
       columnFilters: [],
       pagination: { pageIndex: 0, pageSize: 10 },
+      round: "ROUND_1",
       sorting: [{ desc: false, id: "name" }],
     });
   });
@@ -78,15 +80,15 @@ describe("staff check-ins router", () => {
     await expect(
       call(
         router.checkIn,
-        { staffUserId: TARGET_STAFF_ID },
+        { round: "ROUND_1", staffUserId: TARGET_STAFF_ID },
         { context, path: ["staffCheckIns", "checkIn"] },
       ),
-    ).resolves.toStrictEqual({ staffUserId: TARGET_STAFF_ID });
-    expect(checkIn).toHaveBeenCalledWith(TARGET_STAFF_ID, ACTOR_ID);
+    ).resolves.toStrictEqual({ round: "ROUND_1", staffUserId: TARGET_STAFF_ID });
+    expect(checkIn).toHaveBeenCalledWith(TARGET_STAFF_ID, ACTOR_ID, "ROUND_1");
     expect(log.audit).toHaveBeenCalledWith({
       action: "staff-check-in.created",
       actor: { id: ACTOR_ID, type: "user" },
-      changes: { after: { status: "checked-in" } },
+      changes: { after: { round: "ROUND_1", status: "checked-in" } },
       outcome: "success",
       target: { id: TARGET_STAFF_ID, type: "staff-check-in" },
     });
@@ -100,14 +102,15 @@ describe("staff check-ins router", () => {
     await expect(
       call(
         router.cancel,
-        { staffUserId: TARGET_STAFF_ID },
+        { round: "ROUND_1", staffUserId: TARGET_STAFF_ID },
         { context, path: ["staffCheckIns", "cancel"] },
       ),
-    ).resolves.toStrictEqual({ staffUserId: TARGET_STAFF_ID });
-    expect(cancel).toHaveBeenCalledWith(TARGET_STAFF_ID);
+    ).resolves.toStrictEqual({ round: "ROUND_1", staffUserId: TARGET_STAFF_ID });
+    expect(cancel).toHaveBeenCalledWith(TARGET_STAFF_ID, "ROUND_1");
     expect(log.audit).toHaveBeenCalledWith({
       action: "staff-check-in.cancelled",
       actor: { id: ACTOR_ID, type: "user" },
+      changes: { before: { round: "ROUND_1", status: "checked-in" } },
       outcome: "success",
       target: { id: TARGET_STAFF_ID, type: "staff-check-in" },
     });
@@ -123,7 +126,7 @@ describe("staff check-ins router", () => {
     await expect(
       call(
         router.checkIn,
-        { staffUserId: "user-2" },
+        { round: "ROUND_1", staffUserId: "user-2" },
         { context, path: ["staffCheckIns", "checkIn"] },
       ),
     ).rejects.toMatchObject({ code: "STAFF_CHECK_IN_TARGET_NOT_FOUND", status: 404 });
@@ -146,7 +149,7 @@ describe("staff check-ins router", () => {
     await expect(
       call(
         router.checkIn,
-        { staffUserId: TARGET_STAFF_ID },
+        { round: "ROUND_1", staffUserId: TARGET_STAFF_ID },
         { context, path: ["staffCheckIns", "checkIn"] },
       ),
     ).rejects.toMatchObject({ code: "STAFF_ALREADY_CHECKED_IN", status: 409 });
@@ -170,10 +173,51 @@ describe("staff check-ins router", () => {
     await expect(
       call(
         router.checkIn,
-        { staffUserId: TARGET_STAFF_ID },
+        { round: "ROUND_1", staffUserId: TARGET_STAFF_ID },
         { context, path: ["staffCheckIns", "checkIn"] },
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
     expect(checkIn).not.toHaveBeenCalled();
+  });
+
+  it("checks a staff member into round 2 independently of an existing round 1 check-in", async () => {
+    const checkInsByRound = new Map([["ROUND_1", TARGET_STAFF_ID]]);
+    const checkIn = vi.fn<StaffCheckInRepository["checkIn"]>(async (userId, _actor, round) => {
+      if (checkInsByRound.get(round) === userId) {
+        return await Promise.resolve(false);
+      }
+      checkInsByRound.set(round, userId);
+      return await Promise.resolve(true);
+    });
+    const router = createRouter(createRepository({ checkIn }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.checkIn,
+        { round: "ROUND_2", staffUserId: TARGET_STAFF_ID },
+        { context, path: ["staffCheckIns", "checkIn"] },
+      ),
+    ).resolves.toStrictEqual({ round: "ROUND_2", staffUserId: TARGET_STAFF_ID });
+    expect(checkIn).toHaveBeenCalledWith(TARGET_STAFF_ID, ACTOR_ID, "ROUND_2");
+  });
+
+  it("cancelling a round 2 check-in does not affect a round 1 record", async () => {
+    const checkedInRounds = new Set(["ROUND_1", "ROUND_2"]);
+    const cancel = vi.fn<StaffCheckInRepository["cancel"]>(
+      async (_userId, round) => await Promise.resolve(checkedInRounds.delete(round)),
+    );
+    const router = createRouter(createRepository({ cancel }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.cancel,
+        { round: "ROUND_2", staffUserId: TARGET_STAFF_ID },
+        { context, path: ["staffCheckIns", "cancel"] },
+      ),
+    ).resolves.toStrictEqual({ round: "ROUND_2", staffUserId: TARGET_STAFF_ID });
+    expect(cancel).toHaveBeenCalledWith(TARGET_STAFF_ID, "ROUND_2");
+    expect(checkedInRounds.has("ROUND_1")).toBeTruthy();
   });
 });

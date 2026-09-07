@@ -1,6 +1,7 @@
-import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { checkInRoundEnum } from "./check-in-round";
 import { teamParticipants } from "./team-participants";
 
 export const participantCheckInFlagValues = ["feeling_unwell", "bad_behavior"] as const;
@@ -18,8 +19,12 @@ export const participantCheckIns = pgTable(
       .references(() => user.id, { onDelete: "restrict" }),
     flag: participantCheckInFlag("flag"),
     participantId: uuid("participant_id")
-      .primaryKey()
+      .notNull()
       .references(() => teamParticipants.id, { onDelete: "cascade" }),
+    round: checkInRoundEnum("round").notNull(),
   },
-  (table) => [index("participant_check_ins_checked_in_by_user_id_idx").on(table.checkedInByUserId)],
+  (table) => [
+    primaryKey({ columns: [table.participantId, table.round] }),
+    index("participant_check_ins_checked_in_by_user_id_idx").on(table.checkedInByUserId),
+  ],
 );

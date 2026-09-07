@@ -41,8 +41,9 @@ export function createAdminUsersRouter(adminProcedure: AdminProcedure, service: 
             actor: { id: context.session.user.id, type: "user" },
             target: { id: input.userId },
           }),
-          deniedErrorCodes: ["ADMIN_USER_NOT_FOUND"],
-          execute: async () => await service.setRole(input.userId, input.role),
+          deniedErrorCodes: ["ADMIN_USER_NOT_FOUND", "ADMIN_USER_ROLE_FORBIDDEN"],
+          execute: async () =>
+            await service.setRole(input.userId, input.role, context.session.user),
           log: context.log,
           onSuccess: ({ previousRole }) => ({
             changes: {

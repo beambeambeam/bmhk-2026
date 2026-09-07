@@ -1,6 +1,9 @@
-import { authRoleValues } from "@bmhk-2026/auth/permission";
+import { authRoleValues, getManageableRoles } from "@bmhk-2026/auth/permission";
 
-import { createAdminUserNotFoundError } from "./admin-users.errors";
+import {
+  createAdminUserNotFoundError,
+  createAdminUserRoleForbiddenError,
+} from "./admin-users.errors";
 import type { AdminUserRepository } from "./admin-users.repository";
 import type {
   AdminUserListQuery,
@@ -16,6 +19,7 @@ export interface AdminUserService {
   setRole: (
     userId: string,
     role: AdminUserRole,
+    actor: { id: string; role?: string | null },
   ) => Promise<{
     previousRole: string | null;
     user: AdminUserRoleResult;
@@ -26,8 +30,15 @@ export function createAdminUserService(repository: AdminUserRepository): AdminUs
   return {
     filter: () => ({ roles: [...authRoleValues] }),
     list: async (query) => await repository.list(query),
-    setRole: async (userId, role) => {
-      const change = await repository.setRole(userId, role);
+    setRole: async (userId, role, actor) => {
+      const manageableRoles = getManageableRoles(actor.role);
+      if (actor.id === userId || !manageableRoles.includes(role)) {
+        throw createAdminUserRoleForbiddenError();
+      }
+      const change = await repository.setRole(userId, role, manageableRoles);
+      if (change === "forbidden") {
+        throw createAdminUserRoleForbiddenError();
+      }
       if (!change) {
         throw createAdminUserNotFoundError();
       }

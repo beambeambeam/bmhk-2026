@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@bmhk-2026/api": "workspace:*",
+    "@bmhk-2026/auth": "workspace:*",
     "@bmhk-2026/env": "workspace:*",
     "@bmhk-2026/feature-flags": "workspace:*",
     "@orpc/client": "catalog:",

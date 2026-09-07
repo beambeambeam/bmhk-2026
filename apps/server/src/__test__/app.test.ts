@@ -144,8 +144,8 @@ describe("server app", () => {
       const { app } = createTestApp();
 
       const responses = await Promise.all(
-        ["/api-reference", "/api-reference/", "/api-reference/spec.json"].map(async (path) =>
-          app.handle(new Request(`http://localhost${path}`)),
+        ["/api-reference", "/api-reference/", "/api-reference/spec.json"].map(
+          async (path) => await app.handle(new Request(`http://localhost${path}`)),
         ),
       );
       expect(responses.map((response) => response.status)).toStrictEqual([404, 404, 404]);

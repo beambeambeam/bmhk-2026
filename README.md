@@ -157,3 +157,38 @@ Feature routers should remain transport adapters. Database coordination, not-fou
    bun run test
    bun run build
    ```
+
+## Loki request logs
+
+The Elysia server uses evlog to emit one wide event per request. Its Loki drain
+runs alongside the audit database writer and the existing Better Stack drain.
+Set `LOKI_ENDPOINT=http://localhost:3100` in `apps/server/.env` for local Loki;
+leave it unset to disable Loki. The endpoint is the base URL, without
+`/loki/api/v1/push`. Production and staging Compose files forward the same variables;
+use a Loki address reachable from the server container there.
+
+For Grafana Cloud, set `LOKI_ENDPOINT` to your Loki URL, `LOKI_USER` to the numeric
+instance ID, and `LOKI_API_KEY` to an access policy token. For multi-tenant
+self-hosted Loki, set `LOKI_TENANT_ID` instead of the Cloud credentials.
+See the [evlog Loki adapter documentation](https://www.evlog.dev/integrate/adapters/hybrid/loki).
+
+With Loki running, start the server with `bun run dev:server`, then trigger a request:
+
+```sh
+curl http://localhost:3000/
+```
+
+In Grafana Explore, select your Loki data source and query:
+
+```logql
+{service="bmhk-2026-server"} | json
+```
+
+The service name is `bmhk-2026-server`, not the documentation placeholder `my-app`.
+For a direct local check without Grafana:
+
+```sh
+curl -G http://localhost:3100/loki/api/v1/query_range \
+  --data-urlencode 'query={service="bmhk-2026-server"}' \
+  --data-urlencode 'since=5m'
+```

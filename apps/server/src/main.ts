@@ -10,7 +10,7 @@ import {
 } from "./infrastructure/audit-events";
 import {
   composeDrains,
-  createBetterStackDrain,
+  createTelemetryDrain,
   initializeObservability,
 } from "./infrastructure/observability";
 import { createAuthReader } from "./modules/auth/auth-reader";
@@ -34,7 +34,7 @@ const app = createApp({
   discordService,
   observability: {
     ...auditObservability,
-    drain: composeDrains(auditObservability.drain, createBetterStackDrain()),
+    drain: composeDrains(auditObservability.drain, createTelemetryDrain()),
   },
 });
 

@@ -1,11 +1,13 @@
 import type { ApiSession, DiscordService, FileRepository, TeamRepository } from "@bmhk-2026/api";
 import { createAppRouter } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
+import type { DrainFn } from "evlog";
+import { createLokiDrain } from "evlog/loki";
 import { clearMemoryLogs, createMemoryDrain, readMemoryLogs } from "evlog/memory";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../app";
-import { initializeObservability } from "../infrastructure/observability";
+import { composeDrains, initializeObservability } from "../infrastructure/observability";
 import { createAuthReader } from "../modules/auth/auth-reader";
 
 let storeSequence = 0;
@@ -91,7 +93,7 @@ function createTestTeamRepository(): TeamRepository {
   };
 }
 
-function createTestApp(getSession?: GetSession) {
+function createTestApp(getSession?: GetSession, drain?: DrainFn) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
     auth: createAuthReader(testAuth.auth),
@@ -109,7 +111,7 @@ function createTestApp(getSession?: GetSession) {
       corsOrigins: ["http://localhost:3001", "http://localhost:3002"],
       discordService: createTestDiscordService(),
       observability: {
-        drain: createMemoryDrain({ store }),
+        drain: composeDrains(createMemoryDrain({ store }), drain),
       },
     }),
     async events(expectedCount = 1) {
@@ -190,6 +192,40 @@ describe("server app", () => {
     expect(Object.keys(event ?? {})).not.toStrictEqual(
       expect.arrayContaining(["auth", "user", "userId"]),
     );
+  });
+
+  it("sends request wide events to Loki alongside the existing drain", async () => {
+    vi.stubEnv("LOKI_ENDPOINT", "http://loki.test:3100");
+    const push = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const testApp = createTestApp(undefined, createLokiDrain());
+
+    const response = await testApp.app.handle(new Request("http://localhost/"));
+
+    expect(response.status).toBe(200);
+    const [event] = await testApp.events();
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledOnce();
+    });
+    const [url, options] = push.mock.calls[0] ?? [];
+    expect({ method: options?.method, url }).toStrictEqual({
+      method: "POST",
+      url: "http://loki.test:3100/loki/api/v1/push",
+    });
+    const payload: unknown = JSON.parse(typeof options?.body === "string" ? options.body : "null");
+    expect(payload).toStrictEqual({
+      streams: [
+        {
+          stream: {
+            environment: "test",
+            level: "info",
+            service: "bmhk-2026-server",
+          },
+          values: [[expect.any(String), JSON.stringify(event)]],
+        },
+      ],
+    });
   });
 
   it("adds the oRPC operation to the same request event", async () => {

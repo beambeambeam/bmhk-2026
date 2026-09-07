@@ -11,12 +11,13 @@ Copy `.env.example` to `.env` and fill in the required credentials:
 cp .env.example .env
 ```
 
-| Variable            | Required | Description                                                                                                                                                            |
-| ------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DISCORD_TOKEN`     | yes      | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot**.                                                       |
-| `DISCORD_CLIENT_ID` | yes      | Application (client) ID, from your app's **General Information** page.                                                                                                 |
-| `DISCORD_GUILD_ID`  | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`.                                                                     |
-| `GLOBAL`            | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development. |
+| Variable                      | Required | Description                                                                                                                                                                                                                            |
+| ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DISCORD_TOKEN`               | yes      | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot**.                                                                                                                       |
+| `DISCORD_CLIENT_ID`           | yes      | Application (client) ID, from your app's **General Information** page.                                                                                                                                                                 |
+| `DISCORD_GUILD_ID`            | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`.                                                                                                                                     |
+| `GLOBAL`                      | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development.                                                                 |
+| `DISCORD_PARTICIPANT_ROLE_ID` | no       | Role ID granted to a participant after `/verify` succeeds. Only a fallback — the bot prefers the `participantRole` value in the settings store, which an admin sets in-server. Handy for testing `/verify` before that setting exists. |
 
 Before the bot can read message content or see full member lists, enable
 **Server Members Intent** and **Message Content Intent** under your

@@ -32,11 +32,16 @@ type SeedResult = SeedAccount & {
 
 const rootAccount = {
   email: "admin-bmhk-2026@kmutt.ac.th",
-  name: "BMHK 2026 Root Admin",
-  role: "admin",
+  name: "BMHK 2026 Root Super Admin",
+  role: "superAdmin",
 } as const satisfies SeedAccount;
 
 const localAccounts = [
+  {
+    email: "super-admin-bmhk-2026+local@kmutt.ac.th",
+    name: "BMHK 2026 Local Super Admin",
+    role: "superAdmin",
+  },
   {
     email: "admin-bmhk-2026+local@kmutt.ac.th",
     name: "BMHK 2026 Local Admin",

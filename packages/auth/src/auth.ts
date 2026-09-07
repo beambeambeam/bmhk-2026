@@ -7,6 +7,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username, admin as adminPlugin } from "better-auth/plugins";
 import type { MicrosoftEntraIDProfile } from "better-auth/social-providers";
 
+import { adminPolicy } from "./admin-policy";
 import { ac, roles } from "./permission";
 
 export type AuthDatabase = ReturnType<typeof createDb>;
@@ -51,10 +52,11 @@ export function createAuth(database: AuthDatabase = createDb()) {
       provider: "pg",
       schema,
     }),
-    disabledPaths: ["/is-username-available"],
+    disabledPaths: ["/is-username-available", "/admin/set-role"],
     emailAndPassword: {
       enabled: true,
     },
+    hooks: { before: adminPolicy },
     logger: {
       level: "debug",
     },
@@ -62,6 +64,7 @@ export function createAuth(database: AuthDatabase = createDb()) {
       username(),
       adminPlugin({
         ac,
+        adminRoles: ["admin", "superAdmin"],
         defaultRole: "user",
         roles,
       }),

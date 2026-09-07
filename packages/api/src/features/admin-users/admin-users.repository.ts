@@ -1,5 +1,5 @@
 import { db } from "@bmhk-2026/db";
-import { user } from "@bmhk-2026/db/schema/auth";
+import { session, user } from "@bmhk-2026/db/schema/auth";
 import { isAuthRole } from "@bmhk-2026/auth/permission";
 import { count, eq, ilike, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -24,7 +24,11 @@ export interface AdminUserRoleChange {
 
 export interface AdminUserRepository {
   list: (query: AdminUserListQuery) => Promise<AdminUserListResult>;
-  setRole: (userId: string, role: AdminUserRole) => Promise<AdminUserRoleChange | null>;
+  setRole: (
+    userId: string,
+    role: AdminUserRole,
+    manageableRoles: readonly AdminUserRole[],
+  ) => Promise<AdminUserRoleChange | "forbidden" | null>;
 }
 
 type Database = typeof db;
@@ -114,7 +118,7 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
             },
           ),
       ),
-    setRole: async (userId, role) =>
+    setRole: async (userId, role, manageableRoles) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -129,6 +133,15 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
               return null;
             }
 
+            const currentRole = currentUser.role ?? "user";
+            if (
+              !isAuthRole(currentRole) ||
+              !manageableRoles.includes(currentRole) ||
+              !manageableRoles.includes(role)
+            ) {
+              return "forbidden";
+            }
+
             const [updatedUser] = await transaction
               .update(user)
               .set({ role })
@@ -138,6 +151,8 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
             if (!updatedUser) {
               throw createAdminUserRepositoryError();
             }
+
+            await transaction.delete(session).where(eq(session.userId, userId));
 
             return {
               previousRole: currentUser.role,

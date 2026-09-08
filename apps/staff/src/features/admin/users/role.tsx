@@ -35,7 +35,7 @@ import { Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { isAuthRole } from "./types";
+import { getAuthRoleLabel, isAuthRole } from "./types";
 import type { AdminUser, AuthRole } from "./types";
 
 interface AdminUserRoleProps {
@@ -58,7 +58,7 @@ function getFieldErrorMessage(error: unknown): string {
     }
   }
 
-  return "Select a valid role.";
+  return "เลือกบทบาทที่ถูกต้อง";
 }
 
 function getUpdateErrorMessage(error: unknown): string {
@@ -66,7 +66,7 @@ function getUpdateErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Something went wrong.";
+  return "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
 }
 
 function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserRoleProps) {
@@ -103,7 +103,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
       onSubmit: ({ value }) =>
         isAuthRole(typeof value.role === "string" ? value.role : "", roles)
           ? undefined
-          : "Select a valid role.",
+          : "เลือกบทบาทที่ถูกต้อง",
     },
   });
 
@@ -127,7 +127,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
 
     try {
       await updateRoleMutation.mutateAsync({ role: pendingRole, userId: user.id });
-      toast.success("Role updated");
+      toast.success("อัปเดตบทบาทแล้ว");
       onRoleUpdated(pendingRole);
       setIsConfirmationOpen(false);
       setIsDialogOpen(false);
@@ -143,7 +143,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
   return (
     <>
       <div className="flex items-center gap-1.5">
-        <span>{user.role}</span>
+        <span>{getAuthRoleLabel(user.role)}</span>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger
             render={
@@ -151,9 +151,9 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Edit role for ${user.email}`}
+                aria-label={`แก้ไขบทบาทของ ${user.email}`}
                 disabled={isCurrentUser || roles.length === 0 || isBusy}
-                title={isCurrentUser ? "You cannot change your own role" : undefined}
+                title={isCurrentUser ? "ไม่สามารถเปลี่ยนบทบาทของตนเองได้" : undefined}
               />
             }
           >
@@ -161,10 +161,9 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit user role</DialogTitle>
+              <DialogTitle>แก้ไขบทบาทผู้ใช้</DialogTitle>
               <DialogDescription>
-                Choose a new role for {user.email}. The change affects this user&apos;s staff
-                access.
+                เลือกบทบาทใหม่สำหรับ {user.email} การเปลี่ยนแปลงนี้จะมีผลต่อสิทธิ์การเข้าถึงส่วนทีมงาน ของผู้ใช้
               </DialogDescription>
             </DialogHeader>
 
@@ -184,7 +183,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
 
                     return (
                       <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={`${formId}-role`}>Role</FieldLabel>
+                        <FieldLabel htmlFor={`${formId}-role`}>บทบาท</FieldLabel>
                         <Select
                           value={field.state.value}
                           onValueChange={(value) => {
@@ -206,7 +205,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
                             <SelectGroup>
                               {roles.map((role) => (
                                 <SelectItem key={role} value={role}>
-                                  {role}
+                                  {getAuthRoleLabel(role)}
                                 </SelectItem>
                               ))}
                             </SelectGroup>
@@ -228,7 +227,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
               <DialogClose
                 render={
                   <Button type="button" variant="outline" disabled={isBusy}>
-                    Cancel
+                    ยกเลิก
                   </Button>
                 }
               />
@@ -245,7 +244,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
                     form={formId}
                     disabled={!canSubmit || isSubmitting || isBusy || role === user.role}
                   >
-                    {isSubmitting ? "Preparing..." : "Save changes"}
+                    {isSubmitting ? "กำลังเตรียมข้อมูล..." : "บันทึกการเปลี่ยนแปลง"}
                   </Button>
                 )}
               </form.Subscribe>
@@ -264,14 +263,15 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm role change?</AlertDialogTitle>
+            <AlertDialogTitle>ยืนยันการเปลี่ยนบทบาทหรือไม่</AlertDialogTitle>
             <AlertDialogDescription>
-              Change {user.email}&apos;s role from {user.role} to {pendingRole ?? user.role}?
+              ต้องการเปลี่ยนบทบาทของ {user.email} จาก {getAuthRoleLabel(user.role)} เป็น{" "}
+              {getAuthRoleLabel(pendingRole ?? user.role)} หรือไม่
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel type="button" disabled={isConfirming}>
-              Cancel
+              ยกเลิก
             </AlertDialogCancel>
             <AlertDialogAction
               type="button"
@@ -283,10 +283,10 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
               {isConfirming ? (
                 <>
                   <Loader2 aria-hidden="true" className="animate-spin" />
-                  Saving
+                  กำลังบันทึก
                 </>
               ) : (
-                "Confirm change"
+                "ยืนยันการเปลี่ยนแปลง"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

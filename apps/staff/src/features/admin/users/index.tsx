@@ -31,7 +31,7 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return "Something went wrong.";
+  return "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
 }
 
 function isSortableColumnId(id: string): id is AdminUserSort["id"] {

@@ -13,8 +13,8 @@ function AdminUsersPage() {
     <section className="flex flex-col gap-5">
       <Card>
         <CardHeader>
-          <CardTitle>User Managments</CardTitle>
-          <CardDescription>Manage user acess</CardDescription>
+          <CardTitle>จัดการผู้ใช้</CardTitle>
+          <CardDescription>จัดการสิทธิ์การเข้าถึงของผู้ใช้</CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-2">
           <Card>

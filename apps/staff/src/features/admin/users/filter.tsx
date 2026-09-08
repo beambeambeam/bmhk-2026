@@ -18,7 +18,7 @@ import {
 } from "@/components/select";
 import { useMemo } from "react";
 
-import { isAuthRole } from "./types";
+import { getAuthRoleLabel, isAuthRole } from "./types";
 import type { AuthRole, EmailDomainFilter, RoleFilter } from "./types";
 
 interface AdminUsersFilterProps {
@@ -38,10 +38,10 @@ interface RoleOption {
   readonly value: RoleFilter;
 }
 
-const allRolesOption = { label: "All roles", value: "all" } as const satisfies RoleOption;
+const allRolesOption = { label: "ทุกบทบาท", value: "all" } as const satisfies RoleOption;
 const emailDomainOptions = [
-  { label: "All Email", value: "all" },
-  { label: "End with @kmutt.ac.th", value: "kmutt.ac.th" },
+  { label: "อีเมลทั้งหมด", value: "all" },
+  { label: "ลงท้ายด้วย @kmutt.ac.th", value: "kmutt.ac.th" },
 ] as const satisfies readonly { label: string; value: EmailDomainFilter }[];
 
 function isEmailDomainFilter(value: string): value is EmailDomainFilter {
@@ -63,7 +63,7 @@ function AdminUsersFilter({
     () => [
       allRolesOption,
       ...roles.map((role) => ({
-        label: role,
+        label: getAuthRoleLabel(role),
         value: role,
       })),
     ],
@@ -78,10 +78,10 @@ function AdminUsersFilter({
   return (
     <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
       <Field className="w-full">
-        <FieldLabel htmlFor="admin-user-email">Email</FieldLabel>
+        <FieldLabel htmlFor="admin-user-email">อีเมล</FieldLabel>
         <Input
           id="admin-user-email"
-          placeholder="Search email"
+          placeholder="ค้นหาอีเมล"
           type="search"
           value={email}
           onChange={(event) => {
@@ -90,7 +90,7 @@ function AdminUsersFilter({
         />
       </Field>
       <Field className="w-full">
-        <FieldLabel htmlFor="admin-user-email-domain">Email domain</FieldLabel>
+        <FieldLabel htmlFor="admin-user-email-domain">โดเมนอีเมล</FieldLabel>
         <Select
           value={emailDomainFilter}
           onValueChange={(value) => {
@@ -114,10 +114,10 @@ function AdminUsersFilter({
         </Select>
       </Field>
       <Field className="w-full">
-        <FieldLabel htmlFor="admin-user-name">Name</FieldLabel>
+        <FieldLabel htmlFor="admin-user-name">ชื่อ</FieldLabel>
         <Input
           id="admin-user-name"
-          placeholder="Search name"
+          placeholder="ค้นหาชื่อ"
           type="search"
           value={name}
           onChange={(event) => {
@@ -126,7 +126,7 @@ function AdminUsersFilter({
         />
       </Field>
       <Field className="w-full">
-        <FieldLabel htmlFor="admin-user-role">Role</FieldLabel>
+        <FieldLabel htmlFor="admin-user-role">บทบาท</FieldLabel>
         <Combobox
           items={roleOptions}
           itemToStringValue={(roleOption) => roleOption.label}
@@ -140,9 +140,9 @@ function AdminUsersFilter({
             }
           }}
         >
-          <ComboboxInput id="admin-user-role" className="w-full" placeholder="Search roles" />
+          <ComboboxInput id="admin-user-role" className="w-full" placeholder="ค้นหาบทบาท" />
           <ComboboxContent>
-            <ComboboxEmpty>No roles found.</ComboboxEmpty>
+            <ComboboxEmpty>ไม่พบบทบาท</ComboboxEmpty>
             <ComboboxList>
               {(roleOption: RoleOption) => (
                 <ComboboxItem key={roleOption.value} value={roleOption}>

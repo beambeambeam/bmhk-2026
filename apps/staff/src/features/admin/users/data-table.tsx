@@ -78,12 +78,12 @@ function AdminUsersDataTable({
   let statusClassName = "text-muted-foreground";
 
   if (isLoading) {
-    statusMessage = "Loading users...";
+    statusMessage = "กำลังโหลดรายชื่อผู้ใช้...";
   } else if (isError) {
-    statusMessage = errorMessage ?? "Something went wrong.";
+    statusMessage = errorMessage ?? "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
     statusClassName = "text-destructive";
   } else if (rows.length === 0) {
-    statusMessage = "No users found.";
+    statusMessage = "ไม่พบผู้ใช้";
   }
 
   return (

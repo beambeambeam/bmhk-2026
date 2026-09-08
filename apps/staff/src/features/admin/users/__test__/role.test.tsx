@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdminUserRole } from "../role";
+import { getAuthRoleLabel } from "../types";
 import type { AdminUser, AuthRole } from "../types";
 
 // oxlint-disable-next-line vitest/prefer-import-in-mock -- This boundary fake supplies only the role mutation used by the component.
@@ -50,31 +51,31 @@ describe("admin user role", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("staff")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Edit role for staff@kmutt.ac.th" })).toBeTruthy();
+    expect(screen.getByText("ทีมงาน")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "แก้ไขบทบาทของ staff@kmutt.ac.th" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit role for staff@kmutt.ac.th" }));
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไขบทบาทของ staff@kmutt.ac.th" }));
 
-    const roleDialog = await screen.findByRole("dialog", { name: "Edit user role" });
+    const roleDialog = await screen.findByRole("dialog", { name: "แก้ไขบทบาทผู้ใช้" });
     expect(roleDialog).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Role" }));
-    const adminOption = await screen.findByRole("option", { name: role });
+    fireEvent.click(screen.getByRole("combobox", { name: "บทบาท" }));
+    const adminOption = await screen.findByRole("option", { name: getAuthRoleLabel(role) });
     fireEvent.pointerDown(adminOption);
     fireEvent.click(adminOption);
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกการเปลี่ยนแปลง" }));
 
     const confirmationDialog = await screen.findByRole("alertdialog", {
-      name: "Confirm role change?",
+      name: "ยืนยันการเปลี่ยนบทบาทหรือไม่",
     });
-    expect(confirmationDialog.textContent).toContain(`from staff to ${role}`);
+    expect(confirmationDialog.textContent).toContain(`จาก ทีมงาน เป็น ${getAuthRoleLabel(role)}`);
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirm change" }));
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยันการเปลี่ยนแปลง" }));
 
     await waitFor(() => {
       expect(handleRoleUpdated).toHaveBeenCalledWith(role);
     });
-    expect(screen.queryByRole("dialog", { name: "Edit user role" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "แก้ไขบทบาทผู้ใช้" })).toBeNull();
   });
 
   it("disables role editing for the current user", () => {
@@ -93,13 +94,13 @@ describe("admin user role", () => {
     );
 
     const editButton = screen.getByRole("button", {
-      name: "Edit role for staff@kmutt.ac.th",
+      name: "แก้ไขบทบาทของ staff@kmutt.ac.th",
     });
 
     expect(editButton.getAttribute("disabled")).not.toBeNull();
     fireEvent.click(editButton);
 
-    expect(screen.queryByRole("dialog", { name: "Edit user role" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "แก้ไขบทบาทผู้ใช้" })).toBeNull();
     expect(handleRoleUpdated).not.toHaveBeenCalled();
   });
 });

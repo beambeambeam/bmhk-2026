@@ -10,7 +10,7 @@ export function getRouter() {
   const queryClient = createQueryClient();
   const router = createTanStackRouter({
     context: { orpc, queryClient },
-    defaultNotFoundComponent: () => <div>Not Found</div>,
+    defaultNotFoundComponent: () => <div>ไม่พบหน้าที่ต้องการ</div>,
     defaultPendingComponent: () => <Loader />,
     defaultPreloadStaleTime: 0,
     routeTree,

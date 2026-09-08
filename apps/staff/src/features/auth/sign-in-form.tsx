@@ -16,18 +16,18 @@ import Loader from "@/components/loader";
 
 function getOAuthErrorMessage(error: string) {
   if (error === "invalid_code") {
-    return "Microsoft could not exchange the login code. Check the server logs, client secret, and redirect URI.";
+    return "Microsoft ไม่สามารถแลกรหัสเข้าสู่ระบบได้ กรุณาตรวจสอบบันทึกของเซิร์ฟเวอร์ client secret และ redirect URI";
   }
 
   if (error === "email_not_found") {
-    return "Microsoft did not return an email address for this account.";
+    return "Microsoft ไม่ได้ส่งอีเมลของบัญชีนี้กลับมา";
   }
 
   if (error === "oauth_provider_not_found") {
-    return "Microsoft SSO is not configured on the server.";
+    return "ยังไม่ได้ตั้งค่า Microsoft SSO บนเซิร์ฟเวอร์";
   }
 
-  return `Microsoft sign in failed: ${error}`;
+  return `เข้าสู่ระบบด้วย Microsoft ไม่สำเร็จ: ${error}`;
 }
 
 function getInitialOAuthError() {
@@ -74,15 +74,15 @@ export default function SignInForm() {
         return;
       }
 
-      toast.success("Sign in successful");
+      toast.success("เข้าสู่ระบบสำเร็จ");
       await navigate({
         to: "/dashboard",
       });
     },
     validators: {
       onSubmit: z.object({
-        identifier: z.string().trim().min(1, "Enter your email or username"),
-        password: z.string().min(1, "Enter your password"),
+        identifier: z.string().trim().min(1, "กรุณากรอกอีเมลหรือชื่อผู้ใช้"),
+        password: z.string().min(1, "กรุณากรอกรหัสผ่าน"),
       }),
     },
   });
@@ -124,9 +124,9 @@ export default function SignInForm() {
         <CardContent>
           <div className="space-y-6">
             <div className="text-start">
-              <h1 className="text-2xl font-semibold">Bangmod Hackthon 2026</h1>
+              <h1 className="text-2xl font-semibold">BangMod Hackathon 2026</h1>
               <p className="text-start text-xs text-muted-foreground">
-                Access is limited to Bangmod Hackathon staff.
+                จำกัดการเข้าถึงสำหรับทีมงาน BangMod Hackathon เท่านั้น
               </p>
             </div>
 
@@ -149,16 +149,16 @@ export default function SignInForm() {
                     <path fill="#ffba08" d="M12 12h10v10H12z" />
                   </svg>
                 )}
-                Continue with Microsoft
+                ดำเนินการต่อด้วย Microsoft
               </Button>
               <p className="text-xs text-muted-foreground">
-                Use your KMUTT Microsoft account ending with @kmutt.ac.th.
+                ใช้บัญชี Microsoft ของ มจธ. ที่ลงท้ายด้วย @kmutt.ac.th
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
-              <span className="text-muted-foreground text-xs">or</span>
+              <span className="text-muted-foreground text-xs">หรือ</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
@@ -173,7 +173,7 @@ export default function SignInForm() {
               <form.Field name="identifier">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Email or username</Label>
+                    <Label htmlFor={field.name}>อีเมลหรือชื่อผู้ใช้</Label>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -196,7 +196,7 @@ export default function SignInForm() {
               <form.Field name="password">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Password</Label>
+                    <Label htmlFor={field.name}>รหัสผ่าน</Label>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -232,10 +232,10 @@ export default function SignInForm() {
                     {isSubmitting ? (
                       <>
                         <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                        Signing in
+                        กำลังเข้าสู่ระบบ
                       </>
                     ) : (
-                      "Sign in with password"
+                      "เข้าสู่ระบบด้วยรหัสผ่าน"
                     )}
                   </Button>
                 )}

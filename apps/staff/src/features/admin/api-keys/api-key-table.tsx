@@ -13,7 +13,7 @@ function ApiKeyTable() {
   const apiKeys = apiKeysQuery.data?.apiKeys ?? [];
   const { isLoading } = apiKeysQuery;
   const errorMessage = apiKeysQuery.isError
-    ? getApiKeyErrorMessage(apiKeysQuery.error, "An error occurred while fetching API keys.")
+    ? getApiKeyErrorMessage(apiKeysQuery.error, "เกิดข้อผิดพลาดระหว่างโหลดรายการ API key")
     : undefined;
 
   return (
@@ -25,13 +25,13 @@ function ApiKeyTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Key</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Expiration date</TableHead>
-              <TableHead>Last use</TableHead>
-              <TableHead className="text-right">Ops</TableHead>
+              <TableHead>ชื่อ</TableHead>
+              <TableHead>เจ้าของ</TableHead>
+              <TableHead>คีย์</TableHead>
+              <TableHead>สถานะ</TableHead>
+              <TableHead>วันหมดอายุ</TableHead>
+              <TableHead>ใช้งานล่าสุด</TableHead>
+              <TableHead className="text-right">การดำเนินการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -63,9 +63,9 @@ function ApiKeyTable() {
                   </TableCell>
                   <TableCell>
                     {apiKey.enabled ? (
-                      <span className="text-emerald-600">In use</span>
+                      <span className="text-emerald-600">กำลังใช้งาน</span>
                     ) : (
-                      <span className="text-muted-foreground">Revoked</span>
+                      <span className="text-muted-foreground">เพิกถอนแล้ว</span>
                     )}
                   </TableCell>
                   <TableCell>{formatApiKeyDate(apiKey.expiresAt)}</TableCell>

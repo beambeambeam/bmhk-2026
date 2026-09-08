@@ -37,10 +37,10 @@ function ApiKeyRevoke({ id, name }: ApiKeyRevokeProps) {
   async function revoke(): Promise<void> {
     try {
       await revokeMutation.mutateAsync({ id });
-      toast.success(`API key "${name}" revoked.`);
+      toast.success(`เพิกถอน API key "${name}" แล้ว`);
       setIsOpen(false);
     } catch (error) {
-      toast.error(getApiKeyErrorMessage(error, "Error occurred while revoking API key."));
+      toast.error(getApiKeyErrorMessage(error, "เกิดข้อผิดพลาดระหว่างเพิกถอน API key"));
     }
   }
 
@@ -56,22 +56,22 @@ function ApiKeyRevoke({ id, name }: ApiKeyRevokeProps) {
       <AlertDialogTrigger
         render={
           <Button type="button" size="sm" variant="outline" disabled={isRevoking}>
-            Revoke
+            เพิกถอน
           </Button>
         }
       />
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Revoke API key</AlertDialogTitle>
+          <AlertDialogTitle>เพิกถอน API key</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure about revoking API key &quot;{name}&quot; ? This action cannot be undone.
+            คุณแน่ใจหรือไม่ว่าต้องการเพิกถอน API key &quot;{name}&quot; การดำเนินการนี้ไม่สามารถย้อนกลับได้
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
             render={<Button type="button" variant="outline" disabled={isRevoking} />}
           >
-            Cancel
+            ยกเลิก
           </AlertDialogCancel>
           <AlertDialogAction
             className="text-white"
@@ -81,7 +81,7 @@ function ApiKeyRevoke({ id, name }: ApiKeyRevokeProps) {
               void revoke();
             }}
           >
-            {isRevoking ? "Revoking..." : "Confirm"}
+            {isRevoking ? "กำลังเพิกถอน..." : "ยืนยัน"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

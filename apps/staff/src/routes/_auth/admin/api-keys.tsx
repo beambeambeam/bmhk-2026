@@ -11,10 +11,8 @@ function ApiKeysPage() {
     <section className="flex flex-col gap-5">
       <Card>
         <CardHeader>
-          <CardTitle>API Keys</CardTitle>
-          <CardDescription>
-            API Key management for programmatical access to BMHK services.
-          </CardDescription>
+          <CardTitle>คีย์ API</CardTitle>
+          <CardDescription>จัดการคีย์ API สำหรับการเข้าถึงบริการของ BMHK ด้วยโปรแกรม</CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-2">
           <Card>

@@ -10,7 +10,7 @@ import type { KeyboardEvent } from "react";
 import { DetailFields } from "./detail-fields";
 import { StatusChip } from "./participation-review-status";
 import type { RegistrationStatus } from "./participation-review-status";
-import { personName } from "./review-utils";
+import { formatStaffDateTime, personName } from "./review-utils";
 
 export type ReviewSubject = "advisor" | number;
 
@@ -85,7 +85,7 @@ function DocumentLink({ kind, label, url }: DocumentLinkProps) {
     return (
       <span className="inline-flex items-center gap-1.5 text-muted-foreground">
         <CircleAlert aria-hidden="true" className="size-4" />
-        {label} not uploaded
+        {label}: ยังไม่ได้ส่ง
       </span>
     );
   }
@@ -93,14 +93,12 @@ function DocumentLink({ kind, label, url }: DocumentLinkProps) {
   const Icon = kind === "image" ? FileImage : FileText;
   return (
     <Button
-      render={
-        <a aria-label={`View ${label}`} href={url} rel="noopener noreferrer" target="_blank" />
-      }
+      render={<a aria-label={`ดู ${label}`} href={url} rel="noopener noreferrer" target="_blank" />}
       size="sm"
       variant="outline"
     >
       <Icon aria-hidden="true" />
-      View {label}
+      ดู {label}
       <ExternalLink aria-hidden="true" data-icon="inline-end" />
     </Button>
   );
@@ -140,7 +138,7 @@ function SubjectTabs({
   }
 
   return (
-    <div aria-label="Registration subjects" className="flex flex-wrap gap-2" role="tablist">
+    <div aria-label="รายการข้อมูลการสมัคร" className="flex flex-wrap gap-2" role="tablist">
       {participants.map((participant) => (
         <Button
           key={participant.id}
@@ -156,7 +154,7 @@ function SubjectTabs({
             handleKeyDown(event, participant.index);
           }}
         >
-          Participant {participant.index}
+          สมาชิก {participant.index}
         </Button>
       ))}
       {advisor ? (
@@ -173,7 +171,7 @@ function SubjectTabs({
             handleKeyDown(event, "advisor");
           }}
         >
-          Advisor
+          อาจารย์ที่ปรึกษา
         </Button>
       ) : null}
     </div>
@@ -190,31 +188,27 @@ function SubjectDetails({ advisor, participant }: SubjectDetailsProps) {
     return (
       <div className="flex flex-col gap-3">
         <DetailFields
-          title={`Participant ${participant.index}: ${personName(participant)}`}
+          title={`สมาชิก ${participant.index}: ${personName(participant)}`}
           fields={[
-            { label: "Email", value: participant.email },
-            { label: "Phone", value: participant.phone },
-            { label: "Date of birth", value: participant.dateOfBirth },
+            { label: "อีเมล", value: participant.email },
+            { label: "เบอร์โทรศัพท์", value: participant.phone },
+            { label: "วันเกิด", value: participant.dateOfBirth },
           ]}
         />
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Participant documents</h2>
+          <h2 className="font-medium">เอกสารของสมาชิก</h2>
           <div className="flex flex-col gap-2 text-sm">
             <DocumentLink
               kind="document"
-              label="Identity document"
+              label="บัตรประชาชน"
               url={participant.identityDocument?.url ?? null}
             />
             <DocumentLink
               kind="document"
-              label="Academic record"
+              label="ปพ.7"
               url={participant.academicRecordDocument?.url ?? null}
             />
-            <DocumentLink
-              kind="image"
-              label="Portrait photo"
-              url={participant.portraitPhoto?.url ?? null}
-            />
+            <DocumentLink kind="image" label="รูปถ่าย" url={participant.portraitPhoto?.url ?? null} />
           </div>
         </section>
       </div>
@@ -225,23 +219,23 @@ function SubjectDetails({ advisor, participant }: SubjectDetailsProps) {
     return (
       <div className="flex flex-col gap-3">
         <DetailFields
-          title={`Advisor: ${personName(advisor)}`}
+          title={`อาจารย์ที่ปรึกษา: ${personName(advisor)}`}
           fields={[
-            { label: "Email", value: advisor.email },
-            { label: "Phone", value: advisor.phone },
+            { label: "อีเมล", value: advisor.email },
+            { label: "เบอร์โทรศัพท์", value: advisor.phone },
           ]}
         />
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Advisor documents</h2>
+          <h2 className="font-medium">เอกสารอาจารย์ที่ปรึกษา</h2>
           <div className="flex flex-col gap-2 text-sm">
             <DocumentLink
               kind="document"
-              label="Identity document"
+              label="บัตรประชาชน"
               url={advisor.identityDocument?.url ?? null}
             />
             <DocumentLink
               kind="document"
-              label="Teacher status document"
+              label="เอกสารยืนยันสถานะอาจารย์"
               url={advisor.teacherStatusDocument?.url ?? null}
             />
           </div>
@@ -250,24 +244,22 @@ function SubjectDetails({ advisor, participant }: SubjectDetailsProps) {
     );
   }
 
-  return (
-    <p className="text-muted-foreground">No registration details are available for this subject.</p>
-  );
+  return <p className="text-muted-foreground">ไม่มีข้อมูลการสมัครสำหรับรายการนี้</p>;
 }
 
 function SubjectDecisionDetails({ decision }: { readonly decision: SubjectDecision }) {
   return (
     <section className="flex flex-col gap-2 rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-medium">Individual review</h2>
+        <h2 className="font-medium">ผลการตรวจสอบรายบุคคล</h2>
         <StatusChip value={decision.status} />
       </div>
       {decision.reviewedAt ? (
         <p className="text-muted-foreground text-sm">
-          Decided {decision.reviewedAt.toLocaleString()}
+          ตรวจสอบเมื่อ {formatStaffDateTime(decision.reviewedAt)}
         </p>
       ) : (
-        <p className="text-muted-foreground text-sm">No decision has been recorded yet.</p>
+        <p className="text-muted-foreground text-sm">ยังไม่มีการบันทึกผลการตรวจสอบ</p>
       )}
       {decision.status === "CHANGES_REQUESTED" && decision.note !== null ? (
         <p className="rounded-md bg-destructive/10 p-3 text-sm text-foreground">{decision.note}</p>

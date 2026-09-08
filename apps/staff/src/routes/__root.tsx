@@ -44,7 +44,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "viewport",
       },
       {
-        title: "Staff BMHK2026",
+        title: "ระบบทีมงาน BangMod Hackathon 2026",
       },
       {
         content: "noindex, nofollow",
@@ -56,7 +56,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="th" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

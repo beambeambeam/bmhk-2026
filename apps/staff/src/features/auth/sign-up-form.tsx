@@ -37,16 +37,16 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
             void navigate({
               to: "/dashboard",
             });
-            toast.success("Sign up successful");
+            toast.success("สร้างบัญชีสำเร็จ");
           },
         },
       );
     },
     validators: {
       onSubmit: z.object({
-        email: z.email("Invalid email address"),
-        name: z.string().min(2, "Name must be at least 2 characters"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        email: z.email("อีเมลไม่ถูกต้อง"),
+        name: z.string().min(2, "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร"),
+        password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
       }),
     },
   });
@@ -57,7 +57,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
 
   return (
     <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">สร้างบัญชี</h1>
 
       <form
         onSubmit={(e) => {
@@ -71,7 +71,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           <form.Field name="name">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Name</Label>
+                <Label htmlFor={field.name}>ชื่อ</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -95,7 +95,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>อีเมล</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -120,7 +120,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           <form.Field name="password">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
+                <Label htmlFor={field.name}>รหัสผ่าน</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -149,7 +149,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
         >
           {({ canSubmit, isSubmitting }) => (
             <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Sign Up"}
+              {isSubmitting ? "กำลังส่ง..." : "สมัครสมาชิก"}
             </Button>
           )}
         </form.Subscribe>
@@ -161,7 +161,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           onClick={onSwitchToSignIn}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          Already have an account? Sign In
+          มีบัญชีอยู่แล้ว? เข้าสู่ระบบ
         </Button>
       </div>
     </div>

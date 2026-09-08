@@ -21,12 +21,12 @@ function ThemSwitcher() {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribeToMount, getClientSnapshot, getServerSnapshot);
   const isDark = resolvedTheme === "dark";
-  let label = "Switch theme";
-  let modeLabel = "Theme";
+  let label = "เปลี่ยนธีม";
+  let modeLabel = "ธีม";
 
   if (mounted) {
-    label = isDark ? "Switch to light mode" : "Switch to dark mode";
-    modeLabel = isDark ? "Light mode" : "Dark mode";
+    label = isDark ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดมืด";
+    modeLabel = isDark ? "โหมดสว่าง" : "โหมดมืด";
   }
 
   const Icon = isDark ? Sun : Moon;

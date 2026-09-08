@@ -28,6 +28,7 @@ import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarBrand } from "./brand";
 import { ThemSwitcher } from "./them-switcher";
+import { getAuthRoleLabel } from "../admin/users/types";
 
 interface StaffSidebarProps {
   readonly role?: string | null;
@@ -50,16 +51,16 @@ interface StaffNavItem {
 }
 
 const baseNavItems: readonly StaffNavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
+  { icon: LayoutDashboard, label: "แดชบอร์ด", to: "/dashboard" },
 ];
 
 const adminNavItems: readonly StaffNavItem[] = [
-  { icon: UsersRound, label: "Users", to: "/admin/users" },
-  { icon: KeyRound, label: "API Keys", to: "/admin/api-keys" },
+  { icon: UsersRound, label: "ผู้ใช้", to: "/admin/users" },
+  { icon: KeyRound, label: "คีย์ API", to: "/admin/api-keys" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [
-  { icon: ClipboardCheck, label: "Participations", to: "/participations" },
+  { icon: ClipboardCheck, label: "รายการสมัครแข่งขัน", to: "/participations" },
 ];
 
 const achievementsNavItems: readonly StaffNavItem[] = [
@@ -139,27 +140,27 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   let navGroups: readonly StaffNavGroup[] = [];
   if (isAdmin) {
     navGroups = [
-      { items: baseNavItems, label: "Navigation" },
-      { items: registrationNavItems, label: "Registration" },
-      { items: achievementsNavItems, label: "Achievements" },
-      { items: [...participantCheckInNavItems, ...staffNavItems], label: "Round 1 Check-in" },
+      { items: baseNavItems, label: "เมนูหลัก" },
+      { items: registrationNavItems, label: "การสมัครแข่งขัน" },
+      { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
+      { items: [...participantCheckInNavItems, ...staffNavItems], label: "ลงทะเบียนเข้างาน รอบ 1" },
       {
         items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems],
-        label: "Round 2 Check-in",
+        label: "ลงทะเบียนเข้างาน รอบ 2",
       },
-      { items: adminNavItems, label: "Admin" },
+      { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
   } else if (canAccessParticipations) {
     navGroups = [
-      { items: registrationNavItems, label: "Registration" },
-      { items: achievementsNavItems, label: "Achievements" },
-      { items: participantCheckInNavItems, label: "Round 1 Check-in" },
-      { items: round2ParticipantCheckInNavItems, label: "Round 2 Check-in" },
+      { items: registrationNavItems, label: "การสมัครแข่งขัน" },
+      { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
+      { items: participantCheckInNavItems, label: "ลงทะเบียนเข้างาน รอบ 1" },
+      { items: round2ParticipantCheckInNavItems, label: "ลงทะเบียนเข้างาน รอบ 2" },
     ];
   } else if (canAccessStaffCheckIn) {
     navGroups = [
-      { items: staffNavItems, label: "Round 1 Check-in" },
-      { items: round2StaffNavItems, label: "Round 2 Check-in" },
+      { items: staffNavItems, label: "ลงทะเบียนเข้างาน รอบ 1" },
+      { items: round2StaffNavItems, label: "ลงทะเบียนเข้างาน รอบ 2" },
     ];
   }
 
@@ -208,22 +209,22 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton render={<div />} size="lg">
               <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
-                <span className="w-full truncate font-medium">{userName ?? "Staff"}</span>
+                <span className="w-full truncate font-medium">{userName ?? "ทีมงาน"}</span>
                 <span className="w-full truncate text-sidebar-foreground/70 text-xs">
-                  {role ?? "staff"}
+                  {getAuthRoleLabel(role)}
                 </span>
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip="Sign out"
+              tooltip="ออกจากระบบ"
               onClick={() => {
                 void handleSignOut();
               }}
             >
               <LogOut />
-              <span>Sign out</span>
+              <span>ออกจากระบบ</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

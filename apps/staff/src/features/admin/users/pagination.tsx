@@ -21,7 +21,7 @@ function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationPr
   return (
     <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <p className="text-muted-foreground">
-        Showing {firstVisibleUserNumber}-{lastVisibleUserNumber} of {totalUsers} users
+        แสดง {firstVisibleUserNumber}-{lastVisibleUserNumber} จากทั้งหมด {totalUsers} คน
       </p>
       <div className="flex items-center justify-end gap-2">
         <Button
@@ -34,10 +34,10 @@ function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationPr
           }}
         >
           <ChevronLeft aria-hidden="true" data-icon="inline-start" />
-          Previous
+          ก่อนหน้า
         </Button>
         <span className="min-w-20 text-center text-muted-foreground">
-          Page {page} of {pageCount}
+          หน้า {page} จาก {pageCount}
         </span>
         <Button
           type="button"
@@ -48,7 +48,7 @@ function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationPr
             table.nextPage();
           }}
         >
-          Next
+          ถัดไป
           <ChevronRight aria-hidden="true" data-icon="inline-end" />
         </Button>
       </div>

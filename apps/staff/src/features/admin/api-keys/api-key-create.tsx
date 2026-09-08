@@ -44,7 +44,7 @@ function ApiKeyCreate() {
   async function createApiKey(): Promise<void> {
     const trimmedName = name.trim();
     if (trimmedName.length === 0) {
-      toast.error("API key name must not be empty");
+      toast.error("กรุณาระบุชื่อ API key");
       return;
     }
 
@@ -52,7 +52,7 @@ function ApiKeyCreate() {
     const parsedExpiresInDays =
       trimmedExpiresInDays.length === 0 ? undefined : Number(trimmedExpiresInDays);
     if (parsedExpiresInDays !== undefined && !Number.isInteger(parsedExpiresInDays)) {
-      toast.error("Expires in days must be an integer");
+      toast.error("จำนวนวันหมดอายุต้องเป็นจำนวนเต็ม");
       return;
     }
 
@@ -63,7 +63,7 @@ function ApiKeyCreate() {
       });
       setCreatedKey(result.key);
     } catch (error) {
-      toast.error(getApiKeyErrorMessage(error, "An error occurred while creating API key."));
+      toast.error(getApiKeyErrorMessage(error, "เกิดข้อผิดพลาดระหว่างสร้าง API key"));
     }
   }
 
@@ -91,21 +91,21 @@ function ApiKeyCreate() {
     >
       <DialogTrigger render={<Button type="button" size="sm" />}>
         <Plus aria-hidden="true" />
-        Create API key
+        สร้าง API key
       </DialogTrigger>
       <DialogContent>
         {createdKey === null ? (
           <>
             <DialogHeader>
-              <DialogTitle>Create API key</DialogTitle>
-              <DialogDescription>Add a name and expiration day</DialogDescription>
+              <DialogTitle>สร้าง API key</DialogTitle>
+              <DialogDescription>ระบุชื่อและจำนวนวันหมดอายุ</DialogDescription>
             </DialogHeader>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="api-key-name">Key name</FieldLabel>
+                <FieldLabel htmlFor="api-key-name">ชื่อ API key</FieldLabel>
                 <Input
                   id="api-key-name"
-                  placeholder="e.g. Discord bot integration"
+                  placeholder="เช่น การเชื่อมต่อบอต Discord"
                   value={name}
                   onChange={(event) => {
                     setName(event.target.value);
@@ -113,12 +113,12 @@ function ApiKeyCreate() {
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="api-key-expires">Expiration (in days, optional)</FieldLabel>
+                <FieldLabel htmlFor="api-key-expires">วันหมดอายุ (จำนวนวัน, ไม่บังคับ)</FieldLabel>
                 <Input
                   id="api-key-expires"
                   max={365}
                   min={1}
-                  placeholder="Not Expiring"
+                  placeholder="ไม่มีวันหมดอายุ"
                   type="number"
                   value={expiresInDays}
                   onChange={(event) => {
@@ -135,22 +135,20 @@ function ApiKeyCreate() {
                   void createApiKey();
                 }}
               >
-                {isCreating ? "Creating..." : "Create API key"}
+                {isCreating ? "กำลังสร้าง..." : "สร้าง API key"}
               </Button>
             </DialogFooter>
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>API Key Creation Success!</DialogTitle>
-              <DialogDescription>
-                Due to security reasons, this key will not be shown to you again.
-              </DialogDescription>
+              <DialogTitle>สร้าง API key สำเร็จ!</DialogTitle>
+              <DialogDescription>เพื่อความปลอดภัย ระบบจะไม่แสดงคีย์นี้อีก</DialogDescription>
             </DialogHeader>
             <div className="flex items-center gap-2">
               <Input className="font-mono text-xs" readOnly value={createdKey} />
               <Button
-                aria-label="Copy"
+                aria-label="คัดลอก"
                 size="icon"
                 type="button"
                 variant="outline"
@@ -169,7 +167,7 @@ function ApiKeyCreate() {
                   resetForm();
                 }}
               >
-                Done
+                เสร็จสิ้น
               </Button>
             </DialogFooter>
           </>

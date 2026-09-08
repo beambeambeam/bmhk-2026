@@ -25,7 +25,7 @@ const adminUsersColumns = columnHelper.columns([
     cell: ({ getValue }) => getValue(),
     header: ({ column }) => (
       <Button type="button" size="sm" variant="ghost" onClick={column.getToggleSortingHandler()}>
-        Email
+        อีเมล
         {getSortIcon(column.getIsSorted())}
       </Button>
     ),
@@ -34,10 +34,10 @@ const adminUsersColumns = columnHelper.columns([
     },
   }),
   columnHelper.accessor("name", {
-    cell: ({ getValue }) => getValue() || "Unnamed user",
+    cell: ({ getValue }) => getValue() || "ไม่ระบุชื่อ",
     header: ({ column }) => (
       <Button type="button" size="sm" variant="ghost" onClick={column.getToggleSortingHandler()}>
-        Name
+        ชื่อ
         {getSortIcon(column.getIsSorted())}
       </Button>
     ),
@@ -62,7 +62,7 @@ const adminUsersColumns = columnHelper.columns([
     },
     header: ({ column }) => (
       <Button type="button" size="sm" variant="ghost" onClick={column.getToggleSortingHandler()}>
-        Role
+        บทบาท
         {getSortIcon(column.getIsSorted())}
       </Button>
     ),

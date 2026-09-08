@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { ParticipationPagination } from "./participation-pagination";
 import { ParticipationReviewDialog } from "./participation-review-dialog";
 import { StatusChip } from "./participation-review-status";
+import { formatStaffDate, formatStaffDateTime } from "./review-utils";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PARTICIPATIONS_PAGE_SIZE = 20;
@@ -46,14 +47,6 @@ const sortableColumns = [
   { id: "reviewedByName", label: "อัปเดตโดย" },
   { id: "lastUpdatedAt", label: "อัปเดตล่าสุด" },
 ] as const satisfies readonly { id: TeamRegistrationReviewListSort; label: string }[];
-
-function formatSubmitDate(submittedAt: Date | null): string {
-  return submittedAt?.toLocaleDateString() ?? "—";
-}
-
-function formatLastUpdated(updatedAt: Date | null): string {
-  return updatedAt?.toLocaleString() ?? "—";
-}
 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
   const [search, setSearch] = useState("");
@@ -210,13 +203,13 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                   <TableCell>
                     <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
                   </TableCell>
-                  <TableCell>{formatSubmitDate(team.registrationSubmittedAt)}</TableCell>
+                  <TableCell>{formatStaffDate(team.registrationSubmittedAt)}</TableCell>
                   <TableCell>
                     <StatusChip value={team.reviewStatus} />
                   </TableCell>
                   <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
                   <TableCell className="whitespace-normal">
-                    {formatLastUpdated(team.lastUpdatedAt)}
+                    {formatStaffDateTime(team.lastUpdatedAt)}
                   </TableCell>
                   <TableCell>
                     <ParticipationReviewDialog

@@ -21,6 +21,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { StatusChip } from "./participation-review-status";
+import { formatStaffDateTime } from "./review-utils";
 
 const ADVISOR_ISSUE_OPTIONS = ["ข้อมูลไม่ตรง", "บัตรประชาชนมีปัญหา", "บัตรอาจารย์มีปัญหา"] as const;
 const MEMBER_ISSUE_OPTIONS = ["ข้อมูลไม่ตรง", "บัตรประชาชนมีปัญหา", "ปพ.7 มีปัญหา", "รูปมีปัญหา"] as const;
@@ -398,9 +399,7 @@ function TeamSummary({
           <dl className="rounded-lg border bg-background p-3 text-sm">
             <div>
               <dt className="text-muted-foreground">วันที่ส่งใบสมัคร</dt>
-              <dd className="font-medium">
-                {team.registrationSubmittedAt?.toLocaleString() ?? "—"}
-              </dd>
+              <dd className="font-medium">{formatStaffDateTime(team.registrationSubmittedAt)}</dd>
             </div>
           </dl>
           <ConsentSummary consent={consent} />
@@ -422,7 +421,7 @@ function TeamSummary({
         </div>
         <div>
           <dt className="text-muted-foreground">อัปเดตล่าสุด</dt>
-          <dd className="font-medium">{lastUpdatedAt?.toLocaleString() ?? "—"}</dd>
+          <dd className="font-medium">{formatStaffDateTime(lastUpdatedAt)}</dd>
         </div>
       </dl>
     </aside>

@@ -20,7 +20,7 @@ function RouteComponent() {
 
   return (
     <section className="space-y-2">
-      <h1 className="text-3xl font-semibold">Welcome, {session.data?.user.name}</h1>
+      <h1 className="text-3xl font-semibold">ยินดีต้อนรับ {session.data?.user.name ?? "ทีมงาน"}</h1>
     </section>
   );
 }

@@ -40,7 +40,8 @@ describe(resolveVerifyConfirm, () => {
 
     expect(outcome).toStrictEqual({
       applied: false,
-      message: "รหัสไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง",
+      message: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
+      reason: "code not found",
     });
   });
 
@@ -52,7 +53,8 @@ describe(resolveVerifyConfirm, () => {
 
     expect(outcome).toStrictEqual({
       applied: false,
-      message: "รหัสนี้ถูกใช้ยืนยันตัวตนครบตามจำนวนที่กำหนดแล้ว หากนี่เป็นข้อผิดพลาด กรุณาติดต่อทีมงาน",
+      message: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
+      reason: "code already redeemed",
     });
   });
 
@@ -64,7 +66,8 @@ describe(resolveVerifyConfirm, () => {
 
     expect(outcome).toStrictEqual({
       applied: false,
-      message: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+      message: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
+      reason: "success status but no nickname",
     });
   });
 });

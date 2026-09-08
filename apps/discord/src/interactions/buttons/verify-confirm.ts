@@ -11,10 +11,10 @@ const CUSTOM_ID_PREFIX = "verify-confirm:";
 const PARTICIPANT_ROLE_SETTING_KEY = "participantRole";
 
 const MESSAGE = {
-  ALREADY_REDEEMED: "รหัสนี้ถูกใช้ยืนยันตัวตนครบตามจำนวนที่กำหนดแล้ว หากนี่เป็นข้อผิดพลาด กรุณาติดต่อทีมงาน",
-  GENERIC_ERROR: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+  CODE_NOT_FOUND_OR_USED_UP:
+    "ไม่พบรหัสยืนยันตัวตนหรือรหัสนี้ถูกใช้ครบตามจำนวนครั้งที่อนุญาตแล้ว หากนี้เป็นข้อผิดพลาด กรุณาติดต่อทีมงาน",
+  GENERIC_ERROR: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
   GUILD_ONLY: "กรุณายืนยันตัวตนภายในเซิร์ฟเวอร์ของงาน",
-  NOT_FOUND: "รหัสไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง",
   SUCCESS: "ยืนยันตัวตนสำเร็จ! ยินดีต้อนรับสู่ Bangmod Hackathon 2026 🎉",
 } as const;
 
@@ -23,7 +23,7 @@ const ROLE_FAILURE = "ให้ยศผู้เข้าแข่งขัน"
 const UNCONFIGURED_ROLE_FAILURE = `${ROLE_FAILURE} (ยังไม่ได้ตั้งค่า \`${PARTICIPANT_ROLE_SETTING_KEY}\`)`;
 
 export type VerifyConfirmOutcome =
-  | { applied: false; message: string }
+  | { applied: false; message: string; reason: string }
   | { applied: true; message: string; nickname: string; roleId: string | null };
 
 /**
@@ -32,21 +32,34 @@ export type VerifyConfirmOutcome =
  *
  * A `200` from the API can still mean failure, so branch on `status` before
  * trusting `nickname` — see apps/discord/AGENTS.md.
+ *
+ * Every failure carries the same user-facing message on purpose: telling the
+ * user *which* check failed (unknown code vs. already redeemed) would let
+ * them tell a wrong guess from a used-up one. The real reason goes to `reason`
+ * for logging only, never surfaced to Discord.
  */
 export function resolveVerifyConfirm(
   response: BMHKDiscordVerifyResponse,
   roleId: string | null,
 ): VerifyConfirmOutcome {
   if (response.status === bmhkDiscordStatus.NOT_FOUND) {
-    return { applied: false, message: MESSAGE.NOT_FOUND };
+    return { applied: false, message: MESSAGE.CODE_NOT_FOUND_OR_USED_UP, reason: "code not found" };
   }
 
   if (response.status === bmhkDiscordStatus.ALREADY_REDEEMED) {
-    return { applied: false, message: MESSAGE.ALREADY_REDEEMED };
+    return {
+      applied: false,
+      message: MESSAGE.CODE_NOT_FOUND_OR_USED_UP,
+      reason: "code already redeemed",
+    };
   }
 
   if (response.nickname === null || response.nickname === "") {
-    return { applied: false, message: MESSAGE.GENERIC_ERROR };
+    return {
+      applied: false,
+      message: MESSAGE.GENERIC_ERROR,
+      reason: "success status but no nickname",
+    };
   }
 
   return { applied: true, message: MESSAGE.SUCCESS, nickname: response.nickname, roleId };
@@ -57,7 +70,7 @@ export function formatVerifyConfirmReply(message: string, failures: readonly str
   if (failures.length === 0) {
     return message;
   }
-  return `${message}\n\n⚠️ แต่บอทดำเนินการบางอย่างไม่สำเร็จ: ${failures.join(", ")} — กรุณาติดต่อทีมงาน`;
+  return `${message}\n\n⚠️ ระบบดำเนินการบางอย่างไม่สำเร็จ: ${failures.join(", ")}\n\nกรุณาติดต่อทีมงานเพื่อดำเนินการแก้ไข`;
 }
 
 async function resolveParticipantRoleId(): Promise<string | null> {
@@ -126,6 +139,7 @@ const verifyConfirm: Button = {
     const outcome = resolveVerifyConfirm(response, await resolveParticipantRoleId());
 
     if (!outcome.applied) {
+      console.error(`[verify-confirm] denied ${interaction.user.id}: ${outcome.reason}`);
       await interaction.editReply({ components: [], content: outcome.message, embeds: [] });
       return;
     }

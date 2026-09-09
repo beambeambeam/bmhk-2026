@@ -27,7 +27,7 @@ const staff = ac.newRole({
 });
 
 const registrationStaff = ac.newRole({
-  staff: ["access"],
+  staff: ["access", "registration_access"],
   ...userAc.statements,
 });
 

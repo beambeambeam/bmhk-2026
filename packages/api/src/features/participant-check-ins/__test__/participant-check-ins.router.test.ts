@@ -245,9 +245,7 @@ describe("participant check-ins router", () => {
     const checkIn = vi.fn<ParticipantCheckInRepository["checkIn"]>();
     const router = createRouter(
       createRepository({ checkIn }),
-      createTestAuthReader(
-        createTestSession({ user: { id: ACTOR_ID, role: "registrationStaff" } }),
-      ),
+      createTestAuthReader(createTestSession({ user: { id: ACTOR_ID, role: "user" } })),
     );
     const { context } = createTestContext();
 

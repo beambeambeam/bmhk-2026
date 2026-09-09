@@ -32,6 +32,11 @@ describe("super administrator permissions", () => {
     ).toBeTruthy();
   });
 
+  it("gives registration staff registration and staff permissions", () => {
+    expect(hasRegistrationAccess("registrationStaff")).toBeTruthy();
+    expect(hasStaffAccess("registrationStaff")).toBeTruthy();
+  });
+
   it("rejects unknown and combined roles at application boundaries", () => {
     expect(hasStaffAccess("admin,user")).toBeFalsy();
     expect(hasRegistrationAccess("unknown")).toBeFalsy();

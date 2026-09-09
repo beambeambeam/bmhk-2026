@@ -96,6 +96,18 @@ describe("team registration schema", () => {
       name: "ทีม฿1",
       scenario: "Thai currency Baht (฿)",
     },
+    {
+      expectedMessage:
+        "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
+      name: "ทีม๑",
+      scenario: "Thai numeral (๑)",
+    },
+    {
+      expectedMessage:
+        "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
+      name: "ทีม ๑๒๓",
+      scenario: "Thai numerals (๑๒๓)",
+    },
   ])("rejects invalid team name: $scenario", ({ name, expectedMessage }) => {
     const result = teamNameSchema.safeParse(name);
 

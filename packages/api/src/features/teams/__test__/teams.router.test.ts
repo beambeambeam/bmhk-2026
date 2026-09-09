@@ -300,6 +300,14 @@ describe("teams router", () => {
       input: { name: "ทีม฿1", school: "School" },
       name: "name with Thai currency Baht (฿)",
     },
+    {
+      input: { name: "ทีม๑", school: "School" },
+      name: "name with Thai numeral (๑)",
+    },
+    {
+      input: { name: "ทีม ๑๒๓", school: "School" },
+      name: "name with Thai numerals (๑๒๓)",
+    },
   ])("rejects invalid create input: $name", async ({ input }) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
@@ -864,6 +872,7 @@ describe("teams router", () => {
     { data: { name: "ทีม#1" }, scenario: "Thai name with hash symbol" },
     { data: { name: "ทีม๏1" }, scenario: "Thai name with punctuation Fongman (๏)" },
     { data: { name: "ทีม฿1" }, scenario: "Thai name with currency Baht (฿)" },
+    { data: { name: "ทีม ๑๒๓" }, scenario: "Thai name with Thai numerals (๑๒๓)" },
   ])("rejects invalid team name on update: $scenario", async ({ data }) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);

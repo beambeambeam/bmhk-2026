@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const MAX_TEAM_NAME_LENGTH = 17;
-export const TEAM_NAME_REGEX = /^[a-zA-Z0-9\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59 _-]+$/u;
+export const TEAM_NAME_REGEX = /^[a-zA-Z0-9\u0E01-\u0E3A\u0E40-\u0E4E _-]+$/u;
 
 export const TEAM_NAME_REQUIRED_MESSAGE = "กรุณาระบุชื่อทีม";
 export const TEAM_NAME_TOO_LONG_MESSAGE = "ชื่อทีมต้องมีความยาวไม่เกิน 17 ตัวอักษร";

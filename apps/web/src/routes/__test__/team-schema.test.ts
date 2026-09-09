@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { teamSchema } from "../register/team";
+import { teamNameSchema } from "@bmhk-2026/client/teams";
 
 describe("team registration schema", () => {
   it.each([
@@ -14,14 +14,10 @@ describe("team registration schema", () => {
     { name: "12345678901234567", scenario: "exactly 17 characters" },
     { name: "  Team One  ", scenario: "trimmed input within limit" },
   ])("accepts valid team name: $scenario", ({ name }) => {
-    const result = teamSchema.safeParse({
-      name,
-      school: "Bangmod School",
-      teamSize: 2,
-    });
+    const result = teamNameSchema.safeParse(name);
 
     expect(result.success).toBeTruthy();
-    expect(result.data?.name).toBe(name.trim());
+    expect(result.data).toBe(name.trim());
   });
 
   it.each([
@@ -76,16 +72,34 @@ describe("team registration schema", () => {
       name: "Team$1",
       scenario: "dollar sign",
     },
+    {
+      expectedMessage:
+        "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
+      name: "ทีม๏1",
+      scenario: "Thai punctuation Fongman (๏)",
+    },
+    {
+      expectedMessage:
+        "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
+      name: "ทีม๚1",
+      scenario: "Thai punctuation Angkhankhu (๚)",
+    },
+    {
+      expectedMessage:
+        "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
+      name: "ทีม๛1",
+      scenario: "Thai punctuation Khomut (๛)",
+    },
+    {
+      expectedMessage:
+        "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
+      name: "ทีม฿1",
+      scenario: "Thai currency Baht (฿)",
+    },
   ])("rejects invalid team name: $scenario", ({ name, expectedMessage }) => {
-    const result = teamSchema.safeParse({
-      name,
-      school: "Bangmod School",
-      teamSize: 2,
-    });
-
-    const nameIssue = result.error?.issues.find((issue) => issue.path[0] === "name");
+    const result = teamNameSchema.safeParse(name);
 
     expect(result.success).toBeFalsy();
-    expect(nameIssue?.message).toBe(expectedMessage);
+    expect(result.error?.issues[0]?.message).toBe(expectedMessage);
   });
 });

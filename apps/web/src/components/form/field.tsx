@@ -601,6 +601,9 @@ interface BaseProps {
   value: string;
   onChange: (value: string) => void;
   error?: string | null;
+}
+
+export interface TextFieldProps extends BaseProps {
   maxLength?: number;
 }
 
@@ -611,7 +614,7 @@ function FieldShell({
   className,
   children,
   gate,
-}: Omit<BaseProps, "value" | "onChange" | "error" | "maxLength"> & {
+}: Omit<BaseProps, "value" | "onChange" | "error"> & {
   children: ReactNode;
   gate?: { invalid: boolean; message: string | null; messageId: string };
 }) {
@@ -637,7 +640,7 @@ export function TextField({
   onChange,
   error,
   maxLength,
-}: BaseProps) {
+}: TextFieldProps) {
   const { ref, invalid, message, messageId } = useGateField<HTMLInputElement>(error ?? null);
   const gate = { invalid, message, messageId };
 

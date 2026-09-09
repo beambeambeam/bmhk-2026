@@ -47,6 +47,14 @@ export type { FileStorage } from "./features/files/files.storage";
 export type { TeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";
 export type { TeamConsentRepository } from "./features/team-consents/team-consents.repository";
 export { allowedFileContentTypes, MAX_FILE_SIZE_BYTES } from "./features/files/files.schema";
+export {
+  MAX_TEAM_NAME_LENGTH,
+  TEAM_NAME_INVALID_MESSAGE,
+  TEAM_NAME_REGEX,
+  TEAM_NAME_REQUIRED_MESSAGE,
+  TEAM_NAME_TOO_LONG_MESSAGE,
+  teamNameSchema,
+} from "./features/teams/teams.rules";
 export type {
   AllowedFileContentType,
   CreateStoredFileData,

@@ -1,5 +1,4 @@
 /* oxlint-disable no-unsafe-type-assertion */
-/* oxlint-disable no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable complexity */
 /* oxlint-disable strict-void-return */
@@ -32,6 +31,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { useRegisterForm, Route as RegisterRoute } from "@/routes/register";
 import { z } from "zod";
+import { MAX_TEAM_NAME_LENGTH, teamNameSchema } from "@bmhk-2026/client/teams";
 import { client } from "@bmhk-2026/client/orpc";
 import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
 import { fieldErrorReader } from "@/features/register/lib/field-errors";
@@ -90,19 +90,8 @@ function Avatar({ crop, src }: { crop: boolean; src: string }) {
   );
 }
 
-const MAX_TEAM_NAME_LENGTH = 17;
-const TEAM_NAME_REGEX = /^[a-zA-Z0-9\p{Script=Thai} _-]+$/u;
-
-export const teamSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "กรุณาระบุชื่อทีม")
-    .max(MAX_TEAM_NAME_LENGTH, "ชื่อทีมต้องมีความยาวไม่เกิน 17 ตัวอักษร")
-    .regex(
-      TEAM_NAME_REGEX,
-      "ชื่อทีมต้องใช้ภาษาอังกฤษ ภาษาไทย ตัวเลข เว้นวรรค หรือเครื่องหมาย - และ _ เท่านั้น และห้ามใช้อักขระพิเศษ",
-    ),
+const teamSchema = z.object({
+  name: teamNameSchema,
   school: z.string().trim().min(1, "กรุณาระบุสถานศึกษา").max(200, "ชื่อสถานศึกษายาวเกินไป"),
   teamSize: z.number().int().min(0).max(2_147_483_647).default(2),
 });

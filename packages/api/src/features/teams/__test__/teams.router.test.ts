@@ -284,6 +284,22 @@ describe("teams router", () => {
       input: { name: "Team.1", school: "School" },
       name: "name with dot",
     },
+    {
+      input: { name: "ทีม๏1", school: "School" },
+      name: "name with Thai punctuation Fongman (๏)",
+    },
+    {
+      input: { name: "ทีม๚1", school: "School" },
+      name: "name with Thai punctuation Angkhankhu (๚)",
+    },
+    {
+      input: { name: "ทีม๛1", school: "School" },
+      name: "name with Thai punctuation Khomut (๛)",
+    },
+    {
+      input: { name: "ทีม฿1", school: "School" },
+      name: "name with Thai currency Baht (฿)",
+    },
   ])("rejects invalid create input: $name", async ({ input }) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
@@ -846,6 +862,8 @@ describe("teams router", () => {
     { data: { name: "a".repeat(18) }, scenario: "name exceeding 17 characters" },
     { data: { name: "Team@1" }, scenario: "name with special characters" },
     { data: { name: "ทีม#1" }, scenario: "Thai name with hash symbol" },
+    { data: { name: "ทีม๏1" }, scenario: "Thai name with punctuation Fongman (๏)" },
+    { data: { name: "ทีม฿1" }, scenario: "Thai name with currency Baht (฿)" },
   ])("rejects invalid team name on update: $scenario", async ({ data }) => {
     const repository = createTeamRepository();
     const router = createRouter(repository);

@@ -6,7 +6,8 @@
     "./feature-flags": "./src/feature-flags.ts",
     "./orpc": "./src/orpc.ts",
     "./query-client": "./src/query-client.ts",
-    "./query-options": "./src/query-options.ts"
+    "./query-options": "./src/query-options.ts",
+    "./teams": "./src/teams.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

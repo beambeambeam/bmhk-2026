@@ -4,17 +4,15 @@ import { createInsertSchema, createSelectSchema, createUpdateSchema } from "driz
 import { z } from "zod";
 
 import { fileWithUrlSchema } from "../files/files.schema";
+import { teamNameSchema } from "./teams.rules";
 
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
 const MAX_SEARCH_LENGTH = 120;
-const MAX_TEAM_NAME_LENGTH = 17;
-const TEAM_NAME_REGEX = /^[a-zA-Z0-9\p{Script=Thai} _-]+$/u;
 
 const teamFieldRefinements = {
   memberCount: (schema: z.ZodNumber) => schema.nonnegative(),
-  name: (schema: z.ZodString) =>
-    schema.trim().min(1).max(MAX_TEAM_NAME_LENGTH).regex(TEAM_NAME_REGEX),
+  name: () => teamNameSchema,
   school: (schema: z.ZodString) => schema.trim().min(1).max(200),
 };
 const teamInsertSchema = createInsertSchema(teams, teamFieldRefinements);

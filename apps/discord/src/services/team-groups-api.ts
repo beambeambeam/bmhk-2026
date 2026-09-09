@@ -1,4 +1,4 @@
-import { env } from "@bmhk-2026/env/discord";
+import { serverFetch } from "../lib/server-fetch.js";
 
 // Wire contract mirrors packages/api/src/features/discord-team-groups/discord-team-groups.schema.ts.
 // Defined locally (not imported) because apps/discord must not depend on
@@ -16,23 +16,6 @@ export interface TeamGroup {
   index: number;
   members: TeamGroupMember[];
   name: string;
-}
-
-async function serverFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const response = await fetch(new URL(path, env.SERVER_BASE_URL), {
-    ...init,
-    headers: {
-      ...Object.fromEntries(new Headers(init.headers)),
-      "content-type": "application/json",
-      "x-api-key": env.SERVER_API_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Request to ${path} failed with status ${response.status}`);
-  }
-
-  return response;
 }
 
 export async function fetchTeamGroups(): Promise<TeamGroup[]> {

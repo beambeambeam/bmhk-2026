@@ -1,4 +1,4 @@
-import { hasAdminAccess } from "@bmhk-2026/auth/permission";
+import { hasAdminAccess, hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permission";
 import {
   Sidebar,
   SidebarContent,
@@ -134,8 +134,8 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = hasAdminAccess(role);
-  const canAccessParticipations = isAdmin || role === "staff";
-  const canAccessStaffCheckIn = isAdmin || role === "registrationStaff";
+  const canAccessParticipations = hasRegistrationAccess(role);
+  const canAccessStaffCheckIn = hasStaffAccess(role);
   const homeRoute = getHomeRoute(isAdmin, canAccessParticipations);
   let navGroups: readonly StaffNavGroup[] = [];
   if (isAdmin) {
@@ -150,18 +150,36 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       },
       { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
-  } else if (canAccessParticipations) {
-    navGroups = [
-      { items: registrationNavItems, label: "การสมัครแข่งขัน" },
-      { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
-      { items: participantCheckInNavItems, label: "ลงทะเบียนเข้างาน รอบ 1" },
-      { items: round2ParticipantCheckInNavItems, label: "ลงทะเบียนเข้างาน รอบ 2" },
-    ];
-  } else if (canAccessStaffCheckIn) {
-    navGroups = [
-      { items: staffNavItems, label: "ลงทะเบียนเข้างาน รอบ 1" },
-      { items: round2StaffNavItems, label: "ลงทะเบียนเข้างาน รอบ 2" },
-    ];
+  } else {
+    const accessNavGroups: StaffNavGroup[] = [];
+
+    if (canAccessParticipations) {
+      accessNavGroups.push(
+        { items: registrationNavItems, label: "การสมัครแข่งขัน" },
+        { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
+      );
+    }
+
+    if (canAccessParticipations || canAccessStaffCheckIn) {
+      accessNavGroups.push(
+        {
+          items: [
+            ...(canAccessParticipations ? participantCheckInNavItems : []),
+            ...(canAccessStaffCheckIn ? staffNavItems : []),
+          ],
+          label: "ลงทะเบียนเข้างาน รอบ 1",
+        },
+        {
+          items: [
+            ...(canAccessParticipations ? round2ParticipantCheckInNavItems : []),
+            ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
+          ],
+          label: "ลงทะเบียนเข้างาน รอบ 2",
+        },
+      );
+    }
+
+    navGroups = accessNavGroups;
   }
 
   async function handleSignOut() {

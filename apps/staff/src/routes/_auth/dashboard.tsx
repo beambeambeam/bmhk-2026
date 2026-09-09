@@ -1,4 +1,4 @@
-import { hasAdminAccess } from "@bmhk-2026/auth/permission";
+import { hasAdminAccess, hasRegistrationAccess } from "@bmhk-2026/auth/permission";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/dashboard")({
@@ -10,7 +10,9 @@ export const Route = createFileRoute("/_auth/dashboard")({
     }
 
     // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
-    throw redirect({ to: role === "staff" ? "/participations" : "/round1-staff-check" });
+    throw redirect({
+      to: hasRegistrationAccess(role) ? "/participations" : "/round1-staff-check",
+    });
   },
   component: RouteComponent,
 });

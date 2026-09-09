@@ -17,7 +17,6 @@ import { UserProvider } from "@/contexts/user-context";
 import TeamStep from "../register/team";
 import { RegisterFormContext, Route as RegisterRoute } from "../register";
 import type { RegistrationFormData } from "../register";
-import { MAX_TEAM_NAME_LENGTH } from "@bmhk-2026/client/teams";
 
 const { TEAM_ID } = vi.hoisted(() => ({
   TEAM_ID: "019c7bb1-dbe0-7000-8000-000000000001",
@@ -178,15 +177,19 @@ describe("TeamStep rendered component", () => {
 
   afterEach(cleanup);
 
-  it("enforces maxLength attribute on team name input", async () => {
+  it("displays validation error when entering an oversized team name and clicking next", async () => {
     const router = createTeamTestRouter();
     await router.load();
 
     render(<RouterProvider router={router} />);
 
-    const input = screen.getByLabelText(/ชื่อทีม/u);
-    expect(input).toBeDefined();
-    expect(input.getAttribute("maxLength")).toBe(String(MAX_TEAM_NAME_LENGTH));
+    const input = screen.getByLabelText<HTMLInputElement>(/ชื่อทีม/u);
+    fireEvent.change(input, { target: { value: "123456789012345678" } });
+
+    const nextButton = screen.getByRole("button", { name: "ถัดไป" });
+    fireEvent.click(nextButton);
+
+    expect(screen.getByText("ชื่อทีมต้องมีความยาวไม่เกิน 17 ตัวอักษร")).toBeDefined();
   });
 
   it("updates input value when typing a valid name", async () => {

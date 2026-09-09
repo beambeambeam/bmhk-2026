@@ -1,1 +1,8 @@
-export * from "@bmhk-2026/api/teams/rules";
+export {
+  MAX_TEAM_NAME_LENGTH,
+  TEAM_NAME_INVALID_MESSAGE,
+  TEAM_NAME_REGEX,
+  TEAM_NAME_REQUIRED_MESSAGE,
+  TEAM_NAME_TOO_LONG_MESSAGE,
+  teamNameSchema,
+} from "@bmhk-2026/api/teams/rules";

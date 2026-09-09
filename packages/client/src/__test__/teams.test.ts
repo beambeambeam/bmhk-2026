@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { teamNameSchema } from "@bmhk-2026/client/teams";
+import { teamNameSchema } from "../teams";
 
-describe("team registration schema", () => {
+describe("team name schema", () => {
   it.each([
     { name: "Team 1", scenario: "English, numbers, and space" },
     { name: "Team-1", scenario: "English, numbers, and hyphen" },

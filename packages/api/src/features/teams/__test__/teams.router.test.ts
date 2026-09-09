@@ -443,10 +443,28 @@ describe("teams router", () => {
     });
   });
 
-  it("requires registration permission to list teams", async () => {
+  it("allows registration staff to list teams", async () => {
+    const list = vi.fn<TeamRepository["list"]>(
+      async () => await Promise.resolve({ data: [], total: 0 }),
+    );
+    const router = createRouter(
+      createTeamRepository({ list }),
+      createAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+    );
+    const { context } = createContext();
+
+    await call(router.teams.list, {}, { context, path: ["teams", "list"] });
+
+    expect(list).toHaveBeenCalledWith(
+      { actorId: "user-1", scope: "ALL_TEAMS" },
+      expect.objectContaining({ limit: 25, offset: 0 }),
+    );
+  });
+
+  it("rejects users without registration permission from listing teams", async () => {
     const router = createRouter(
       createTeamRepository(),
-      createAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
+      createAuthReader(createTestSession({ user: { role: "user" } })),
     );
     const { context } = createContext();
 

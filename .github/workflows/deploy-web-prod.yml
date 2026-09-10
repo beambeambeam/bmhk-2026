@@ -1,0 +1,22 @@
+name: Deploy Production Environment for web
+
+on:
+  workflow_run:
+    workflows: ["Build web Docker image"]
+    types: [completed]
+
+jobs:
+  trigger-coolify-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy webhook
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK_DEPLOY_WEB_PROD }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          test -n "$COOLIFY_WEBHOOK"
+          test -n "$COOLIFY_TOKEN"
+          curl --fail --show-error --silent \
+            --request POST "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"

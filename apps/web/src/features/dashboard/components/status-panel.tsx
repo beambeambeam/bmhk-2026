@@ -1,9 +1,9 @@
 import { useId } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { SOCIAL_LINKS } from "@/data";
 import { DISCORD_CARD, getStatusSteps } from "../team-data";
 import type { Person, ReviewFeedbackInput, StatusStep, StepTone, TeamStatus } from "../team-data";
+import { Mail } from "lucide-react";
 
 /**
  * ── Size ramps, both anchors measured ──────────────────────────────────────────────────────
@@ -171,7 +171,25 @@ const LABEL_COLOR: Record<StepTone, string> = {
   pending: "text-brand-yellow",
 };
 
-const SOCIALS = SOCIAL_LINKS;
+const CONTACT_EMAIL = "bangmodhack.team@gmail.com";
+
+function getGmailTemplateUrl({
+  issueList,
+  teamCode,
+  teamName,
+}: {
+  issueList: string;
+  teamCode: string;
+  teamName: string;
+}): string {
+  const subject = `ติดต่อแก้ไขข้อมูลเอกสาร ทีม ${teamName}`;
+  const body = `ชื่อทีม: ${teamName}\nรหัสทีม: ${teamCode}\nข้อมูล/เอกสารที่ต้องการแก้ไข: ${issueList}\n---\nอื่น ๆ (ถ้ามี):\n`;
+
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+    CONTACT_EMAIL,
+  )}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 function Badge({ tone, compact = false }: { tone: StepTone; compact?: boolean }) {
   const { skin, icon } = BADGE[tone];
   /* 16 in the 28 pill, 20 in the 32 — the glyph frame Figma nests, not a scaled-down icon. */
@@ -207,7 +225,43 @@ function Row({ title, label, tone }: { title: string; label: string; tone: StepT
   );
 }
 
-function Step({ step, rise, updatedAt }: { step: StatusStep; rise: number; updatedAt: string }) {
+function Step({
+  step,
+  rise,
+  updatedAt,
+  team,
+}: {
+  step: StatusStep;
+  rise: number;
+  updatedAt: string;
+  team?: {
+    code?: string;
+    id?: string;
+    name?: string;
+    createdAt?: Date | string | null;
+    updatedAt?: Date | string | null;
+  } | null;
+}) {
+  const teamName = team?.name !== undefined && team.name.trim() !== "" ? team.name : "[ชื่อทีม]";
+  let teamCode = "[รหัสทีม]";
+  if (team?.code !== undefined && team.code.trim() !== "") {
+    teamCode = team.code;
+  } else if (team?.id !== undefined && team.id.trim() !== "") {
+    teamCode = team.id.slice(0, 8).toUpperCase();
+  }
+
+  const issueRows = step.rows?.filter((row) => row.tone === "alert" || row.tone === "failed");
+  const issueList =
+    issueRows !== undefined && issueRows.length > 0
+      ? issueRows.map((row) => row.title).join(", ")
+      : "[สิ่งที่ต้องแก้ไข]";
+
+  const gmailUrl = getGmailTemplateUrl({
+    issueList,
+    teamCode,
+    teamName,
+  });
+
   return (
     <div
       className="auth-rise auth-rise-sm flex w-full flex-col gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]"
@@ -239,20 +293,16 @@ function Step({ step, rise, updatedAt }: { step: StatusStep; rise: number; updat
         <>
           <div className="h-0 w-full border-t-[0.5px] border-[#dcdcdc]" />
           <div className="flex w-full flex-col items-start gap-[8px]">
-            <p className="fl-12 leading-[1.6] text-gray-2">ติดต่อทีมงาน</p>
             <div className="flex w-full items-center gap-[8px]">
-              {SOCIALS.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="mm-press flex min-w-0 flex-1 items-center justify-center rounded-[10px] bg-[#f6f6f6] px-[16px] py-[6px] transition-colors hover:bg-[#ececec]"
-                >
-                  <img src={social.icon} alt="" aria-hidden className="mm-icon-pop size-[24px]" />
-                </a>
-              ))}
+              <a
+                href={gmailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mm-press flex min-w-0 flex-1 items-center justify-center rounded-[10px] bg-[#f6f6f6] px-[16px] py-[6px] transition-colors hover:bg-[#ececec]"
+              >
+                <Mail className="mr-2 size-5" />
+                <span className="text-sm">ติดต่อทีมงาน</span>
+              </a>
             </div>
           </div>
         </>
@@ -292,7 +342,13 @@ export default function StatusPanel({
   card?: boolean;
   heading?: boolean;
   reviewFeedback?: ReviewFeedbackInput | null;
-  team?: { createdAt?: Date | string | null; updatedAt?: Date | string | null } | null;
+  team?: {
+    code?: string;
+    id?: string;
+    name?: string;
+    createdAt?: Date | string | null;
+    updatedAt?: Date | string | null;
+  } | null;
   submittedAt?: Date | string | null;
 }) {
   const steps = getStatusSteps(members, reviewFeedback)[status];
@@ -321,6 +377,7 @@ export default function StatusPanel({
               key={step.title}
               step={step}
               rise={Math.min(i + 3, 7)}
+              team={team}
               updatedAt={getStepDate(
                 i,
                 steps.length,

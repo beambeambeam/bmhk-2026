@@ -1,6 +1,5 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types.js";
-import { getSettingsStore } from "../../lib/settings-store.js";
 
 const setup: Command = {
   data: new SlashCommandBuilder()
@@ -17,6 +16,9 @@ const setup: Command = {
       opt.setName("staffrole").setDescription("The role granted to staff.").setRequired(true),
     ),
   async execute(interaction) {
+    // Loaded lazily (not a top-level import) so this module stays importable
+    // without pulling in bun:sqlite — see apps/discord/src/lib/db.ts.
+    const { getSettingsStore } = await import("../../lib/settings-store.js");
     const participantrole = interaction.options.getRole("participantrole", true);
     const staffRole = interaction.options.getRole("staffrole", true);
 

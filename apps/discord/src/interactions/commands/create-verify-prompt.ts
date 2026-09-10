@@ -1,7 +1,6 @@
 import { env } from "@bmhk-2026/env/discord";
 import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types.js";
-import { getSettingsStore } from "../../lib/settings-store.js";
 
 const DEFAULT_VERIFY_PROMPT =
   `# โปรดยืนยันตัวตนเพื่อเชื่อมบัญชี Discord\n\n` +
@@ -34,6 +33,9 @@ const createVerifyPrompt: Command = {
     ),
 
   async execute(interaction) {
+    // Loaded lazily (not a top-level import) so this module stays importable
+    // without pulling in bun:sqlite — see apps/discord/src/lib/db.ts.
+    const { getSettingsStore } = await import("../../lib/settings-store.js");
     const settingStore = getSettingsStore();
     const participantRole = settingStore.get("participantRole");
 

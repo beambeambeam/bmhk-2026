@@ -1,9 +1,15 @@
-import type { AuthReader, DiscordService, DiscordTeamGroupsService } from "@bmhk-2026/api";
+import type {
+  AuthReader,
+  DiscordService,
+  DiscordTeamGroupsService,
+  StaffDiscordLinkService,
+} from "@bmhk-2026/api";
 import {
   discordQueryInputSchema,
   discordTeamGroupCategoryInputSchema,
   discordTeamGroupMemberChannelInputSchema,
   discordVerifyInputSchema,
+  staffVerifyTokenCreateInputSchema,
 } from "@bmhk-2026/api";
 import { Elysia } from "elysia";
 
@@ -23,6 +29,7 @@ async function isValidApiKey(
 export function createDiscordModule(
   service: DiscordService,
   teamGroupsService: DiscordTeamGroupsService,
+  staffDiscordLinkService: StaffDiscordLinkService,
   verifyApiKey: AuthReader["verifyApiKey"],
 ) {
   return new Elysia({ name: "discord" }).group("/api/discord", (app) =>
@@ -83,6 +90,21 @@ export function createDiscordModule(
         }
 
         return { ok: true };
+      })
+      .post("/staff-verify/token", async ({ body, headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const input = staffVerifyTokenCreateInputSchema.safeParse(body);
+        if (!input.success) {
+          return status(400);
+        }
+
+        const { expiresAt, token } = await staffDiscordLinkService.createToken(
+          input.data.discord_user_id,
+        );
+        return { expires_at: expiresAt.toISOString(), token };
       }),
   );
 }

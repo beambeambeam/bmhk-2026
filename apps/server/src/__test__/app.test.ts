@@ -4,6 +4,7 @@ import type {
   DiscordService,
   DiscordTeamGroupsService,
   FileRepository,
+  StaffDiscordLinkService,
   TeamRepository,
 } from "@bmhk-2026/api";
 import { createAppRouter } from "@bmhk-2026/api";
@@ -120,15 +121,28 @@ function createTestVerifyApiKey(): AuthReader["verifyApiKey"] {
     );
 }
 
+function createTestStaffDiscordLinkService(
+  overrides: Partial<StaffDiscordLinkService> = {},
+): StaffDiscordLinkService {
+  return {
+    createToken: async () =>
+      await Promise.resolve({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "abc123" }),
+    link: async () => await Promise.resolve({ status: "SUCCESS" }),
+    ...overrides,
+  };
+}
+
 function createTestApp(
   getSession?: GetSession,
   teamGroupsService: DiscordTeamGroupsService = createTestTeamGroupsService(),
   verifyApiKey: AuthReader["verifyApiKey"] = createTestVerifyApiKey(),
+  staffDiscordLinkService: StaffDiscordLinkService = createTestStaffDiscordLinkService(),
 ) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
     auth: createAuthReader(testAuth.auth),
     files: createTestFileRepository(),
+    staffDiscordLinkService,
     teams: createTestTeamRepository(),
   });
   const store = `server-app-test-${storeSequence}`;
@@ -144,6 +158,7 @@ function createTestApp(
       observability: {
         drain: createMemoryDrain({ store }),
       },
+      staffDiscordLinkService,
       teamGroupsService,
       verifyApiKey,
     }),
@@ -527,5 +542,44 @@ describe("server app", () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  it("rejects a staff-verify token request without a valid api key", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/staff-verify/token", {
+        body: JSON.stringify({ discord_user_id: "discord-1" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("creates a staff-verify token with a valid api key", async () => {
+    const testApp = createTestApp(
+      undefined,
+      undefined,
+      undefined,
+      createTestStaffDiscordLinkService({
+        createToken: async () =>
+          await Promise.resolve({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "abc123" }),
+      }),
+    );
+
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/staff-verify/token", {
+        body: JSON.stringify({ discord_user_id: "discord-1" }),
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toStrictEqual({
+      expires_at: "2026-01-01T00:10:00.000Z",
+      token: "abc123",
+    });
   });
 });

@@ -165,4 +165,5 @@ export type {
 export { createStaffDiscordLinkRepository } from "./features/staff-discord-link/staff-discord-link.repository";
 export { createStaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
 export type { StaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
+export { staffVerifyTokenCreateInputSchema } from "./features/staff-discord-link/staff-discord-link.schema";
 export type { StaffDiscordLinkResult } from "./features/staff-discord-link/staff-discord-link.schema";

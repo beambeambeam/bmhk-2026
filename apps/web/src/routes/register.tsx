@@ -505,9 +505,9 @@ function createFormOptions(
           "guardianConsentObtained",
           getBool(termsData, "privacyPolicyAccepted", false),
         ),
-        healthDataConsent: getBool(termsData, "healthDataConsent", true),
+        healthDataConsent: getBool(termsData, "healthDataConsent", false),
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
-        publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),
+        publicityMediaConsent: getBool(termsData, "publicityMediaConsent", false),
       },
     },
   };

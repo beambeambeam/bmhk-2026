@@ -601,6 +601,34 @@ describe("team registration status router", () => {
     });
   });
 
+  it("submits complete registration when publicity consent is declined", async () => {
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async () => await Promise.resolve("SUBMITTED"),
+    );
+    const router = createRouter({
+      findByTeamId: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          consent: { ...consent, publicityMediaConsent: false },
+        }),
+      submit,
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).resolves.toMatchObject({
+      isComplete: true,
+      submissionState: "SUBMITTED",
+      teamId: TEAM_ID,
+    });
+    expect(submit).toHaveBeenCalledOnce();
+  });
+
   it("preserves structured repository failures", async () => {
     const router = createRouter({
       findByOwnerId: async () =>

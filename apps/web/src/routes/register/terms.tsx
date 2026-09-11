@@ -39,10 +39,20 @@ export const termsSchema = z.object({
   codernTermsAccepted: z.literal(true, { message: "กรุณายอมรับข้อกำหนดการใช้งาน Codern" }),
   competitionRulesAccepted: z.literal(true, { message: "กรุณายอมรับกฏกติกาการแข่งขัน" }),
   guardianConsentObtained: z.boolean().optional(),
-  healthDataConsent: z.boolean().optional(),
+  healthDataConsent: z.literal(true, { message: "กรุณายอมรับข้อมูลสุขภาพและอาหาร" }),
   privacyPolicyAccepted: z.literal(true, { message: "กรุณายอมรับนโยบายความเป็นส่วนตัว" }),
-  publicityMediaConsent: z.boolean().optional(),
+  publicityMediaConsent: z.boolean().default(false),
 });
+
+export function parseTeamConsentData(terms: RegistrationFormData["terms"]) {
+  const validTermsData = termsSchema.parse({
+    ...terms,
+    guardianConsentObtained: terms.privacyPolicyAccepted,
+  });
+  const { TermOfServicesAccepted: _TermOfServicesAccepted, ...apiConsents } = validTermsData;
+
+  return apiConsents;
+}
 
 /**
  * Figma `2053:159` (`Frame 2043683181`), a 928x100 clip holding three rounded sheets.

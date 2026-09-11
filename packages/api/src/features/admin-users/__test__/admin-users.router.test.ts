@@ -8,6 +8,7 @@ import {
   createTestAuthReader,
   createTestContext,
   createTestSession,
+  createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
 import { createAdminUserRepositoryError } from "../admin-users.errors";
 
@@ -41,6 +42,7 @@ function createRouter(
   return createAppRouter({
     adminUsers: repository,
     auth,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
   }).adminUsers;
 }
 

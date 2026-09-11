@@ -7,6 +7,7 @@ import {
   createTestAuthReader,
   createTestContext,
   createTestSession,
+  createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
 
 const ACTOR_ID = "staff-1";
@@ -26,7 +27,11 @@ function createRouter(
     createTestSession({ user: { id: ACTOR_ID, role: "registrationStaff" } }),
   ),
 ) {
-  return createAppRouter({ auth, staffCheckIns: repository }).staffCheckIns;
+  return createAppRouter({
+    auth,
+    staffCheckIns: repository,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
+  }).staffCheckIns;
 }
 
 describe("staff check-ins router", () => {

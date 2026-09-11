@@ -8,6 +8,7 @@ import type {
   StaffOverseerGroupLookup,
   StaffOverseersRepository,
 } from "../features/staff-overseers/staff-overseers.repository";
+import type { StaffDiscordLinkService } from "../features/staff-discord-link/staff-discord-link.service";
 
 import {
   createTestAuthReader,
@@ -26,6 +27,11 @@ function createRouter(auth: AuthReader) {
   return createAppRouter({
     auth,
     files: createUnusedFileRepository(),
+    staffDiscordLinkService: {
+      createToken: async () => await Promise.resolve({ expiresAt: new Date(), token: "unused" }),
+      link: async () =>
+        await Promise.reject(new Error("StaffDiscordLinkService.link was called unexpectedly")),
+    },
     teams: createUnusedTeamRepository(),
   });
 }
@@ -100,6 +106,13 @@ describe("API router", () => {
   });
 });
 
+function createFakeStaffDiscordLinkService(): StaffDiscordLinkService {
+  return {
+    createToken: async () => await Promise.resolve({ expiresAt: new Date(), token: "unused" }),
+    link: async () => await Promise.resolve({ status: "SUCCESS" }),
+  };
+}
+
 function createFakeStaffOverseersRepository(): StaffOverseersRepository {
   const groups = new Map<number, StaffOverseerGroupLookup>([
     [1, { id: "group-1", index: 1, name: "หมวดที่ 1" }],
@@ -139,6 +152,7 @@ describe("staffOverseers router", () => {
     const router = createAppRouter({
       auth: createTestAuthReader(createTestSession({ user: { role: "staff" } })),
       files: createUnusedFileRepository(),
+      staffDiscordLinkService: createFakeStaffDiscordLinkService(),
       staffOverseers: createFakeStaffOverseersRepository(),
       teams: createUnusedTeamRepository(),
     });
@@ -159,6 +173,7 @@ describe("staffOverseers router", () => {
     const router = createAppRouter({
       auth: createTestAuthReader(createTestSession({ user: { role: "admin" } })),
       files: createUnusedFileRepository(),
+      staffDiscordLinkService: createFakeStaffDiscordLinkService(),
       staffOverseers: createFakeStaffOverseersRepository(),
       teams: createUnusedTeamRepository(),
     });
@@ -172,5 +187,47 @@ describe("staffOverseers router", () => {
     expect(result).toStrictEqual([
       { email: "known@kmutt.ac.th", outcome: "assigned", teamsGroupIndex: 1 },
     ]);
+  });
+});
+
+describe("staffDiscordLink router", () => {
+  it("rejects link without a session", async () => {
+    const router = createAppRouter({
+      auth: createTestAuthReader(null),
+      files: createUnusedFileRepository(),
+      staffDiscordLinkService: createFakeStaffDiscordLinkService(),
+      teams: createUnusedTeamRepository(),
+    });
+
+    await expect(
+      call(
+        router.staffDiscordLink.link,
+        { token: "any" },
+        {
+          context: createTestContext().context,
+          path: ["staffDiscordLink", "link"],
+        },
+      ),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("links a staff session", async () => {
+    const router = createAppRouter({
+      auth: createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      files: createUnusedFileRepository(),
+      staffDiscordLinkService: createFakeStaffDiscordLinkService(),
+      teams: createUnusedTeamRepository(),
+    });
+
+    const result = await call(
+      router.staffDiscordLink.link,
+      { token: "good-token" },
+      {
+        context: createTestContext().context,
+        path: ["staffDiscordLink", "link"],
+      },
+    );
+
+    expect(result).toStrictEqual({ status: "SUCCESS" });
   });
 });

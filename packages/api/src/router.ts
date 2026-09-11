@@ -57,6 +57,8 @@ import type { StaffOverseersRepository } from "./features/staff-overseers/staff-
 import { createStaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
 import { createStaffOverseersRouter } from "./features/staff-overseers/staff-overseers.router";
 import { createStaffOverseersService } from "./features/staff-overseers/staff-overseers.service";
+import type { StaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
+import { createStaffDiscordLinkRouter } from "./features/staff-discord-link/staff-discord-link.router";
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
@@ -75,6 +77,7 @@ export interface ApiDependencies {
   staffCheckIns?: StaffCheckInRepository;
   participantCheckIns?: ParticipantCheckInRepository;
   staffOverseers?: StaffOverseersRepository;
+  staffDiscordLinkService: StaffDiscordLinkService;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -125,6 +128,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
     staffCheckIns: createStaffCheckInsRouter(
       staffProcedure,
       createStaffCheckInService(staffCheckInRepository),
+    ),
+    staffDiscordLink: createStaffDiscordLinkRouter(
+      protectedProcedure,
+      dependencies.staffDiscordLinkService,
     ),
     staffOverseers: createStaffOverseersRouter(
       adminProcedure,

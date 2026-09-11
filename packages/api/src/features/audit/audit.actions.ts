@@ -139,3 +139,10 @@ export const staffOverseerAssignedAudit = defineAuditAction("staff-overseer.assi
   severity: "critical",
   target: "staff-overseer",
 });
+
+export const staffDiscordLinkedAudit = defineAuditAction("staff-discord.linked", {
+  description: "A staff member linked their Discord account and had bot permissions applied",
+  requiresChanges: true,
+  severity: "critical",
+  target: "staff-discord-link",
+});

@@ -3,12 +3,17 @@ import { Temporal } from "temporal-polyfill";
 import { describe, expect, it } from "vitest";
 
 import { createAppRouter } from "../../../index";
-import { createTestAuthReader, createTestContext } from "../../../__test__/test-support";
+import {
+  createTestAuthReader,
+  createTestContext,
+  createUnusedStaffDiscordLinkService,
+} from "../../../__test__/test-support";
 
 function createRouter(now: string, authenticated = true) {
   return createAppRouter({
     auth: createTestAuthReader(authenticated ? undefined : null),
     featureFlagClock: () => Temporal.Instant.from(now),
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
   });
 }
 

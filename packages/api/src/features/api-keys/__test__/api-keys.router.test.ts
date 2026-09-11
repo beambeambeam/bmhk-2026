@@ -8,6 +8,7 @@ import {
   createTestAuthReader,
   createTestContext,
   createTestSession,
+  createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
 
 const ACTOR_ID = "admin-1";
@@ -28,6 +29,7 @@ function createRouter(
   return createAppRouter({
     apiKeys: repository,
     auth,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
   }).apiKeys;
 }
 

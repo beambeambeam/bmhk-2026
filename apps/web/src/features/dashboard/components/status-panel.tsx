@@ -213,12 +213,22 @@ function Badge({ tone, compact = false }: { tone: StepTone; compact?: boolean })
   );
 }
 
-function Row({ title, label, tone }: { title: string; label: string; tone: StepTone }) {
+function Row({
+  title,
+  name,
+  label,
+  tone,
+}: {
+  title: string;
+  name: string;
+  label: string;
+  tone: StepTone;
+}) {
   return (
     <div className="flex w-full items-center gap-[8px]">
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <p className="fl-14 leading-normal">{title}</p>
-        <p className="fl-12 leading-normal text-gray-2">ชื่อ-สกุล</p>
+        <p className="fl-12 leading-normal text-gray-2">{name}</p>
       </div>
       <p className={`shrink-0 fl-14 leading-normal ${LABEL_COLOR[tone]}`}>{label}</p>
     </div>

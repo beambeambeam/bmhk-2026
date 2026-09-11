@@ -197,7 +197,7 @@ export interface StatusStep {
   label?: string;
   tone: StepTone;
   compact?: boolean;
-  rows?: { title: string; label: string; tone: StepTone }[];
+  rows?: { title: string; name: string; label: string; tone: StepTone }[];
   contact?: boolean;
 }
 
@@ -290,6 +290,7 @@ export function getStatusSteps(
 
     return {
       label: reason ?? getFeedbackStatusLabel(rawStatus),
+      name: formatPersonName(m.titleTh, m.firstNameTh, m.middleNameTh, m.lastNameTh),
       title: m.tab,
       tone: getFeedbackStatusTone(rawStatus),
     };

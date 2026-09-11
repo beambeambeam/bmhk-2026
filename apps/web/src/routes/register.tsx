@@ -127,9 +127,10 @@ export function getExpectedNextStep(form: RegisterFormApi): string {
     terms?.privacyPolicyAccepted &&
     terms?.codernTermsAccepted &&
     terms?.competitionRulesAccepted &&
-    terms?.TermOfServicesAccepted;
+    terms?.TermOfServicesAccepted &&
+    terms?.healthDataConsent;
 
-  if (!isTermsComplete && !status?.teamId) {
+  if (!isTermsComplete) {
     return "/register/terms";
   }
 
@@ -169,7 +170,11 @@ export function getExpectedNextStep(form: RegisterFormApi): string {
     }
   }
 
-  return "/register/success";
+  if (status?.submissionState === "SUBMITTED") {
+    return "/register/success";
+  }
+
+  return teamSize === 3 ? "/register/entrant/3" : "/register/entrant/2";
 }
 
 export const STEP_RANKS: Record<string, number> = {
@@ -201,8 +206,8 @@ export const Route = createFileRoute("/register")({
       if (
         statusRes !== null &&
         typeof statusRes === "object" &&
-        "isComplete" in statusRes &&
-        statusRes.isComplete === true
+        "submissionState" in statusRes &&
+        statusRes.submissionState === "SUBMITTED"
       ) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
         throw redirect({ to: "/my-team" as any });
@@ -505,9 +510,9 @@ function createFormOptions(
           "guardianConsentObtained",
           getBool(termsData, "privacyPolicyAccepted", false),
         ),
-        healthDataConsent: getBool(termsData, "healthDataConsent", true),
+        healthDataConsent: getBool(termsData, "healthDataConsent", false),
         privacyPolicyAccepted: getBool(termsData, "privacyPolicyAccepted", false),
-        publicityMediaConsent: getBool(termsData, "publicityMediaConsent", true),
+        publicityMediaConsent: getBool(termsData, "publicityMediaConsent", false),
       },
     },
   };

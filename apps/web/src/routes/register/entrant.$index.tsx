@@ -22,7 +22,7 @@ import WizardShell, {
   STEP_GLYPH,
   STEP_ARROW,
 } from "@/components/form/wizard-shell";
-import { termsSchema } from "./terms";
+import { parseTeamConsentData } from "./terms";
 
 /* eslint-disable @typescript-eslint/no-deprecated */
 /* oxlint-disable typescript(no-deprecated) */
@@ -264,9 +264,7 @@ function EntrantNextButton({
 
             if (isLast) {
               const terms = form.getFieldValue("terms");
-              const validTermsData = termsSchema.parse(terms);
-              const { TermOfServicesAccepted: _TermOfServicesAccepted, ...apiConsents } =
-                validTermsData;
+              const apiConsents = parseTeamConsentData(terms);
 
               let finalConsentsResult;
               try {
@@ -283,6 +281,7 @@ function EntrantNextButton({
 
               form.setFieldValue("terms", {
                 ...terms,
+                ...apiConsents,
                 ...finalConsentsResult,
               });
 

@@ -183,7 +183,7 @@ function getGmailTemplateUrl({
   teamName: string;
 }): string {
   const subject = `ติดต่อแก้ไขข้อมูลเอกสาร ทีม ${teamName}`;
-  const body = `ชื่อทีม: ${teamName}\nรหัสทีม: ${teamCode}\nข้อมูล/เอกสารที่ต้องการแก้ไข: ${issueList}\n---\nอื่น ๆ (ถ้ามี):\n`;
+  const body = `ชื่อทีม : ${teamName}\nรหัสทีม : ${teamCode}\nข้อมูล/เอกสารที่ต้องการแก้ไข : ${issueList}\n---\nข้อมูลสำหรับแก้ไข (หากเป็นเอกสารโปรดแนบไฟล์) :\n\nอื่น ๆ (ถ้ามี) :\n`;
 
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
     CONTACT_EMAIL,
@@ -301,7 +301,7 @@ function Step({
                 className="mm-press flex min-w-0 flex-1 items-center justify-center rounded-[10px] bg-[#f6f6f6] px-[16px] py-[6px] transition-colors hover:bg-[#ececec]"
               >
                 <Mail className="mr-2 size-5" />
-                <span className="text-sm">ติดต่อทีมงาน</span>
+                <span className="text-sm">ติดต่อทีมงานเพื่อแก้ไข</span>
               </a>
             </div>
           </div>

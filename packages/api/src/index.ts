@@ -127,3 +127,22 @@ export type {
   DiscordVerifyInput,
   DiscordVerifyResponse,
 } from "./features/discord/discord.schema";
+export { createDiscordTeamGroupsRepository } from "./features/discord-team-groups/discord-team-groups.repository";
+export type {
+  DiscordTeamGroupMemberRecord,
+  DiscordTeamGroupRecord,
+  DiscordTeamGroupsRepository,
+} from "./features/discord-team-groups/discord-team-groups.repository";
+export {
+  discordTeamGroupCategoryInputSchema,
+  discordTeamGroupMemberChannelInputSchema,
+} from "./features/discord-team-groups/discord-team-groups.schema";
+export type {
+  DiscordTeamGroupCategoryInput,
+  DiscordTeamGroupMemberChannelInput,
+  DiscordTeamGroupMemberResponse,
+  DiscordTeamGroupResponse,
+  DiscordTeamGroupsListResponse,
+} from "./features/discord-team-groups/discord-team-groups.schema";
+export { createDiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
+export type { DiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";

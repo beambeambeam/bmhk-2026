@@ -1,3 +1,5 @@
+import { serverFetch } from "../lib/server-fetch.js";
+
 // Wire contract mirrors packages/api/src/features/discord/discord.schema.ts.
 // Defined locally (not imported) because apps/discord must not depend on
 // @bmhk-2026/api directly — see apps/discord/AGENTS.md.
@@ -22,27 +24,20 @@ export interface BMHKDiscordQueryResponse {
 export interface BMHKDiscordVerifyResponse {
   status: BMHKDiscordStatus;
   nickname: string | null;
+  channel_id: string | null;
 }
 
-// ponytail: mocked, replace with real fetch against apps/server once the two
-// interaction-side tasks land.
-export async function queryDiscordCode(_code: string): Promise<BMHKDiscordQueryResponse> {
-  return await Promise.resolve({
-    data: {
-      main_acc_id: null,
-      name: "เมทิกา สุทธิวรากุล",
-      school: "เตรียมอุดมศึกษา",
-      team: "แก๊งน้องห่าน",
-    },
-    status: bmhkDiscordStatus.SUCCESS,
-  });
+export async function queryDiscordCode(code: string): Promise<BMHKDiscordQueryResponse> {
+  const response = await serverFetch(`/api/discord/query?code=${encodeURIComponent(code)}`);
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  return (await response.json()) as BMHKDiscordQueryResponse;
 }
 
-// ponytail: mocked, replace with real fetch against apps/server once the two
-// interaction-side tasks land.
-export async function verifyDiscordCode(_code: string): Promise<BMHKDiscordVerifyResponse> {
-  return await Promise.resolve({
-    nickname: "1 - แก๊งน้องห่าน - เมทิกา",
-    status: bmhkDiscordStatus.SUCCESS,
+export async function verifyDiscordCode(code: string): Promise<BMHKDiscordVerifyResponse> {
+  const response = await serverFetch("/api/discord/verify", {
+    body: JSON.stringify({ code }),
+    method: "POST",
   });
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  return (await response.json()) as BMHKDiscordVerifyResponse;
 }

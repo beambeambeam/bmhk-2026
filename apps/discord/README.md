@@ -18,6 +18,13 @@ cp .env.example .env
 | `DISCORD_GUILD_ID`            | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`.                                                                                                                                     |
 | `GLOBAL`                      | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development.                                                                 |
 | `DISCORD_PARTICIPANT_ROLE_ID` | no       | Role ID granted to a participant after `/verify` succeeds. Only a fallback — the bot prefers the `participantRole` value in the settings store, which an admin sets in-server. Handy for testing `/verify` before that setting exists. |
+| `SERVER_BASE_URL`             | yes      | Base URL of the `apps/server` deployment this bot talks to (e.g. `http://localhost:3000` in development).                                                                                                                              |
+| `SERVER_API_KEY`              | yes      | API key for `apps/server`'s discord team-group routes. Create one for a dedicated admin/service account via the "API keys" page under `/admin/api-keys` in `apps/staff`, then paste it here.                                           |
+
+The discord bot and `apps/server` deploy as separate compose stacks/containers, so
+`SERVER_BASE_URL` must resolve to wherever the server is actually reachable from the
+bot's container network — an internal service DNS name or a public URL, depending on
+the environment — pick the right one when setting up staging/production.
 
 Before the bot can read message content or see full member lists, enable
 **Server Members Intent** and **Message Content Intent** under your

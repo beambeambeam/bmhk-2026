@@ -4,6 +4,9 @@
   "exports": {
     ".": {
       "default": "./src/index.ts"
+    },
+    "./teams/rules": {
+      "default": "./src/features/teams/teams.rules.ts"
     }
   },
   "scripts": {

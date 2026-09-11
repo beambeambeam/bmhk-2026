@@ -88,9 +88,13 @@ describe("team registration reviews router", () => {
       ),
     ).resolves.toStrictEqual({
       advisor: "CHANGES_REQUESTED",
+      advisorIssueCodes: ["IDENTITY_DOCUMENT_UNREADABLE"],
       participant1: "APPROVED",
+      participant1IssueCodes: [],
       participant2: "CHANGES_REQUESTED",
+      participant2IssueCodes: ["ACADEMIC_RECORD_MISSING"],
       participant3: "APPROVED",
+      participant3IssueCodes: [],
       status: "CHANGES_REQUESTED",
       statusUpdatedAt: REVIEWED_AT,
     });
@@ -115,9 +119,13 @@ describe("team registration reviews router", () => {
       ),
     ).resolves.toStrictEqual({
       advisor: "PENDING_REVIEW",
+      advisorIssueCodes: [],
       participant1: "PENDING_REVIEW",
+      participant1IssueCodes: [],
       participant2: "PENDING_REVIEW",
+      participant2IssueCodes: [],
       participant3: "PENDING_REVIEW",
+      participant3IssueCodes: [],
       status: "PENDING_REVIEW",
       statusUpdatedAt: null,
     });
@@ -151,9 +159,13 @@ describe("team registration reviews router", () => {
       ),
     ).resolves.toStrictEqual({
       advisor: "APPROVED",
+      advisorIssueCodes: [],
       participant1: "APPROVED",
+      participant1IssueCodes: [],
       participant2: "APPROVED",
+      participant2IssueCodes: [],
       participant3: "APPROVED",
+      participant3IssueCodes: [],
       status: "APPROVED",
       statusUpdatedAt: REVIEWED_AT,
     });
@@ -181,9 +193,13 @@ describe("team registration reviews router", () => {
       ),
     ).resolves.toStrictEqual({
       advisor: "PENDING_REVIEW",
+      advisorIssueCodes: [],
       participant1: "APPROVED",
+      participant1IssueCodes: [],
       participant2: "PENDING_REVIEW",
+      participant2IssueCodes: [],
       participant3: "PENDING_REVIEW",
+      participant3IssueCodes: [],
       status: "APPROVED",
       statusUpdatedAt: REVIEWED_AT,
     });

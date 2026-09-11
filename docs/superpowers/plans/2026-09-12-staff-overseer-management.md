@@ -84,12 +84,14 @@ Each responsibility gets its own file, matching the existing per-feature-slice l
 ### Task 1: Add staff-link, verify-token, and overseer-import-backlog tables
 
 **Files:**
+
 - Create: `packages/db/src/schema/staff-discord-links.ts`
 - Create: `packages/db/src/schema/staff-verify-tokens.ts`
 - Create: `packages/db/src/schema/staff-overseer-import-backlog.ts`
 - Modify: `packages/db/src/schema/index.ts`
 
 **Interfaces:**
+
 - Produces: `staffDiscordLinks` table (`userId` unique, `discordUserId` unique), `StaffDiscordLink`/`NewStaffDiscordLink` types; `staffVerifyTokens` table (`token` unique), `StaffVerifyToken`/`NewStaffVerifyToken` types; `staffOverseerImportBacklog` table (`groupId` FK → `discordTeamGroups.id`), `StaffOverseerImportBacklogEntry`/`NewStaffOverseerImportBacklogEntry` types. All later tasks import from these three files.
 
 - [ ] **Step 1: Write the schema files**
@@ -219,10 +221,12 @@ git commit -m "feat(db): add staff discord link, verify token, and overseer impo
 ### Task 2: `staff-overseers` schema and errors
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-overseers/staff-overseers.schema.ts`
 - Create: `packages/api/src/features/staff-overseers/staff-overseers.errors.ts`
 
 **Interfaces:**
+
 - Consumes: nothing new.
 - Produces: `staffOverseerImportRowSchema`, `staffOverseerImportInputSchema`, `staffOverseerImportRowOutcomeSchema`, `staffOverseerImportResultSchema`, `staffOverseerSchema`, `staffOverseerListSchema`, `staffOverseerBacklogEntrySchema`, `staffOverseerBacklogListSchema`, `staffOverseerBacklogRetryInputSchema`, `staffOverseerBacklogRetryResultSchema`, `staffOverseerBacklogRetryResultListSchema` and their `z.output` types; `staffOverseersRepositoryError` descriptor. Used by Tasks 3–5.
 
@@ -356,9 +360,11 @@ git commit -m "feat(api): add staff overseers schema and error descriptor"
 ### Task 3: `staff-overseers` repository
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-overseers/staff-overseers.repository.ts`
 
 **Interfaces:**
+
 - Consumes: `discordTeamGroupOverseers`, `discordTeamGroups`, `staffOverseerImportBacklog`, `user` from `@bmhk-2026/db/schema/*`; `createRepositoryExecutor` from `../../core/repository`; `staffOverseersRepositoryError` from Task 2.
 - Produces: `StaffOverseersRepository` interface with `findUserByEmail`, `findGroupByIndex`, `assignOverseer`, `addBacklogEntry`, `listOverseers`, `listBacklog`, `removeBacklogEntry`, `findBacklogEntry`; `createStaffOverseersRepository(database?)` factory. Consumed by Task 4's service and Task 5's router wiring in `router.ts`.
 
@@ -415,9 +421,7 @@ export interface StaffOverseersRepository {
 
 type Database = typeof db;
 
-export function createStaffOverseersRepository(
-  database: Database = db,
-): StaffOverseersRepository {
+export function createStaffOverseersRepository(database: Database = db): StaffOverseersRepository {
   const execute = createRepositoryExecutor(staffOverseersRepositoryError);
 
   return {
@@ -451,7 +455,10 @@ export function createStaffOverseersRepository(
             id: staffOverseerImportBacklog.id,
           })
           .from(staffOverseerImportBacklog)
-          .innerJoin(discordTeamGroups, eq(discordTeamGroups.id, staffOverseerImportBacklog.groupId))
+          .innerJoin(
+            discordTeamGroups,
+            eq(discordTeamGroups.id, staffOverseerImportBacklog.groupId),
+          )
           .where(eq(staffOverseerImportBacklog.id, id))
           .limit(1);
 
@@ -460,7 +467,11 @@ export function createStaffOverseersRepository(
     findGroupByIndex: async (index) =>
       await execute(async () => {
         const [row] = await database
-          .select({ id: discordTeamGroups.id, index: discordTeamGroups.index, name: discordTeamGroups.name })
+          .select({
+            id: discordTeamGroups.id,
+            index: discordTeamGroups.index,
+            name: discordTeamGroups.name,
+          })
           .from(discordTeamGroups)
           .where(eq(discordTeamGroups.index, index))
           .limit(1);
@@ -507,12 +518,17 @@ export function createStaffOverseersRepository(
               userName: user.name,
             })
             .from(discordTeamGroupOverseers)
-            .innerJoin(discordTeamGroups, eq(discordTeamGroups.id, discordTeamGroupOverseers.groupId))
+            .innerJoin(
+              discordTeamGroups,
+              eq(discordTeamGroups.id, discordTeamGroupOverseers.groupId),
+            )
             .innerJoin(user, eq(user.id, discordTeamGroupOverseers.userId)),
       ),
     removeBacklogEntry: async (id) =>
       await execute(async () => {
-        await database.delete(staffOverseerImportBacklog).where(eq(staffOverseerImportBacklog.id, id));
+        await database
+          .delete(staffOverseerImportBacklog)
+          .where(eq(staffOverseerImportBacklog.id, id));
       }),
   };
 }
@@ -538,10 +554,12 @@ git commit -m "feat(api): add staff overseers repository"
 ### Task 4: `staff-overseers` service (TDD)
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-overseers/staff-overseers.service.ts`
 - Test: `packages/api/src/features/staff-overseers/__test__/staff-overseers.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: `StaffOverseersRepository` from Task 3.
 - Produces: `StaffOverseersService` interface (`importRows`, `retryBacklogEntry`, `retryAllBacklog`, `listOverseers`, `listBacklog`) and `createStaffOverseersService(repository)`. Consumed by Task 5's router.
 
@@ -629,9 +647,7 @@ describe(createStaffOverseersService, () => {
     const { backlogEntries, repository } = createFakeRepository();
     const service = createStaffOverseersService(repository);
 
-    const result = await service.importRows([
-      { email: "unknown@kmutt.ac.th", teamsGroupIndex: 1 },
-    ]);
+    const result = await service.importRows([{ email: "unknown@kmutt.ac.th", teamsGroupIndex: 1 }]);
 
     expect(result).toStrictEqual([
       { email: "unknown@kmutt.ac.th", outcome: "backlogged", teamsGroupIndex: 1 },
@@ -828,6 +844,7 @@ git commit -m "feat(api): add staff overseers import/backlog service"
 ### Task 5: `staff-overseers` router, audit action, and package wiring
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-overseers/staff-overseers.router.ts`
 - Modify: `packages/api/src/features/audit/audit.actions.ts`
 - Modify: `packages/api/src/router.ts`
@@ -835,6 +852,7 @@ git commit -m "feat(api): add staff overseers import/backlog service"
 - Test: `packages/api/src/__test__/router.test.ts` (extend existing file)
 
 **Interfaces:**
+
 - Consumes: `AdminProcedure` from `../../core/procedure`; `StaffOverseersService` from Task 4; `executeAudited` from `../audit/audit.service`.
 - Produces: `createStaffOverseersRouter(adminProcedure, service)`, registered in `createAppRouter()` under the `staffOverseers` key with sub-procedures `importRows`, `listOverseers`, `listBacklog`, `retryBacklogEntry`, `retryAllBacklog`. Consumed by Task 7 (apps/staff UI) via the oRPC client.
 
@@ -990,7 +1008,11 @@ export type {
 `packages/api/src/__test__/router.test.ts` already has the exact pattern to follow: it uses `call()` from `@orpc/server`, plus `createTestAuthReader`/`createTestSession`/`createTestContext`/`createUnusedFileRepository`/`createUnusedTeamRepository` from `./test-support`, and a local `createRouter(auth)` helper. Add a small fake repository and two tests, matching that exact shape:
 
 ```ts
-import type { StaffOverseerBacklogRecord, StaffOverseerGroupLookup, StaffOverseersRepository } from "../features/staff-overseers/staff-overseers.repository";
+import type {
+  StaffOverseerBacklogRecord,
+  StaffOverseerGroupLookup,
+  StaffOverseersRepository,
+} from "../features/staff-overseers/staff-overseers.repository";
 
 function createFakeStaffOverseersRepository(): StaffOverseersRepository {
   const groups = new Map<number, StaffOverseerGroupLookup>([
@@ -1001,7 +1023,14 @@ function createFakeStaffOverseersRepository(): StaffOverseersRepository {
 
   return {
     addBacklogEntry: async (email, groupId) => {
-      backlog.push({ createdAt: new Date(), email, groupId, groupIndex: 1, groupName: "หมวดที่ 1", id: "backlog-1" });
+      backlog.push({
+        createdAt: new Date(),
+        email,
+        groupId,
+        groupIndex: 1,
+        groupName: "หมวดที่ 1",
+        id: "backlog-1",
+      });
       await Promise.resolve();
     },
     assignOverseer: async () => await Promise.resolve(),
@@ -1024,10 +1053,14 @@ describe("staffOverseers router", () => {
     });
 
     await expect(
-      call(router.staffOverseers.importRows, { rows: [{ email: "a@kmutt.ac.th", teamsGroupIndex: 1 }] }, {
-        context: createTestContext().context,
-        path: ["staffOverseers", "importRows"],
-      }),
+      call(
+        router.staffOverseers.importRows,
+        { rows: [{ email: "a@kmutt.ac.th", teamsGroupIndex: 1 }] },
+        {
+          context: createTestContext().context,
+          path: ["staffOverseers", "importRows"],
+        },
+      ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
@@ -1085,11 +1118,13 @@ git commit -m "feat(api): expose staff overseers import router with audit loggin
 ### Task 6: CSV parsing (apps/staff, TDD)
 
 **Files:**
+
 - Create: `apps/staff/src/features/admin/staff-overseers/parse-csv.ts`
 - Test: `apps/staff/src/features/admin/staff-overseers/__test__/parse-csv.test.ts`
 - Modify: `apps/staff/package.json`
 
 **Interfaces:**
+
 - Produces: `parseStaffOverseerCsv(csvText: string): { rows: StaffOverseerCsvRow[]; errors: string[] }`, `StaffOverseerCsvRow` type. Consumed by Task 7's import form.
 
 - [ ] **Step 1: Add the CSV parsing dependency**
@@ -1134,9 +1169,7 @@ describe(parseStaffOverseerCsv, () => {
     const result = parseStaffOverseerCsv(csv);
 
     expect(result.rows).toStrictEqual([]);
-    expect(result.errors).toStrictEqual([
-      'Row 1: invalid "bad@kmutt.ac.th,not-a-number"',
-    ]);
+    expect(result.errors).toStrictEqual(['Row 1: invalid "bad@kmutt.ac.th,not-a-number"']);
   });
 
   it("reports a row with a missing email as an error", () => {
@@ -1221,6 +1254,7 @@ git commit -m "feat(staff): add staff overseer CSV parsing"
 ### Task 7: Admin overseer import page (apps/staff)
 
 **Files:**
+
 - Create: `apps/staff/src/routes/_auth/admin/staff-overseers.tsx`
 - Create: `apps/staff/src/features/admin/staff-overseers/index.tsx`
 - Create: `apps/staff/src/features/admin/staff-overseers/import-form.tsx`
@@ -1229,6 +1263,7 @@ git commit -m "feat(staff): add staff overseer CSV parsing"
 - Modify: `packages/client/src/query-options.ts`
 
 **Interfaces:**
+
 - Consumes: `orpc.staffOverseers.*` from `@bmhk-2026/client/orpc` (Task 5); `parseStaffOverseerCsv` from Task 6; `Card`/`Table`/`Button` primitives from `@/components/*`.
 - Produces: the `/admin/staff-overseers` route, rendering the import form + overseers table + backlog table. No downstream task depends on this one.
 
@@ -1299,7 +1334,10 @@ import { Button } from "@/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import type { StaffOverseerBacklogEntry } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
-import { getStaffOverseersBacklogQueryOptions, getStaffOverseersListQueryOptions } from "@bmhk-2026/client/query-options";
+import {
+  getStaffOverseersBacklogQueryOptions,
+  getStaffOverseersListQueryOptions,
+} from "@bmhk-2026/client/query-options";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -1517,7 +1555,9 @@ function StaffOverseersAdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Backlog</CardTitle>
-          <CardDescription>Rows imported before the matching staff account existed.</CardDescription>
+          <CardDescription>
+            Rows imported before the matching staff account existed.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <StaffOverseersBacklogTable entries={backlogQuery.data ?? []} />
@@ -1573,10 +1613,12 @@ git commit -m "feat(staff): add admin staff overseer CSV import page"
 ### Task 8: `staff-discord-link` schema and errors
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-discord-link/staff-discord-link.schema.ts`
 - Create: `packages/api/src/features/staff-discord-link/staff-discord-link.errors.ts`
 
 **Interfaces:**
+
 - Produces: `staffVerifyTokenCreateInputSchema`, `staffVerifyTokenCreateResponseSchema`, `staffDiscordLinkInputSchema`, `staffDiscordLinkStatus` const + `StaffDiscordLinkStatus` type, `staffDiscordLinkResultSchema`, and their `z.output` types; `staffDiscordLinkRepositoryError` descriptor. Consumed by Tasks 9–12.
 
 - [ ] **Step 1: Write the schema file**
@@ -1664,9 +1706,11 @@ git commit -m "feat(api): add staff discord link schema and error descriptor"
 ### Task 9: `staff-discord-link` repository
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-discord-link/staff-discord-link.repository.ts`
 
 **Interfaces:**
+
 - Consumes: `staffDiscordLinks`, `staffVerifyTokens`, `discordTeamGroupOverseers`, `discordTeamGroups` from `@bmhk-2026/db/schema/*`.
 - Produces: `StaffDiscordLinkRepository` interface (`createToken`, `consumeToken`, `findLinkByUserId`, `findLinkByDiscordUserId`, `upsertLink`, `findOverseerGroup`) and `createStaffDiscordLinkRepository(database?)`. Consumed by Task 10's service.
 
@@ -1792,11 +1836,13 @@ git commit -m "feat(api): add staff discord link repository"
 ### Task 10: `staff-discord-link` service (TDD) — the core decision logic
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-discord-link/discord-bot-gateway.ts`
 - Create: `packages/api/src/features/staff-discord-link/staff-discord-link.service.ts`
 - Test: `packages/api/src/features/staff-discord-link/__test__/staff-discord-link.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: `StaffDiscordLinkRepository` from Task 9.
 - Produces: `DiscordBotGateway` port + `createFetchDiscordBotGateway(config)`; `StaffDiscordLinkService` interface (`createToken`, `link`) and `createStaffDiscordLinkService(repository, gateway)`. Consumed by Task 12's router and Task 14's REST wiring.
 
@@ -1852,7 +1898,10 @@ import { describe, expect, it } from "vitest";
 
 import type { DiscordBotGateway } from "../discord-bot-gateway";
 import { createStaffDiscordLinkService } from "../staff-discord-link.service";
-import type { StaffDiscordLinkRepository, StaffOverseerGroup } from "../staff-discord-link.repository";
+import type {
+  StaffDiscordLinkRepository,
+  StaffOverseerGroup,
+} from "../staff-discord-link.repository";
 
 function createFakeRepository(overrides: Partial<StaffDiscordLinkRepository> = {}): {
   links: { discordUserId: string; userId: string }[];
@@ -2005,7 +2054,12 @@ describe(createStaffDiscordLinkService, () => {
 
     expect(result).toStrictEqual({ status: "SUCCESS" });
     expect(applied).toStrictEqual([
-      { categoryId: "category-9", discordUserId: "discord-1", isAdmin: false, nickname: "[3] Somchai" },
+      {
+        categoryId: "category-9",
+        discordUserId: "discord-1",
+        isAdmin: false,
+        nickname: "[3] Somchai",
+      },
     ]);
   });
 
@@ -2198,6 +2252,7 @@ git commit -m "feat(api): add staff discord link service with bucket resolution"
 ### Task 11: `staff-discord-link` router, audit action, and package wiring
 
 **Files:**
+
 - Create: `packages/api/src/features/staff-discord-link/staff-discord-link.router.ts`
 - Modify: `packages/api/src/features/audit/audit.actions.ts`
 - Modify: `packages/api/src/router.ts`
@@ -2205,6 +2260,7 @@ git commit -m "feat(api): add staff discord link service with bucket resolution"
 - Test: `packages/api/src/__test__/router.test.ts` (extend)
 
 **Interfaces:**
+
 - Consumes: `ProtectedProcedure` from `../../core/procedure`; `StaffDiscordLinkService` from Task 10.
 - Produces: `createStaffDiscordLinkRouter(protectedProcedure, service)`, registered under `staffDiscordLink.link`. Consumed by Task 20 (apps/staff verify page).
 
@@ -2231,7 +2287,10 @@ export const staffDiscordLinkedAudit = defineAuditAction("staff-discord.linked",
 import type { ProtectedProcedure } from "../../core/procedure";
 import { staffDiscordLinkedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
-import { staffDiscordLinkInputSchema, staffDiscordLinkResultSchema } from "./staff-discord-link.schema";
+import {
+  staffDiscordLinkInputSchema,
+  staffDiscordLinkResultSchema,
+} from "./staff-discord-link.schema";
 import type { StaffDiscordLinkService } from "./staff-discord-link.service";
 
 export function createStaffDiscordLinkRouter(
@@ -2348,10 +2407,14 @@ describe("staffDiscordLink router", () => {
     });
 
     await expect(
-      call(router.staffDiscordLink.link, { token: "any" }, {
-        context: createTestContext().context,
-        path: ["staffDiscordLink", "link"],
-      }),
+      call(
+        router.staffDiscordLink.link,
+        { token: "any" },
+        {
+          context: createTestContext().context,
+          path: ["staffDiscordLink", "link"],
+        },
+      ),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
@@ -2363,10 +2426,14 @@ describe("staffDiscordLink router", () => {
       teams: createUnusedTeamRepository(),
     });
 
-    const result = await call(router.staffDiscordLink.link, { token: "good-token" }, {
-      context: createTestContext().context,
-      path: ["staffDiscordLink", "link"],
-    });
+    const result = await call(
+      router.staffDiscordLink.link,
+      { token: "good-token" },
+      {
+        context: createTestContext().context,
+        path: ["staffDiscordLink", "link"],
+      },
+    );
 
     expect(result).toStrictEqual({ status: "SUCCESS" });
   });
@@ -2400,11 +2467,13 @@ git commit -m "feat(api): expose staff discord link router with audit logging"
 ### Task 12: Environment variables
 
 **Files:**
+
 - Modify: `packages/env/src/server.ts`
 - Modify: `packages/env/src/discord.ts`
 - Modify: `vite.config.ts`
 
 **Interfaces:**
+
 - Produces: `env.DISCORD_BOT_BASE_URL`, `env.DISCORD_BOT_INTERNAL_SECRET` (apps/server); `env.DISCORD_INTERNAL_PORT`, `env.DISCORD_INTERNAL_SECRET`, `env.STAFF_BASE_URL` (apps/discord). Consumed by Tasks 13–17.
 
 Operational note (not enforced in code, document it in the PR description): `DISCORD_BOT_INTERNAL_SECRET` on the server side and `DISCORD_INTERNAL_SECRET` on the bot side must be set to the **same value** in every environment — they're the shared secret for the new inbound call.
@@ -2461,12 +2530,14 @@ git commit -m "feat(env): add discord bot internal-api env vars"
 ### Task 13: apps/server — REST token endpoint and dependency wiring
 
 **Files:**
+
 - Modify: `apps/server/src/modules/discord/discord.module.ts`
 - Modify: `apps/server/src/app.ts`
 - Modify: `apps/server/src/main.ts`
 - Modify: `apps/server/src/__test__/app.test.ts`
 
 **Interfaces:**
+
 - Consumes: `StaffDiscordLinkService`, `staffVerifyTokenCreateInputSchema` from `@bmhk-2026/api` (Tasks 10–11); `createFetchDiscordBotGateway`, `createStaffDiscordLinkRepository`, `createStaffDiscordLinkService` from `@bmhk-2026/api`.
 - Produces: `POST /api/discord/staff-verify/token` REST route (x-api-key guarded, matches the existing `/api/discord/team-groups` convention). Consumed by Task 16 (bot's `/verifystaff` command).
 
@@ -2596,7 +2667,12 @@ Expected: FAIL — `staffDiscordLinkService` is not a valid `CreateAppOptions` f
 In `apps/server/src/modules/discord/discord.module.ts`, add `StaffDiscordLinkService` to the imports and the `.post` route:
 
 ```ts
-import type { AuthReader, DiscordService, DiscordTeamGroupsService, StaffDiscordLinkService } from "@bmhk-2026/api";
+import type {
+  AuthReader,
+  DiscordService,
+  DiscordTeamGroupsService,
+  StaffDiscordLinkService,
+} from "@bmhk-2026/api";
 import {
   discordQueryInputSchema,
   discordTeamGroupCategoryInputSchema,
@@ -2683,7 +2759,9 @@ export function createApp({
     .use(createCorsPlugin(corsOrigins))
     .use(createAuthModule(auth))
     .use(createApiModule(apiRouter))
-    .use(createDiscordModule(discordService, teamGroupsService, staffDiscordLinkService, verifyApiKey))
+    .use(
+      createDiscordModule(discordService, teamGroupsService, staffDiscordLinkService, verifyApiKey),
+    )
     .get("/", () => "OK");
 }
 ```
@@ -2767,11 +2845,13 @@ git commit -m "feat(server): expose staff-verify token REST endpoint"
 ### Task 14: apps/discord — Elysia dependency and pure nickname/role plan (TDD)
 
 **Files:**
+
 - Modify: `apps/discord/package.json`
 - Create: `apps/discord/src/lib/resolve-staff-verify.ts`
 - Test: `apps/discord/src/__test__/resolve-staff-verify.test.ts`
 
 **Interfaces:**
+
 - Produces: `planStaffVerify(request, roleIds)` pure function + `StaffVerifyRequest`/`StaffVerifyPlan` types. Consumed by Task 15's internal API server.
 
 - [ ] **Step 1: Add the Elysia dependency**
@@ -2800,12 +2880,21 @@ describe(planStaffVerify, () => {
       { adminRoleId: "role-admin", staffRoleId: "role-staff" },
     );
 
-    expect(plan).toStrictEqual({ categoryId: null, nickname: "[Admin] Somchai", roleId: "role-admin" });
+    expect(plan).toStrictEqual({
+      categoryId: null,
+      nickname: "[Admin] Somchai",
+      roleId: "role-admin",
+    });
   });
 
   it("plans the staff role for a non-admin request", () => {
     const plan = planStaffVerify(
-      { categoryId: "category-9", discordUserId: "discord-1", isAdmin: false, nickname: "[3] Somchai" },
+      {
+        categoryId: "category-9",
+        discordUserId: "discord-1",
+        isAdmin: false,
+        nickname: "[3] Somchai",
+      },
       { adminRoleId: "role-admin", staffRoleId: "role-staff" },
     );
 
@@ -2886,10 +2975,12 @@ git commit -m "feat(discord): add elysia dependency and staff-verify plan logic"
 ### Task 15: apps/discord — internal API server and startup wiring
 
 **Files:**
+
 - Create: `apps/discord/src/lib/internal-api.ts`
 - Modify: `apps/discord/src/index.ts`
 
 **Interfaces:**
+
 - Consumes: `planStaffVerify` from Task 14; `getSettingsStore` from `./settings-store.js`; `env` from `@bmhk-2026/env/discord`.
 - Produces: `createInternalApi(client)` returning an `Elysia` instance listening for `POST /internal/staff-verify`. No downstream task depends on this beyond Task 16 calling the endpoint over HTTP (not importing it).
 
@@ -3049,11 +3140,13 @@ git commit -m "feat(discord): add inbound internal API for staff-verify"
 ### Task 16: apps/discord — `/verifystaff` command and `/setup` admin-role addition
 
 **Files:**
+
 - Create: `apps/discord/src/services/staff-verify-api.ts`
 - Create: `apps/discord/src/interactions/commands/verifystaff.ts`
 - Modify: `apps/discord/src/interactions/commands/setup.ts`
 
 **Interfaces:**
+
 - Consumes: `serverFetch` from `../lib/server-fetch.js`; `env` from `@bmhk-2026/env/discord`.
 - Produces: registered `/verifystaff` slash command (regenerated into `commands.manifest.ts`); `/setup` now also captures and stores an `adminRole` setting. No downstream task depends on this.
 
@@ -3072,7 +3165,9 @@ export interface StaffVerifyTokenResponse {
   token: string;
 }
 
-export async function createStaffVerifyToken(discordUserId: string): Promise<StaffVerifyTokenResponse> {
+export async function createStaffVerifyToken(
+  discordUserId: string,
+): Promise<StaffVerifyTokenResponse> {
   const response = await serverFetch("/api/discord/staff-verify/token", {
     body: JSON.stringify({ discord_user_id: discordUserId }),
     method: "POST",
@@ -3105,7 +3200,9 @@ const verifystaff: Command = {
 
     const embed = new EmbedBuilder()
       .setTitle("เชื่อมบัญชีทีมงาน")
-      .setDescription(`กดลิงก์นี้เพื่อเชื่อมบัญชี Discord ของคุณกับบัญชีทีมงาน:\n${link.toString()}`);
+      .setDescription(
+        `กดลิงก์นี้เพื่อเชื่อมบัญชี Discord ของคุณกับบัญชีทีมงาน:\n${link.toString()}`,
+      );
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
@@ -3183,9 +3280,11 @@ git commit -m "feat(discord): add /verifystaff command and /setup adminRole"
 ### Task 17: apps/staff — login redirect-back support
 
 **Files:**
+
 - Modify: `apps/staff/src/routes/login.tsx`
 
 **Interfaces:**
+
 - Produces: `/login?redirect=<encoded-path>` now redirects to `<encoded-path>` after a successful/existing session, instead of always going to `/dashboard`. Consumed by Task 18's `/verifystaff` route.
 
 - [ ] **Step 1: Update the route**
@@ -3242,10 +3341,12 @@ git commit -m "feat(staff): support redirect-back after login"
 ### Task 18: apps/staff — verify-page message resolution (TDD)
 
 **Files:**
+
 - Create: `apps/staff/src/features/staff-verify/resolve-message.ts`
 - Test: `apps/staff/src/features/staff-verify/__test__/resolve-message.test.ts`
 
 **Interfaces:**
+
 - Produces: `resolveStaffVerifyMessage(params)`, `StaffVerifyStatus` type. Consumed by Task 20's page component.
 
 - [ ] **Step 1: Write the failing tests**
@@ -3259,13 +3360,21 @@ import { resolveStaffVerifyMessage } from "../resolve-message";
 
 describe(resolveStaffVerifyMessage, () => {
   it("shows a pending message while the link request is in flight", () => {
-    const message = resolveStaffVerifyMessage({ isError: false, isPending: true, status: undefined });
+    const message = resolveStaffVerifyMessage({
+      isError: false,
+      isPending: true,
+      status: undefined,
+    });
 
     expect(message).toBe("กำลังเชื่อมบัญชี...");
   });
 
   it("shows the exact success copy on SUCCESS", () => {
-    const message = resolveStaffVerifyMessage({ isError: false, isPending: false, status: "SUCCESS" });
+    const message = resolveStaffVerifyMessage({
+      isError: false,
+      isPending: false,
+      status: "SUCCESS",
+    });
 
     expect(message).toBe("เชื่อมบัญชีสำเร็จ คุณสามารถปิดหน้านี้ได้");
   });
@@ -3281,13 +3390,21 @@ describe(resolveStaffVerifyMessage, () => {
   });
 
   it("shows a generic error when the request itself failed", () => {
-    const message = resolveStaffVerifyMessage({ isError: true, isPending: false, status: undefined });
+    const message = resolveStaffVerifyMessage({
+      isError: true,
+      isPending: false,
+      status: undefined,
+    });
 
     expect(message).toBe("เกิดข้อผิดพลาด กรุณาติดต่อทีมงาน");
   });
 
   it("shows nothing before the request has started", () => {
-    const message = resolveStaffVerifyMessage({ isError: false, isPending: false, status: undefined });
+    const message = resolveStaffVerifyMessage({
+      isError: false,
+      isPending: false,
+      status: undefined,
+    });
 
     expect(message).toBe("");
   });
@@ -3318,7 +3435,8 @@ const GENERIC_ERROR_MESSAGE = "เกิดข้อผิดพลาด กร
 const PENDING_MESSAGE = "กำลังเชื่อมบัญชี...";
 
 const STATUS_MESSAGE: Record<Exclude<StaffVerifyStatus, "SUCCESS">, string> = {
-  ALREADY_LINKED_TO_ANOTHER_ACCOUNT: "บัญชี Discord นี้ถูกเชื่อมกับบัญชีทีมงานอื่นแล้ว กรุณาติดต่อทีมงาน",
+  ALREADY_LINKED_TO_ANOTHER_ACCOUNT:
+    "บัญชี Discord นี้ถูกเชื่อมกับบัญชีทีมงานอื่นแล้ว กรุณาติดต่อทีมงาน",
   BOT_APPLY_FAILED: "เชื่อมบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
   GROUP_NOT_SET_UP: "หมวดของคุณยังไม่ถูกตั้งค่า กรุณาติดต่อทีมงาน",
   INELIGIBLE_ROLE: "บัญชีนี้ไม่ใช่บัญชีทีมงาน",
@@ -3366,10 +3484,12 @@ git commit -m "feat(staff): add staff-verify status message resolution"
 ### Task 19: apps/staff — detached verify-link page
 
 **Files:**
+
 - Create: `apps/staff/src/features/staff-verify/verify-page.tsx`
 - Create: `apps/staff/src/routes/verifystaff.tsx`
 
 **Interfaces:**
+
 - Consumes: `resolveStaffVerifyMessage` from Task 18; `orpc.staffDiscordLink.link` from `@bmhk-2026/client/orpc` (Task 11); `authClient` from `@bmhk-2026/client/auth-client`.
 - Produces: the `/verifystaff?token=...` route — outside `_auth`, so it renders without the dashboard shell, but still requires a session (redirecting through `/login?redirect=...` from Task 17 when absent). No downstream task depends on this.
 

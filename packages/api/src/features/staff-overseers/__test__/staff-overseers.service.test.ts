@@ -4,7 +4,6 @@ import { createStaffOverseersService } from "../staff-overseers.service";
 import type {
   StaffOverseerBacklogRecord,
   StaffOverseerGroupLookup,
-  StaffOverseerRecord,
   StaffOverseersRepository,
 } from "../staff-overseers.repository";
 

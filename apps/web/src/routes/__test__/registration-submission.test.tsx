@@ -20,6 +20,7 @@ import type { RegistrationFormData } from "../register";
 const TEAM_ID = "019c7bb1-dbe0-7000-8000-000000000001";
 
 const api = vi.hoisted(() => ({
+  createConsents: vi.fn<(input: unknown) => Promise<unknown>>(),
   submitRegistration: vi.fn<(input: { teamId: string }) => Promise<unknown>>(),
   updateConsents: vi.fn<(input: unknown) => Promise<unknown>>(),
   updateParticipant: vi.fn<(input: unknown) => Promise<unknown>>(),
@@ -40,7 +41,7 @@ vi.mock("@bmhk-2026/client/auth-client", () => ({
 vi.mock("@bmhk-2026/client/orpc", () => ({
   client: {
     teamConsents: {
-      create: vi.fn<(input: unknown) => Promise<unknown>>(),
+      create: api.createConsents,
       update: api.updateConsents,
     },
     teamParticipants: {
@@ -133,19 +134,19 @@ const registration: RegistrationFormData = {
   },
 };
 
-function RegistrationTestRoot() {
-  const form = useForm({ defaultValues: registration });
+function createRegistrationRouter(defaultValues: RegistrationFormData = registration) {
+  function RegistrationTestRoot() {
+    const form = useForm({ defaultValues });
 
-  return (
-    <UserProvider>
-      <RegisterFormContext.Provider value={form}>
-        <Outlet />
-      </RegisterFormContext.Provider>
-    </UserProvider>
-  );
-}
+    return (
+      <UserProvider>
+        <RegisterFormContext.Provider value={form}>
+          <Outlet />
+        </RegisterFormContext.Provider>
+      </UserProvider>
+    );
+  }
 
-function createRegistrationRouter() {
   const rootRoute = createRootRoute({ component: RegistrationTestRoot });
   const entrantRoute = createRoute({
     component: EntrantStep,
@@ -171,6 +172,7 @@ function createRegistrationRouter() {
 
 describe("registration submission", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   });
 
@@ -195,6 +197,63 @@ describe("registration submission", () => {
     submission.resolve({ submissionState: "SUBMITTED", teamId: TEAM_ID });
 
     await expect(screen.findByText("Registration submitted")).resolves.toBeDefined();
+  });
+
+  it("derives guardian consent from the accepted privacy policy", async () => {
+    api.updateParticipant.mockResolvedValue({});
+    api.updateConsents.mockResolvedValue({});
+    api.submitRegistration.mockResolvedValue({ submissionState: "SUBMITTED", teamId: TEAM_ID });
+    const router = createRegistrationRouter({
+      ...registration,
+      terms: { ...registration.terms, guardianConsentObtained: false },
+    });
+    await router.load();
+
+    render(<RouterProvider router={router} />);
+    fireEvent.click(screen.getByRole("button", { name: "ลงทะเบียนเข้าแข่งขัน" }));
+
+    await expect(screen.findByText("Registration submitted")).resolves.toBeDefined();
+    expect(api.updateConsents).toHaveBeenCalledWith({
+      data: {
+        codernTermsAccepted: true,
+        competitionRulesAccepted: true,
+        guardianConsentObtained: true,
+        healthDataConsent: true,
+        privacyPolicyAccepted: true,
+        publicityMediaConsent: true,
+      },
+      teamId: TEAM_ID,
+    });
+  });
+
+  it("recreates missing consent data before final submission", async () => {
+    api.updateParticipant.mockResolvedValue({});
+    api.updateConsents.mockRejectedValue(new Error("Consent not found"));
+    api.createConsents.mockResolvedValue({});
+    api.submitRegistration.mockResolvedValue({ submissionState: "SUBMITTED", teamId: TEAM_ID });
+    const router = createRegistrationRouter({
+      ...registration,
+      terms: {
+        ...registration.terms,
+        guardianConsentObtained: false,
+        publicityMediaConsent: false,
+      },
+    });
+    await router.load();
+
+    render(<RouterProvider router={router} />);
+    fireEvent.click(screen.getByRole("button", { name: "ลงทะเบียนเข้าแข่งขัน" }));
+
+    await expect(screen.findByText("Registration submitted")).resolves.toBeDefined();
+    expect(api.createConsents).toHaveBeenCalledWith({
+      codernTermsAccepted: true,
+      competitionRulesAccepted: true,
+      guardianConsentObtained: true,
+      healthDataConsent: true,
+      privacyPolicyAccepted: true,
+      publicityMediaConsent: false,
+      teamId: TEAM_ID,
+    });
   });
 
   it("shows the failure route when final registration submission fails", async () => {

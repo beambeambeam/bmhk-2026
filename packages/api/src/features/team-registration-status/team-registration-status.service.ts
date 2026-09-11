@@ -67,8 +67,7 @@ function consentStatus(
     consent.competitionRulesAccepted &&
     consent.guardianConsentObtained &&
     consent.healthDataConsent &&
-    consent.privacyPolicyAccepted &&
-    consent.publicityMediaConsent;
+    consent.privacyPolicyAccepted;
   return hasAllConsent ? COMPLETED : IN_PROGRESS;
 }
 

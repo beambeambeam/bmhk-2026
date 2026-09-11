@@ -197,7 +197,7 @@ export interface StatusStep {
   label?: string;
   tone: StepTone;
   compact?: boolean;
-  rows?: { title: string; label: string; tone: StepTone }[];
+  rows?: { title: string; name: string; label: string; tone: StepTone }[];
   contact?: boolean;
 }
 
@@ -225,9 +225,13 @@ const DOCS_OK: StatusStep = { label: "ตรวจสอบสำเร็จ", 
 
 export interface ReviewFeedbackInput {
   advisor?: string;
+  advisorIssueCodes?: string[];
   participant1?: string;
+  participant1IssueCodes?: string[];
   participant2?: string;
+  participant2IssueCodes?: string[];
   participant3?: string;
+  participant3IssueCodes?: string[];
   status?: string;
   statusUpdatedAt?: Date | null;
 }
@@ -266,18 +270,27 @@ export function getStatusSteps(
 
   const rows = members.map((m, idx) => {
     let rawStatus: string | undefined;
+    let issueCodes: string[] | undefined;
     if (idx === 0) {
       rawStatus = reviewFeedback?.participant1;
+      issueCodes = reviewFeedback?.participant1IssueCodes;
     } else if (idx === 1) {
       rawStatus = reviewFeedback?.participant2;
+      issueCodes = reviewFeedback?.participant2IssueCodes;
     } else if (idx === 2 && participantCount >= 3) {
       rawStatus = reviewFeedback?.participant3;
+      issueCodes = reviewFeedback?.participant3IssueCodes;
     } else if (Boolean(m.isAdvisor) || idx === members.length - 1) {
       rawStatus = reviewFeedback?.advisor;
+      issueCodes = reviewFeedback?.advisorIssueCodes;
     }
 
+    const reason =
+      issueCodes !== undefined && issueCodes.length > 0 ? issueCodes.join(", ") : undefined;
+
     return {
-      label: getFeedbackStatusLabel(rawStatus),
+      label: reason ?? getFeedbackStatusLabel(rawStatus),
+      name: formatPersonName(m.titleTh, m.firstNameTh, m.middleNameTh, m.lastNameTh),
       title: m.tab,
       tone: getFeedbackStatusTone(rawStatus),
     };

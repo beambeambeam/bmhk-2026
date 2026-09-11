@@ -14,7 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UserProvider } from "@/contexts/user-context";
 import EntrantStep from "../register/entrant.$index";
-import { RegisterFormContext } from "../register";
+import { getExpectedNextStep, RegisterFormContext } from "../register";
+import { termsSchema } from "../register/terms";
 import type { RegistrationFormData } from "../register";
 
 const TEAM_ID = "019c7bb1-dbe0-7000-8000-000000000001";
@@ -170,6 +171,18 @@ function createRegistrationRouter(defaultValues: RegistrationFormData = registra
   });
 }
 
+function DraftNextStepProbe() {
+  const defaultValues: RegistrationFormData = {
+    ...registration,
+    status: { submissionState: "DRAFT", teamId: TEAM_ID },
+  };
+  const form = useForm({
+    defaultValues,
+  });
+
+  return <p>{getExpectedNextStep(form)}</p>;
+}
+
 describe("registration submission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -177,6 +190,53 @@ describe("registration submission", () => {
   });
 
   afterEach(cleanup);
+
+  it("requires health consent while allowing publicity consent to be declined", () => {
+    const requiredTerms = {
+      TermOfServicesAccepted: true,
+      codernTermsAccepted: true,
+      competitionRulesAccepted: true,
+      privacyPolicyAccepted: true,
+      publicityMediaConsent: false,
+    };
+
+    expect(() => termsSchema.parse(requiredTerms)).toThrow(/ข้อมูลสุขภาพ/u);
+    expect(termsSchema.parse({ ...requiredTerms, healthDataConsent: true })).toMatchObject({
+      publicityMediaConsent: false,
+    });
+  });
+
+  it("resumes a complete draft at the final entrant step", () => {
+    render(<DraftNextStepProbe />);
+
+    expect(screen.getByText("/register/entrant/2")).toBeDefined();
+  });
+
+  it("resumes a team without consent data at the terms step", () => {
+    function MissingConsentNextStepProbe() {
+      const defaultValues: RegistrationFormData = {
+        ...registration,
+        status: { submissionState: "DRAFT", teamId: TEAM_ID },
+        terms: {
+          ...registration.terms,
+          TermOfServicesAccepted: false,
+          codernTermsAccepted: false,
+          competitionRulesAccepted: false,
+          healthDataConsent: false,
+          privacyPolicyAccepted: false,
+        },
+      };
+      const form = useForm({
+        defaultValues,
+      });
+
+      return <p>{getExpectedNextStep(form)}</p>;
+    }
+
+    render(<MissingConsentNextStepProbe />);
+
+    expect(screen.getByText("/register/terms")).toBeDefined();
+  });
 
   it("waits for final registration submission before showing success", async () => {
     const submission = Promise.withResolvers<unknown>();

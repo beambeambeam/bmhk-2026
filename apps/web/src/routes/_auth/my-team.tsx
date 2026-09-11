@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_auth/my-team")({
   beforeLoad: async () => {
     try {
       const status = await client.teamRegistrationStatus.get({});
-      if (!status.teamId) {
+      if (!status.teamId || status.submissionState !== "SUBMITTED") {
         // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
         throw redirect({
           href: "/register",

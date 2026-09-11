@@ -88,23 +88,43 @@ function subjectFeedbackStatus(
   return issueCodes.length > 0 ? CHANGES_REQUESTED : APPROVED;
 }
 
+function feedbackIssueCodes(
+  status: TeamRegistrationReviewStatus,
+  issueCodes: readonly string[],
+): string[] {
+  return status === CHANGES_REQUESTED ? [...issueCodes] : [];
+}
+
 function toReviewFeedback(review: TeamRegistrationReview | null): TeamRegistrationReviewFeedback {
   if (!review) {
     return {
       advisor: PENDING_REVIEW,
+      advisorIssueCodes: [],
       participant1: PENDING_REVIEW,
+      participant1IssueCodes: [],
       participant2: PENDING_REVIEW,
+      participant2IssueCodes: [],
       participant3: PENDING_REVIEW,
+      participant3IssueCodes: [],
       status: PENDING_REVIEW,
       statusUpdatedAt: null,
     };
   }
 
+  const advisorStatus = listSubjectStatus(review, "advisor");
+  const participant1Status = listSubjectStatus(review, "participant1");
+  const participant2Status = listSubjectStatus(review, "participant2");
+  const participant3Status = listSubjectStatus(review, "participant3");
+
   return {
-    advisor: listSubjectStatus(review, "advisor"),
-    participant1: listSubjectStatus(review, "participant1"),
-    participant2: listSubjectStatus(review, "participant2"),
-    participant3: listSubjectStatus(review, "participant3"),
+    advisor: advisorStatus,
+    advisorIssueCodes: feedbackIssueCodes(advisorStatus, review.advisorIssueCodes),
+    participant1: participant1Status,
+    participant1IssueCodes: feedbackIssueCodes(participant1Status, review.participant1IssueCodes),
+    participant2: participant2Status,
+    participant2IssueCodes: feedbackIssueCodes(participant2Status, review.participant2IssueCodes),
+    participant3: participant3Status,
+    participant3IssueCodes: feedbackIssueCodes(participant3Status, review.participant3IssueCodes),
     status: review.status,
     statusUpdatedAt: review.reviewedAt,
   };

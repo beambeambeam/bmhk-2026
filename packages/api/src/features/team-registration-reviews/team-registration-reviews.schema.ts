@@ -36,9 +36,13 @@ const teamRegistrationReviewFeedbackStatusSchema = z.enum(teamRegistrationReview
 export const teamRegistrationReviewFeedbackSchema = z
   .object({
     advisor: teamRegistrationReviewFeedbackStatusSchema,
+    advisorIssueCodes: issueCodesSchema,
     participant1: teamRegistrationReviewFeedbackStatusSchema,
+    participant1IssueCodes: issueCodesSchema,
     participant2: teamRegistrationReviewFeedbackStatusSchema,
+    participant2IssueCodes: issueCodesSchema,
     participant3: teamRegistrationReviewFeedbackStatusSchema,
+    participant3IssueCodes: issueCodesSchema,
     status: teamRegistrationReviewFeedbackStatusSchema,
     statusUpdatedAt: z.date().nullable(),
   })

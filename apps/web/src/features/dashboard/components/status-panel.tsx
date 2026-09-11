@@ -253,7 +253,7 @@ function Step({
   const issueRows = step.rows?.filter((row) => row.tone === "alert" || row.tone === "failed");
   const issueList =
     issueRows !== undefined && issueRows.length > 0
-      ? issueRows.map((row) => row.title).join(", ")
+      ? issueRows.map((row) => `${row.title}: ${row.label}`).join(", ")
       : "[สิ่งที่ต้องแก้ไข]";
 
   const gmailUrl = getGmailTemplateUrl({

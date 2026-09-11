@@ -7,7 +7,6 @@ import { authClient } from "@bmhk-2026/client/auth-client";
 const loginSearchSchema = z.object({ redirect: z.string().optional() });
 
 export const Route = createFileRoute("/login")({
-  validateSearch: loginSearchSchema,
   beforeLoad: async ({ search }) => {
     const session = await authClient.getSession();
 
@@ -18,4 +17,5 @@ export const Route = createFileRoute("/login")({
   },
   component: SignInForm,
   ssr: false,
+  validateSearch: loginSearchSchema,
 });

@@ -34,6 +34,8 @@ export const env = createEnv({
     BETTER_STACK_ENDPOINT: z.url().optional(),
     BMHK_ENVIRONMENT: z.enum(["staging", "production"]).default("staging"),
     CORS_ORIGIN: corsOrigins,
+    DISCORD_BOT_BASE_URL: z.url(),
+    DISCORD_BOT_INTERNAL_SECRET: z.string().min(16),
     DATABASE_URL: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),

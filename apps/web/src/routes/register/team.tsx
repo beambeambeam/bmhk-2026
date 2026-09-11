@@ -36,6 +36,7 @@ import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
 import { fieldErrorReader } from "@/features/register/lib/field-errors";
 import { toast } from "sonner";
 import { env } from "@bmhk-2026/env/web";
+import { parseTeamConsentData } from "./terms";
 
 const F = "/assets/figma/";
 
@@ -133,14 +134,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
           // eslint-disable-next-line func-style
           const saveConsents = async (teamId: string, isUpdate: boolean) => {
             const terms = form.getFieldValue("terms");
-            const consentData = {
-              codernTermsAccepted: terms.codernTermsAccepted ?? false,
-              competitionRulesAccepted: terms.competitionRulesAccepted ?? false,
-              guardianConsentObtained: terms.privacyPolicyAccepted ?? false,
-              healthDataConsent: terms.healthDataConsent ?? false,
-              privacyPolicyAccepted: terms.privacyPolicyAccepted ?? false,
-              publicityMediaConsent: terms.publicityMediaConsent ?? false,
-            };
+            const consentData = parseTeamConsentData(terms);
 
             const td = termsData as
               | {
@@ -158,36 +152,35 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
               consentData.codernTermsAccepted !== td.codernTermsAccepted ||
               consentData.competitionRulesAccepted !== td.competitionRulesAccepted ||
               consentData.guardianConsentObtained !== td.guardianConsentObtained ||
-              consentData.healthDataConsent !== (td.healthDataConsent ?? true) ||
+              consentData.healthDataConsent !== (td.healthDataConsent ?? false) ||
               consentData.privacyPolicyAccepted !== td.privacyPolicyAccepted ||
-              consentData.publicityMediaConsent !== (td.publicityMediaConsent ?? true);
+              consentData.publicityMediaConsent !== (td.publicityMediaConsent ?? false);
 
             if (isUpdate && !isTermsDirty) {
+              form.setFieldValue("terms", { ...terms, ...consentData });
               return;
             }
 
-            try {
-              if (isUpdate) {
-                try {
-                  await client.teamConsents.update({
-                    data: consentData,
-                    teamId,
-                  });
-                } catch {
-                  await client.teamConsents.create({
-                    teamId,
-                    ...consentData,
-                  });
-                }
-              } else {
+            if (isUpdate) {
+              try {
+                await client.teamConsents.update({
+                  data: consentData,
+                  teamId,
+                });
+              } catch {
                 await client.teamConsents.create({
                   teamId,
                   ...consentData,
                 });
               }
-            } catch (error) {
-              console.error("Error saving team consents", error);
+            } else {
+              await client.teamConsents.create({
+                teamId,
+                ...consentData,
+              });
             }
+
+            form.setFieldValue("terms", { ...terms, ...consentData });
           };
 
           if (!isDirty && status?.teamId != null) {

@@ -44,17 +44,16 @@ export interface StaffOverseersRepository {
 
 type Database = typeof db;
 
-export function createStaffOverseersRepository(
-  database: Database = db,
-): StaffOverseersRepository {
+export function createStaffOverseersRepository(database: Database = db): StaffOverseersRepository {
   const execute = createRepositoryExecutor(staffOverseersRepositoryError);
 
   return {
-    addBacklogEntry: async (email, groupId) =>
+    addBacklogEntry: async (email, groupId) => {
       await execute(async () => {
         await database.insert(staffOverseerImportBacklog).values({ email, groupId });
-      }),
-    assignOverseer: async (groupId, userId) =>
+      });
+    },
+    assignOverseer: async (groupId, userId) => {
       await execute(async () => {
         await database.transaction(async (tx) => {
           await tx
@@ -67,7 +66,8 @@ export function createStaffOverseersRepository(
             );
           await tx.insert(discordTeamGroupOverseers).values({ groupId, userId });
         });
-      }),
+      });
+    },
     findBacklogEntry: async (id) =>
       await execute(async () => {
         const [row] = await database
@@ -80,7 +80,10 @@ export function createStaffOverseersRepository(
             id: staffOverseerImportBacklog.id,
           })
           .from(staffOverseerImportBacklog)
-          .innerJoin(discordTeamGroups, eq(discordTeamGroups.id, staffOverseerImportBacklog.groupId))
+          .innerJoin(
+            discordTeamGroups,
+            eq(discordTeamGroups.id, staffOverseerImportBacklog.groupId),
+          )
           .where(eq(staffOverseerImportBacklog.id, id))
           .limit(1);
 
@@ -89,7 +92,11 @@ export function createStaffOverseersRepository(
     findGroupByIndex: async (index) =>
       await execute(async () => {
         const [row] = await database
-          .select({ id: discordTeamGroups.id, index: discordTeamGroups.index, name: discordTeamGroups.name })
+          .select({
+            id: discordTeamGroups.id,
+            index: discordTeamGroups.index,
+            name: discordTeamGroups.name,
+          })
           .from(discordTeamGroups)
           .where(eq(discordTeamGroups.index, index))
           .limit(1);
@@ -136,12 +143,18 @@ export function createStaffOverseersRepository(
               userName: user.name,
             })
             .from(discordTeamGroupOverseers)
-            .innerJoin(discordTeamGroups, eq(discordTeamGroups.id, discordTeamGroupOverseers.groupId))
+            .innerJoin(
+              discordTeamGroups,
+              eq(discordTeamGroups.id, discordTeamGroupOverseers.groupId),
+            )
             .innerJoin(user, eq(user.id, discordTeamGroupOverseers.userId)),
       ),
-    removeBacklogEntry: async (id) =>
+    removeBacklogEntry: async (id) => {
       await execute(async () => {
-        await database.delete(staffOverseerImportBacklog).where(eq(staffOverseerImportBacklog.id, id));
-      }),
+        await database
+          .delete(staffOverseerImportBacklog)
+          .where(eq(staffOverseerImportBacklog.id, id));
+      });
+    },
   };
 }

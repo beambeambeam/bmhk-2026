@@ -13,9 +13,9 @@ import { z } from "zod";
 import { useGateField } from "@/components/form/wizard-nav";
 
 /**
- * The four documents the one agreement checkbox stands for. The sentence beside it names all
- * four, so ticking it accepts all four — these are written together and read together by
- * `termsSchema` and by `/register`'s completeness check.
+ * The four document fields written by the agreement checkbox. Health-data consent is collected
+ * separately by `ConsentRow` and is required independently by `termsSchema` and `/register`'s
+ * completeness check.
  */
 const ACCEPTED_FIELDS = [
   "privacyPolicyAccepted",
@@ -370,8 +370,9 @@ interface OpenDoc {
  *
  * ONE checkbox, FOUR stored fields. The sentence names all four documents, so ticking it is
  * accepting all four: it writes `privacyPolicyAccepted`, `competitionRulesAccepted`,
- * `codernTermsAccepted` and `TermOfServicesAccepted` together, which is exactly what
- * `termsSchema` and the `/register` completeness check already read.
+ * `codernTermsAccepted` and `TermOfServicesAccepted` together. Health-data consent is collected
+ * separately by `ConsentRow` and is required independently by `termsSchema` and `/register`'s
+ * completeness check.
  */
 function AgreementCard({
   closed,

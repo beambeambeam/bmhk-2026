@@ -118,13 +118,26 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
         try {
           const team = form.getFieldValue("team");
           const status = form.getFieldValue("status") as { teamId?: string } | null | undefined;
-          const validData = teamSchema.parse({
-            name: team.name,
-            school: team.school,
-            teamSize: team.teamSize,
-          });
-
           const initialTeam = form.options.defaultValues?.team;
+          const isNameUnchanged =
+            status?.teamId !== undefined &&
+            status.teamId !== null &&
+            typeof initialTeam?.name === "string" &&
+            initialTeam.name.length > 0 &&
+            team.name === initialTeam.name;
+
+          const validData = isNameUnchanged
+            ? {
+                name: team.name,
+                school: teamSchema.shape.school.parse(team.school),
+                teamSize: teamSchema.shape.teamSize.parse(team.teamSize),
+              }
+            : teamSchema.parse({
+                name: team.name,
+                school: team.school,
+                teamSize: team.teamSize,
+              });
+
           const isDirty =
             !initialTeam ||
             validData.name !== initialTeam.name ||
@@ -201,7 +214,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             finalResult = await client.teams.update({
               data: {
                 memberCount: validData.teamSize,
-                name: validData.name,
+                ...(isNameUnchanged ? {} : { name: validData.name }),
                 school: validData.school,
               },
               id: status.teamId,
@@ -291,6 +304,8 @@ export default function TeamStep() {
   /* Bound to this step's schema; each field reads its own message inside its own
      `<form.Field>`, so the sentence tracks what is being typed. */
   const readError = fieldErrorReader(teamSchema);
+  const initialTeam = form.options.defaultValues?.team;
+  const status = form.getFieldValue("status") as { teamId?: string } | null | undefined;
 
   /*
    * Team size is tracked here only so the choice can be *confirmed*: the box used to swap its
@@ -436,20 +451,29 @@ export default function TeamStep() {
           <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-[calc(19.688px_+_12.312*var(--fl))]">
             <form.Field
               name="team.name"
-              children={(field) => (
-                <TextField
-                  label="ชื่อทีม"
-                  required
-                  maxLength={MAX_TEAM_NAME_LENGTH}
-                  placeholder="ตี๋มากอดเค้าเลย"
-                  className="w-full"
-                  value={field.state.value}
-                  onChange={(val) => {
-                    field.handleChange(val);
-                  }}
-                  error={readError("name", field.state.value)}
-                />
-              )}
+              children={(field) => {
+                const isUnchanged =
+                  status?.teamId !== undefined &&
+                  status.teamId !== null &&
+                  typeof initialTeam?.name === "string" &&
+                  initialTeam.name.length > 0 &&
+                  field.state.value === initialTeam.name;
+
+                return (
+                  <TextField
+                    label="ชื่อทีม"
+                    required
+                    maxLength={MAX_TEAM_NAME_LENGTH}
+                    placeholder="ตี๋มากอดเค้าเลย"
+                    className="w-full"
+                    value={field.state.value}
+                    onChange={(val) => {
+                      field.handleChange(val);
+                    }}
+                    error={isUnchanged ? null : readError("name", field.state.value)}
+                  />
+                );
+              }}
             />
             <form.Field
               name="team.school"

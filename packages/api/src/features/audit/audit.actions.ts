@@ -132,3 +132,10 @@ export const apiKeyRevokedAudit = defineAuditAction("api-key.revoked", {
   severity: "critical",
   target: "api-key",
 });
+
+export const staffOverseerAssignedAudit = defineAuditAction("staff-overseer.assigned", {
+  description: "An Administrator assigned a staff member as a team-group overseer",
+  requiresChanges: true,
+  severity: "critical",
+  target: "staff-overseer",
+});

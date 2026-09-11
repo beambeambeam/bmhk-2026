@@ -39,11 +39,12 @@ function createFakeRepository(overrides: Partial<StaffOverseersRepository> = {})
       assignments.push({ groupId, userId });
       await Promise.resolve();
     },
-    findBacklogEntry: async (id) => backlogEntries.find((entry) => entry.id === id) ?? null,
-    findGroupByIndex: async (index) => groups.get(index) ?? null,
-    findUserByEmail: async (email) => usersByEmail.get(email) ?? null,
-    listBacklog: async () => backlogEntries,
-    listOverseers: async () => [],
+    findBacklogEntry: async (id) =>
+      await Promise.resolve(backlogEntries.find((entry) => entry.id === id) ?? null),
+    findGroupByIndex: async (index) => await Promise.resolve(groups.get(index) ?? null),
+    findUserByEmail: async (email) => await Promise.resolve(usersByEmail.get(email) ?? null),
+    listBacklog: async () => await Promise.resolve(backlogEntries),
+    listOverseers: async () => await Promise.resolve([]),
     removeBacklogEntry: async (id) => {
       const index = backlogEntries.findIndex((entry) => entry.id === id);
       if (index !== -1) {
@@ -76,9 +77,7 @@ describe(createStaffOverseersService, () => {
     const { backlogEntries, repository } = createFakeRepository();
     const service = createStaffOverseersService(repository);
 
-    const result = await service.importRows([
-      { email: "unknown@kmutt.ac.th", teamsGroupIndex: 1 },
-    ]);
+    const result = await service.importRows([{ email: "unknown@kmutt.ac.th", teamsGroupIndex: 1 }]);
 
     expect(result).toStrictEqual([
       { email: "unknown@kmutt.ac.th", outcome: "backlogged", teamsGroupIndex: 1 },

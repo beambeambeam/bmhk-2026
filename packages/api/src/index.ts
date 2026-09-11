@@ -146,3 +146,14 @@ export type {
 } from "./features/discord-team-groups/discord-team-groups.schema";
 export { createDiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
 export type { DiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
+export type { StaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
+export type {
+  StaffOverseer,
+  StaffOverseerBacklogEntry,
+  StaffOverseerBacklogList,
+  StaffOverseerBacklogRetryInput,
+  StaffOverseerBacklogRetryResult,
+  StaffOverseerImportRow,
+  StaffOverseerImportResult,
+  StaffOverseerList,
+} from "./features/staff-overseers/staff-overseers.schema";

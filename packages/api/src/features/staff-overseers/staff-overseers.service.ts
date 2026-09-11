@@ -79,7 +79,10 @@ export function createStaffOverseersService(
       }
       return results;
     },
-    listBacklog: async () => (await repository.listBacklog()).map(toBacklogListItem),
+    listBacklog: async () => {
+      const backlog = await repository.listBacklog();
+      return backlog.map(toBacklogListItem);
+    },
     listOverseers: async () => await repository.listOverseers(),
     retryAllBacklog: async () => {
       const entries = await repository.listBacklog();

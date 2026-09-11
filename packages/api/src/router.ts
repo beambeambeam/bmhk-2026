@@ -53,6 +53,10 @@ import type { ParticipantCheckInRepository } from "./features/participant-check-
 import { createParticipantCheckInRepository } from "./features/participant-check-ins/participant-check-ins.repository";
 import { createParticipantCheckInsRouter } from "./features/participant-check-ins/participant-check-ins.router";
 import { createParticipantCheckInService } from "./features/participant-check-ins/participant-check-ins.service";
+import type { StaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
+import { createStaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
+import { createStaffOverseersRouter } from "./features/staff-overseers/staff-overseers.router";
+import { createStaffOverseersService } from "./features/staff-overseers/staff-overseers.service";
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
@@ -70,6 +74,7 @@ export interface ApiDependencies {
   teamRegistrationReviews?: TeamRegistrationReviewRepository;
   staffCheckIns?: StaffCheckInRepository;
   participantCheckIns?: ParticipantCheckInRepository;
+  staffOverseers?: StaffOverseersRepository;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -98,6 +103,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
   const staffCheckInRepository = dependencies.staffCheckIns ?? createStaffCheckInRepository();
   const participantCheckInRepository =
     dependencies.participantCheckIns ?? createParticipantCheckInRepository();
+  const staffOverseersRepository = dependencies.staffOverseers ?? createStaffOverseersRepository();
 
   return {
     adminUsers: createAdminUsersRouter(adminProcedure, createAdminUserService(adminUserRepository)),
@@ -119,6 +125,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
     staffCheckIns: createStaffCheckInsRouter(
       staffProcedure,
       createStaffCheckInService(staffCheckInRepository),
+    ),
+    staffOverseers: createStaffOverseersRouter(
+      adminProcedure,
+      createStaffOverseersService(staffOverseersRepository),
     ),
     teamAdvisors: createTeamAdvisorsRouter(
       teamAccessProcedure,

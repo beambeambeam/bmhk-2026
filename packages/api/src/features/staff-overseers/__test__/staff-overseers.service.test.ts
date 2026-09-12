@@ -25,14 +25,19 @@ function createFakeRepository(overrides: Partial<StaffOverseersRepository> = {})
 
   const repository: StaffOverseersRepository = {
     addBacklogEntry: async (email, groupId) => {
-      backlogEntries.push({
-        createdAt: new Date(),
-        email,
-        groupId,
-        groupIndex: [...groups.values()].find((group) => group.id === groupId)?.index ?? 0,
-        groupName: [...groups.values()].find((group) => group.id === groupId)?.name ?? "",
-        id: `backlog-${backlogEntries.length + 1}`,
-      });
+      const alreadyBacklogged = backlogEntries.some(
+        (entry) => entry.email === email && entry.groupId === groupId,
+      );
+      if (!alreadyBacklogged) {
+        backlogEntries.push({
+          createdAt: new Date(),
+          email,
+          groupId,
+          groupIndex: [...groups.values()].find((group) => group.id === groupId)?.index ?? 0,
+          groupName: [...groups.values()].find((group) => group.id === groupId)?.name ?? "",
+          id: `backlog-${backlogEntries.length + 1}`,
+        });
+      }
       await Promise.resolve();
     },
     assignOverseer: async (groupId, userId) => {
@@ -83,6 +88,18 @@ describe(createStaffOverseersService, () => {
       { email: "unknown@kmutt.ac.th", outcome: "backlogged", teamsGroupIndex: 1 },
     ]);
     expect(backlogEntries).toHaveLength(1);
+    expect(backlogEntries[0]?.groupId).toBe("group-1");
+  });
+
+  it("does not create a duplicate backlog entry when the same unmatched row is imported twice", async () => {
+    const { backlogEntries, repository } = createFakeRepository();
+    const service = createStaffOverseersService(repository);
+
+    await service.importRows([{ email: "unknown@kmutt.ac.th", teamsGroupIndex: 1 }]);
+    await service.importRows([{ email: "unknown@kmutt.ac.th", teamsGroupIndex: 1 }]);
+
+    expect(backlogEntries).toHaveLength(1);
+    expect(backlogEntries[0]?.email).toBe("unknown@kmutt.ac.th");
     expect(backlogEntries[0]?.groupId).toBe("group-1");
   });
 

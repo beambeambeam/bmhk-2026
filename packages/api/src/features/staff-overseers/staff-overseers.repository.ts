@@ -3,7 +3,7 @@ import { discordTeamGroupOverseers } from "@bmhk-2026/db/schema/discord-team-gro
 import { discordTeamGroups } from "@bmhk-2026/db/schema/discord-team-groups";
 import { staffOverseerImportBacklog } from "@bmhk-2026/db/schema/staff-overseer-import-backlog";
 import { user } from "@bmhk-2026/db/schema/auth";
-import { eq, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 
 import { createRepositoryExecutor } from "../../core/repository";
 import { staffOverseersRepositoryError } from "./staff-overseers.errors";
@@ -50,6 +50,21 @@ export function createStaffOverseersRepository(database: Database = db): StaffOv
   return {
     addBacklogEntry: async (email, groupId) => {
       await execute(async () => {
+        const [existing] = await database
+          .select({ id: staffOverseerImportBacklog.id })
+          .from(staffOverseerImportBacklog)
+          .where(
+            and(
+              eq(staffOverseerImportBacklog.email, email),
+              eq(staffOverseerImportBacklog.groupId, groupId),
+            ),
+          )
+          .limit(1);
+
+        if (existing) {
+          return;
+        }
+
         await database.insert(staffOverseerImportBacklog).values({ email, groupId });
       });
     },

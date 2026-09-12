@@ -21,6 +21,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      LOKI_ENDPOINT: ${LOKI_ENDPOINT:-}
+      LOKI_USER: ${LOKI_USER:-}
+      LOKI_API_KEY: ${LOKI_API_KEY:-}
+      LOKI_TENANT_ID: ${LOKI_TENANT_ID:-}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?BETTER_AUTH_URL is required}
       CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}

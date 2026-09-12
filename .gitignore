@@ -58,3 +58,5 @@ temp
 .agents/skills/
 graphify-out/
 .superpowers/
+
+.worktrees/

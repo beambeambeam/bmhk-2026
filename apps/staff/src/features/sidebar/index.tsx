@@ -20,6 +20,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   Trophy,
   UserCheck,
   UsersRound,
@@ -39,6 +40,7 @@ interface StaffNavItem {
   readonly to:
     | "/achievements"
     | "/admin/api-keys"
+    | "/admin/staff-overseers"
     | "/admin/users"
     | "/dashboard"
     | "/participations"
@@ -56,6 +58,7 @@ const baseNavItems: readonly StaffNavItem[] = [
 const adminNavItems: readonly StaffNavItem[] = [
   { icon: UsersRound, label: "Users", to: "/admin/users" },
   { icon: KeyRound, label: "API Keys", to: "/admin/api-keys" },
+  { icon: ShieldCheck, label: "Staff Overseers", to: "/admin/staff-overseers" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [

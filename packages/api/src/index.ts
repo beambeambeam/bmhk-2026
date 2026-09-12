@@ -146,3 +146,24 @@ export type {
 } from "./features/discord-team-groups/discord-team-groups.schema";
 export { createDiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
 export type { DiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
+export type { StaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
+export type {
+  StaffOverseer,
+  StaffOverseerBacklogEntry,
+  StaffOverseerBacklogList,
+  StaffOverseerBacklogRetryInput,
+  StaffOverseerBacklogRetryResult,
+  StaffOverseerImportRow,
+  StaffOverseerImportResult,
+  StaffOverseerList,
+} from "./features/staff-overseers/staff-overseers.schema";
+export { createFetchDiscordBotGateway } from "./features/staff-discord-link/discord-bot-gateway";
+export type {
+  DiscordBotGateway,
+  DiscordBotGatewayConfig,
+} from "./features/staff-discord-link/discord-bot-gateway";
+export { createStaffDiscordLinkRepository } from "./features/staff-discord-link/staff-discord-link.repository";
+export { createStaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
+export type { StaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
+export { staffVerifyTokenCreateInputSchema } from "./features/staff-discord-link/staff-discord-link.schema";
+export type { StaffDiscordLinkResult } from "./features/staff-discord-link/staff-discord-link.schema";

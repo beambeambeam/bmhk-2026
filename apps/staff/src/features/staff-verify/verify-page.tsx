@@ -28,7 +28,8 @@ function StaffVerifyPage({ token }: StaffVerifyPageProps) {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>เชื่อมบัญชี Discord</CardTitle>
-          <CardDescription>{message}</CardDescription>
+          {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- CardDescription renders a div; role="status" announces the pending/success/error transition to assistive tech */}
+          <CardDescription role="status">{message}</CardDescription>
         </CardHeader>
         <CardContent />
       </Card>

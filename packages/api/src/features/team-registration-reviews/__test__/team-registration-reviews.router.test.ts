@@ -11,6 +11,7 @@ import {
   createTestAuthReader,
   createTestContext,
   createTestSession,
+  createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
 import { createTeamRegistrationReviewRepositoryError } from "../team-registration-reviews.errors";
 
@@ -61,6 +62,7 @@ function createRouter(repository: TestTeamRegistrationReviewRepository, auth: Au
   const saveSubject = repository.saveSubject ?? (async () => await Promise.resolve(null));
   return createAppRouter({
     auth,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamRegistrationReviews: { ...repository, list, saveSubject },
   }).teamRegistrationReviews;
 }

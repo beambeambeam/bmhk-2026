@@ -14,6 +14,9 @@ const setup: Command = {
     )
     .addRoleOption((opt) =>
       opt.setName("staffrole").setDescription("The role granted to staff.").setRequired(true),
+    )
+    .addRoleOption((opt) =>
+      opt.setName("adminrole").setDescription("The role granted to admins.").setRequired(true),
     ),
   async execute(interaction) {
     // Loaded lazily (not a top-level import) so this module stays importable
@@ -21,13 +24,15 @@ const setup: Command = {
     const { getSettingsStore } = await import("../../lib/settings-store.js");
     const participantrole = interaction.options.getRole("participantrole", true);
     const staffRole = interaction.options.getRole("staffrole", true);
+    const adminrole = interaction.options.getRole("adminrole", true);
 
     const settingsStore = getSettingsStore();
     settingsStore.set("participantRole", participantrole.id);
     settingsStore.set("staffRole", staffRole.id);
+    settingsStore.set("adminRole", adminrole.id);
 
     await interaction.reply({
-      content: `<@${interaction.user.id}> \`participantRole\` set to <@&${participantrole.id}> (\`${participantrole.id}\`), staffRole set to <@&${staffRole.id}> (\`${staffRole.id}\`).`,
+      content: `<@${interaction.user.id}> \`participantRole\` set to <@&${participantrole.id}> (\`${participantrole.id}\`), staffRole set to <@&${staffRole.id}> (\`${staffRole.id}\`), adminRole set to <@&${adminrole.id}> (\`${adminrole.id}\`).`,
       flags: MessageFlags.Ephemeral,
     });
   },

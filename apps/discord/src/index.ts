@@ -3,6 +3,7 @@ import { GatewayIntentBits, Partials } from "discord.js";
 import { loadEvents } from "./loaders/events.js";
 import { loadInteractions } from "./loaders/interactions.js";
 import { getDb } from "./lib/db.js";
+import { createInternalApi } from "./lib/internal-api.js";
 import { BotClient } from "./types.js";
 
 getDb();
@@ -21,3 +22,5 @@ loadEvents(client);
 loadInteractions(client);
 
 await client.login(env.DISCORD_TOKEN);
+
+createInternalApi(client).listen(env.DISCORD_INTERNAL_PORT);

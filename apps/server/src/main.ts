@@ -4,6 +4,9 @@ import {
   createDiscordService,
   createDiscordTeamGroupsRepository,
   createDiscordTeamGroupsService,
+  createFetchDiscordBotGateway,
+  createStaffDiscordLinkRepository,
+  createStaffDiscordLinkService,
 } from "@bmhk-2026/api";
 import { auth } from "@bmhk-2026/auth";
 import { env } from "@bmhk-2026/env/server";
@@ -24,8 +27,17 @@ import { createAuthReader } from "./modules/auth/auth-reader";
 initializeObservability();
 
 const authReader = createAuthReader(auth);
+const discordBotGateway = createFetchDiscordBotGateway({
+  baseUrl: env.DISCORD_BOT_BASE_URL,
+  secret: env.DISCORD_BOT_INTERNAL_SECRET,
+});
+const staffDiscordLinkService = createStaffDiscordLinkService(
+  createStaffDiscordLinkRepository(),
+  discordBotGateway,
+);
 const apiRouter = createAppRouter({
   auth: authReader,
+  staffDiscordLinkService,
 });
 const discordService = createDiscordService(createDiscordRepository());
 const teamGroupsService = createDiscordTeamGroupsService(createDiscordTeamGroupsRepository());
@@ -43,6 +55,7 @@ const app = createApp({
     ...auditObservability,
     drain: composeDrains(auditObservability.drain, createBetterStackDrain()),
   },
+  staffDiscordLinkService,
   teamGroupsService,
   verifyApiKey: authReader.verifyApiKey,
 });

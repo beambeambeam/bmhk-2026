@@ -64,3 +64,11 @@ export function getParticipationStatusQueryOptions(teamId: string) {
 export function getParticipationReviewQueryOptions(teamId: string) {
   return orpc.teamRegistrationReviews.get.queryOptions({ input: { teamId } });
 }
+
+export function getStaffOverseersListQueryOptions() {
+  return orpc.staffOverseers.listOverseers.queryOptions();
+}
+
+export function getStaffOverseersBacklogQueryOptions() {
+  return orpc.staffOverseers.listBacklog.queryOptions();
+}

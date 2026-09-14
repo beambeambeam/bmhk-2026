@@ -67,6 +67,8 @@ const createVerifyPrompt: Command = {
       return;
     }
 
+    settingStore.set("verifyChannel", channel.id);
+
     if (messageType === "embed") {
       const embed = new EmbedBuilder().setDescription(caption).setColor(0x58_65_f2);
       await channel.send({ embeds: [embed] });

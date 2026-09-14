@@ -17,10 +17,14 @@ export interface StaffOverseerGroup {
 
 export interface StaffDiscordLinkRepository {
   consumeToken: (token: string) => Promise<{ discordUserId: string } | null>;
-  createToken: (discordUserId: string) => Promise<{ expiresAt: Date; token: string }>;
+  createToken: (
+    discordUserId: string,
+    discordUsername: string,
+  ) => Promise<{ expiresAt: Date; token: string }>;
   findLinkByDiscordUserId: (discordUserId: string) => Promise<{ userId: string } | null>;
   findLinkByUserId: (userId: string) => Promise<{ discordUserId: string } | null>;
   findOverseerGroup: (userId: string) => Promise<StaffOverseerGroup | null>;
+  previewToken: (token: string) => Promise<{ discordUsername: string } | null>;
   upsertLink: (userId: string, discordUserId: string) => Promise<void>;
 }
 
@@ -48,11 +52,13 @@ export function createStaffDiscordLinkRepository(
 
         return row ?? null;
       }),
-    createToken: async (discordUserId) =>
+    createToken: async (discordUserId, discordUsername) =>
       await execute(async () => {
         const token = crypto.randomUUID();
         const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
-        await database.insert(staffVerifyTokens).values({ discordUserId, expiresAt, token });
+        await database
+          .insert(staffVerifyTokens)
+          .values({ discordUserId, discordUsername, expiresAt, token });
         return { expiresAt, token };
       }),
     findLinkByDiscordUserId: async (discordUserId) =>
@@ -82,6 +88,22 @@ export function createStaffDiscordLinkRepository(
           .from(discordTeamGroupOverseers)
           .innerJoin(discordTeamGroups, eq(discordTeamGroups.id, discordTeamGroupOverseers.groupId))
           .where(eq(discordTeamGroupOverseers.userId, userId))
+          .limit(1);
+
+        return row ?? null;
+      }),
+    previewToken: async (token) =>
+      await execute(async () => {
+        const [row] = await database
+          .select({ discordUsername: staffVerifyTokens.discordUsername })
+          .from(staffVerifyTokens)
+          .where(
+            and(
+              eq(staffVerifyTokens.token, token),
+              isNull(staffVerifyTokens.consumedAt),
+              gt(staffVerifyTokens.expiresAt, new Date()),
+            ),
+          )
           .limit(1);
 
         return row ?? null;

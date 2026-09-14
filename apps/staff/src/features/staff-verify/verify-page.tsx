@@ -1,56 +1,111 @@
+import { Button } from "@/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { orpc } from "@bmhk-2026/client/orpc";
-import { useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import type { StaffVerifyStatus } from "./resolve-message";
 import { resolveStaffVerifyMessage } from "./resolve-message";
 
 interface StaffVerifyPageProps {
+  readonly staffUser: { email: string; name: string };
   readonly token: string;
 }
 
-type LinkOutcome =
-  | { kind: "pending" }
-  | { kind: "success"; status: StaffVerifyStatus }
-  | { kind: "error" };
+type ConfirmPhase =
+  | { kind: "cancelled" }
+  | { kind: "link-error" }
+  | { kind: "linked"; status: StaffVerifyStatus }
+  | { kind: "linking" };
 
-function StaffVerifyPage({ token }: StaffVerifyPageProps) {
+const LOADING_MESSAGE = "กำลังโหลดข้อมูล...";
+const CANCELLED_MESSAGE = "ยกเลิกแล้ว หากต้องการเชื่อมบัญชี กรุณาใช้คำสั่ง /verifystaff อีกครั้ง";
+const INVALID_TOKEN_MESSAGE = resolveStaffVerifyMessage({
+  isError: false,
+  isPending: false,
+  status: "INVALID_TOKEN",
+});
+
+function StaffVerifyPage({ staffUser, token }: StaffVerifyPageProps) {
+  const previewQuery = useQuery(orpc.staffDiscordLink.preview.queryOptions({ input: { token } }));
   const { mutateAsync } = useMutation(orpc.staffDiscordLink.link.mutationOptions());
-  const firedTokenRef = useRef<string | null>(null);
-  const [outcome, setOutcome] = useState<LinkOutcome>({ kind: "pending" });
+  const [phase, setPhase] = useState<ConfirmPhase | null>(null);
 
-  useEffect(() => {
-    // The token is single-use, so guard against React's dev-mode double
-    // effect invocation (and any remount) firing the mutation twice for
-    // the same token — a ref survives that double-invoke, state doesn't.
-    if (firedTokenRef.current === token) {
-      return;
+  async function handleConfirm(): Promise<void> {
+    setPhase({ kind: "linking" });
+    try {
+      const result = await mutateAsync({ token });
+      setPhase({ kind: "linked", status: result.status });
+    } catch {
+      setPhase({ kind: "link-error" });
     }
-    firedTokenRef.current = token;
+  }
 
-    // Track the result in local state instead of reading useMutation's own
-    // isPending/data/isError: those reflect whichever render last subscribed
-    // to the mutation observer, which can desync from the render that
-    // actually fired it, leaving the UI stuck on the pending message forever.
-    async function link(): Promise<void> {
-      try {
-        const data = await mutateAsync({ token });
-        setOutcome({ kind: "success", status: data.status });
-      } catch {
-        setOutcome({ kind: "error" });
-      }
-    }
+  function handleCancel(): void {
+    setPhase({ kind: "cancelled" });
+  }
 
-    void link();
-  }, [mutateAsync, token]);
+  if (phase !== null) {
+    const message =
+      phase.kind === "cancelled"
+        ? CANCELLED_MESSAGE
+        : resolveStaffVerifyMessage({
+            isError: phase.kind === "link-error",
+            isPending: phase.kind === "linking",
+            status: phase.kind === "linked" ? phase.status : undefined,
+          });
 
-  const message = resolveStaffVerifyMessage({
-    isError: outcome.kind === "error",
-    isPending: outcome.kind === "pending",
-    status: outcome.kind === "success" ? outcome.status : undefined,
-  });
+    return <StatusCard message={message} />;
+  }
 
+  if (previewQuery.isPending) {
+    return <StatusCard message={LOADING_MESSAGE} />;
+  }
+
+  if (previewQuery.isError || previewQuery.data.status === "INVALID_TOKEN") {
+    return <StatusCard message={INVALID_TOKEN_MESSAGE} />;
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>เชื่อมบัญชี Discord</CardTitle>
+          <CardDescription>ยืนยันว่าบัญชีทั้งสองด้านล่างนี้ถูกต้องก่อนเชื่อมบัญชี</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <dl className="space-y-2 text-sm">
+            <div>
+              <dt className="text-muted-foreground">บัญชีทีมงาน</dt>
+              <dd>
+                {staffUser.name} ({staffUser.email})
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">บัญชี Discord</dt>
+              <dd>{previewQuery.data.discordUsername}</dd>
+            </div>
+          </dl>
+          <div className="flex gap-2">
+            <Button
+              className="flex-1"
+              onClick={() => {
+                void handleConfirm();
+              }}
+            >
+              ยืนยัน
+            </Button>
+            <Button className="flex-1" onClick={handleCancel} variant="outline">
+              ยกเลิก
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatusCard({ message }: { readonly message: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm">

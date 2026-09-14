@@ -10,9 +10,10 @@ export interface StaffVerifyTokenResponse {
 
 export async function createStaffVerifyToken(
   discordUserId: string,
+  discordUsername: string,
 ): Promise<StaffVerifyTokenResponse> {
   const response = await serverFetch("/api/discord/staff-verify/token", {
-    body: JSON.stringify({ discord_user_id: discordUserId }),
+    body: JSON.stringify({ discord_user_id: discordUserId, discord_username: discordUsername }),
     method: "POST",
   });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion

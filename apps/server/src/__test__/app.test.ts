@@ -128,6 +128,7 @@ function createTestStaffDiscordLinkService(
     createToken: async () =>
       await Promise.resolve({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "abc123" }),
     link: async () => await Promise.resolve({ status: "SUCCESS" }),
+    preview: async () => await Promise.resolve({ discordUsername: "discord-user", status: "OK" }),
     ...overrides,
   };
 }
@@ -570,7 +571,7 @@ describe("server app", () => {
 
     const response = await testApp.app.handle(
       new Request("http://localhost/api/discord/staff-verify/token", {
-        body: JSON.stringify({ discord_user_id: "discord-1" }),
+        body: JSON.stringify({ discord_user_id: "discord-1", discord_username: "discord-user" }),
         headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
         method: "POST",
       }),

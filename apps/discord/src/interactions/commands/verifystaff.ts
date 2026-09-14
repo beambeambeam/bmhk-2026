@@ -10,7 +10,7 @@ const verifystaff: Command = {
     .setDescription("เชื่อมบัญชี Discord กับบัญชีทีมงาน"),
 
   async execute(interaction) {
-    const { token } = await createStaffVerifyToken(interaction.user.id);
+    const { token } = await createStaffVerifyToken(interaction.user.id, interaction.user.username);
     const link = new URL("/verifystaff", env.STAFF_BASE_URL);
     link.searchParams.set("token", token);
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const staffVerifyTokenCreateInputSchema = z
-  .object({ discord_user_id: z.string().trim().min(1) })
+  .object({ discord_user_id: z.string().trim().min(1), discord_username: z.string().trim().min(1) })
   .strict();
 
 export const staffVerifyTokenCreateResponseSchema = z
@@ -23,8 +23,22 @@ export const staffDiscordLinkResultSchema = z
   .object({ status: z.enum(staffDiscordLinkStatusValues) })
   .strict();
 
+export const staffDiscordLinkPreviewInputSchema = z
+  .object({ token: z.string().trim().min(1) })
+  .strict();
+
+export const staffDiscordLinkPreviewStatusValues = ["OK", "INVALID_TOKEN"] as const;
+
+export const staffDiscordLinkPreviewResultSchema = z.discriminatedUnion("status", [
+  z.object({ discordUsername: z.string(), status: z.literal("OK") }).strict(),
+  z.object({ status: z.literal("INVALID_TOKEN") }).strict(),
+]);
+
 export type StaffVerifyTokenCreateInput = z.output<typeof staffVerifyTokenCreateInputSchema>;
 export type StaffVerifyTokenCreateResponse = z.output<typeof staffVerifyTokenCreateResponseSchema>;
 export type StaffDiscordLinkInput = z.output<typeof staffDiscordLinkInputSchema>;
 export type StaffDiscordLinkStatus = (typeof staffDiscordLinkStatusValues)[number];
 export type StaffDiscordLinkResult = z.output<typeof staffDiscordLinkResultSchema>;
+export type StaffDiscordLinkPreviewInput = z.output<typeof staffDiscordLinkPreviewInputSchema>;
+export type StaffDiscordLinkPreviewStatus = (typeof staffDiscordLinkPreviewStatusValues)[number];
+export type StaffDiscordLinkPreviewResult = z.output<typeof staffDiscordLinkPreviewResultSchema>;

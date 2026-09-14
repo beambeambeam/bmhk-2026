@@ -3,6 +3,8 @@ import { staffDiscordLinkedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import {
   staffDiscordLinkInputSchema,
+  staffDiscordLinkPreviewInputSchema,
+  staffDiscordLinkPreviewResultSchema,
   staffDiscordLinkResultSchema,
 } from "./staff-discord-link.schema";
 import type { StaffDiscordLinkService } from "./staff-discord-link.service";
@@ -34,5 +36,10 @@ export function createStaffDiscordLinkRouter(
             onSuccess: (result) => ({ changes: { after: { status: result.status } } }),
           }),
       ),
+    preview: protectedProcedure
+      .route({ method: "GET", tags: ["Staff Discord Link"] })
+      .input(staffDiscordLinkPreviewInputSchema)
+      .output(staffDiscordLinkPreviewResultSchema)
+      .handler(async ({ input }) => await service.preview(input.token)),
   };
 }

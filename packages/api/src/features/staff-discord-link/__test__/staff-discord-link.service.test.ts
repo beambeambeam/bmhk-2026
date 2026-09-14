@@ -12,17 +12,19 @@ function createFakeRepository(overrides: Partial<StaffDiscordLinkRepository> = {
   repository: StaffDiscordLinkRepository;
 } {
   const links: { discordUserId: string; userId: string }[] = [];
-  const validTokens = new Map<string, string>([["good-token", "discord-1"]]);
+  const validTokens = new Map<string, { discordUserId: string; discordUsername: string }>([
+    ["good-token", { discordUserId: "discord-1", discordUsername: "griffin_dev" }],
+  ]);
   const overseerGroups = new Map<string, StaffOverseerGroup>();
 
   const repository: StaffDiscordLinkRepository = {
     consumeToken: async (token) => {
-      const discordUserId = validTokens.get(token);
-      if (discordUserId === undefined) {
+      const entry = validTokens.get(token);
+      if (entry === undefined) {
         return await Promise.resolve(null);
       }
       validTokens.delete(token);
-      return await Promise.resolve({ discordUserId });
+      return await Promise.resolve({ discordUserId: entry.discordUserId });
     },
     createToken: async (discordUserId) =>
       await Promise.resolve({
@@ -34,6 +36,10 @@ function createFakeRepository(overrides: Partial<StaffDiscordLinkRepository> = {
     findLinkByUserId: async (userId) =>
       await Promise.resolve(links.find((link) => link.userId === userId) ?? null),
     findOverseerGroup: async (userId) => await Promise.resolve(overseerGroups.get(userId) ?? null),
+    previewToken: async (token) => {
+      const entry = validTokens.get(token);
+      return await Promise.resolve(entry ? { discordUsername: entry.discordUsername } : null);
+    },
     upsertLink: async (userId, discordUserId) => {
       const existingIndex = links.findIndex((link) => link.userId === userId);
       if (existingIndex === -1) {
@@ -236,5 +242,33 @@ describe(createStaffDiscordLinkService, () => {
     });
 
     expect(result).toStrictEqual({ status: "BOT_APPLY_FAILED" });
+  });
+
+  it("previews a valid token without consuming it", async () => {
+    const { repository } = createFakeRepository();
+    const { gateway } = createFakeGateway();
+    const service = createStaffDiscordLinkService(repository, gateway);
+
+    const result = await service.preview("good-token");
+
+    expect(result).toStrictEqual({ discordUsername: "griffin_dev", status: "OK" });
+    // The token must still be usable by a later link() call.
+    const linkResult = await service.link({
+      token: "good-token",
+      userId: "user-1",
+      userName: "Somchai Test",
+      userRole: "staff",
+    });
+    expect(linkResult).toStrictEqual({ status: "SUCCESS" });
+  });
+
+  it("reports an unknown or expired token on preview", async () => {
+    const { repository } = createFakeRepository();
+    const { gateway } = createFakeGateway();
+    const service = createStaffDiscordLinkService(repository, gateway);
+
+    const result = await service.preview("bad-token");
+
+    expect(result).toStrictEqual({ status: "INVALID_TOKEN" });
   });
 });

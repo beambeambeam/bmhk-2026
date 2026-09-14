@@ -111,6 +111,7 @@ export function createUnusedStaffDiscordLinkService(): StaffDiscordLinkService {
   return {
     createToken: createUnusedMethod("StaffDiscordLinkService", "createToken"),
     link: createUnusedMethod("StaffDiscordLinkService", "link"),
+    preview: createUnusedMethod("StaffDiscordLinkService", "preview"),
   };
 }
 

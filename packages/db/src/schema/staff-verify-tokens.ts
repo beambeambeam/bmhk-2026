@@ -6,6 +6,7 @@ export const staffVerifyTokens = pgTable(
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     discordUserId: text("discord_user_id").notNull(),
+    discordUsername: text("discord_username").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     token: text("token").notNull(),

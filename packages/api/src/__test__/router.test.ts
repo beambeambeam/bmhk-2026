@@ -31,6 +31,8 @@ function createRouter(auth: AuthReader) {
       createToken: async () => await Promise.resolve({ expiresAt: new Date(), token: "unused" }),
       link: async () =>
         await Promise.reject(new Error("StaffDiscordLinkService.link was called unexpectedly")),
+      preview: async () =>
+        await Promise.reject(new Error("StaffDiscordLinkService.preview was called unexpectedly")),
     },
     teams: createUnusedTeamRepository(),
   });
@@ -110,6 +112,7 @@ function createFakeStaffDiscordLinkService(): StaffDiscordLinkService {
   return {
     createToken: async () => await Promise.resolve({ expiresAt: new Date(), token: "unused" }),
     link: async () => await Promise.resolve({ status: "SUCCESS" }),
+    preview: async () => await Promise.resolve({ discordUsername: "discord-user", status: "OK" }),
   };
 }
 
@@ -229,5 +232,45 @@ describe("staffDiscordLink router", () => {
     );
 
     expect(result).toStrictEqual({ status: "SUCCESS" });
+  });
+
+  it("rejects preview without a session", async () => {
+    const router = createAppRouter({
+      auth: createTestAuthReader(null),
+      files: createUnusedFileRepository(),
+      staffDiscordLinkService: createFakeStaffDiscordLinkService(),
+      teams: createUnusedTeamRepository(),
+    });
+
+    await expect(
+      call(
+        router.staffDiscordLink.preview,
+        { token: "any" },
+        {
+          context: createTestContext().context,
+          path: ["staffDiscordLink", "preview"],
+        },
+      ),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("previews a token for a staff session", async () => {
+    const router = createAppRouter({
+      auth: createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      files: createUnusedFileRepository(),
+      staffDiscordLinkService: createFakeStaffDiscordLinkService(),
+      teams: createUnusedTeamRepository(),
+    });
+
+    const result = await call(
+      router.staffDiscordLink.preview,
+      { token: "good-token" },
+      {
+        context: createTestContext().context,
+        path: ["staffDiscordLink", "preview"],
+      },
+    );
+
+    expect(result).toStrictEqual({ discordUsername: "discord-user", status: "OK" });
   });
 });

@@ -103,6 +103,7 @@ export function createDiscordModule(
 
         const { expiresAt, token } = await staffDiscordLinkService.createToken(
           input.data.discord_user_id,
+          input.data.discord_username,
         );
         return { expires_at: expiresAt.toISOString(), token };
       }),

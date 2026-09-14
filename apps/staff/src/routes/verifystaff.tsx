@@ -15,6 +15,8 @@ export const Route = createFileRoute("/verifystaff")({
       // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
       throw redirect({ href: `/login?redirect=${encodeURIComponent(redirectTarget)}` });
     }
+
+    return { staffUser: session.data.user };
   },
   component: VerifyStaffRoute,
   ssr: false,
@@ -23,5 +25,6 @@ export const Route = createFileRoute("/verifystaff")({
 
 function VerifyStaffRoute() {
   const { token } = Route.useSearch();
-  return <StaffVerifyPage token={token} />;
+  const { staffUser } = Route.useRouteContext();
+  return <StaffVerifyPage staffUser={staffUser} token={token} />;
 }

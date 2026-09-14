@@ -1,6 +1,9 @@
 import type { DiscordBotGateway } from "./discord-bot-gateway";
 import type { StaffDiscordLinkRepository } from "./staff-discord-link.repository";
-import type { StaffDiscordLinkResult } from "./staff-discord-link.schema";
+import type {
+  StaffDiscordLinkPreviewResult,
+  StaffDiscordLinkResult,
+} from "./staff-discord-link.schema";
 
 const INELIGIBLE_ROLE = "user";
 const ADMIN_ROLES = new Set(["admin", "superAdmin"]);
@@ -13,8 +16,12 @@ export interface LinkStaffDiscordParams {
 }
 
 export interface StaffDiscordLinkService {
-  createToken: (discordUserId: string) => Promise<{ expiresAt: Date; token: string }>;
+  createToken: (
+    discordUserId: string,
+    discordUsername: string,
+  ) => Promise<{ expiresAt: Date; token: string }>;
   link: (params: LinkStaffDiscordParams) => Promise<StaffDiscordLinkResult>;
+  preview: (token: string) => Promise<StaffDiscordLinkPreviewResult>;
 }
 
 function firstNameOf(name: string): string {
@@ -28,7 +35,8 @@ export function createStaffDiscordLinkService(
   gateway: DiscordBotGateway,
 ): StaffDiscordLinkService {
   return {
-    createToken: async (discordUserId) => await repository.createToken(discordUserId),
+    createToken: async (discordUserId, discordUsername) =>
+      await repository.createToken(discordUserId, discordUsername),
     link: async ({ token, userId, userName, userRole }) => {
       const role = userRole ?? INELIGIBLE_ROLE;
       if (role === INELIGIBLE_ROLE) {
@@ -78,6 +86,12 @@ export function createStaffDiscordLinkService(
       });
 
       return applied.ok ? { status: "SUCCESS" } : { status: "BOT_APPLY_FAILED" };
+    },
+    preview: async (token) => {
+      const preview = await repository.previewToken(token);
+      return preview
+        ? { discordUsername: preview.discordUsername, status: "OK" }
+        : { status: "INVALID_TOKEN" };
     },
   };
 }

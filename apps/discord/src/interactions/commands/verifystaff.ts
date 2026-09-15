@@ -40,7 +40,11 @@ const verifystaff: Command = {
       return;
     }
 
-    const { token } = await createStaffVerifyToken(interaction.user.id, interaction.user.username);
+    const { token } = await createStaffVerifyToken(
+      interaction.user.id,
+      interaction.user.username,
+      interaction.user.displayAvatarURL({ size: 128 }),
+    );
     const link = new URL("/verifystaff", env.STAFF_BASE_URL);
     link.searchParams.set("token", token);
 

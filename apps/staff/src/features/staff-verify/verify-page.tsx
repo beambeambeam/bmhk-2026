@@ -83,7 +83,16 @@ function StaffVerifyPage({ staffUser, token }: StaffVerifyPageProps) {
             </div>
             <div>
               <dt className="text-muted-foreground">บัญชี Discord</dt>
-              <dd>{previewQuery.data.discordUsername}</dd>
+              <dd className="flex items-center gap-2">
+                {previewQuery.data.discordAvatarUrl !== null && (
+                  <img
+                    alt={`รูปโปรไฟล์ Discord ของ ${previewQuery.data.discordUsername}`}
+                    className="size-8 rounded-full"
+                    src={previewQuery.data.discordAvatarUrl}
+                  />
+                )}
+                {previewQuery.data.discordUsername}
+              </dd>
             </div>
           </dl>
           <div className="flex gap-2">

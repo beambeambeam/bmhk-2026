@@ -232,6 +232,13 @@
       "when": 1789373174715,
       "tag": "0032_familiar_thunderball",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1789472972709,
+      "tag": "0033_colossal_human_robot",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,7 @@ export interface StaffDiscordLinkService {
   createToken: (
     discordUserId: string,
     discordUsername: string,
+    discordAvatarUrl: string | null,
   ) => Promise<{ expiresAt: Date; token: string }>;
   link: (params: LinkStaffDiscordParams) => Promise<StaffDiscordLinkResult>;
   preview: (token: string) => Promise<StaffDiscordLinkPreviewResult>;
@@ -35,8 +36,8 @@ export function createStaffDiscordLinkService(
   gateway: DiscordBotGateway,
 ): StaffDiscordLinkService {
   return {
-    createToken: async (discordUserId, discordUsername) =>
-      await repository.createToken(discordUserId, discordUsername),
+    createToken: async (discordUserId, discordUsername, discordAvatarUrl) =>
+      await repository.createToken(discordUserId, discordUsername, discordAvatarUrl),
     link: async ({ token, userId, userName, userRole }) => {
       const role = userRole ?? INELIGIBLE_ROLE;
       if (role === INELIGIBLE_ROLE) {
@@ -90,7 +91,11 @@ export function createStaffDiscordLinkService(
     preview: async (token) => {
       const preview = await repository.previewToken(token);
       return preview
-        ? { discordUsername: preview.discordUsername, status: "OK" }
+        ? {
+            discordAvatarUrl: preview.discordAvatarUrl,
+            discordUsername: preview.discordUsername,
+            status: "OK",
+          }
         : { status: "INVALID_TOKEN" };
     },
   };

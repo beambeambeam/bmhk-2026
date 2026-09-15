@@ -112,7 +112,12 @@ function createFakeStaffDiscordLinkService(): StaffDiscordLinkService {
   return {
     createToken: async () => await Promise.resolve({ expiresAt: new Date(), token: "unused" }),
     link: async () => await Promise.resolve({ status: "SUCCESS" }),
-    preview: async () => await Promise.resolve({ discordUsername: "discord-user", status: "OK" }),
+    preview: async () =>
+      await Promise.resolve({
+        discordAvatarUrl: null,
+        discordUsername: "discord-user",
+        status: "OK",
+      }),
   };
 }
 
@@ -271,6 +276,10 @@ describe("staffDiscordLink router", () => {
       },
     );
 
-    expect(result).toStrictEqual({ discordUsername: "discord-user", status: "OK" });
+    expect(result).toStrictEqual({
+      discordAvatarUrl: null,
+      discordUsername: "discord-user",
+      status: "OK",
+    });
   });
 });

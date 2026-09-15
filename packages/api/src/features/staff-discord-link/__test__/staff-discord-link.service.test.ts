@@ -38,7 +38,9 @@ function createFakeRepository(overrides: Partial<StaffDiscordLinkRepository> = {
     findOverseerGroup: async (userId) => await Promise.resolve(overseerGroups.get(userId) ?? null),
     previewToken: async (token) => {
       const entry = validTokens.get(token);
-      return await Promise.resolve(entry ? { discordUsername: entry.discordUsername } : null);
+      return await Promise.resolve(
+        entry ? { discordAvatarUrl: null, discordUsername: entry.discordUsername } : null,
+      );
     },
     upsertLink: async (userId, discordUserId) => {
       const existingIndex = links.findIndex((link) => link.userId === userId);
@@ -251,7 +253,11 @@ describe(createStaffDiscordLinkService, () => {
 
     const result = await service.preview("good-token");
 
-    expect(result).toStrictEqual({ discordUsername: "griffin_dev", status: "OK" });
+    expect(result).toStrictEqual({
+      discordAvatarUrl: null,
+      discordUsername: "griffin_dev",
+      status: "OK",
+    });
     // The token must still be usable by a later link() call.
     const linkResult = await service.link({
       token: "good-token",
@@ -270,5 +276,30 @@ describe(createStaffDiscordLinkService, () => {
     const result = await service.preview("bad-token");
 
     expect(result).toStrictEqual({ status: "INVALID_TOKEN" });
+  });
+
+  it("delegates token creation, including the avatar url, to the repository", async () => {
+    let createTokenArgs: [string, string, string | null] | null = null;
+    const { repository } = createFakeRepository({
+      createToken: async (discordUserId, discordUsername, discordAvatarUrl) => {
+        createTokenArgs = [discordUserId, discordUsername, discordAvatarUrl];
+        return await Promise.resolve({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "tok" });
+      },
+    });
+    const { gateway } = createFakeGateway();
+    const service = createStaffDiscordLinkService(repository, gateway);
+
+    const result = await service.createToken(
+      "discord-1",
+      "griffin_dev",
+      "https://cdn.discordapp.com/avatars/discord-1/abc.png",
+    );
+
+    expect(result).toStrictEqual({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "tok" });
+    expect(createTokenArgs).toStrictEqual([
+      "discord-1",
+      "griffin_dev",
+      "https://cdn.discordapp.com/avatars/discord-1/abc.png",
+    ]);
   });
 });

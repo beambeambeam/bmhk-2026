@@ -20,11 +20,14 @@ export interface StaffDiscordLinkRepository {
   createToken: (
     discordUserId: string,
     discordUsername: string,
+    discordAvatarUrl: string | null,
   ) => Promise<{ expiresAt: Date; token: string }>;
   findLinkByDiscordUserId: (discordUserId: string) => Promise<{ userId: string } | null>;
   findLinkByUserId: (userId: string) => Promise<{ discordUserId: string } | null>;
   findOverseerGroup: (userId: string) => Promise<StaffOverseerGroup | null>;
-  previewToken: (token: string) => Promise<{ discordUsername: string } | null>;
+  previewToken: (
+    token: string,
+  ) => Promise<{ discordAvatarUrl: string | null; discordUsername: string } | null>;
   upsertLink: (userId: string, discordUserId: string) => Promise<void>;
 }
 
@@ -52,13 +55,13 @@ export function createStaffDiscordLinkRepository(
 
         return row ?? null;
       }),
-    createToken: async (discordUserId, discordUsername) =>
+    createToken: async (discordUserId, discordUsername, discordAvatarUrl) =>
       await execute(async () => {
         const token = crypto.randomUUID();
         const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
         await database
           .insert(staffVerifyTokens)
-          .values({ discordUserId, discordUsername, expiresAt, token });
+          .values({ discordAvatarUrl, discordUserId, discordUsername, expiresAt, token });
         return { expiresAt, token };
       }),
     findLinkByDiscordUserId: async (discordUserId) =>
@@ -95,7 +98,10 @@ export function createStaffDiscordLinkRepository(
     previewToken: async (token) =>
       await execute(async () => {
         const [row] = await database
-          .select({ discordUsername: staffVerifyTokens.discordUsername })
+          .select({
+            discordAvatarUrl: staffVerifyTokens.discordAvatarUrl,
+            discordUsername: staffVerifyTokens.discordUsername,
+          })
           .from(staffVerifyTokens)
           .where(
             and(

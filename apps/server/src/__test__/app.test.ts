@@ -132,7 +132,12 @@ function createTestStaffDiscordLinkService(
     createToken: async () =>
       await Promise.resolve({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "abc123" }),
     link: async () => await Promise.resolve({ status: "SUCCESS" }),
-    preview: async () => await Promise.resolve({ discordUsername: "discord-user", status: "OK" }),
+    preview: async () =>
+      await Promise.resolve({
+        discordAvatarUrl: null,
+        discordUsername: "discord-user",
+        status: "OK",
+      }),
     ...overrides,
   };
 }
@@ -634,23 +639,39 @@ describe("server app", () => {
   });
 
   it("creates a staff-verify token with a valid api key", async () => {
+    let createTokenArgs: [string, string, string | null] | null = null;
     const testApp = createTestApp(
       undefined,
       undefined,
       undefined,
       createTestStaffDiscordLinkService({
-        createToken: async () =>
-          await Promise.resolve({ expiresAt: new Date("2026-01-01T00:10:00Z"), token: "abc123" }),
+        createToken: async (discordUserId, discordUsername, discordAvatarUrl) => {
+          createTokenArgs = [discordUserId, discordUsername, discordAvatarUrl];
+          return await Promise.resolve({
+            expiresAt: new Date("2026-01-01T00:10:00Z"),
+            token: "abc123",
+          });
+        },
       }),
     );
 
     const response = await testApp.app.handle(
       new Request("http://localhost/api/discord/staff-verify/token", {
-        body: JSON.stringify({ discord_user_id: "discord-1", discord_username: "discord-user" }),
+        body: JSON.stringify({
+          discord_avatar_url: "https://cdn.discordapp.com/avatars/discord-1/abc.png",
+          discord_user_id: "discord-1",
+          discord_username: "discord-user",
+        }),
         headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
         method: "POST",
       }),
     );
+
+    expect(createTokenArgs).toStrictEqual([
+      "discord-1",
+      "discord-user",
+      "https://cdn.discordapp.com/avatars/discord-1/abc.png",
+    ]);
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toStrictEqual({

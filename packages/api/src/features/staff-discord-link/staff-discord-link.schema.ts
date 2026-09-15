@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const staffVerifyTokenCreateInputSchema = z
-  .object({ discord_user_id: z.string().trim().min(1), discord_username: z.string().trim().min(1) })
+  .object({
+    discord_avatar_url: z.url().nullable(),
+    discord_user_id: z.string().trim().min(1),
+    discord_username: z.string().trim().min(1),
+  })
   .strict();
 
 export const staffVerifyTokenCreateResponseSchema = z
@@ -30,7 +34,13 @@ export const staffDiscordLinkPreviewInputSchema = z
 export const staffDiscordLinkPreviewStatusValues = ["OK", "INVALID_TOKEN"] as const;
 
 export const staffDiscordLinkPreviewResultSchema = z.discriminatedUnion("status", [
-  z.object({ discordUsername: z.string(), status: z.literal("OK") }).strict(),
+  z
+    .object({
+      discordAvatarUrl: z.url().nullable(),
+      discordUsername: z.string(),
+      status: z.literal("OK"),
+    })
+    .strict(),
   z.object({ status: z.literal("INVALID_TOKEN") }).strict(),
 ]);
 

@@ -11,9 +11,14 @@ export interface StaffVerifyTokenResponse {
 export async function createStaffVerifyToken(
   discordUserId: string,
   discordUsername: string,
+  discordAvatarUrl: string | null,
 ): Promise<StaffVerifyTokenResponse> {
   const response = await serverFetch("/api/discord/staff-verify/token", {
-    body: JSON.stringify({ discord_user_id: discordUserId, discord_username: discordUsername }),
+    body: JSON.stringify({
+      discord_avatar_url: discordAvatarUrl,
+      discord_user_id: discordUserId,
+      discord_username: discordUsername,
+    }),
     method: "POST",
   });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion

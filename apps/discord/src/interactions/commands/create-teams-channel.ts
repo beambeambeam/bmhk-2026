@@ -1,4 +1,10 @@
-import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import {
+  ChannelType,
+  MessageFlags,
+  OverwriteType,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+} from "discord.js";
 import {
   fetchTeamGroups,
   recordGroupCategory,
@@ -117,8 +123,17 @@ const createTeamsChannel: Command = {
       createCategory: async (name) =>
         await guild.channels.create({
           name,
+          // The bot needs an explicit allow here too: Discord won't let it
+          // later grant ViewChannel/Connect to an overseer (in the
+          // staff-verify flow) on a category it can't itself see, and the
+          // @everyone deny below would otherwise apply to the bot as well.
           permissionOverwrites: [
             { deny: [PermissionFlagsBits.ViewChannel], id: guild.roles.everyone.id },
+            {
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect],
+              id: guild.members.me?.id ?? guild.client.user.id,
+              type: OverwriteType.Member,
+            },
           ],
           type: ChannelType.GuildCategory,
         }),

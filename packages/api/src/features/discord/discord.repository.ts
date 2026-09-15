@@ -95,7 +95,10 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
                 eq(discordTeamGroupMembers.teamId, teamParticipants.teamId),
               )
               .where(eq(discord.code, code))
-              .for("update")
+              // Scoped to `discord` only: Postgres refuses a bare FOR UPDATE
+              // when a LEFT JOIN is present, since it can't lock a row that
+              // might not exist on the nullable side.
+              .for("update", { of: discord })
               .limit(1);
 
             if (!row) {

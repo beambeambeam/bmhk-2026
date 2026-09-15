@@ -113,7 +113,7 @@ const createTeamsChannel: Command = {
       return;
     }
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply();
     const { guild } = interaction;
 
     const groups = await fetchTeamGroups();

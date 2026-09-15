@@ -16,6 +16,8 @@ export type DiscordRedemptionResult =
       firstNameEn: string;
       lastNameEn: string;
       outcome: "redeemed";
+      teamIndex: number;
+      teamName: string;
       wasAlt: boolean;
     }
   | { outcome: "not_found" };
@@ -87,9 +89,12 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
                 id: discord.id,
                 lastNameEn: teamParticipants.lastNameEn,
                 redeemedAt: discord.redeemedAt,
+                teamIndex: teams.index,
+                teamName: teams.name,
               })
               .from(discord)
               .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
+              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
               .leftJoin(
                 discordTeamGroupMembers,
                 eq(discordTeamGroupMembers.teamId, teamParticipants.teamId),
@@ -124,6 +129,8 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
               firstNameEn: row.firstNameEn,
               lastNameEn: row.lastNameEn,
               outcome: "redeemed" as const,
+              teamIndex: row.teamIndex,
+              teamName: row.teamName,
               wasAlt,
             };
           }),

@@ -7,8 +7,21 @@ export interface DiscordService {
   verify: (code: string, discordUserId: string) => Promise<DiscordVerifyResponse>;
 }
 
+const TEAM_NAME_MAX_LENGTH = 17;
+
 function toDisplayName(firstNameEn: string, lastNameEn: string): string {
   return `${firstNameEn} ${lastNameEn}`.trim();
+}
+
+function toNickname(params: {
+  firstNameEn: string;
+  teamIndex: number;
+  teamName: string;
+  wasAlt: boolean;
+}): string {
+  const cappedTeamName = params.teamName.slice(0, TEAM_NAME_MAX_LENGTH);
+  const base = `${params.teamIndex} - ${cappedTeamName} - ${params.firstNameEn}`;
+  return params.wasAlt ? `${base} [ALT]` : base;
 }
 
 export function createDiscordService(repository: DiscordRepository): DiscordService {
@@ -43,11 +56,14 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
         return { channel_id: null, nickname: null, status: discordStatus.ALREADY_REDEEMED };
       }
 
-      const name = toDisplayName(result.firstNameEn, result.lastNameEn);
-
       return {
         channel_id: result.channelId,
-        nickname: result.wasAlt ? `${name} [ALT]` : name,
+        nickname: toNickname({
+          firstNameEn: result.firstNameEn,
+          teamIndex: result.teamIndex,
+          teamName: result.teamName,
+          wasAlt: result.wasAlt,
+        }),
         status: discordStatus.SUCCESS,
       };
     },

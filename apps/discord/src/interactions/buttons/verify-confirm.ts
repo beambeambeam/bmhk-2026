@@ -135,7 +135,7 @@ const verifyConfirm: Button = {
     // first and rewrite the confirmation message once they settle.
     await interaction.deferUpdate();
 
-    const response = await verifyDiscordCode(code);
+    const response = await verifyDiscordCode(code, interaction.user.id);
     const outcome = resolveVerifyConfirm(response, await resolveParticipantRoleId());
 
     if (!outcome.applied) {

@@ -33,9 +33,12 @@ export async function queryDiscordCode(code: string): Promise<BMHKDiscordQueryRe
   return (await response.json()) as BMHKDiscordQueryResponse;
 }
 
-export async function verifyDiscordCode(code: string): Promise<BMHKDiscordVerifyResponse> {
+export async function verifyDiscordCode(
+  code: string,
+  discordUserId: string,
+): Promise<BMHKDiscordVerifyResponse> {
   const response = await serverFetch("/api/discord/verify", {
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, id: discordUserId }),
     method: "POST",
   });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion

@@ -21,10 +21,17 @@ const MESSAGE = {
 const NICKNAME_FAILURE = "ตั้งชื่อเล่น";
 const ROLE_FAILURE = "ให้ยศผู้เข้าแข่งขัน";
 const UNCONFIGURED_ROLE_FAILURE = `${ROLE_FAILURE} (ยังไม่ได้ตั้งค่า \`${PARTICIPANT_ROLE_SETTING_KEY}\`)`;
+const CHANNEL_ACCESS_FAILURE = "เข้าถึงช่องเสียงทีม";
 
 export type VerifyConfirmOutcome =
   | { applied: false; message: string; reason: string }
-  | { applied: true; message: string; nickname: string; roleId: string | null };
+  | {
+      applied: true;
+      channelId: string | null;
+      message: string;
+      nickname: string;
+      roleId: string | null;
+    };
 
 /**
  * Decides what the bot should do with a verify response, separated from the
@@ -62,7 +69,13 @@ export function resolveVerifyConfirm(
     };
   }
 
-  return { applied: true, message: MESSAGE.SUCCESS, nickname: response.nickname, roleId };
+  return {
+    applied: true,
+    channelId: response.channel_id,
+    message: MESSAGE.SUCCESS,
+    nickname: response.nickname,
+    roleId,
+  };
 }
 
 /** Joins whatever the bot could not do into the tail of the success message. */
@@ -120,6 +133,25 @@ async function applyParticipantIdentity(
   return failures;
 }
 
+/**
+ * Grants the participant View/Connect on their team's voice channel. Like
+ * the staff-verify category grant, this only works because the bot itself
+ * already has View Channel/Connect there — see create-teams-channel.ts.
+ */
+async function grantTeamChannelAccess(member: GuildMember, channelId: string): Promise<boolean> {
+  try {
+    const channel = await member.guild.channels.fetch(channelId);
+    if (!channel || !("permissionOverwrites" in channel)) {
+      return false;
+    }
+    await channel.permissionOverwrites.edit(member.id, { Connect: true, ViewChannel: true });
+    return true;
+  } catch (error) {
+    console.error("[verify-confirm] channel access grant failed:", error);
+    return false;
+  }
+}
+
 const verifyConfirm: Button = {
   customId: CUSTOM_ID_PREFIX,
 
@@ -149,6 +181,13 @@ const verifyConfirm: Button = {
       outcome.nickname,
       outcome.roleId,
     );
+
+    if (outcome.channelId !== null) {
+      const granted = await grantTeamChannelAccess(interaction.member, outcome.channelId);
+      if (!granted) {
+        failures.push(CHANNEL_ACCESS_FAILURE);
+      }
+    }
 
     await interaction.editReply({
       components: [],

@@ -21,10 +21,24 @@ describe(resolveVerifyConfirm, () => {
 
     expect(outcome).toStrictEqual({
       applied: true,
+      channelId: null,
       message: "ยืนยันตัวตนสำเร็จ! ยินดีต้อนรับสู่ Bangmod Hackathon 2026 🎉",
       nickname: "1 - แก๊งน้องห่าน - เมทิกา",
       roleId: ROLE_ID,
     });
+  });
+
+  it("carries the team channel id through for a granted channel", () => {
+    const outcome = resolveVerifyConfirm(
+      {
+        channel_id: "channel-9",
+        nickname: "1 - แก๊งน้องห่าน - เมทิกา",
+        status: bmhkDiscordStatus.SUCCESS,
+      },
+      ROLE_ID,
+    );
+
+    expect(outcome).toMatchObject({ applied: true, channelId: "channel-9" });
   });
 
   it("still applies the nickname when no participant role is configured", () => {

@@ -1,11 +1,11 @@
 import { env } from "@bmhk-2026/env/discord";
-import { EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Client } from "discord.js";
 
 import { createStaffVerifyToken } from "../../services/staff-verify-api.js";
 import type { Command } from "../../types.js";
 
-const NOT_IN_MAIN_GUILD_MESSAGE = `กรุณาเข้าร่วมเซิร์ฟเวอร์หลักของงานก่อน แล้วจึงใช้คำสั่งนี้อีกครั้ง:\n${env.DISCORD_MAIN_GUILD_INVITE_URL}`;
+const NOT_IN_MAIN_GUILD_MESSAGE = `กรุณาเข้าร่วมเซิร์ฟเวอร์แข่งขันก่อน แล้วจึงใช้คำสั่งนี้อีกครั้ง:\n${env.DISCORD_MAIN_GUILD_INVITE_URL}`;
 const UNCONFIGURED_MESSAGE = "ระบบยังไม่ได้ตั้งค่า กรุณาติดต่อทีมงาน";
 
 async function isMemberOfMainGuild(client: Client, discordUserId: string): Promise<boolean> {
@@ -26,16 +26,16 @@ const verifystaff: Command = {
     .setDescription("เชื่อมบัญชี Discord กับบัญชีทีมงาน"),
 
   async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true });
     if (env.DISCORD_GUILD_ID === undefined) {
       console.error("[verifystaff] DISCORD_GUILD_ID is not configured");
-      await interaction.reply({ content: UNCONFIGURED_MESSAGE, flags: MessageFlags.Ephemeral });
+      await interaction.editReply({ content: UNCONFIGURED_MESSAGE });
       return;
     }
 
     if (!(await isMemberOfMainGuild(interaction.client, interaction.user.id))) {
-      await interaction.reply({
+      await interaction.editReply({
         content: NOT_IN_MAIN_GUILD_MESSAGE,
-        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -45,10 +45,10 @@ const verifystaff: Command = {
     link.searchParams.set("token", token);
 
     const embed = new EmbedBuilder()
-      .setTitle("เชื่อมบัญชีทีมงาน")
+      .setTitle("เชื่อมบัญชีทีมงาน Bangmod Hackathon 2026")
       .setDescription(`กดลิงก์นี้เพื่อเชื่อมบัญชี Discord ของคุณกับบัญชีทีมงาน:\n${link.toString()}`);
 
-    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    await interaction.editReply({ embeds: [embed] });
   },
 
   // Deployed only to DISCORD_STAFF_GUILD_ID (see deploy-cmd.ts), so

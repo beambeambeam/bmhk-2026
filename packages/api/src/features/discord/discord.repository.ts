@@ -1,5 +1,6 @@
 import { db } from "@bmhk-2026/db";
 import { discord } from "@bmhk-2026/db/schema/discord";
+import { discordTeamGroupMembers } from "@bmhk-2026/db/schema/discord-team-group-members";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { eq } from "drizzle-orm";
@@ -10,7 +11,15 @@ import type { DiscordCodeLookup } from "./discord.schema";
 
 export type DiscordRedemptionResult =
   | { outcome: "already_redeemed" }
-  | { firstNameEn: string; lastNameEn: string; outcome: "redeemed"; wasAlt: boolean }
+  | {
+      channelId: string | null;
+      firstNameEn: string;
+      lastNameEn: string;
+      outcome: "redeemed";
+      teamIndex: number;
+      teamName: string;
+      wasAlt: boolean;
+    }
   | { outcome: "not_found" };
 
 export interface DiscordRepository {
@@ -75,15 +84,26 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
             const [row] = await tx
               .select({
                 altRedeemedAt: discord.altRedeemedAt,
+                channelId: discordTeamGroupMembers.channelId,
                 firstNameEn: teamParticipants.firstNameEn,
                 id: discord.id,
                 lastNameEn: teamParticipants.lastNameEn,
                 redeemedAt: discord.redeemedAt,
+                teamIndex: teams.index,
+                teamName: teams.name,
               })
               .from(discord)
               .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
+              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+              .leftJoin(
+                discordTeamGroupMembers,
+                eq(discordTeamGroupMembers.teamId, teamParticipants.teamId),
+              )
               .where(eq(discord.code, code))
-              .for("update")
+              // Scoped to `discord` only: Postgres refuses a bare FOR UPDATE
+              // when a LEFT JOIN is present, since it can't lock a row that
+              // might not exist on the nullable side.
+              .for("update", { of: discord })
               .limit(1);
 
             if (!row) {
@@ -105,9 +125,12 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
               .where(eq(discord.id, row.id));
 
             return {
+              channelId: row.channelId,
               firstNameEn: row.firstNameEn,
               lastNameEn: row.lastNameEn,
               outcome: "redeemed" as const,
+              teamIndex: row.teamIndex,
+              teamName: row.teamName,
               wasAlt,
             };
           }),

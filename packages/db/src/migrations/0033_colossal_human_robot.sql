@@ -1,0 +1,1 @@
+ALTER TABLE "staff_verify_tokens" ADD COLUMN "discord_avatar_url" text;

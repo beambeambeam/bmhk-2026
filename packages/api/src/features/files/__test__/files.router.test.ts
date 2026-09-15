@@ -8,6 +8,7 @@ import type { CreateStoredFileData, StoredFile } from "../files.schema";
 import {
   createTestAuthReader,
   createTestContext,
+  createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
 
@@ -50,7 +51,12 @@ function createRepository(overrides: Partial<FileRepository> = {}): FileReposito
 }
 
 function createRouter(repository: FileRepository, auth: AuthReader = createTestAuthReader()) {
-  return createAppRouter({ auth, files: repository, teams: createUnusedTeamRepository() }).files;
+  return createAppRouter({
+    auth,
+    files: repository,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
+    teams: createUnusedTeamRepository(),
+  }).files;
 }
 
 function pdfFile(name = "submission.pdf", type = "application/pdf") {

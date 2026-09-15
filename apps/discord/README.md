@@ -11,13 +11,22 @@ Copy `.env.example` to `.env` and fill in the required credentials:
 cp .env.example .env
 ```
 
-| Variable                      | Required | Description                                                                                                                                                                                                                            |
-| ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DISCORD_TOKEN`               | yes      | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot**.                                                                                                                       |
-| `DISCORD_CLIENT_ID`           | yes      | Application (client) ID, from your app's **General Information** page.                                                                                                                                                                 |
-| `DISCORD_GUILD_ID`            | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`.                                                                                                                                     |
-| `GLOBAL`                      | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development.                                                                 |
-| `DISCORD_PARTICIPANT_ROLE_ID` | no       | Role ID granted to a participant after `/verify` succeeds. Only a fallback — the bot prefers the `participantRole` value in the settings store, which an admin sets in-server. Handy for testing `/verify` before that setting exists. |
+| Variable                        | Required | Description                                                                                                                                                                                                                            |
+| ------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DISCORD_TOKEN`                 | yes      | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot**.                                                                                                                       |
+| `DISCORD_CLIENT_ID`             | yes      | Application (client) ID, from your app's **General Information** page.                                                                                                                                                                 |
+| `DISCORD_GUILD_ID`              | yes\*    | Discord server (guild) ID to register commands to during development. Not needed if `GLOBAL=true`.                                                                                                                                     |
+| `DISCORD_STAFF_GUILD_ID`        | yes      | ID of the staff-only guild. `/verifystaff` is guild-scoped to this guild specifically (never global, even with `GLOBAL=true`), so participants — who are never members of it — never see the command at all.                           |
+| `DISCORD_MAIN_GUILD_INVITE_URL` | yes      | Invite link to the main guild (`DISCORD_GUILD_ID`). Shown to a staff member who runs `/verifystaff` in the staff guild but hasn't joined the main guild yet.                                                                           |
+| `GLOBAL`                        | no       | Set to `true` to register slash commands globally instead of guild-scoped. Global commands take up to an hour to propagate, so leave this unset for local development.                                                                 |
+| `DISCORD_PARTICIPANT_ROLE_ID`   | no       | Role ID granted to a participant after `/verify` succeeds. Only a fallback — the bot prefers the `participantRole` value in the settings store, which an admin sets in-server. Handy for testing `/verify` before that setting exists. |
+| `SERVER_BASE_URL`               | yes      | Base URL of the `apps/server` deployment this bot talks to (e.g. `http://localhost:3000` in development).                                                                                                                              |
+| `SERVER_API_KEY`                | yes      | API key for `apps/server`'s discord team-group routes. Create one for a dedicated admin/service account via the "API keys" page under `/admin/api-keys` in `apps/staff`, then paste it here.                                           |
+
+The discord bot and `apps/server` deploy as separate compose stacks/containers, so
+`SERVER_BASE_URL` must resolve to wherever the server is actually reachable from the
+bot's container network — an internal service DNS name or a public URL, depending on
+the environment — pick the right one when setting up staging/production.
 
 Before the bot can read message content or see full member lists, enable
 **Server Members Intent** and **Message Content Intent** under your
@@ -85,3 +94,7 @@ By default, `bun run deploy` registers commands to the single guild in
 `DISCORD_GUILD_ID`, which updates instantly — best for development. To
 register commands for every server the bot is in, set `GLOBAL=true` and
 re-run the deploy command. Global updates can take up to an hour to appear.
+
+`/verifystaff` is the one exception: it always deploys guild-scoped to
+`DISCORD_STAFF_GUILD_ID` specifically, regardless of `GLOBAL` — see
+`guildScope` in `src/types.ts` and `src/deploy-cmd.ts`.

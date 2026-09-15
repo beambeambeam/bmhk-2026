@@ -140,6 +140,14 @@ export const staffOverseerAssignedAudit = defineAuditAction("staff-overseer.assi
   target: "staff-overseer",
 });
 
+export const teamGroupAssignmentResetAudit = defineAuditAction("team-group-assignment.reset", {
+  description:
+    "An Administrator reassigned every team into new team groups, replacing prior assignments",
+  requiresChanges: true,
+  severity: "critical",
+  target: "team-group-assignment",
+});
+
 export const staffDiscordLinkedAudit = defineAuditAction("staff-discord.linked", {
   description: "A staff member linked their Discord account and had bot permissions applied",
   requiresChanges: true,

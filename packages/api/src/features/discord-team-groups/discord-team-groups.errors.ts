@@ -4,6 +4,16 @@ import { toError } from "../../core/errors";
 
 const DISCORD_TEAM_GROUPS_REPOSITORY_ERROR_CODE = "DISCORD_TEAM_GROUPS_REPOSITORY_ERROR";
 
+export function createTeamGroupsProvisionedError() {
+  return createError({
+    code: "TEAM_GROUPS_ALREADY_PROVISIONED",
+    fix: "Run /cleanupteamschannel in Discord to remove the existing channels, then try again",
+    message: "Team groups already have Discord channels provisioned",
+    status: 409,
+    why: "Reassigning would orphan Discord categories/channels that are already provisioned for the current groups",
+  });
+}
+
 export function createDiscordTeamGroupsRepositoryError(
   cause: unknown = new Error("Unknown discord team groups repository error"),
 ) {

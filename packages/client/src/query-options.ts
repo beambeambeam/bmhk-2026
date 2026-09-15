@@ -72,3 +72,7 @@ export function getStaffOverseersListQueryOptions() {
 export function getStaffOverseersBacklogQueryOptions() {
   return orpc.staffOverseers.listBacklog.queryOptions();
 }
+
+export function getTeamGroupsAdminListQueryOptions() {
+  return orpc.teamGroups.listTeams.queryOptions();
+}

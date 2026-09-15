@@ -140,10 +140,14 @@ export type {
   DiscordTeamGroupMemberRecord,
   DiscordTeamGroupRecord,
   DiscordTeamGroupsRepository,
+  TeamGroupAssignmentPlanGroup,
+  TeamWithGroupRecord,
 } from "./features/discord-team-groups/discord-team-groups.repository";
+export { createDiscordTeamGroupsAdminRouter } from "./features/discord-team-groups/discord-team-groups.router";
 export {
   discordTeamGroupCategoryInputSchema,
   discordTeamGroupMemberChannelInputSchema,
+  teamGroupAssignmentInputSchema,
 } from "./features/discord-team-groups/discord-team-groups.schema";
 export type {
   DiscordTeamGroupCategoryInput,
@@ -151,6 +155,11 @@ export type {
   DiscordTeamGroupMemberResponse,
   DiscordTeamGroupResponse,
   DiscordTeamGroupsListResponse,
+  TeamGroupAssignmentInput,
+  TeamGroupAssignmentResult,
+  TeamGroupSummary,
+  TeamWithGroup,
+  TeamWithGroupList,
 } from "./features/discord-team-groups/discord-team-groups.schema";
 export { createDiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
 export type { DiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";

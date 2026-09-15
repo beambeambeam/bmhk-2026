@@ -37,3 +37,11 @@ export async function recordMemberChannel(memberId: string, channelId: string): 
     method: "PATCH",
   });
 }
+
+export async function clearGroupCategory(groupId: string): Promise<void> {
+  await serverFetch(`/api/discord/team-groups/${groupId}/category`, { method: "DELETE" });
+}
+
+export async function clearMemberChannel(memberId: string): Promise<void> {
+  await serverFetch(`/api/discord/team-group-members/${memberId}/channel`, { method: "DELETE" });
+}

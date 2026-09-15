@@ -74,6 +74,18 @@ export function createDiscordModule(
 
         return { ok: true };
       })
+      .delete("/team-groups/:id/category", async ({ headers, params, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const updated = await teamGroupsService.clearCategoryId(params.id);
+        if (!updated) {
+          return status(404);
+        }
+
+        return { ok: true };
+      })
       .patch("/team-group-members/:id", async ({ body, headers, params, status }) => {
         if (!(await isValidApiKey(headers, verifyApiKey))) {
           return status(401);
@@ -85,6 +97,18 @@ export function createDiscordModule(
         }
 
         const updated = await teamGroupsService.recordChannelId(params.id, input.data.channel_id);
+        if (!updated) {
+          return status(404);
+        }
+
+        return { ok: true };
+      })
+      .delete("/team-group-members/:id/channel", async ({ headers, params, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const updated = await teamGroupsService.clearChannelId(params.id);
         if (!updated) {
           return status(404);
         }

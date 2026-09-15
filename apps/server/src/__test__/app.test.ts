@@ -105,7 +105,11 @@ function createTestTeamGroupsService(
   overrides: Partial<DiscordTeamGroupsService> = {},
 ): DiscordTeamGroupsService {
   return {
+    assignGroups: async () => await Promise.resolve({ groupCount: 0 }),
+    clearCategoryId: async () => await Promise.resolve(true),
+    clearChannelId: async () => await Promise.resolve(true),
     list: async () => await Promise.resolve([]),
+    listTeamsWithGroup: async () => await Promise.resolve([]),
     recordCategoryId: async () => await Promise.resolve(true),
     recordChannelId: async () => await Promise.resolve(true),
     ...overrides,
@@ -508,6 +512,47 @@ describe("server app", () => {
     expect(missingResponse.status).toBe(404);
   });
 
+  it("clears a group's category id via DELETE and 404s for an unknown group", async () => {
+    let clearedGroupId: string | null = null;
+    const testApp = createTestApp(
+      undefined,
+      createTestTeamGroupsService({
+        clearCategoryId: async (groupId) => {
+          clearedGroupId = groupId;
+          return await Promise.resolve(groupId === "group-1");
+        },
+      }),
+    );
+
+    const okResponse = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups/group-1/category", {
+        headers: { "x-api-key": TEST_API_KEY },
+        method: "DELETE",
+      }),
+    );
+    expect(okResponse.status).toBe(200);
+    expect(clearedGroupId).toBe("group-1");
+
+    const missingResponse = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups/missing/category", {
+        headers: { "x-api-key": TEST_API_KEY },
+        method: "DELETE",
+      }),
+    );
+    expect(missingResponse.status).toBe(404);
+  });
+
+  it("rejects clearing a group's category id without a valid api key", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups/group-1/category", {
+        method: "DELETE",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+  });
+
   it("records a member's channel id via PATCH", async () => {
     let recordedArgs: [string, string] | null = null;
     const testApp = createTestApp(
@@ -530,6 +575,36 @@ describe("server app", () => {
 
     expect(response.status).toBe(200);
     expect(recordedArgs).toStrictEqual(["member-1", "channel-1"]);
+  });
+
+  it("clears a member's channel id via DELETE and 404s for an unknown member", async () => {
+    let clearedMemberId: string | null = null;
+    const testApp = createTestApp(
+      undefined,
+      createTestTeamGroupsService({
+        clearChannelId: async (memberId) => {
+          clearedMemberId = memberId;
+          return await Promise.resolve(memberId === "member-1");
+        },
+      }),
+    );
+
+    const okResponse = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-group-members/member-1/channel", {
+        headers: { "x-api-key": TEST_API_KEY },
+        method: "DELETE",
+      }),
+    );
+    expect(okResponse.status).toBe(200);
+    expect(clearedMemberId).toBe("member-1");
+
+    const missingResponse = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-group-members/missing/channel", {
+        headers: { "x-api-key": TEST_API_KEY },
+        method: "DELETE",
+      }),
+    );
+    expect(missingResponse.status).toBe(404);
   });
 
   it("rejects a PATCH with an invalid body", async () => {

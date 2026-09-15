@@ -79,6 +79,8 @@ export default defineConfig({
       DISCORD_BOT_INTERNAL_SECRET: "test-discord-bot-internal-secret",
       DISCORD_CLIENT_ID: "test-discord-client-id",
       DISCORD_INTERNAL_SECRET: "test-discord-bot-internal-secret",
+      DISCORD_MAIN_GUILD_INVITE_URL: "https://discord.gg/test-invite",
+      DISCORD_STAFF_GUILD_ID: "test-discord-staff-guild-id",
       DISCORD_TOKEN: "test-discord-token",
       GOOGLE_CLIENT_ID: "test-google-client-id",
       GOOGLE_CLIENT_SECRET: "test-google-client-secret",

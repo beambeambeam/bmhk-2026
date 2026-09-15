@@ -16,6 +16,13 @@ export const env = createEnv({
     DISCORD_GUILD_ID: z.string().min(1).optional(),
     DISCORD_INTERNAL_PORT: z.coerce.number().int().min(1).max(65_535).default(4100),
     DISCORD_INTERNAL_SECRET: z.string().min(16),
+    // Shown to a staff member who runs /verifystaff (in the staff-only
+    // guild) but hasn't joined the main guild yet.
+    DISCORD_MAIN_GUILD_INVITE_URL: z.url(),
+    // The staff-only guild /verifystaff is guild-scoped to — see
+    // deploy-cmd.ts. Distinct from DISCORD_GUILD_ID, the main/participant
+    // guild every other command targets.
+    DISCORD_STAFF_GUILD_ID: z.string().min(1),
     DISCORD_TOKEN: z.string().min(1),
     GLOBAL: z.stringbool().default(false),
     SERVER_API_KEY: z.string().min(1),

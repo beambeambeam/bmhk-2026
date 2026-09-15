@@ -53,6 +53,8 @@ export interface Command {
   data: CommandBuilder;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void> | void;
   autocomplete?: (interaction: AutocompleteInteraction) => Promise<void> | void;
+  /** Deploys this command only to DISCORD_STAFF_GUILD_ID instead of the main guild — see deploy-cmd.ts. */
+  guildScope?: "staff";
 }
 
 export interface Button {

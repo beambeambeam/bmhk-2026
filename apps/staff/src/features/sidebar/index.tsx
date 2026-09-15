@@ -61,8 +61,8 @@ const baseNavItems: readonly StaffNavItem[] = [
 const adminNavItems: readonly StaffNavItem[] = [
   { icon: UsersRound, label: "ผู้ใช้", to: "/admin/users" },
   { icon: KeyRound, label: "คีย์ API", to: "/admin/api-keys" },
-  { icon: ShieldCheck, label: "ผู้ดูแลทีมงาน", to: "/admin/staff-overseers" },
-  { icon: FolderKanban, label: "กลุ่มทีม", to: "/admin/team-groups" },
+  { icon: ShieldCheck, label: "ทีมงานดูแลการแข่งขันรอบออนไลน์", to: "/admin/staff-overseers" },
+  { icon: FolderKanban, label: "แบ่งหมวดทีม", to: "/admin/team-groups" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [

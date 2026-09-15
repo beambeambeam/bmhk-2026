@@ -7,7 +7,12 @@ import type { Command } from "../../types.js";
 const verifystaff: Command = {
   data: new SlashCommandBuilder()
     .setName("verifystaff")
-    .setDescription("เชื่อมบัญชี Discord กับบัญชีทีมงาน"),
+    .setDescription("เชื่อมบัญชี Discord กับบัญชีทีมงาน")
+    // Hidden from everyone by default; an admin grants it to the staff/admin
+    // roles per-guild in Server Settings -> Integrations -> [bot] -> this
+    // command. The staff eligibility check itself still happens server-side
+    // (INELIGIBLE_ROLE), this just keeps it out of participants' command list.
+    .setDefaultMemberPermissions(0),
 
   async execute(interaction) {
     const { token } = await createStaffVerifyToken(interaction.user.id, interaction.user.username);

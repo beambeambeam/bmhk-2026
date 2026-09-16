@@ -2,7 +2,7 @@ import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import { Label } from "@/components/label";
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ export default function SignInForm() {
   const navigate = useNavigate({
     from: "/login",
   });
+  const { redirect: redirectTo } = useSearch({ from: "/login" });
   const oauthError = useMemo(() => getInitialOAuthError(), []);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const { isPending } = authClient.useSession();
@@ -76,7 +77,7 @@ export default function SignInForm() {
 
       toast.success("เข้าสู่ระบบสำเร็จ");
       await navigate({
-        to: "/dashboard",
+        href: redirectTo ?? "/dashboard",
       });
     },
     validators: {
@@ -101,7 +102,7 @@ export default function SignInForm() {
 
     await authClient.signIn.social(
       {
-        callbackURL: `${staffOrigin}/dashboard`,
+        callbackURL: `${staffOrigin}${redirectTo ?? "/dashboard"}`,
         errorCallbackURL: `${staffOrigin}/login`,
         provider: "microsoft",
       },

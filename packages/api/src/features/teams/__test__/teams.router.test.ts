@@ -19,6 +19,7 @@ import {
   createTestContext as createContext,
   createTestSession,
   createUnusedFileRepository,
+  createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
 
 const s3Mocks = vi.hoisted(() => ({
@@ -115,7 +116,12 @@ function createRouter(
   auth: AuthReader = createAuthReader(),
   fileRepository: FileRepository = createUnusedFileRepository(),
 ) {
-  return createAppRouter({ auth, files: fileRepository, teams: repository });
+  return createAppRouter({
+    auth,
+    files: fileRepository,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
+    teams: repository,
+  });
 }
 
 function createRegistrationAuthReader(): AuthReader {

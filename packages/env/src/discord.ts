@@ -1,0 +1,34 @@
+import "dotenv/config";
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
+
+export const env = createEnv({
+  emptyStringAsUndefined: true,
+  runtimeEnv: process.env,
+  server: {
+    // deploy-cmd.ts only: guild-scoped deploy needs it, global deploy doesn't
+    BMHK_ENV: z.enum(["staging", "production"]).default("staging"),
+    BUILD_TIMESTAMP: z.string().default("unknown"),
+    BUILD_TRIGGERED_BY: z.string().default("unknown"),
+    COMMIT_MSG: z.string().default("unknown"),
+    COMMIT_SHA: z.string().default("unknown"),
+    DISCORD_CLIENT_ID: z.string().min(1),
+    DISCORD_GUILD_ID: z.string().min(1).optional(),
+    DISCORD_INTERNAL_PORT: z.coerce.number().int().min(1).max(65_535).default(4100),
+    DISCORD_INTERNAL_SECRET: z.string().min(16),
+    // Shown to a staff member who runs /verifystaff (in the staff-only
+    // guild) but hasn't joined the main guild yet.
+    DISCORD_MAIN_GUILD_INVITE_URL: z.url(),
+    // The staff-only guild /verifystaff is guild-scoped to — see
+    // deploy-cmd.ts. Distinct from DISCORD_GUILD_ID, the main/participant
+    // guild every other command targets.
+    DISCORD_STAFF_GUILD_ID: z.string().min(1),
+    DISCORD_TOKEN: z.string().min(1),
+    GLOBAL: z.stringbool().default(false),
+    SERVER_API_KEY: z.string().min(1),
+    SERVER_BASE_URL: z.url(),
+    STAFF_BASE_URL: z.url(),
+    WEBSITE_BASE_URL: z.url(),
+  },
+  skipValidation: process.env.SKIP_ENV_VALIDATION === "true",
+});

@@ -3,6 +3,7 @@ import type {
   ApiSession,
   AuthReader,
   FileRepository,
+  StaffDiscordLinkService,
   TeamAdvisorRepository,
   TeamConsentRepository,
   TeamRepository,
@@ -103,6 +104,14 @@ export function createUnusedFileRepository(): FileRepository {
     create: createUnusedMethod("FileRepository", "create"),
     deleteById: createUnusedMethod("FileRepository", "deleteById"),
     findById: createUnusedMethod("FileRepository", "findById"),
+  };
+}
+
+export function createUnusedStaffDiscordLinkService(): StaffDiscordLinkService {
+  return {
+    createToken: createUnusedMethod("StaffDiscordLinkService", "createToken"),
+    link: createUnusedMethod("StaffDiscordLinkService", "link"),
+    preview: createUnusedMethod("StaffDiscordLinkService", "preview"),
   };
 }
 

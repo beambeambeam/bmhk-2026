@@ -52,12 +52,22 @@ jobs:
             type=ref,event=branch
             type=sha
 
+      - name: Set build timestamp
+        run: |
+          echo "NOW=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/discord/Dockerfile
           push: true
+          build-args: |
+            BMHK_ENV=${{ github.ref_name == 'staging' && 'staging' || 'production' }}
+            COMMIT_SHA=${{ github.sha }}
+            COMMIT_MSG=${{ github.event.head_commit.message }}
+            BUILD_TRIGGERED_BY=${{ github.actor }}
+            BUILD_TIMESTAMP=${{ env.NOW }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

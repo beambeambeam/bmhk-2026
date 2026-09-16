@@ -62,6 +62,8 @@ export const discordQueryResponseSchema = z
 
 export const discordVerifyResponseSchema = z
   .object({
+    // wire keys mirror the discord bot's expected JSON payload, not repo camelCase convention
+    channel_id: z.string().nullable(),
     nickname: z.string().nullable(),
     status: z.number().int(),
   })

@@ -1,4 +1,10 @@
-import type { AppRouter, DiscordService } from "@bmhk-2026/api";
+import type {
+  AppRouter,
+  AuthReader,
+  DiscordService,
+  DiscordTeamGroupsService,
+  StaffDiscordLinkService,
+} from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
 import type { EvlogElysiaOptions } from "evlog/elysia";
 import { Elysia } from "elysia";
@@ -16,6 +22,9 @@ export interface CreateAppOptions {
   corsOrigins: string[];
   discordService: DiscordService;
   observability?: EvlogElysiaOptions;
+  staffDiscordLinkService: StaffDiscordLinkService;
+  teamGroupsService: DiscordTeamGroupsService;
+  verifyApiKey: AuthReader["verifyApiKey"];
 }
 
 export function createApp({
@@ -24,6 +33,9 @@ export function createApp({
   corsOrigins,
   discordService,
   observability,
+  staffDiscordLinkService,
+  teamGroupsService,
+  verifyApiKey,
 }: CreateAppOptions): AnyElysia {
   return new Elysia({
     name: "bmhk-2026-server",
@@ -35,6 +47,8 @@ export function createApp({
     .use(createCorsPlugin(corsOrigins))
     .use(createAuthModule(auth))
     .use(createApiModule(apiRouter))
-    .use(createDiscordModule(discordService))
+    .use(
+      createDiscordModule(discordService, teamGroupsService, staffDiscordLinkService, verifyApiKey),
+    )
     .get("/", () => "OK");
 }

@@ -16,6 +16,7 @@ import {
   createTestContext,
   createTestSession,
   createUnusedFileRepository,
+  createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
 import type { TeamParticipantWithStoredDocuments } from "../team-participants.repository";
@@ -122,6 +123,7 @@ function createRouter(
   return createAppRouter({
     auth,
     files: fileRepository,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamParticipants: repository,
     teams: createUnusedTeamRepository(),
   }).teamParticipants;

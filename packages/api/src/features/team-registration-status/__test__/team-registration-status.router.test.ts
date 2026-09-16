@@ -12,6 +12,7 @@ import {
   createTestContext,
   createTestSession,
   createUnusedFileRepository,
+  createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
 import { createTeamRegistrationStatusRepositoryError } from "../team-registration-status.errors";
@@ -96,6 +97,7 @@ function createRouter(
   return createAppRouter({
     auth,
     files: createUnusedFileRepository(),
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamRegistrationStatus: createRepository(repository),
     teams: createUnusedTeamRepository(),
   }).teamRegistrationStatus;

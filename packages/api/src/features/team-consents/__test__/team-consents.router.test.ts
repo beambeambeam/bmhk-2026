@@ -14,6 +14,7 @@ import {
   createTestContext,
   createTestSession,
   createUnusedFileRepository,
+  createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
 import {
@@ -67,6 +68,7 @@ function createRouter(
   return createAppRouter({
     auth,
     files: createUnusedFileRepository(),
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamConsents: repository,
     teams: createUnusedTeamRepository(),
   }).teamConsents;

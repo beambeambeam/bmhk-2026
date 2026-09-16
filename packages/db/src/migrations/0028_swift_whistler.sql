@@ -1,0 +1,1 @@
+ALTER TABLE "discord_team_groups" ADD COLUMN "index" serial NOT NULL;

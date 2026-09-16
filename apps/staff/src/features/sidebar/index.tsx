@@ -17,9 +17,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardCheck,
+  FolderKanban,
   KeyRound,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   Trophy,
   UserCheck,
   UsersRound,
@@ -40,6 +42,8 @@ interface StaffNavItem {
   readonly to:
     | "/achievements"
     | "/admin/api-keys"
+    | "/admin/staff-overseers"
+    | "/admin/team-groups"
     | "/admin/users"
     | "/dashboard"
     | "/participations"
@@ -57,6 +61,8 @@ const baseNavItems: readonly StaffNavItem[] = [
 const adminNavItems: readonly StaffNavItem[] = [
   { icon: UsersRound, label: "ผู้ใช้", to: "/admin/users" },
   { icon: KeyRound, label: "คีย์ API", to: "/admin/api-keys" },
+  { icon: ShieldCheck, label: "ทีมงานดูแลการแข่งขันรอบออนไลน์", to: "/admin/staff-overseers" },
+  { icon: FolderKanban, label: "แบ่งหมวดทีม", to: "/admin/team-groups" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [

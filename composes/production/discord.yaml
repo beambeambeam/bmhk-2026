@@ -6,6 +6,8 @@ services:
       DISCORD_TOKEN: ${DISCORD_TOKEN:?DISCORD_TOKEN is required}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID is required}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:?DISCORD_GUILD_ID is required}
+      SERVER_BASE_URL: ${SERVER_BASE_URL:?SERVER_BASE_URL is required}
+      SERVER_API_KEY: ${SERVER_API_KEY:?SERVER_API_KEY is required}
       GLOBAL: true
     restart: unless-stopped
     volumes:

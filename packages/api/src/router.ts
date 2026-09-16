@@ -11,6 +11,10 @@ import type { ApiKeyRepository } from "./features/api-keys/api-keys.repository";
 import { createApiKeyRepository } from "./features/api-keys/api-keys.repository";
 import { createApiKeysRouter } from "./features/api-keys/api-keys.router";
 import { createApiKeyService } from "./features/api-keys/api-keys.service";
+import type { DiscordTeamGroupsRepository } from "./features/discord-team-groups/discord-team-groups.repository";
+import { createDiscordTeamGroupsRepository } from "./features/discord-team-groups/discord-team-groups.repository";
+import { createDiscordTeamGroupsAdminRouter } from "./features/discord-team-groups/discord-team-groups.router";
+import { createDiscordTeamGroupsService } from "./features/discord-team-groups/discord-team-groups.service";
 import { createHealthRouter } from "./features/health/health.router";
 import { createFileRepository } from "./features/files/files.repository";
 import { createFilesRouter } from "./features/files/files.router";
@@ -53,11 +57,18 @@ import type { ParticipantCheckInRepository } from "./features/participant-check-
 import { createParticipantCheckInRepository } from "./features/participant-check-ins/participant-check-ins.repository";
 import { createParticipantCheckInsRouter } from "./features/participant-check-ins/participant-check-ins.router";
 import { createParticipantCheckInService } from "./features/participant-check-ins/participant-check-ins.service";
+import type { StaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
+import { createStaffOverseersRepository } from "./features/staff-overseers/staff-overseers.repository";
+import { createStaffOverseersRouter } from "./features/staff-overseers/staff-overseers.router";
+import { createStaffOverseersService } from "./features/staff-overseers/staff-overseers.service";
+import type { StaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
+import { createStaffDiscordLinkRouter } from "./features/staff-discord-link/staff-discord-link.router";
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
   apiKeys?: ApiKeyRepository;
   auth: AuthReader;
+  discordTeamGroups?: DiscordTeamGroupsRepository;
   featureFlagClock?: () => Temporal.Instant;
   fileStorage?: FileStorage;
   /** Optional overrides keep feature tests isolated; production uses API-owned repositories. */
@@ -70,6 +81,8 @@ export interface ApiDependencies {
   teamRegistrationReviews?: TeamRegistrationReviewRepository;
   staffCheckIns?: StaffCheckInRepository;
   participantCheckIns?: ParticipantCheckInRepository;
+  staffOverseers?: StaffOverseersRepository;
+  staffDiscordLinkService: StaffDiscordLinkService;
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
@@ -84,6 +97,8 @@ export function createAppRouter(dependencies: ApiDependencies) {
   } = createProcedures(dependencies);
   const adminUserRepository = dependencies.adminUsers ?? createAdminUserRepository();
   const apiKeyRepository = dependencies.apiKeys ?? createApiKeyRepository();
+  const discordTeamGroupsRepository =
+    dependencies.discordTeamGroups ?? createDiscordTeamGroupsRepository();
   const teamAdvisorRepository = dependencies.teamAdvisors ?? createTeamAdvisorRepository();
   const teamRepository = dependencies.teams ?? createTeamRepository();
   const teamParticipantRepository =
@@ -98,6 +113,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
   const staffCheckInRepository = dependencies.staffCheckIns ?? createStaffCheckInRepository();
   const participantCheckInRepository =
     dependencies.participantCheckIns ?? createParticipantCheckInRepository();
+  const staffOverseersRepository = dependencies.staffOverseers ?? createStaffOverseersRepository();
 
   return {
     adminUsers: createAdminUsersRouter(adminProcedure, createAdminUserService(adminUserRepository)),
@@ -120,6 +136,14 @@ export function createAppRouter(dependencies: ApiDependencies) {
       staffProcedure,
       createStaffCheckInService(staffCheckInRepository),
     ),
+    staffDiscordLink: createStaffDiscordLinkRouter(
+      protectedProcedure,
+      dependencies.staffDiscordLinkService,
+    ),
+    staffOverseers: createStaffOverseersRouter(
+      adminProcedure,
+      createStaffOverseersService(staffOverseersRepository),
+    ),
     teamAdvisors: createTeamAdvisorsRouter(
       teamAccessProcedure,
       createTeamAdvisorService(teamAdvisorRepository, fileStorage, fileRepository),
@@ -128,6 +152,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
       teamAccessProcedure,
       teamOwnerProcedure,
       createTeamConsentService(teamConsentRepository),
+    ),
+    teamGroups: createDiscordTeamGroupsAdminRouter(
+      adminProcedure,
+      createDiscordTeamGroupsService(discordTeamGroupsRepository),
     ),
     teamParticipants: createTeamParticipantsRouter(
       teamAccessProcedure,

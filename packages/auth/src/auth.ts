@@ -68,7 +68,14 @@ export function createAuth(database: AuthDatabase = createDb()) {
         defaultRole: "user",
         roles,
       }),
-      apiKey(),
+      apiKey({
+        // This key only ever receives server-to-server calls from our own
+        // Discord bot, not third-party traffic, so the plugin's default of
+        // 10 requests/day is far too low to be useful here.
+        rateLimit: {
+          enabled: false,
+        },
+      }),
     ],
     secret: env.BETTER_AUTH_SECRET,
     socialProviders: {

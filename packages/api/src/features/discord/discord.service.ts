@@ -7,8 +7,21 @@ export interface DiscordService {
   verify: (code: string, discordUserId: string) => Promise<DiscordVerifyResponse>;
 }
 
+const TEAM_NAME_MAX_LENGTH = 17;
+
 function toDisplayName(firstNameEn: string, lastNameEn: string): string {
   return `${firstNameEn} ${lastNameEn}`.trim();
+}
+
+function toNickname(params: {
+  firstNameEn: string;
+  teamIndex: number;
+  teamName: string;
+  wasAlt: boolean;
+}): string {
+  const cappedTeamName = params.teamName.slice(0, TEAM_NAME_MAX_LENGTH);
+  const base = `${params.teamIndex} - ${cappedTeamName} - ${params.firstNameEn}`;
+  return params.wasAlt ? `${base} [ALT]` : base;
 }
 
 export function createDiscordService(repository: DiscordRepository): DiscordService {
@@ -36,17 +49,21 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
     verify: async (code, discordUserId) => {
       const result = await repository.redeem(code, discordUserId);
       if (result.outcome === "not_found") {
-        return { nickname: null, status: discordStatus.NOT_FOUND };
+        return { channel_id: null, nickname: null, status: discordStatus.NOT_FOUND };
       }
 
       if (result.outcome === "already_redeemed") {
-        return { nickname: null, status: discordStatus.ALREADY_REDEEMED };
+        return { channel_id: null, nickname: null, status: discordStatus.ALREADY_REDEEMED };
       }
 
-      const name = toDisplayName(result.firstNameEn, result.lastNameEn);
-
       return {
-        nickname: result.wasAlt ? `${name} [ALT]` : name,
+        channel_id: result.channelId,
+        nickname: toNickname({
+          firstNameEn: result.firstNameEn,
+          teamIndex: result.teamIndex,
+          teamName: result.teamName,
+          wasAlt: result.wasAlt,
+        }),
         status: discordStatus.SUCCESS,
       };
     },

@@ -132,3 +132,25 @@ export const apiKeyRevokedAudit = defineAuditAction("api-key.revoked", {
   severity: "critical",
   target: "api-key",
 });
+
+export const staffOverseerAssignedAudit = defineAuditAction("staff-overseer.assigned", {
+  description: "An Administrator assigned a staff member as a team-group overseer",
+  requiresChanges: true,
+  severity: "critical",
+  target: "staff-overseer",
+});
+
+export const teamGroupAssignmentResetAudit = defineAuditAction("team-group-assignment.reset", {
+  description:
+    "An Administrator reassigned every team into new team groups, replacing prior assignments",
+  requiresChanges: true,
+  severity: "critical",
+  target: "team-group-assignment",
+});
+
+export const staffDiscordLinkedAudit = defineAuditAction("staff-discord.linked", {
+  description: "A staff member linked their Discord account and had bot permissions applied",
+  requiresChanges: true,
+  severity: "critical",
+  target: "staff-discord-link",
+});

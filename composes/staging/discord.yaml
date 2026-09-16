@@ -13,6 +13,18 @@ services:
     volumes:
       - bmhk-2026_discord_data:/app/apps/discord/data
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run --protocol http2
+    environment:
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN_DISCORD:?CF_TUNNEL_TOKEN_DISCORD is required}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
 volumes:
   bmhk-2026_discord_data:
     name: bmhk-2026_discord_data

@@ -116,12 +116,12 @@ export function useRegisterForm() {
 }
 
 export function getExpectedNextStep(form: RegisterFormApi): string {
-  const status = form.getFieldValue("status") as any;
-  const terms = form.getFieldValue("terms") as any;
-  const team = form.getFieldValue("team") as any;
-  const advisor = form.getFieldValue("advisor") as any;
-  const entrant1 = form.getFieldValue("entrant1") as any;
-  const entrant2 = form.getFieldValue("entrant2") as any;
+  const status = form.getFieldValue("status");
+  const terms = form.getFieldValue("terms");
+  const team = form.getFieldValue("team");
+  const advisor = form.getFieldValue("advisor");
+  const entrant1 = form.getFieldValue("entrant1");
+  const entrant2 = form.getFieldValue("entrant2");
 
   const isTermsComplete =
     terms?.privacyPolicyAccepted &&
@@ -134,47 +134,54 @@ export function getExpectedNextStep(form: RegisterFormApi): string {
     return "/register/terms";
   }
 
-  const isTeamComplete = !!(status?.team === "COMPLETED" || team?.name);
+  const isTeamComplete = !!(
+    team.name.trim() &&
+    team.school.trim() &&
+    (team.photoFile || team.photoUrl)
+  );
   if (!isTeamComplete) {
     return "/register/team";
   }
 
   const isAdvisorComplete = !!(
-    (advisor?.identityDocumentUrl && advisor?.teacherStatusDocumentUrl) ||
-    advisor?.firstNameTh
+    advisor.firstNameTh &&
+    (advisor.identityDocumentFile || advisor.identityDocumentUrl) &&
+    (advisor.teacherStatusDocumentFile || advisor.teacherStatusDocumentUrl)
   );
 
   if (!isAdvisorComplete) {
     return "/register/advisor";
   }
 
-  const isEntrant1Complete = !!(status?.participant1 === "COMPLETED" || entrant1?.firstNameTh);
-  if (!isEntrant1Complete) {
+  if (!isEntrantComplete(entrant1)) {
     return "/register/entrant/1";
   }
 
-  const isEntrant2Complete = !!(status?.participant2 === "COMPLETED" || entrant2?.firstNameTh);
-  if (!isEntrant2Complete) {
+  if (!isEntrantComplete(entrant2)) {
     return "/register/entrant/2";
   }
 
-  const teamSize = (form.getFieldValue("team.teamSize") as number | undefined) ?? 2;
+  const teamSize = team.teamSize;
   if (teamSize === 3) {
-    const isEntrant3Complete = !!(
-      status?.participant3 === "COMPLETED" ||
-      status?.participant3 === "NOT_APPLICABLE" ||
-      form.getFieldValue("entrant3")?.firstNameTh
-    );
-    if (!isEntrant3Complete) {
+    if (!isEntrantComplete(form.getFieldValue("entrant3"))) {
       return "/register/entrant/3";
     }
   }
 
-  if (status?.submissionState === "SUBMITTED") {
+  if (getStr(status, "submissionState") === "SUBMITTED") {
     return "/register/success";
   }
 
   return teamSize === 3 ? "/register/entrant/3" : "/register/entrant/2";
+}
+
+function isEntrantComplete(entrant: entrantFormData): boolean {
+  return !!(
+    entrant.firstNameTh &&
+    (entrant.portraitPhotoFile || entrant.portraitPhotoUrl) &&
+    (entrant.identityDocumentFile || entrant.identityDocumentUrl) &&
+    (entrant.academicRecordDocumentFile || entrant.academicRecordDocumentUrl)
+  );
 }
 
 export const STEP_RANKS: Record<string, number> = {
@@ -596,7 +603,7 @@ export function RegisterLayout() {
         {!isGateOrResult && <WizardBackdrop withTomatoes={!isTerms} />}
         <ScrollEdgeEffect className="fixed inset-x-0 top-0 z-0 h-[calc(114px_+_46*var(--fl))]" />
         <Outlet />
-        <ResumeRegistrationModal />
+        <ResumeRegistrationModal getResumeRoute={() => getExpectedNextStep(form)} />
       </div>
     </RegisterFormContext.Provider>
   );

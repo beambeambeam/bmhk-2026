@@ -73,9 +73,13 @@ function AdvisorNextButton({ to, label = "ถัดไป" }: { to: string; labe
   return (
     <button
       type="button"
+      disabled={busy}
       data-busy={busy}
       aria-busy={busy}
       onClick={async () => {
+        if (busy) {
+          return;
+        }
         /* Every field and document on this step states its own claim, so the gate is the whole
            check: it flags the first unmet one, scrolls to it and focuses it. */
         if (!validate()) {

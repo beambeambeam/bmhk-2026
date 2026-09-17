@@ -6,7 +6,7 @@ import { useOwnArrival } from "@/components/form/wizard-nav";
 import "@/styles/resume-motion.css";
 
 const BODY =
-  "เราบันทึกคำตอบที่คุณกรอกค้างไว้ในเบราว์เซอร์ของอุปกรณ์นี้ ยกเว้นไฟล์เอกสารที่แนบ ซึ่งจะต้องแนบใหม่อีกครั้ง " +
+  "ข้อมูลและไฟล์ที่บันทึกไว้จะยังคงอยู่ เฉพาะไฟล์ที่ยังไม่ได้บันทึกเท่านั้นที่ต้องเลือกใหม่อีกครั้ง " +
   "เลือก “กรอกฟอร์มต่อ” เพื่อกรอกต่อจากขั้นตอนล่าสุดที่ค้างไว้ หรือ “เริ่มกรอกฟอร์มใหม่” เพื่อลบข้อมูลที่บันทึกไว้ทั้งหมดแล้วเริ่มต้นใหม่";
 
 const SUBTITLE =
@@ -57,6 +57,7 @@ function Sheet({
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events
     <dialog
+      open
       ref={sheetRef}
       aria-modal="true"
       aria-labelledby="resume-title"
@@ -155,23 +156,21 @@ let askedThisVisit = false;
 const IN_FLOW = /^\/register(?<path>\/(?!success|error).*)?$/u;
 
 interface LoaderData {
-  statusData?: { isComplete?: boolean; teamId?: string; participant3?: string } | null;
-  teamData?: { memberCount?: number } | null;
-  advisorData?: unknown;
-  entrant1Data?: unknown;
-  entrant2Data?: unknown;
+  statusData?: { isComplete?: boolean; teamId?: string } | null;
 }
 
-export default function ResumeRegistrationModal() {
+interface ResumeRegistrationModalProps {
+  getResumeRoute: () => string;
+}
+
+export default function ResumeRegistrationModal({ getResumeRoute }: ResumeRegistrationModalProps) {
   const { pathname, state } = useRouterState({ select: (s) => s.location });
   const navigate = useNavigate();
   const sheetRef = useRef<HTMLDialogElement>(null);
   const ownArrival = useOwnArrival();
 
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const { statusData, teamData, advisorData, entrant1Data, entrant2Data } = useLoaderData({
-    from: "/register",
-  }) as unknown as LoaderData;
+  const { statusData } = useLoaderData({ from: "/register" }) as unknown as LoaderData;
 
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -230,38 +229,6 @@ export default function ResumeRegistrationModal() {
     window.setTimeout(() => {
       setMounted(false);
     }, EXIT_MS);
-  }
-
-  function getResumeRoute() {
-    if (
-      statusData === null ||
-      statusData === undefined ||
-      statusData.teamId === null ||
-      statusData.teamId === undefined ||
-      statusData.teamId === ""
-    ) {
-      return "/register/terms";
-    }
-
-    // Fallbacks because statusData schema lacks some items
-    if (teamData === null || teamData === undefined) {
-      return "/register/team";
-    }
-    if (advisorData === null || advisorData === undefined) {
-      return "/register/advisor";
-    }
-    if (entrant1Data === null || entrant1Data === undefined) {
-      return "/register/entrant/1";
-    }
-    if (entrant2Data === null || entrant2Data === undefined) {
-      return "/register/entrant/2";
-    }
-    if (teamData.memberCount === 3 && statusData.participant3 === "NOT_STARTED") {
-      return "/register/entrant/3";
-    }
-
-    // Default fallback if uncertain
-    return "/register/entrant/1";
   }
 
   function onContinue() {

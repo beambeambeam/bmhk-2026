@@ -14,6 +14,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
 import { fieldErrorReader } from "@/features/register/lib/field-errors";
+import {
+  getIncompleteRegistrationStep,
+  isIncompleteRegistrationError,
+} from "@/features/register/lib/incomplete-registration";
 import { useRegisterForm } from "../register";
 import WizardShell, {
   BackButton,
@@ -105,9 +109,13 @@ function EntrantNextButton({
   return (
     <button
       type="button"
+      disabled={busy}
       data-busy={busy}
       aria-busy={busy}
       onClick={() => {
+        if (busy) {
+          return;
+        }
         void (async () => {
           /* Every field and document on this step states its own claim, so the gate is the
              whole check: it flags the first unmet one, scrolls to it and focuses it. */
@@ -288,7 +296,17 @@ function EntrantNextButton({
               try {
                 const submittedStatus = await client.teamRegistrationStatus.submit({ teamId });
                 form.setFieldValue("status", submittedStatus);
-              } catch {
+              } catch (error) {
+                if (isIncompleteRegistrationError(error)) {
+                  const status = await client.teamRegistrationStatus.get({});
+                  form.setFieldValue("status", status);
+                  const incompleteStep = getIncompleteRegistrationStep(status);
+                  if (incompleteStep) {
+                    toast.error(incompleteStep.message);
+                    await go(incompleteStep.to, "back");
+                    return;
+                  }
+                }
                 await go("/register/error", "submit");
                 return;
               }

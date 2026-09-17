@@ -1,18 +1,10 @@
 name: Build discord Docker image
 
 on:
-  push:
-    branches:
-      - main
-      - staging
-    paths:
-      - apps/discord/**
-      - bun.lock
-      - package.json
-      - .github/workflows/docker-discord.yml
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   packages: write
 
@@ -32,6 +24,21 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Verify CI passed for main
+        if: ${{ github.ref_name == 'main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          success_count="$(gh api \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&head_sha=${TARGET_SHA}&per_page=100" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          test "$success_count" -gt 0 || {
+            echo "CI has not passed for main commit ${TARGET_SHA}."
+            exit 1
+          }
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

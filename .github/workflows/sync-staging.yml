@@ -1,0 +1,127 @@
+name: Sync staging from main
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-staging
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Sync staging and start staging builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags origin staging
+          staging_sha="$(git rev-parse origin/staging)"
+
+          if git diff --quiet "$staging_sha" "$MAIN_SHA"; then
+            echo "staging already contains the main tree for ${MAIN_SHA}."
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "$staging_sha" "$MAIN_SHA")"
+
+          sync_branch="automation/staging-sync"
+          sync_branch_sha="$(gh api \
+            "/repos/${GITHUB_REPOSITORY}/git/matching-refs/heads/${sync_branch}" \
+            --jq '.[0].object.sha // empty')"
+
+          if [ -z "$sync_branch_sha" ]; then
+            gh api \
+              --method POST \
+              "/repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/heads/${sync_branch}" \
+              -f "sha=${MAIN_SHA}" \
+              --silent
+          elif [ "$sync_branch_sha" != "$MAIN_SHA" ]; then
+            gh api \
+              --method PATCH \
+              "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${sync_branch}" \
+              -f "sha=${MAIN_SHA}" \
+              -F force=false \
+              --silent
+          fi
+
+          pr_number="$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base staging \
+            --head "$sync_branch" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          if [ -z "$pr_number" ]; then
+            pr_url="$(gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base staging \
+              --head "$sync_branch" \
+              --title "chore: sync staging with main" \
+              --body "Automated sync of the green main commit ${MAIN_SHA}.")"
+            pr_number="$(gh pr view "$pr_url" --json number --jq '.number')"
+          fi
+
+          merged="$(gh api \
+            --method PUT \
+            "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
+            -f merge_method=squash \
+            -f commit_title="chore: sync staging with main" \
+            -f commit_message="Sync green main commit ${MAIN_SHA}." \
+            --jq '.merged')"
+          test "$merged" = true
+
+          build_server=false
+          build_web=false
+          build_staff=false
+          build_discord=false
+
+          while IFS= read -r path; do
+            case "$path" in
+              apps/server/*|packages/*|bun.lock|package.json|.github/workflows/docker-server.yml)
+                build_server=true
+                ;;
+              apps/web/*|packages/*|bun.lock|package.json|.github/workflows/docker-web.yml)
+                build_web=true
+                ;;
+              apps/staff/*|packages/*|bun.lock|package.json|.github/workflows/docker-staff.yml)
+                build_staff=true
+                ;;
+              apps/discord/*|bun.lock|package.json|.github/workflows/docker-discord.yml)
+                build_discord=true
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          if [ "$build_server" = true ]; then
+            gh workflow run docker-server.yml --repo "$GITHUB_REPOSITORY" --ref staging
+          fi
+          if [ "$build_web" = true ]; then
+            gh workflow run docker-web.yml --repo "$GITHUB_REPOSITORY" --ref staging
+          fi
+          if [ "$build_staff" = true ]; then
+            gh workflow run docker-staff.yml --repo "$GITHUB_REPOSITORY" --ref staging
+          fi
+          if [ "$build_discord" = true ]; then
+            gh workflow run docker-discord.yml --repo "$GITHUB_REPOSITORY" --ref staging
+          fi

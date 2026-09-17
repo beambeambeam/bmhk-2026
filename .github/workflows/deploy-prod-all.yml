@@ -1,0 +1,105 @@
+name: Deploy Prod all
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: deploy-prod-all
+  cancel-in-progress: true
+
+jobs:
+  dispatch-builds:
+    name: Build and deploy all production services
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require main branch
+        run: test "$GITHUB_REF_NAME" = main
+
+      - name: Verify CI passed for main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          success_count="$(gh api \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&head_sha=${TARGET_SHA}&per_page=100" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          test "$success_count" -gt 0 || {
+            echo "CI has not passed for main commit ${TARGET_SHA}."
+            exit 1
+          }
+
+      - name: Dispatch production image builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          workflows=(
+            docker-server.yml
+            docker-web.yml
+            docker-staff.yml
+            docker-discord.yml
+          )
+          started_epoch="$(date +%s)"
+          run_ids=()
+
+          for workflow in "${workflows[@]}"; do
+            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main
+
+            run_id=""
+            for _ in {1..30}; do
+              run_id="$(gh api \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?branch=main&event=workflow_dispatch&per_page=20" \
+                --jq "[.workflow_runs[] | select(.head_sha == \"${TARGET_SHA}\" and (.created_at | fromdateiso8601) >= ${started_epoch})] | sort_by(.created_at) | last | .id // empty")"
+              if [ -n "$run_id" ]; then
+                break
+              fi
+              sleep 2
+            done
+
+            test -n "$run_id" || {
+              echo "Could not find the dispatched ${workflow} run."
+              exit 1
+            }
+            run_ids+=("${workflow}:${run_id}")
+          done
+
+          while :; do
+            all_done=true
+            failed=false
+
+            for item in "${run_ids[@]}"; do
+              workflow="${item%%:*}"
+              run_id="${item##*:}"
+              state="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status + ":" + (.conclusion // "")')"
+
+              case "$state" in
+                completed:success)
+                  echo "${workflow} succeeded."
+                  ;;
+                completed:*)
+                  echo "${workflow} failed with ${state#completed:}."
+                  failed=true
+                  ;;
+                *)
+                  echo "${workflow} is ${state}."
+                  all_done=false
+                  ;;
+              esac
+            done
+
+            if [ "$failed" = true ]; then
+              exit 1
+            fi
+            if [ "$all_done" = true ]; then
+              break
+            fi
+            sleep 10
+          done

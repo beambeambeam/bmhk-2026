@@ -231,7 +231,7 @@ describe("registration submission", () => {
     expect(screen.getByText("/register/entrant/2")).toBeDefined();
   });
 
-  it("returns a named team without its required photo to the team step", () => {
+  it("allows a complete draft without an optional team photo to reach submission", () => {
     render(
       <DraftNextStepProbe
         defaultValues={{
@@ -242,7 +242,7 @@ describe("registration submission", () => {
       />,
     );
 
-    expect(screen.getByText("/register/team")).toBeDefined();
+    expect(screen.getByText("/register/entrant/2")).toBeDefined();
   });
 
   it("returns an advisor with a missing document to the advisor step", () => {
@@ -400,7 +400,7 @@ describe("registration submission", () => {
   it.each([
     {
       destination: "Complete team information",
-      message: "กรุณาแนบรูปโปรไฟล์ทีมและตรวจสอบข้อมูลทีมให้ครบถ้วน",
+      message: "กรุณาตรวจสอบข้อมูลทีมให้ครบถ้วน",
       section: "team",
     },
     {

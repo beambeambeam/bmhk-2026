@@ -262,7 +262,13 @@ describe("team registration required uploads", () => {
     vi.restoreAllMocks();
   });
 
-  it("blocks next until a team photo is selected or already saved", async () => {
+  it("continues without uploading an optional team photo", async () => {
+    api.createTeam.mockResolvedValue({
+      id: TEAM_ID,
+      memberCount: 2,
+      name: "Team Alpha",
+      school: "S",
+    });
     const router = createTeamTestRouter();
     await router.load();
 
@@ -270,7 +276,9 @@ describe("team registration required uploads", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
 
-    await expect(screen.findByText("กรุณาแนบรูปโปรไฟล์ทีม")).resolves.toBeDefined();
+    await expect(screen.findByText("Advisor step")).resolves.toBeDefined();
+    expect(api.createTeam).toHaveBeenCalledOnce();
+    expect(api.getTeam).not.toHaveBeenCalled();
   });
 
   it("reuses a created team after an image upload failure and saves the uploaded image", async () => {

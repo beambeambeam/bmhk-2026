@@ -56,7 +56,7 @@ function teamStatus(team: TeamRegistrationStatusFacts["team"]): TeamRegistration
   const hasValidMemberCount = team.memberCount === 2 || team.memberCount === 3;
   const hasCoreFields = team.name.trim().length > 0 && team.school.trim().length > 0;
 
-  return hasCoreFields && hasValidMemberCount && team.image !== null ? COMPLETED : IN_PROGRESS;
+  return hasCoreFields && hasValidMemberCount ? COMPLETED : IN_PROGRESS;
 }
 
 function consentStatus(

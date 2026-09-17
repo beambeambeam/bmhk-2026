@@ -589,21 +589,32 @@ describe("team registration status router", () => {
     });
   });
 
-  it("requires a team image for completion", async () => {
+  it("allows completion and submission without a team image", async () => {
+    const facts = {
+      ...completeTwoPersonFacts,
+      team: { ...completeTwoPersonFacts.team, image: null },
+    };
     const router = createRouter({
-      findByOwnerId: async () =>
-        await Promise.resolve({
-          ...completeTwoPersonFacts,
-          team: { ...completeTwoPersonFacts.team, image: null },
-        }),
+      findByOwnerId: async () => await Promise.resolve(facts),
+      findByTeamId: async () => await Promise.resolve(facts),
     });
     const { context } = createTestContext();
 
     await expect(
       call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toMatchObject({
-      isComplete: false,
-      team: "IN_PROGRESS",
+      isComplete: true,
+      team: "COMPLETED",
+    });
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).resolves.toMatchObject({
+      isComplete: true,
+      submissionState: "SUBMITTED",
     });
   });
 

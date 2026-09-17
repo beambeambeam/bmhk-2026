@@ -13,7 +13,7 @@ export function getIncompleteRegistrationStep(
   }
   if (status.team !== "COMPLETED") {
     return {
-      message: "กรุณาแนบรูปโปรไฟล์ทีมและตรวจสอบข้อมูลทีมให้ครบถ้วน",
+      message: "กรุณาตรวจสอบข้อมูลทีมให้ครบถ้วน",
       to: "/register/team",
     };
   }

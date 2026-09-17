@@ -134,11 +134,7 @@ export function getExpectedNextStep(form: RegisterFormApi): string {
     return "/register/terms";
   }
 
-  const isTeamComplete = !!(
-    team.name.trim() &&
-    team.school.trim() &&
-    (team.photoFile || team.photoUrl)
-  );
+  const isTeamComplete = !!(team.name.trim() && team.school.trim());
   if (!isTeamComplete) {
     return "/register/team";
   }

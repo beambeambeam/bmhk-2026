@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-router";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Toaster } from "sonner";
 
 import { UserProvider } from "@/contexts/user-context";
 import EntrantStep from "../register/entrant.$index";
@@ -22,6 +23,7 @@ const TEAM_ID = "019c7bb1-dbe0-7000-8000-000000000001";
 
 const api = vi.hoisted(() => ({
   createConsents: vi.fn<(input: unknown) => Promise<unknown>>(),
+  getStatus: vi.fn<() => Promise<unknown>>(),
   submitRegistration: vi.fn<(input: { teamId: string }) => Promise<unknown>>(),
   updateConsents: vi.fn<(input: unknown) => Promise<unknown>>(),
   updateParticipant: vi.fn<(input: unknown) => Promise<unknown>>(),
@@ -53,7 +55,7 @@ vi.mock("@bmhk-2026/client/orpc", () => ({
       update: api.updateParticipant,
     },
     teamRegistrationStatus: {
-      get: vi.fn<() => Promise<unknown>>(),
+      get: api.getStatus,
       submit: api.submitRegistration,
     },
   },
@@ -143,6 +145,7 @@ function createRegistrationRouter(defaultValues: RegistrationFormData = registra
       <UserProvider>
         <RegisterFormContext.Provider value={form}>
           <Outlet />
+          <Toaster />
         </RegisterFormContext.Provider>
       </UserProvider>
     );
@@ -164,18 +167,34 @@ function createRegistrationRouter(defaultValues: RegistrationFormData = registra
     getParentRoute: () => rootRoute,
     path: "/register/error",
   });
+  const teamRoute = createRoute({
+    component: () => <p>Complete team information</p>,
+    getParentRoute: () => rootRoute,
+    path: "/register/team",
+  });
+  const advisorRoute = createRoute({
+    component: () => <p>Complete advisor information</p>,
+    getParentRoute: () => rootRoute,
+    path: "/register/advisor",
+  });
 
   return createRouter({
     history: createMemoryHistory({ initialEntries: ["/register/entrant/2"] }),
-    routeTree: rootRoute.addChildren([entrantRoute, successRoute, errorRoute]),
+    routeTree: rootRoute.addChildren([
+      entrantRoute,
+      successRoute,
+      errorRoute,
+      teamRoute,
+      advisorRoute,
+    ]),
   });
 }
 
-function DraftNextStepProbe() {
-  const defaultValues: RegistrationFormData = {
-    ...registration,
-    status: { submissionState: "DRAFT", teamId: TEAM_ID },
-  };
+function DraftNextStepProbe({
+  defaultValues = registration,
+}: {
+  defaultValues?: RegistrationFormData;
+}) {
   const form = useForm({
     defaultValues,
   });
@@ -210,6 +229,51 @@ describe("registration submission", () => {
     render(<DraftNextStepProbe />);
 
     expect(screen.getByText("/register/entrant/2")).toBeDefined();
+  });
+
+  it("allows a complete draft without an optional team photo to reach submission", () => {
+    render(
+      <DraftNextStepProbe
+        defaultValues={{
+          ...registration,
+          status: { team: "IN_PROGRESS", teamId: TEAM_ID },
+          team: { ...registration.team, photoName: null, photoUrl: null },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("/register/entrant/2")).toBeDefined();
+  });
+
+  it("returns an advisor with a missing document to the advisor step", () => {
+    render(
+      <DraftNextStepProbe
+        defaultValues={{
+          ...registration,
+          advisor: {
+            ...registration.advisor,
+            teacherStatusDocumentName: null,
+            teacherStatusDocumentUrl: null,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("/register/advisor")).toBeDefined();
+  });
+
+  it("returns a named participant without a portrait to their step", () => {
+    render(
+      <DraftNextStepProbe
+        defaultValues={{
+          ...registration,
+          entrant1: { ...entrant, portraitPhotoName: null, portraitPhotoUrl: null },
+          status: { participant1: "IN_PROGRESS", teamId: TEAM_ID },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("/register/entrant/1")).toBeDefined();
   });
 
   it("resumes a team without consent data at the terms step", () => {
@@ -253,6 +317,9 @@ describe("registration submission", () => {
       expect(api.submitRegistration).toHaveBeenCalledWith({ teamId: TEAM_ID });
     });
     expect(screen.queryByText("Registration submitted")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "ลงทะเบียนเข้าแข่งขัน" }).hasAttribute("disabled"),
+    ).toBeTruthy();
 
     submission.resolve({ submissionState: "SUBMITTED", teamId: TEAM_ID });
 
@@ -329,4 +396,53 @@ describe("registration submission", () => {
     await expect(screen.findByText("Registration failed")).resolves.toBeDefined();
     expect(screen.queryByText("Registration submitted")).toBeNull();
   });
+
+  it.each([
+    {
+      destination: "Complete team information",
+      message: "กรุณาตรวจสอบข้อมูลทีมให้ครบถ้วน",
+      section: "team",
+    },
+    {
+      destination: "Complete advisor information",
+      message: "กรุณากรอกข้อมูลอาจารย์และแนบเอกสารให้ครบถ้วน",
+      section: "advisor",
+    },
+    {
+      destination: "เอกสารสำหรับผู้เข้าแข่งขันคนที่ 1",
+      message: "กรุณากรอกข้อมูลและแนบเอกสารของผู้เข้าแข่งขันคนที่ 1 ให้ครบถ้วน",
+      section: "participant1",
+    },
+  ])(
+    "directs an incomplete submission back to $section with an explanation",
+    async ({ destination, message, section }) => {
+      api.updateConsents.mockResolvedValue({});
+      api.submitRegistration.mockRejectedValue({
+        code: "TEAM_REGISTRATION_INCOMPLETE",
+        status: 409,
+      });
+      api.getStatus.mockResolvedValue({
+        advisor: "COMPLETED",
+        isComplete: false,
+        memberCount: 2,
+        participant1: "COMPLETED",
+        participant2: "COMPLETED",
+        participant3: "NOT_APPLICABLE",
+        submissionState: "DRAFT",
+        team: "COMPLETED",
+        teamId: TEAM_ID,
+        termsAndConditions: "COMPLETED",
+        [section]: "IN_PROGRESS",
+      });
+      const router = createRegistrationRouter();
+      await router.load();
+
+      render(<RouterProvider router={router} />);
+      fireEvent.click(screen.getByRole("button", { name: "ลงทะเบียนเข้าแข่งขัน" }));
+
+      await expect(screen.findByText(destination)).resolves.toBeDefined();
+      expect(screen.getByText(message)).toBeDefined();
+      expect(screen.queryByText("Registration failed")).toBeNull();
+    },
+  );
 });

@@ -34,6 +34,11 @@ const consent = {
   publicityMediaConsent: true,
 };
 
+const completeAdvisor = {
+  identityDocumentFileId: "advisor-identity",
+  teacherStatusDocumentFileId: "advisor-teacher-status",
+};
+
 function participant(index: 1 | 2 | 3) {
   return {
     academicRecordDocumentFileId: `academic-${index}`,
@@ -44,6 +49,7 @@ function participant(index: 1 | 2 | 3) {
 }
 
 const completeTwoPersonFacts = {
+  advisor: completeAdvisor,
   consent,
   participants: [participant(1), participant(2)],
   team: {
@@ -57,6 +63,7 @@ const completeTwoPersonFacts = {
 } satisfies StatusFacts;
 
 const completeThreePersonFacts = {
+  advisor: completeAdvisor,
   consent,
   participants: [participant(1), participant(2), participant(3)],
   team: {
@@ -241,6 +248,57 @@ describe("team registration status router", () => {
     });
   });
 
+  it("denies final submission when the advisor is missing", async () => {
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async () => await Promise.resolve("SUBMITTED"),
+    );
+    const router = createRouter({
+      findByTeamId: async () => await Promise.resolve({ ...completeTwoPersonFacts, advisor: null }),
+      submit,
+    });
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_REGISTRATION_INCOMPLETE", status: 409 });
+    expect(submit).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_REGISTRATION_INCOMPLETE",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("denies final submission when an advisor document is missing", async () => {
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async () => await Promise.resolve("SUBMITTED"),
+    );
+    const router = createRouter({
+      findByTeamId: async () =>
+        await Promise.resolve({
+          ...completeTwoPersonFacts,
+          advisor: { ...completeAdvisor, identityDocumentFileId: null },
+        }),
+      submit,
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_REGISTRATION_INCOMPLETE", status: 409 });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
   it("does not let a Registration Operator submit another Team's registration", async () => {
     const findByTeamId = vi.fn<TeamRegistrationStatusRepository["findByTeamId"]>(async (access) => {
       expect(access).toStrictEqual({ actorId: "operator-1", scope: "OWN_TEAM" });
@@ -386,6 +444,7 @@ describe("team registration status router", () => {
     await expect(
       call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toStrictEqual({
+      advisor: "COMPLETED",
       isComplete: true,
       memberCount: 2,
       participant1: "COMPLETED",
@@ -412,6 +471,7 @@ describe("team registration status router", () => {
     await expect(
       call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toStrictEqual({
+      advisor: "COMPLETED",
       isComplete: true,
       memberCount: 3,
       participant1: "COMPLETED",
@@ -452,6 +512,7 @@ describe("team registration status router", () => {
     await expect(
       call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toStrictEqual({
+      advisor: "COMPLETED",
       isComplete: false,
       memberCount: 3,
       participant1: "COMPLETED",
@@ -475,6 +536,7 @@ describe("team registration status router", () => {
     await expect(
       call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toStrictEqual({
+      advisor: "COMPLETED",
       isComplete: false,
       memberCount: 2,
       participant1: "NOT_STARTED",
@@ -527,12 +589,41 @@ describe("team registration status router", () => {
     });
   });
 
-  it("requires a team image for completion", async () => {
+  it("allows completion and submission without a team image", async () => {
+    const facts = {
+      ...completeTwoPersonFacts,
+      team: { ...completeTwoPersonFacts.team, image: null },
+    };
+    const router = createRouter({
+      findByOwnerId: async () => await Promise.resolve(facts),
+      findByTeamId: async () => await Promise.resolve(facts),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      isComplete: true,
+      team: "COMPLETED",
+    });
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).resolves.toMatchObject({
+      isComplete: true,
+      submissionState: "SUBMITTED",
+    });
+  });
+
+  it("reports an advisor with missing documents as in progress", async () => {
     const router = createRouter({
       findByOwnerId: async () =>
         await Promise.resolve({
           ...completeTwoPersonFacts,
-          team: { ...completeTwoPersonFacts.team, image: null },
+          advisor: { ...completeAdvisor, teacherStatusDocumentFileId: null },
         }),
     });
     const { context } = createTestContext();
@@ -540,8 +631,23 @@ describe("team registration status router", () => {
     await expect(
       call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
     ).resolves.toMatchObject({
+      advisor: "IN_PROGRESS",
       isComplete: false,
-      team: "IN_PROGRESS",
+    });
+  });
+
+  it("reports a missing advisor as not started", async () => {
+    const router = createRouter({
+      findByOwnerId: async () =>
+        await Promise.resolve({ ...completeTwoPersonFacts, advisor: null }),
+    });
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.get, {}, { context, path: ["teamRegistrationStatus", "get"] }),
+    ).resolves.toMatchObject({
+      advisor: "NOT_STARTED",
+      isComplete: false,
     });
   });
 

@@ -164,10 +164,11 @@ export function useDropTarget(onFile?: (file: File) => void) {
  * What a drop target and its `<input type="file">` share: the one file the slot holds, the
  * reason a file was refused, and a preview URL for the images.
  *
- * There is no backend in this project, so this is deliberately local state and nothing else —
- * no request, no progress, no id. The `<input>` is reset to '' after every pick so that
- * choosing the same file again after a refusal still fires `change`, and so the DOM never
- * disagrees with `file` about what the slot holds.
+ * The slot deliberately holds the selection locally until its route advances — that is when
+ * the route sends the file to the server. It makes no request and reports no transfer progress.
+ * The `<input>` is reset to '' after every pick so that choosing the same file again after a
+ * refusal still fires `change`, and so the DOM never disagrees with `file` about what the slot
+ * holds.
  *
  * `URL.createObjectURL` pins the whole blob in memory until it is revoked, and a registration
  * has seven of these slots across four steps: the previous URL is revoked on replace and on
@@ -176,9 +177,9 @@ export function useDropTarget(onFile?: (file: File) => void) {
  */
 const FILE_KINDS = {
   image: {
-    accept: "image/*",
-    ok: (f: File) => f.type.startsWith("image/"),
-    refuse: "รองรับเฉพาะไฟล์รูปภาพ",
+    accept: "image/jpeg,image/png,image/webp",
+    ok: (f: File) => f.type === "image/jpeg" || f.type === "image/png" || f.type === "image/webp",
+    refuse: "รองรับเฉพาะไฟล์ JPG, PNG หรือ WEBP",
   },
   pdf: {
     accept: "application/pdf",
@@ -186,59 +187,6 @@ const FILE_KINDS = {
     refuse: "รองรับเฉพาะไฟล์ PDF",
   },
 };
-
-/**
- * ------------------------------------------------------------------- the transfer, and why
- *
- * Figma's toast set (1359:1024, 1359:1142, 1359:1117, 1359:1161, 1359:1185) draws a transfer
- * with a progress bar, a pause and a retry — five states that need something to be actually
- * happening, and the note above is right that this project has no backend to make it happen.
- *
- * So the transfer is a real READ, not a fake request. The file is walked in chunks with
- * `Blob.slice().arrayBuffer()`, and `loaded` is bytes that genuinely came off the disk. That
- * buys three things a `setInterval` counting to 100 would not:
- *
- *  - the progress bar is honest. It is the same number the caption prints.
- *  - `failed` (1359:1161) is REACHABLE, and for a real reason. A `File` handle is a pointer
- *    into the filesystem: move, rename, delete or unmount the thing between the picker
- *    closing and the read finishing and the slice throws `NotReadableError`. That is exactly
- *    the "upload failed part-way" the frame draws, including a partial byte count to print in
- *    it, and it is the one failure a browser-only app can genuinely have. Nothing here ever
- *    fails at random — a registration form that sometimes rejects a good file on purpose
- *    would be hostile.
- *  - pause and resume are real. The loop parks between chunks, so the bar stops where the
- *    bytes stopped.
- *
- * `READ_PACE_MS` is the one deliberate lie, and it is pacing rather than data: 24 slices of a
- * 5 MB file resolve in well under 100ms total, which would make the in-flight state a single
- * flashed frame. Holding each tick to ~58ms puts a transfer at roughly 1.4s — long enough to
- * see, short enough that nobody is waiting on it — while every byte reported is still a byte
- * that was read. 24 slices is also what gives the bar its granularity: 4% a step, which at
- * 348 wide is 14px, comfortably more than the 1px that would make the transition pointless.
- */
-const READ_CHUNKS = 24;
-const READ_PACE_MS = 58;
-
-async function wait(ms: number) {
-  return await new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-/**
- * The live transfer's switches. `cancelled` and `paused` are flipped by the toast's own
- * controls; `superseded` is flipped by the slot when it is the one ending the transfer.
- *
- * The third exists because withdrawing an in-flight card runs the card's `onCancel`, and that
- * callback's whole job is to EMPTY the slot — right for the user pressing the cross, wrong when
- * the slot is tidying up after itself. Picking a second file supersedes the first, and if the
- * first card's cancel were allowed to run it would delete the file that had just been accepted.
- */
-interface Transfer {
-  cancelled: boolean;
-  paused: boolean;
-  superseded: boolean;
-}
 
 interface UseFileSlotProps {
   kind: keyof typeof FILE_KINDS;
@@ -265,36 +213,12 @@ export function useFileSlot({ kind, maxMB, onChange }: UseFileSlotProps) {
    * exactly that distinction.
    */
   const slotId = useId();
-  const transfer = useRef<Transfer | null>(null);
-  /* the in-flight toast's key, so an unmounted slot can withdraw it; null once it has settled */
-  const openKey = useRef<string | null>(null);
-  /* the api is memoised in the provider, but the unmount cleanup must not close over a render */
-  const dismissRef = useRef(toast.dismiss);
-  useEffect(() => {
-    dismissRef.current = toast.dismiss;
-  });
 
   useEffect(
     () => () => {
       if (previewRef.current !== null && previewRef.current !== "") {
         URL.revokeObjectURL(previewRef.current);
       }
-      /*
-       * A transfer whose slot has gone is a claim about nothing: the wizard's steps unmount on
-       * every hop and a 1.4s read easily outlives one. The read is stopped and its card
-       * withdrawn — but only if it never settled, because a `success` the user has not read yet
-       * is still worth saying and costs nothing to leave up.
-       */
-      if (transfer.current) {
-        /* `superseded` so the withdrawal below does not try to setState on a gone component */
-        transfer.current.superseded = true;
-        transfer.current.cancelled = true;
-      }
-      transfer.current = null;
-      if (openKey.current !== null && openKey.current !== "") {
-        dismissRef.current(openKey.current);
-      }
-      openKey.current = null;
     },
     [],
   );
@@ -307,171 +231,19 @@ export function useFileSlot({ kind, maxMB, onChange }: UseFileSlotProps) {
     setPreview(next);
   }
 
-  /**
-   * One transfer per slot, and one card per transfer.
-   *
-   * Stops whatever is running and withdraws its card. Both halves are needed and each was a
-   * separate defect: a second pick that only stopped the loop left the first file's in-flight
-   * toast on screen for good — it is sticky by design, and nothing was ever going to update it
-   * again — while "ล้าง" pressed mid-transfer did the same. `superseded` is set first so the
-   * withdrawal cannot re-enter through the card's own cancel.
-   */
-  function stopTransfer() {
-    const ctl = transfer.current;
-    const key = openKey.current;
-    transfer.current = null;
-    openKey.current = null;
-    if (ctl) {
-      ctl.superseded = true;
-      ctl.cancelled = true;
-    }
-    if (key !== null && key !== "") {
-      toast.dismiss(key);
-    }
-  }
-
-  function empty() {
-    stopTransfer();
+  function empty(notify = true) {
     put(null);
     setFile(null);
     setError(null);
-    onChange?.(null);
-  }
-
-  /** 1359:1024 — raise the in-flight card and walk the file. */
-  // eslint-disable-next-line func-style
-  // oxlint-disable-next-line eslint(func-style)
-  function start(f: File) {
-    "use no memo";
-    /* whatever was in flight is now the previous file's business, and its card goes with it.
-       On the RETRY path there is nothing to stop: the failed transfer already released both
-       refs, so this is a no-op and the push below lands on the same key — which is what makes
-       a retry re-time and redraw the card that is already there rather than raising a second. */
-    stopTransfer();
-
-    const ctl: Transfer = {
-      cancelled: false,
-      paused: false,
-      superseded: false,
-    };
-    transfer.current = ctl;
-
-    const key = `up:${slotId}:${f.name}:${f.size}`;
-    openKey.current = key;
-    toast.push({
-      key,
-      kind: "uploading",
-      loaded: 0,
-      name: f.name,
-      /* The cross on an in-flight card is the only thing that can end the transfer, so it also
-         empties the slot — cancelling an upload and being left holding the file would be a
-         cross that did half its job. `superseded` is the one case it must not: there the slot
-         is already holding the NEXT file and emptying would delete it. */
-      onCancel: () => {
-        ctl.cancelled = true;
-        if (ctl.superseded) {
-          return;
-        }
-        openKey.current = null;
-        empty();
-      },
-    });
-
-    void run(f, ctl, key);
-  }
-
-  /** the paced read. Every `return` past a `cancelled` check is a transfer that no longer owns
-   *  its card, so it must not write to it — the card may already belong to the next file. */
-  // eslint-disable-next-line func-style
-  // oxlint-disable-next-line eslint(func-style)
-  async function run(f: File, ctl: Transfer, key: string) {
-    "use no memo";
-    const step = Math.max(1, Math.ceil(f.size / READ_CHUNKS));
-    let loaded = 0;
-
-    try {
-      while (loaded < f.size) {
-        if (ctl.cancelled) {
-          return;
-        }
-        /* parked, not busy-waiting: 90ms is imperceptible against a paused progress bar */
-        while (ctl.paused) {
-          // eslint-disable-next-line no-await-in-loop
-          // oxlint-disable-next-line eslint(no-await-in-loop)
-          await wait(90);
-          if (ctl.cancelled) {
-            return;
-          }
-        }
-
-        // oxlint-disable-next-line react-compiler
-        // eslint-disable-next-line react-compiler/react-compiler
-        // eslint-disable-next-line react/react-compiler
-        const started = performance.now();
-        const end = Math.min(loaded + step, f.size);
-        // eslint-disable-next-line no-await-in-loop
-        // oxlint-disable-next-line eslint(no-await-in-loop)
-        // the real read, and the only thing that throws
-        await f.slice(loaded, end).arrayBuffer();
-        if (ctl.cancelled) {
-          return;
-        }
-
-        loaded = end;
-        toast.update(key, { loaded });
-
-        // oxlint-disable-next-line react-compiler
-        // eslint-disable-next-line react-compiler/react-compiler
-        // eslint-disable-next-line react/react-compiler
-        const spent = performance.now() - started;
-        if (spent < READ_PACE_MS) {
-          // eslint-disable-next-line no-await-in-loop
-          // oxlint-disable-next-line eslint(no-await-in-loop)
-          await wait(READ_PACE_MS - spent);
-        }
-      }
-
-      if (ctl.cancelled) {
-        return;
-      }
-      transfer.current = null;
-      openKey.current = null;
-      /*
-       * 1359:1117. The three controls are cleared explicitly and not left to fall through the
-       * merge: a settled card that still carried `onCancel` would throw the accepted file away
-       * the moment the user closed the success message.
-       */
-      toast.update(key, {
-        kind: "success",
-        loaded: f.size,
-        onCancel: undefined,
-        onPause: undefined,
-        onResume: undefined,
-      });
-    } catch {
-      if (ctl.cancelled) {
-        return;
-      }
-      transfer.current = null;
-      openKey.current = null;
-      /* 1359:1161, with the partial count the frame prints and the curved arrow it draws */
-      toast.update(key, {
-        kind: "failed",
-        loaded,
-        onCancel: undefined,
-        onPause: undefined,
-        onResume: undefined,
-        onRetry: () => {
-          start(f);
-        },
-      });
+    if (notify) {
+      onChange?.(null);
     }
   }
 
   /**
    * a refused file leaves the slot as it was: losing an accepted file to a mis-drop is worse.
    *
-   * Both refusals raise 1359:1185 as well as writing the caption line, and the two surfaces
+   * Refusals raise 1359:1185 as well as writing the caption line, and the two surfaces
    * say different things on purpose: the caption is the slot's standing state and survives, the
    * toast is the event and goes. The keys are prefixed per reason so a file that is both the
    * wrong type AND over-size cannot silently reuse the other's card — only the first test that
@@ -481,6 +253,18 @@ export function useFileSlot({ kind, maxMB, onChange }: UseFileSlotProps) {
   // oxlint-disable-next-line eslint(func-style)
   function take(next: File | null | undefined) {
     if (!next) {
+      return;
+    }
+
+    if (next.size === 0) {
+      const refuse = "ไฟล์นี้ว่างเปล่า";
+      setError(refuse);
+      toast.push({
+        key: `empty:${slotId}:${next.name}:${next.size}`,
+        kind: "rejected",
+        name: next.name,
+        reason: refuse,
+      });
       return;
     }
 
@@ -510,17 +294,11 @@ export function useFileSlot({ kind, maxMB, onChange }: UseFileSlotProps) {
       return;
     }
 
-    /*
-     * The slot fills immediately and the transfer runs behind it, which is why nothing about
-     * UploadBox or TeamStep's rendering changes: the preview, the name and the caption all
-     * behave exactly as they did. A read that fails leaves the file in place — the choice was
-     * good, the read was not — and only an explicit cancel empties the slot.
-     */
+    /* The slot holds the selection locally. The route uploads it when the user advances. */
     put(next.type.startsWith("image/") ? URL.createObjectURL(next) : null);
     setFile(next);
     setError(null);
     onChange?.(next);
-    start(next);
   }
 
   /* the drag highlight and the picker are the two ways into the same slot */
@@ -880,6 +658,31 @@ export function TextArea({
 
 const EMPTY_OPTIONS: string[] = [];
 
+const PENDING_UPLOAD_HINT = "ไฟล์จะถูกอัปโหลดเมื่อดำเนินการต่อ";
+
+type UploadFileValue = File | null | string | undefined;
+
+function isHeldUploadFile(file: UploadFileValue): boolean {
+  return typeof file === "string" ? file !== "" : file !== null && file !== undefined;
+}
+
+function hasPendingUpload(file: UploadFileValue, selectedFile: File | null): boolean {
+  return selectedFile !== null || (typeof file !== "string" && file !== null && file !== undefined);
+}
+
+function getUploadFileName(file: UploadFileValue, selectedFile: File | null): string {
+  if (typeof file === "string" && file !== "") {
+    return file;
+  }
+  if (typeof file !== "string" && file !== null && file !== undefined) {
+    return file.name;
+  }
+  if (selectedFile !== null) {
+    return selectedFile.name;
+  }
+  return "อัปโหลดไฟล์";
+}
+
 // eslint-disable-next-line func-style
 export function SelectField({
   label,
@@ -1022,12 +825,26 @@ export function UploadBox({
 }) {
   /* six of these per entrant step, and none of them used to answer a drag at all */
   const slot = useFileSlot({ kind, maxMB, onChange });
+  const { clear: clearSlot, file: selectedFile } = slot;
+  const previousFileProp = useRef(file);
+
+  useEffect(() => {
+    const changed = previousFileProp.current !== file;
+    previousFileProp.current = file;
+
+    /* A controlled reset must also clear the slot's local selection. Keep the initial render
+       and uncontrolled boxes alone, and keep a parent-controlled File that is still selected. */
+    if (onChange !== undefined && changed && selectedFile !== null && file !== selectedFile) {
+      clearSlot(false);
+    }
+  }, [clearSlot, file, onChange, selectedFile]);
 
   /* A document already on the server arrives as its file NAME, so the slot being empty is not
      the same as the requirement being unmet — either one satisfies it. */
-  const held = typeof file === "string" ? file !== "" : file !== null && file !== undefined;
+  const held = isHeldUploadFile(file);
+  const hasPendingSelection = hasPendingUpload(file, selectedFile);
   const { ref, invalid, message, messageId } = useGateField<HTMLLabelElement>(
-    requiredLabel !== undefined && !slot.file && !held ? `ต้องแนบ${requiredLabel}` : null,
+    requiredLabel !== undefined && !selectedFile && !held ? `ต้องแนบ${requiredLabel}` : null,
   );
 
   return (
@@ -1078,20 +895,9 @@ export function UploadBox({
         {/* 14 -> 16, written out (`fl-16` floors at 15): `1243:1378` is a 21-tall box, i.e. 14 at the 1.5
             this style is set at, against 16 at 1440. */}
         <span className="w-full truncate px-3 text-center text-[calc(13.948px_+_2.052*var(--fl))] leading-[normal] font-medium">
-          {(() => {
-            if (slot.file) {
-              return slot.file.name;
-            }
-            if (typeof file === "string") {
-              return file;
-            }
-            if (file) {
-              return file.name;
-            }
-            return "อัปโหลดไฟล์";
-          })()}
+          {getUploadFileName(file, selectedFile)}
         </span>
-        <input {...slot.inputProps} className="hidden" />
+        <input {...slot.inputProps} className="sr-only" />
       </label>
       {/* 12 -> 16, written out: `1243:1379` is 12 on the phone frame against 16 at 1440. A hint
           under a control is the one caption that may go to 12 — it is not an input's own text,
@@ -1106,7 +912,7 @@ export function UploadBox({
         }`}
       >
         {/* a rejected file is the more urgent of the two, so it outranks the gate's sentence */}
-        {slot.error ?? message ?? hint}
+        {slot.error ?? message ?? (hasPendingSelection ? PENDING_UPLOAD_HINT : hint)}
       </p>
     </div>
   );

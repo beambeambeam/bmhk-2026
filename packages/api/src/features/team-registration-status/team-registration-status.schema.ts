@@ -21,6 +21,7 @@ export const teamRegistrationStatusTeamInputSchema = z.object({ teamId: z.uuid()
 
 export const teamRegistrationStatusSchema = z
   .object({
+    advisor: teamRegistrationItemStatusSchema,
     isComplete: z.boolean(),
     memberCount: memberCountSchema,
     participant1: teamRegistrationItemStatusSchema,

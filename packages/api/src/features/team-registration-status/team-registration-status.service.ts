@@ -39,6 +39,19 @@ function participantStatus(
   return hasDocuments ? COMPLETED : IN_PROGRESS;
 }
 
+function advisorStatus(
+  advisor: TeamRegistrationStatusFacts["advisor"],
+): TeamRegistrationItemStatus {
+  if (advisor === null) {
+    return NOT_STARTED;
+  }
+
+  const hasDocuments =
+    advisor.identityDocumentFileId !== null && advisor.teacherStatusDocumentFileId !== null;
+
+  return hasDocuments ? COMPLETED : IN_PROGRESS;
+}
+
 function teamStatus(team: TeamRegistrationStatusFacts["team"]): TeamRegistrationItemStatus {
   const hasValidMemberCount = team.memberCount === 2 || team.memberCount === 3;
   const hasCoreFields = team.name.trim().length > 0 && team.school.trim().length > 0;
@@ -95,16 +108,19 @@ export function calculateTeamRegistrationStatus(
   const participant1 = participantStatus(participants.get(1));
   const participant2 = participantStatus(participants.get(2));
   const participant3 = participant3Status(facts.team.memberCount, participants.get(3));
+  const advisor = advisorStatus(facts.advisor);
   const team = teamStatus(facts.team);
   const termsAndConditions = consentStatus(facts.consent);
   const isComplete =
     team === COMPLETED &&
+    advisor === COMPLETED &&
     participant1 === COMPLETED &&
     participant2 === COMPLETED &&
     termsAndConditions === COMPLETED &&
     (participant3 === COMPLETED || participant3 === NOT_APPLICABLE);
 
   return {
+    advisor,
     isComplete,
     memberCount: facts.team.memberCount,
     participant1,

@@ -1,5 +1,6 @@
 import { db } from "@bmhk-2026/db";
 import { teamConsents } from "@bmhk-2026/db/schema/team-consents";
+import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { asc, eq } from "drizzle-orm";
@@ -11,6 +12,10 @@ import { teamRegistrationStatusRepositoryError } from "./team-registration-statu
 import { createTeamAccessCondition } from "../teams/teams.repository";
 
 export interface TeamRegistrationStatusFacts {
+  advisor: {
+    identityDocumentFileId: string | null;
+    teacherStatusDocumentFileId: string | null;
+  } | null;
   consent: {
     codernTermsAccepted: boolean;
     competitionRulesAccepted: boolean;
@@ -67,6 +72,9 @@ export function createTeamRegistrationStatusRepository(
         async (transaction) => {
           const rows = await transaction
             .select({
+              advisorId: teamAdvisors.id,
+              advisorIdentityDocumentFileId: teamAdvisors.identityDocumentFileId,
+              advisorTeacherStatusDocumentFileId: teamAdvisors.teacherStatusDocumentFileId,
               consentCodernTermsAccepted: teamConsents.codernTermsAccepted,
               consentCompetitionRulesAccepted: teamConsents.competitionRulesAccepted,
               consentGuardianConsentObtained: teamConsents.guardianConsentObtained,
@@ -89,6 +97,7 @@ export function createTeamRegistrationStatusRepository(
             .from(teams)
             .leftJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
             .leftJoin(teamConsents, eq(teamConsents.teamId, teams.id))
+            .leftJoin(teamAdvisors, eq(teamAdvisors.teamId, teams.id))
             .where(condition)
             .orderBy(asc(teamParticipants.index));
 
@@ -124,7 +133,16 @@ export function createTeamRegistrationStatusRepository(
                   publicityMediaConsent: firstRow.consentPublicityMediaConsent ?? false,
                 };
 
+          const advisor =
+            firstRow.advisorId === null
+              ? null
+              : {
+                  identityDocumentFileId: firstRow.advisorIdentityDocumentFileId,
+                  teacherStatusDocumentFileId: firstRow.advisorTeacherStatusDocumentFileId,
+                };
+
           return {
+            advisor,
             consent,
             participants,
             team: {

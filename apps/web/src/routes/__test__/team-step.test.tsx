@@ -118,8 +118,8 @@ const initialRegistration: RegistrationFormData = {
   team: {
     name: "",
     photoFile: null,
-    photoName: null,
-    photoUrl: null,
+    photoName: "team.png",
+    photoUrl: "https://files.example/team.png",
     school: "Test School",
     teamSize: 2,
   },

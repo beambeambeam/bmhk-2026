@@ -10,7 +10,7 @@
 /* oxlint-disable eqeqeq */
 /* oxlint-disable unicorn/prefer-ternary */
 /* oxlint-disable react/no-children-prop */
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import WizardShell, {
   BackButton,
   STEP_BUTTON,
@@ -29,11 +29,12 @@ import {
   useFileSlot,
 } from "@/components/form/field";
 import { createFileRoute } from "@tanstack/react-router";
-import { useRegisterForm, Route as RegisterRoute } from "@/routes/register";
+import { useRegisterForm } from "@/routes/register";
+import type { RegisterFormApi } from "@/routes/register";
 import { z } from "zod";
 import { MAX_TEAM_NAME_LENGTH, teamNameSchema } from "@bmhk-2026/client/teams";
 import { client } from "@bmhk-2026/client/orpc";
-import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useGateField, useGateValidate } from "@/components/form/wizard-nav";
 import { fieldErrorReader } from "@/features/register/lib/field-errors";
 import { toast } from "sonner";
 import { env } from "@bmhk-2026/env/web";
@@ -96,28 +97,40 @@ const teamSchema = z.object({
   teamSize: z.number().int().min(0).max(2_147_483_647).default(2),
 });
 
+type TeamResponse = Awaited<ReturnType<typeof client.teams.create>>;
+
 function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?: string }) {
   const form = useRegisterForm();
   const go = useAuthNavigate();
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const validate = useGateValidate();
-  const { termsData } = RegisterRoute.useLoaderData();
 
   return (
     <button
       type="button"
       data-busy={busy}
       aria-busy={busy}
+      disabled={busy}
       onClick={async () => {
+        if (busyRef.current) {
+          return;
+        }
         /* Every required control on this step states its own claim, so the gate is the whole
            check: it flags the first unmet one, scrolls to it and focuses it. */
         if (!validate()) {
           return;
         }
+        busyRef.current = true;
         setBusy(true);
         try {
           const team = form.getFieldValue("team");
           const status = form.getFieldValue("status") as { teamId?: string } | null | undefined;
+          const hasSavedPhoto = typeof team.photoUrl === "string" && team.photoUrl !== "";
+          if (team.photoFile === null && !hasSavedPhoto) {
+            toast.error("กรุณาแนบรูปโปรไฟล์ทีม");
+            return;
+          }
           const initialTeam = form.options.defaultValues?.team;
           const isNameUnchanged =
             status?.teamId !== undefined &&
@@ -150,16 +163,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             const terms = form.getFieldValue("terms");
             const consentData = parseTeamConsentData(terms);
 
-            const td = termsData as
-              | {
-                  codernTermsAccepted?: boolean;
-                  competitionRulesAccepted?: boolean;
-                  guardianConsentObtained?: boolean;
-                  healthDataConsent?: boolean;
-                  privacyPolicyAccepted?: boolean;
-                  publicityMediaConsent?: boolean;
-                }
-              | undefined;
+            const td = form.options.defaultValues?.terms;
 
             const isTermsDirty =
               !td ||
@@ -203,7 +207,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             return;
           }
 
-          let finalResult: { id: string; name: string; school: string; memberCount: number };
+          let finalResult: TeamResponse;
           if (status?.teamId == null) {
             finalResult = await client.teams.create({
               memberCount: validData.teamSize,
@@ -221,6 +225,12 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             });
           }
 
+          /* Keep the created ID before the image request. A failed upload must retry against this
+             team instead of trying to create a second team for the same owner. */
+          form.setFieldValue("status", { ...status, teamId: finalResult.id });
+
+          let uploadedPhoto: { name: string; url: string } | null = null;
+
           if (team.photoFile) {
             const formData = new FormData();
             formData.append("id", finalResult.id);
@@ -235,13 +245,24 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
             if (!uploadResponse.ok) {
               throw new Error("Failed to upload image");
             }
-            const uploadData = (await uploadResponse.json()) as typeof finalResult;
+            const uploadData = (await uploadResponse.json()) as TeamResponse;
             finalResult = uploadData;
+            const uploadedTeam = await client.teams.get({ id: finalResult.id });
+            if (uploadedTeam.image === null) {
+              throw new Error("Team image missing after upload");
+            }
+            uploadedPhoto = {
+              name: uploadedTeam.image.originalName,
+              url: uploadedTeam.image.url,
+            };
           }
 
           form.setFieldValue("team", {
             ...team,
             name: finalResult.name,
+            photoFile: null,
+            photoName: uploadedPhoto?.name ?? team.photoName ?? null,
+            photoUrl: uploadedPhoto?.url ?? team.photoUrl ?? null,
             school: finalResult.school,
             teamSize: finalResult.memberCount,
           });
@@ -256,6 +277,7 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
           console.error(error);
           toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         } finally {
+          busyRef.current = false;
           setBusy(false);
         }
       }}
@@ -296,10 +318,76 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
   );
 }
 
+function TeamPhotoPicker({
+  form,
+  photo,
+}: {
+  form: RegisterFormApi;
+  photo: ReturnType<typeof useFileSlot>;
+}) {
+  const savedPhotoUrl = form.getFieldValue("team.photoUrl");
+  const hasSavedPhoto = typeof savedPhotoUrl === "string" && savedPhotoUrl !== "";
+  const photoRequirement = photo.file === null && !hasSavedPhoto ? "กรุณาแนบรูปโปรไฟล์ทีม" : null;
+  const {
+    ref: photoRef,
+    invalid: photoInvalid,
+    message: photoMessage,
+    messageId: photoMessageId,
+  } = useGateField<HTMLLabelElement>(photoRequirement);
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))]">
+      <label
+        {...photo.drop}
+        ref={photoRef}
+        tabIndex={-1}
+        aria-invalid={photoInvalid || undefined}
+        aria-describedby={photoMessage === null ? undefined : photoMessageId}
+        className={`auth-drop mm-press relative flex size-[calc(138.439px_+_61.561*var(--fl))] cursor-pointer flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[calc(15.896px_+_4.104*var(--fl))] border border-dashed hover:border-brand-red ${photoInvalid ? "border-[#ea4335]" : "border-[#dcdcdc]"}`}
+      >
+        <img
+          src={`${F}18691121244d1cc30f2fff4bf73c50850cbef49f.svg`}
+          alt=""
+          aria-hidden
+          className={GLYPH_20_24}
+        />
+        <span className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal]">รูปโปรไฟล์ทีม</span>
+        {((photo.preview != null && photo.preview !== "") ||
+          (savedPhotoUrl != null && savedPhotoUrl !== "")) && (
+          <img
+            src={photo.preview ?? (savedPhotoUrl as string)}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 size-full object-cover"
+          />
+        )}
+        <input {...photo.inputProps} className="sr-only" />
+      </label>
+      <p
+        id={photoMessageId}
+        aria-live="polite"
+        className={`w-[calc(138.439px_+_61.561*var(--fl))] truncate text-center text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${photo.error != null && photo.error !== "" ? "text-[#ea4335]" : "text-gray-1"}`}
+      >
+        {photo.error ??
+          photoMessage ??
+          photo.file?.name ??
+          form.getFieldValue("team.photoName") ??
+          "จำกัดขนาดไม่เกิน 5 MB"}
+      </p>
+    </div>
+  );
+}
+
 export default function TeamStep() {
   /* the caption says จำกัดขนาดไม่เกิน 5 MB, so 5 MB is what the box enforces */
-  const photo = useFileSlot({ kind: "image", maxMB: 5 });
   const form = useRegisterForm();
+  const photo = useFileSlot({
+    kind: "image",
+    maxMB: 5,
+    onChange: (file) => {
+      form.setFieldValue("team.photoFile", file);
+    },
+  });
 
   /* Bound to this step's schema; each field reads its own message inside its own
      `<form.Field>`, so the sentence tracks what is being typed. */
@@ -318,7 +406,9 @@ export default function TeamStep() {
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
-    form.setFieldValue("team.photoFile", photo.file);
+    if (photo.file === null && form.getFieldValue("team.photoFile") !== null) {
+      form.setFieldValue("team.photoFile", null);
+    }
   }, [photo.file, form]);
 
   return (
@@ -373,77 +463,7 @@ export default function TeamStep() {
            */}
           {/* 8 @402 (`1214:212`) → 12 @1440 (`708:1304`) between the drop box and its caption —
               `gap-3` was the 1440 value held flat. */}
-          <div className="flex flex-col items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))]">
-            <label
-              {...photo.drop}
-              className="auth-drop mm-press relative flex size-[calc(138.439px_+_61.561*var(--fl))] cursor-pointer flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[calc(15.896px_+_4.104*var(--fl))] border border-dashed border-[#dcdcdc] hover:border-brand-red"
-            >
-              {/*
-               * A chosen profile photo fills its own frame — a name alone would make the one
-               * box on the page that *is* a picture the only one that never shows it. The
-               * thumbnail is absolute so it cannot stretch the 200 square, and the placeholder
-               * stays mounted underneath it rather than being swapped out, so nothing about
-               * the box's size or the dashed border depends on whether a file is held.
-               */}
-              <img
-                src={`${F}18691121244d1cc30f2fff4bf73c50850cbef49f.svg`}
-                alt=""
-                aria-hidden
-                className={GLYPH_20_24}
-              />
-              {/* 14 @402 (`1214:216`) → 18 @1440 (`708:1308`), Regular at both. This was `fl-18`,
-                  whose 16 floor carried the phone 2px over Figma — the rank's floor no longer
-                  wins over a measured phone value. `leading-[normal]` is right: 21.15 / 14 and
-                  27.2 / 18 are both Noto Sans Thai's own 1.511. */}
-              <span className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal]">
-                รูปโปรไฟล์ทีม
-              </span>
-              {((photo.preview != null && photo.preview !== "") ||
-                (form.getFieldValue("team.photoUrl") != null &&
-                  form.getFieldValue("team.photoUrl") !== "")) && (
-                <img
-                  src={photo.preview ?? (form.getFieldValue("team.photoUrl") as string)}
-                  alt=""
-                  aria-hidden
-                  className="absolute inset-0 size-full object-cover"
-                />
-              )}
-              <form.Field
-                name="team.photoFile"
-                children={(field) => (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      photo.inputProps.onChange(e);
-                      const file = e.target.files?.[0] ?? null;
-                      field.handleChange(file);
-                    }}
-                  />
-                )}
-              />
-            </label>
-            {/*
-             * One line under the box, three states: the size rule, then the name of the file
-             * held, then the reason one was refused. It is width-capped at the box and
-             * truncates, because a 60-character file name here would widen the column and
-             * make the page pannable sideways on a phone.
-             */}
-            {/* the cap tracks the box above it — same ramp, so the caption can never be wider
-                than the photo target it belongs to — and the TYPE is now 12 @402 (`1214:217`)
-                → 16 @1440 (`708:1309`), Regular at both, written out because `fl-16`'s 15 floor
-                was 3px over Figma's 12 on the phone. #808080 = `text-gray-1`, both anchors. */}
-            <p
-              aria-live="polite"
-              className={`w-[calc(138.439px_+_61.561*var(--fl))] truncate text-center text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${photo.error != null && photo.error !== "" ? "text-[#ea4335]" : "text-gray-1"}`}
-            >
-              {photo.error ??
-                photo.file?.name ??
-                form.getFieldValue("team.photoName") ??
-                "จำกัดขนาดไม่เกิน 5 MB"}
-            </p>
-          </div>
+          <TeamPhotoPicker form={form} photo={photo} />
 
           {/* 20 @402 (`1214:218`) → 32 @1440 (`708:1310`) between the three field groups —
               `gap-8` was the 1440 value held flat, which on a phone pushed this column 24px

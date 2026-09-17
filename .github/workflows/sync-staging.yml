@@ -45,8 +45,8 @@ jobs:
 
           sync_branch="automation/staging-sync"
           sync_branch_sha="$(gh api \
-            "/repos/${GITHUB_REPOSITORY}/git/ref/heads/${sync_branch}" \
-            --jq '.object.sha' 2>/dev/null || true)"
+            "/repos/${GITHUB_REPOSITORY}/git/matching-refs/heads/${sync_branch}" \
+            --jq '.[0].object.sha // empty')"
 
           if [ -z "$sync_branch_sha" ]; then
             gh api \

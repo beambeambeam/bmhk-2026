@@ -13,13 +13,15 @@ function DetailFields({ fields, title }: DetailFieldsProps) {
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2">
-        {fields.map((field) => (
-          <div key={field.label}>
-            <dt className="text-muted-foreground text-sm">{field.label}</dt>
-            <dd className="break-words font-medium">{displayValue(field.value)}</dd>
-          </div>
-        ))}
+      <CardContent>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          {fields.map((field) => (
+            <div key={field.label}>
+              <dt className="text-muted-foreground text-sm">{field.label}</dt>
+              <dd className="break-words font-medium">{displayValue(field.value)}</dd>
+            </div>
+          ))}
+        </dl>
       </CardContent>
     </Card>
   );

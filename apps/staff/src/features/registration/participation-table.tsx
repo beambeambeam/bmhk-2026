@@ -115,84 +115,82 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           </SelectContent>
         </Select>
       </div>
-      <div className="[&_[data-slot=table-container]]:overflow-x-visible">
-        <Table className="table-fixed">
-          <TableHeader>
-            <TableRow>
-              {tableColumns.map((label, index) => (
-                <TableHead
-                  className={`${
-                    [
-                      "w-[14%]",
-                      "w-[12%]",
-                      "w-[8%]",
-                      "w-[9%]",
-                      "w-[10%]",
-                      "w-[10%]",
-                      "w-[11%]",
-                      "w-[14%]",
-                    ][index]
-                  } whitespace-normal`}
-                  key={label}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {label}
-                    {label === "วันที่ส่ง" ? <ArrowUp aria-hidden="true" className="size-4" /> : null}
-                  </span>
-                </TableHead>
-              ))}
-              <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {query.isLoading ? (
-              <TableRow>
-                <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
-              </TableRow>
-            ) : null}
-            {query.isError ? (
-              <TableRow>
-                <TableCell className="text-destructive" colSpan={9}>
-                  ไม่สามารถโหลดข้อมูลการสมัครได้
-                </TableCell>
-              </TableRow>
-            ) : null}
-            {!query.isLoading && !query.isError && teams.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
-              </TableRow>
-            ) : null}
-            {teams.map((team) => (
-              <TableRow key={team.id}>
-                <TableCell className="whitespace-normal">
-                  <p className="font-medium">{team.name}</p>
-                </TableCell>
-                <TableCell className="whitespace-normal">{team.school}</TableCell>
-                <TableCell>{team.memberCount}</TableCell>
-                <TableCell>
-                  <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
-                </TableCell>
-                <TableCell>{formatStaffDate(team.registrationSubmittedAt)}</TableCell>
-                <TableCell>
-                  <StatusChip value={team.reviewStatus} />
-                </TableCell>
-                <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
-                <TableCell className="whitespace-normal">
-                  {formatStaffDateTime(team.lastUpdatedAt)}
-                </TableCell>
-                <TableCell>
-                  <ParticipationReviewDialog
-                    canReview={canReview}
-                    lastUpdatedAt={team.lastUpdatedAt}
-                    reviewedByName={team.reviewedByName}
-                    teamId={team.id}
-                  />
-                </TableCell>
-              </TableRow>
+      <Table className="table-fixed min-w-[64rem]">
+        <TableHeader>
+          <TableRow>
+            {tableColumns.map((label, index) => (
+              <TableHead
+                className={`${
+                  [
+                    "w-[14%]",
+                    "w-[12%]",
+                    "w-[8%]",
+                    "w-[9%]",
+                    "w-[10%]",
+                    "w-[10%]",
+                    "w-[11%]",
+                    "w-[14%]",
+                  ][index]
+                } whitespace-normal`}
+                key={label}
+              >
+                <span className="inline-flex items-center gap-1">
+                  {label}
+                  {label === "วันที่ส่ง" ? <ArrowUp aria-hidden="true" className="size-4" /> : null}
+                </span>
+              </TableHead>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+            <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {query.isLoading ? (
+            <TableRow>
+              <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
+            </TableRow>
+          ) : null}
+          {query.isError ? (
+            <TableRow>
+              <TableCell className="text-destructive" colSpan={9}>
+                ไม่สามารถโหลดข้อมูลการสมัครได้
+              </TableCell>
+            </TableRow>
+          ) : null}
+          {!query.isLoading && !query.isError && teams.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
+            </TableRow>
+          ) : null}
+          {teams.map((team) => (
+            <TableRow key={team.id}>
+              <TableCell className="whitespace-normal">
+                <p className="font-medium">{team.name}</p>
+              </TableCell>
+              <TableCell className="whitespace-normal">{team.school}</TableCell>
+              <TableCell>{team.memberCount}</TableCell>
+              <TableCell>
+                <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
+              </TableCell>
+              <TableCell>{formatStaffDate(team.registrationSubmittedAt)}</TableCell>
+              <TableCell>
+                <StatusChip value={team.reviewStatus} />
+              </TableCell>
+              <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
+              <TableCell className="whitespace-normal">
+                {formatStaffDateTime(team.lastUpdatedAt)}
+              </TableCell>
+              <TableCell>
+                <ParticipationReviewDialog
+                  canReview={canReview}
+                  lastUpdatedAt={team.lastUpdatedAt}
+                  reviewedByName={team.reviewedByName}
+                  teamId={team.id}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       {pagination ? (
         <ParticipationPagination
           isFetching={query.isFetching}

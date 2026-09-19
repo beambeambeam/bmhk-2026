@@ -66,7 +66,7 @@ const adminNavItems: readonly StaffNavItem[] = [
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [
-  { icon: ClipboardCheck, label: "รายการสมัครแข่งขัน", to: "/participations" },
+  { icon: ClipboardCheck, label: "ตรวจสอบผู้สมัครเข้าแข่งขัน", to: "/participations" },
 ];
 
 const achievementsNavItems: readonly StaffNavItem[] = [
@@ -82,11 +82,11 @@ const participantCheckInNavItems: readonly StaffNavItem[] = [
 ];
 
 const round2StaffNavItems: readonly StaffNavItem[] = [
-  { icon: UserCheck, label: "ลงทะเบียนทีมงาน (รอบ 2)", to: "/round2-staff-check" },
+  { icon: UserCheck, label: "ลงทะเบียนทีมงาน (รอบที่ 2)", to: "/round2-staff-check" },
 ];
 
 const round2ParticipantCheckInNavItems: readonly StaffNavItem[] = [
-  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม (รอบ 2)", to: "/round2-participants-check" },
+  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 2)", to: "/round2-participants-check" },
 ];
 
 interface StaffNavGroup {
@@ -149,10 +149,13 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       { items: baseNavItems, label: "เมนูหลัก" },
       { items: registrationNavItems, label: "การสมัครแข่งขัน" },
       { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
-      { items: [...participantCheckInNavItems, ...staffNavItems], label: "ลงทะเบียนเข้างาน รอบ 1" },
+      {
+        items: [...participantCheckInNavItems, ...staffNavItems],
+        label: "ลงทะเบียนเข้างาน รอบที่ 1",
+      },
       {
         items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems],
-        label: "ลงทะเบียนเข้างาน รอบ 2",
+        label: "ลงทะเบียนเข้างาน รอบที่ 2",
       },
       { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
@@ -173,14 +176,14 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
             ...(canAccessParticipations ? participantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? staffNavItems : []),
           ],
-          label: "ลงทะเบียนเข้างาน รอบ 1",
+          label: "ลงทะเบียนเข้างาน รอบที่ 1",
         },
         {
           items: [
             ...(canAccessParticipations ? round2ParticipantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
           ],
-          label: "ลงทะเบียนเข้างาน รอบ 2",
+          label: "ลงทะเบียนเข้างาน รอบที่ 2",
         },
       );
     }

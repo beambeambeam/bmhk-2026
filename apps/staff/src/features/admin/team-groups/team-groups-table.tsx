@@ -24,38 +24,36 @@ function TeamGroupsTable({ teams }: TeamGroupsTableProps) {
       <div className="flex justify-end">
         <AssignGroupsDialog />
       </div>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>#</TableHead>
+            <TableHead>Team</TableHead>
+            <TableHead>School</TableHead>
+            <TableHead>Group</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {teams.length === 0 ? (
             <TableRow>
-              <TableHead>#</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>School</TableHead>
-              <TableHead>Group</TableHead>
+              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                No teams have passed document review yet.
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teams.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  No teams have passed document review yet.
+          ) : (
+            visibleTeams.map((team) => (
+              <TableRow key={team.id}>
+                <TableCell>{team.index}</TableCell>
+                <TableCell className="font-medium">{team.name}</TableCell>
+                <TableCell>{team.school}</TableCell>
+                <TableCell>
+                  {team.group ? `[${team.group.index}] ${team.group.name}` : "Unassigned"}
                 </TableCell>
               </TableRow>
-            ) : (
-              visibleTeams.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell>{team.index}</TableCell>
-                  <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell>{team.school}</TableCell>
-                  <TableCell>
-                    {team.group ? `[${team.group.index}] ${team.group.name}` : "Unassigned"}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
       {teams.length > 0 && (
         <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground">

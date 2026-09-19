@@ -21,66 +21,64 @@ function ApiKeyTable() {
       <div className="flex justify-end">
         <ApiKeyCreate />
       </div>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ชื่อ</TableHead>
+            <TableHead>เจ้าของ</TableHead>
+            <TableHead>คีย์</TableHead>
+            <TableHead>สถานะ</TableHead>
+            <TableHead>วันหมดอายุ</TableHead>
+            <TableHead>ใช้งานล่าสุด</TableHead>
+            <TableHead className="text-right">การดำเนินการ</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading || errorMessage !== undefined || apiKeys.length === 0 ? (
             <TableRow>
-              <TableHead>ชื่อ</TableHead>
-              <TableHead>เจ้าของ</TableHead>
-              <TableHead>คีย์</TableHead>
-              <TableHead>สถานะ</TableHead>
-              <TableHead>วันหมดอายุ</TableHead>
-              <TableHead>ใช้งานล่าสุด</TableHead>
-              <TableHead className="text-right">การดำเนินการ</TableHead>
+              <TableCell
+                className={
+                  errorMessage === undefined
+                    ? "h-24 text-center text-muted-foreground"
+                    : "h-24 text-center text-destructive"
+                }
+                colSpan={TABLE_COLUMN_COUNT}
+              >
+                {errorMessage ?? (isLoading ? "กำลังโหลดรายการ API key..." : "ยังไม่มี API key")}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading || errorMessage !== undefined || apiKeys.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  className={
-                    errorMessage === undefined
-                      ? "h-24 text-center text-muted-foreground"
-                      : "h-24 text-center text-destructive"
-                  }
-                  colSpan={TABLE_COLUMN_COUNT}
-                >
-                  {errorMessage ?? (isLoading ? "กำลังโหลดรายการ API key..." : "ยังไม่มี API key")}
+          ) : (
+            apiKeys.map((apiKey) => (
+              <TableRow key={apiKey.id}>
+                <TableCell className="font-medium">{apiKey.name ?? "ไม่ระบุชื่อ"}</TableCell>
+                <TableCell>
+                  {apiKey.ownerName ?? apiKey.ownerEmail ?? "-"}
+                  {apiKey.ownerName !== null && apiKey.ownerEmail !== null ? (
+                    <div className="text-muted-foreground text-xs">{apiKey.ownerEmail}</div>
+                  ) : null}
+                </TableCell>
+                <TableCell className="font-mono text-muted-foreground text-xs">
+                  {apiKey.start ?? "-"}
+                </TableCell>
+                <TableCell>
+                  {apiKey.enabled ? (
+                    <span className="text-emerald-600">กำลังใช้งาน</span>
+                  ) : (
+                    <span className="text-muted-foreground">เพิกถอนแล้ว</span>
+                  )}
+                </TableCell>
+                <TableCell>{formatApiKeyDate(apiKey.expiresAt)}</TableCell>
+                <TableCell>{formatApiKeyDate(apiKey.lastRequest)}</TableCell>
+                <TableCell className="text-right">
+                  {apiKey.enabled ? (
+                    <ApiKeyRevoke id={apiKey.id} name={apiKey.name ?? apiKey.id} />
+                  ) : null}
                 </TableCell>
               </TableRow>
-            ) : (
-              apiKeys.map((apiKey) => (
-                <TableRow key={apiKey.id}>
-                  <TableCell className="font-medium">{apiKey.name ?? "ไม่ระบุชื่อ"}</TableCell>
-                  <TableCell>
-                    {apiKey.ownerName ?? apiKey.ownerEmail ?? "-"}
-                    {apiKey.ownerName !== null && apiKey.ownerEmail !== null ? (
-                      <div className="text-muted-foreground text-xs">{apiKey.ownerEmail}</div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="font-mono text-muted-foreground text-xs">
-                    {apiKey.start ?? "-"}
-                  </TableCell>
-                  <TableCell>
-                    {apiKey.enabled ? (
-                      <span className="text-emerald-600">กำลังใช้งาน</span>
-                    ) : (
-                      <span className="text-muted-foreground">เพิกถอนแล้ว</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatApiKeyDate(apiKey.expiresAt)}</TableCell>
-                  <TableCell>{formatApiKeyDate(apiKey.lastRequest)}</TableCell>
-                  <TableCell className="text-right">
-                    {apiKey.enabled ? (
-                      <ApiKeyRevoke id={apiKey.id} name={apiKey.name ?? apiKey.id} />
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

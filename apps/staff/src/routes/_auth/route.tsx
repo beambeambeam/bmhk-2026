@@ -49,8 +49,8 @@ function AuthLayout() {
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
         </header>
-        <div className="w-full flex-1 px-4 py-6">
-          <div className="mx-auto w-full max-w-6xl">
+        <div className="w-full flex-1 p-4">
+          <div className="w-full">
             <Outlet />
           </div>
         </div>

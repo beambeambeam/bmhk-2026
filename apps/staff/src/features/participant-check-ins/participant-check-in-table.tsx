@@ -183,133 +183,130 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
           </Field>
         ))}
       </FieldGroup>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {sortableColumns.map((column) => (
-                <TableHead key={column.id}>
-                  <Button
-                    className="-ml-3"
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      toggleSorting(column.id);
-                    }}
-                  >
-                    {column.label}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={
-                        sorting.id === column.id ? "text-foreground" : "text-muted-foreground"
-                      }
-                    />
-                  </Button>
-                </TableHead>
-              ))}
-              <TableHead className="text-right">การดำเนินการ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {participantQuery.isLoading || participantQuery.isError || participants.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  className={
-                    participantQuery.isError
-                      ? "h-24 text-center text-destructive"
-                      : "h-24 text-center text-muted-foreground"
-                  }
-                  colSpan={6}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {sortableColumns.map((column) => (
+              <TableHead key={column.id}>
+                <Button
+                  className="-ml-3"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    toggleSorting(column.id);
+                  }}
                 >
-                  {getTableMessage(participantQuery.isError, participantQuery.isLoading)}
-                </TableCell>
-              </TableRow>
-            ) : (
-              participants.map((participant) => {
-                const isCheckingIn =
-                  checkInMutation.isPending &&
-                  checkInMutation.variables?.participantId === participant.id;
-                const isUpdatingFlag =
-                  flagMutation.isPending &&
-                  flagMutation.variables?.participantId === participant.id;
-                return (
-                  <TableRow key={participant.id}>
-                    <TableCell className="font-medium">{participant.name}</TableCell>
-                    <TableCell>{participant.teamName}</TableCell>
-                    <TableCell>{participant.email}</TableCell>
-                    <TableCell>
-                      {participant.checkIn ? (
-                        <span className="flex flex-col gap-0.5">
-                          <span>{formatCheckInDate(participant.checkIn.checkedInAt)}</span>
-                          <span className="text-muted-foreground text-xs">
-                            ยืนยันโดย {participant.checkIn.checkedInByName}
-                          </span>
+                  {column.label}
+                  <ArrowUpDown
+                    aria-hidden="true"
+                    className={
+                      sorting.id === column.id ? "text-foreground" : "text-muted-foreground"
+                    }
+                  />
+                </Button>
+              </TableHead>
+            ))}
+            <TableHead className="text-right">การดำเนินการ</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {participantQuery.isLoading || participantQuery.isError || participants.length === 0 ? (
+            <TableRow>
+              <TableCell
+                className={
+                  participantQuery.isError
+                    ? "h-24 text-center text-destructive"
+                    : "h-24 text-center text-muted-foreground"
+                }
+                colSpan={6}
+              >
+                {getTableMessage(participantQuery.isError, participantQuery.isLoading)}
+              </TableCell>
+            </TableRow>
+          ) : (
+            participants.map((participant) => {
+              const isCheckingIn =
+                checkInMutation.isPending &&
+                checkInMutation.variables?.participantId === participant.id;
+              const isUpdatingFlag =
+                flagMutation.isPending && flagMutation.variables?.participantId === participant.id;
+              return (
+                <TableRow key={participant.id}>
+                  <TableCell className="font-medium">{participant.name}</TableCell>
+                  <TableCell>{participant.teamName}</TableCell>
+                  <TableCell>{participant.email}</TableCell>
+                  <TableCell>
+                    {participant.checkIn ? (
+                      <span className="flex flex-col gap-0.5">
+                        <span>{formatCheckInDate(participant.checkIn.checkedInAt)}</span>
+                        <span className="text-muted-foreground text-xs">
+                          ยืนยันโดย {participant.checkIn.checkedInByName}
                         </span>
-                      ) : (
-                        <span className="text-muted-foreground">ยังไม่เข้างาน</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {participant.checkIn ? (
-                        <Select
-                          disabled={isUpdatingFlag}
-                          value={participant.checkIn.flag ?? noFlagValue}
-                          onValueChange={(value) => void updateFlag(participant.id, value)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">ยังไม่เข้างาน</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {participant.checkIn ? (
+                      <Select
+                        disabled={isUpdatingFlag}
+                        value={participant.checkIn.flag ?? noFlagValue}
+                        onValueChange={(value) => void updateFlag(participant.id, value)}
+                      >
+                        <SelectTrigger
+                          aria-label={`หมายเหตุสำหรับ ${participant.name}`}
+                          className="min-w-36"
                         >
-                          <SelectTrigger
-                            aria-label={`หมายเหตุสำหรับ ${participant.name}`}
-                            className="min-w-36"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={noFlagValue}>ไม่มี</SelectItem>
-                            {Object.entries(flagLabels).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {participant.checkIn ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                            <Check aria-hidden="true" className="size-4 text-emerald-600" />
-                            เข้างานแล้ว
-                          </span>
-                          <ParticipantCheckInCancel
-                            participantId={participant.id}
-                            participantName={participant.name}
-                            round={round}
-                          />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={noFlagValue}>ไม่มี</SelectItem>
+                          {Object.entries(flagLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {participant.checkIn ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                          <Check aria-hidden="true" className="size-4 text-emerald-600" />
+                          เข้างานแล้ว
                         </span>
-                      ) : (
-                        <Button
-                          disabled={isCheckingIn}
-                          size="sm"
-                          type="button"
-                          onClick={() => void checkIn(participant.id, participant.name)}
-                        >
-                          {isCheckingIn ? (
-                            <Loader2 aria-hidden="true" className="animate-spin" />
-                          ) : null}
-                          ลงทะเบียนเข้างาน
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                        <ParticipantCheckInCancel
+                          participantId={participant.id}
+                          participantName={participant.name}
+                          round={round}
+                        />
+                      </span>
+                    ) : (
+                      <Button
+                        disabled={isCheckingIn}
+                        size="sm"
+                        type="button"
+                        onClick={() => void checkIn(participant.id, participant.name)}
+                      >
+                        {isCheckingIn ? (
+                          <Loader2 aria-hidden="true" className="animate-spin" />
+                        ) : null}
+                        ลงทะเบียนเข้างาน
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">ทั้งหมด {rowCount} คน</p>
         <div className="flex items-center justify-end gap-2">

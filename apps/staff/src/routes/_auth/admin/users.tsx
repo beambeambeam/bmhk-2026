@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { AdminUserTable } from "@/features/admin/users";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -11,19 +10,11 @@ function AdminUsersPage() {
 
   return (
     <section className="flex flex-col gap-5">
-      <Card>
-        <CardHeader>
-          <CardTitle>จัดการผู้ใช้</CardTitle>
-          <CardDescription>จัดการสิทธิ์การเข้าถึงของผู้ใช้</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-2">
-          <Card>
-            <CardContent className="px-4">
-              <AdminUserTable actorId={session.data?.user.id} actorRole={session.data?.user.role} />
-            </CardContent>
-          </Card>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-base leading-snug font-medium">จัดการผู้ใช้</h1>
+        <p className="text-sm text-muted-foreground">จัดการสิทธิ์การเข้าถึงของผู้ใช้</p>
+      </div>
+      <AdminUserTable actorId={session.data?.user.id} actorRole={session.data?.user.role} />
     </section>
   );
 }

@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { ApiKeyTable } from "@/features/admin/api-keys/api-key-table";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -9,19 +8,13 @@ export const Route = createFileRoute("/_auth/admin/api-keys")({
 function ApiKeysPage() {
   return (
     <section className="flex flex-col gap-5">
-      <Card>
-        <CardHeader>
-          <CardTitle>คีย์ API</CardTitle>
-          <CardDescription>จัดการคีย์ API สำหรับการเข้าถึงบริการของ BMHK ด้วยโปรแกรม</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-2">
-          <Card>
-            <CardContent className="px-4">
-              <ApiKeyTable />
-            </CardContent>
-          </Card>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-base leading-snug font-medium">คีย์ API</h1>
+        <p className="text-sm text-muted-foreground">
+          จัดการคีย์ API สำหรับการเข้าถึงบริการของ BMHK ด้วยโปรแกรม
+        </p>
+      </div>
+      <ApiKeyTable />
     </section>
   );
 }

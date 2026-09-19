@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { getTeamGroupsAdminListQueryOptions } from "@bmhk-2026/client/query-options";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,18 +8,13 @@ function TeamGroupsAdminPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card>
-        <CardHeader>
-          <CardTitle>Team groups</CardTitle>
-          <CardDescription>
-            Every team that passed document review, and the Discord team group it&apos;s assigned
-            to.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TeamGroupsTable teams={teamsQuery.data ?? []} />
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-base leading-snug font-medium">Team groups</h1>
+        <p className="text-sm text-muted-foreground">
+          Every team that passed document review, and the Discord team group it&apos;s assigned to.
+        </p>
+      </div>
+      <TeamGroupsTable teams={teamsQuery.data ?? []} />
     </div>
   );
 }

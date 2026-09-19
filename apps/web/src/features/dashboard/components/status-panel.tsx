@@ -173,7 +173,7 @@ const LABEL_COLOR: Record<StepTone, string> = {
 
 const CONTACT_EMAIL = "bangmodhack.team@gmail.com";
 
-function getGmailTemplateUrl({
+function getEmailTemplateUrl({
   issueList,
   teamCode,
   teamName,
@@ -185,9 +185,7 @@ function getGmailTemplateUrl({
   const subject = `ติดต่อแก้ไขข้อมูลเอกสาร ทีม ${teamName}`;
   const body = `ชื่อทีม : ${teamName}\nรหัสทีม : ${teamCode}\nข้อมูล/เอกสารที่ต้องการแก้ไข : ${issueList}\n---\nข้อมูลสำหรับแก้ไข (หากเป็นเอกสารโปรดแนบไฟล์) :\n\nอื่น ๆ (ถ้ามี) :\n`;
 
-  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    CONTACT_EMAIL,
-  )}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 function Badge({ tone, compact = false }: { tone: StepTone; compact?: boolean }) {
@@ -266,7 +264,7 @@ function Step({
       ? issueRows.map((row) => `${row.title}: ${row.label}`).join(", ")
       : "[สิ่งที่ต้องแก้ไข]";
 
-  const gmailUrl = getGmailTemplateUrl({
+  const emailUrl = getEmailTemplateUrl({
     issueList,
     teamCode,
     teamName,
@@ -305,15 +303,17 @@ function Step({
           <div className="flex w-full flex-col items-start gap-[8px]">
             <div className="flex w-full items-center gap-[8px]">
               <a
-                href={gmailUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={emailUrl}
                 className="mm-press flex min-w-0 flex-1 items-center justify-center rounded-[10px] bg-[#f6f6f6] px-[16px] py-[6px] transition-colors hover:bg-[#ececec]"
               >
                 <Mail className="mr-2 size-5" />
                 <span className="text-sm">ติดต่อทีมงานเพื่อแก้ไข</span>
               </a>
             </div>
+            <p className="w-full text-sm text-gray-2">
+              หากเปิดอีเมลไม่ได้ กรุณาส่งชื่อทีม รหัสทีม และเอกสารที่ต้องการแก้ไขมาที่{" "}
+              <span className="select-text break-all">{CONTACT_EMAIL}</span>
+            </p>
           </div>
         </>
       )}

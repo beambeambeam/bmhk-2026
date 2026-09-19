@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/select";
-import { Card, CardContent } from "@/components/card";
 import { Button } from "@/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import type {
@@ -91,150 +90,146 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
-          <div>
-            <label className="sr-only" htmlFor="participation-search">
-              ค้นหาทีมที่สมัคร
-            </label>
-            <Input
-              id="participation-search"
-              placeholder="ค้นหาชื่อทีม โรงเรียน สมาชิก หรืออาจารย์"
-              type="search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-              }}
-            />
-          </div>
-          <Select
-            value={reviewStatus}
-            onValueChange={(value) => {
-              if (value !== null && reviewFilters.some((filter) => filter.value === value)) {
-                setReviewStatus(value);
-                setOffset(0);
-              }
+    <div className="flex w-full flex-col gap-4">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+        <div>
+          <label className="sr-only" htmlFor="participation-search">
+            ค้นหาทีมที่สมัคร
+          </label>
+          <Input
+            id="participation-search"
+            placeholder="ค้นหาชื่อทีม โรงเรียน สมาชิก หรืออาจารย์"
+            type="search"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
             }}
-          >
-            <SelectTrigger aria-label="สถานะการตรวจสอบ" className="w-full">
-              <SelectValue>
-                {reviewFilters.find((filter) => filter.value === reviewStatus)?.label}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {reviewFilters.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="[&_[data-slot=table-container]]:overflow-x-visible">
-          <Table className="table-fixed">
-            <TableHeader>
-              <TableRow>
-                {sortableColumns.map((column, index) => (
-                  <TableHead
-                    className={`${
-                      [
-                        "w-[14%]",
-                        "w-[12%]",
-                        "w-[8%]",
-                        "w-[9%]",
-                        "w-[10%]",
-                        "w-[10%]",
-                        "w-[11%]",
-                        "w-[14%]",
-                      ][index]
-                    } whitespace-normal`}
-                    key={`${column.id}-${column.label}`}
-                  >
-                    <Button
-                      className="-ml-3 h-auto whitespace-normal text-left"
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        toggleSorting(column.id);
-                      }}
-                    >
-                      {column.label}
-                      <ArrowUpDown
-                        aria-hidden="true"
-                        className={
-                          sortBy === column.id ? "text-foreground" : "text-muted-foreground"
-                        }
-                      />
-                    </Button>
-                  </TableHead>
-                ))}
-                <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {query.isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
-                </TableRow>
-              ) : null}
-              {query.isError ? (
-                <TableRow>
-                  <TableCell className="text-destructive" colSpan={9}>
-                    ไม่สามารถโหลดข้อมูลการสมัครได้
-                  </TableCell>
-                </TableRow>
-              ) : null}
-              {!query.isLoading && !query.isError && teams.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
-                </TableRow>
-              ) : null}
-              {teams.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell className="whitespace-normal">
-                    <p className="font-medium">{team.name}</p>
-                  </TableCell>
-                  <TableCell className="whitespace-normal">{team.school}</TableCell>
-                  <TableCell>{team.memberCount}</TableCell>
-                  <TableCell>
-                    <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
-                  </TableCell>
-                  <TableCell>{formatStaffDate(team.registrationSubmittedAt)}</TableCell>
-                  <TableCell>
-                    <StatusChip value={team.reviewStatus} />
-                  </TableCell>
-                  <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
-                  <TableCell className="whitespace-normal">
-                    {formatStaffDateTime(team.lastUpdatedAt)}
-                  </TableCell>
-                  <TableCell>
-                    <ParticipationReviewDialog
-                      canReview={canReview}
-                      lastUpdatedAt={team.lastUpdatedAt}
-                      reviewedByName={team.reviewedByName}
-                      teamId={team.id}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        {pagination ? (
-          <ParticipationPagination
-            isFetching={query.isFetching}
-            pageSize={PARTICIPATIONS_PAGE_SIZE}
-            pagination={pagination}
-            visibleRowCount={teams.length}
-            onOffsetChange={setOffset}
           />
-        ) : null}
-      </CardContent>
-    </Card>
+        </div>
+        <Select
+          value={reviewStatus}
+          onValueChange={(value) => {
+            if (value !== null && reviewFilters.some((filter) => filter.value === value)) {
+              setReviewStatus(value);
+              setOffset(0);
+            }
+          }}
+        >
+          <SelectTrigger aria-label="สถานะการตรวจสอบ" className="w-full">
+            <SelectValue>
+              {reviewFilters.find((filter) => filter.value === reviewStatus)?.label}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {reviewFilters.map((filter) => (
+                <SelectItem key={filter.value} value={filter.value}>
+                  {filter.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="[&_[data-slot=table-container]]:overflow-x-visible">
+        <Table className="table-fixed">
+          <TableHeader>
+            <TableRow>
+              {sortableColumns.map((column, index) => (
+                <TableHead
+                  className={`${
+                    [
+                      "w-[14%]",
+                      "w-[12%]",
+                      "w-[8%]",
+                      "w-[9%]",
+                      "w-[10%]",
+                      "w-[10%]",
+                      "w-[11%]",
+                      "w-[14%]",
+                    ][index]
+                  } whitespace-normal`}
+                  key={`${column.id}-${column.label}`}
+                >
+                  <Button
+                    className="-ml-3 h-auto whitespace-normal text-left"
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      toggleSorting(column.id);
+                    }}
+                  >
+                    {column.label}
+                    <ArrowUpDown
+                      aria-hidden="true"
+                      className={sortBy === column.id ? "text-foreground" : "text-muted-foreground"}
+                    />
+                  </Button>
+                </TableHead>
+              ))}
+              <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {query.isLoading ? (
+              <TableRow>
+                <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
+              </TableRow>
+            ) : null}
+            {query.isError ? (
+              <TableRow>
+                <TableCell className="text-destructive" colSpan={9}>
+                  ไม่สามารถโหลดข้อมูลการสมัครได้
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {!query.isLoading && !query.isError && teams.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
+              </TableRow>
+            ) : null}
+            {teams.map((team) => (
+              <TableRow key={team.id}>
+                <TableCell className="whitespace-normal">
+                  <p className="font-medium">{team.name}</p>
+                </TableCell>
+                <TableCell className="whitespace-normal">{team.school}</TableCell>
+                <TableCell>{team.memberCount}</TableCell>
+                <TableCell>
+                  <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
+                </TableCell>
+                <TableCell>{formatStaffDate(team.registrationSubmittedAt)}</TableCell>
+                <TableCell>
+                  <StatusChip value={team.reviewStatus} />
+                </TableCell>
+                <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
+                <TableCell className="whitespace-normal">
+                  {formatStaffDateTime(team.lastUpdatedAt)}
+                </TableCell>
+                <TableCell>
+                  <ParticipationReviewDialog
+                    canReview={canReview}
+                    lastUpdatedAt={team.lastUpdatedAt}
+                    reviewedByName={team.reviewedByName}
+                    teamId={team.id}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {pagination ? (
+        <ParticipationPagination
+          isFetching={query.isFetching}
+          pageSize={PARTICIPATIONS_PAGE_SIZE}
+          pagination={pagination}
+          visibleRowCount={teams.length}
+          onOffsetChange={setOffset}
+        />
+      ) : null}
+    </div>
   );
 }
 

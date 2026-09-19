@@ -160,107 +160,105 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
         </Field>
       </FieldGroup>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {sortableColumns.map((column) => (
-                <TableHead key={column.id}>
-                  <Button
-                    className="-ml-3"
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      toggleSorting(column.id);
-                    }}
-                  >
-                    {column.label}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={
-                        sorting.id === column.id ? "text-foreground" : "text-muted-foreground"
-                      }
-                    />
-                  </Button>
-                </TableHead>
-              ))}
-              <TableHead className="text-right">การดำเนินการ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading || errorMessage !== undefined || staffMembers.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className={
-                    errorMessage === undefined
-                      ? "h-24 text-center text-muted-foreground"
-                      : "h-24 text-center text-destructive"
-                  }
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {sortableColumns.map((column) => (
+              <TableHead key={column.id}>
+                <Button
+                  className="-ml-3"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    toggleSorting(column.id);
+                  }}
                 >
-                  {errorMessage ?? (isLoading ? "กำลังโหลดรายชื่อทีมงาน..." : "ไม่พบรายชื่อทีมงาน")}
-                </TableCell>
-              </TableRow>
-            ) : (
-              staffMembers.map((staffMember) => {
-                const isCheckingIn =
-                  checkInMutation.isPending &&
-                  checkInMutation.variables?.staffUserId === staffMember.id;
+                  {column.label}
+                  <ArrowUpDown
+                    aria-hidden="true"
+                    className={
+                      sorting.id === column.id ? "text-foreground" : "text-muted-foreground"
+                    }
+                  />
+                </Button>
+              </TableHead>
+            ))}
+            <TableHead className="text-right">การดำเนินการ</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading || errorMessage !== undefined || staffMembers.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={4}
+                className={
+                  errorMessage === undefined
+                    ? "h-24 text-center text-muted-foreground"
+                    : "h-24 text-center text-destructive"
+                }
+              >
+                {errorMessage ?? (isLoading ? "กำลังโหลดรายชื่อทีมงาน..." : "ไม่พบรายชื่อทีมงาน")}
+              </TableCell>
+            </TableRow>
+          ) : (
+            staffMembers.map((staffMember) => {
+              const isCheckingIn =
+                checkInMutation.isPending &&
+                checkInMutation.variables?.staffUserId === staffMember.id;
 
-                return (
-                  <TableRow key={staffMember.id}>
-                    <TableCell className="font-medium">{staffMember.name || "ไม่ระบุชื่อ"}</TableCell>
-                    <TableCell>{staffMember.email}</TableCell>
-                    <TableCell>
-                      {staffMember.checkIn ? (
-                        <span className="flex flex-col gap-0.5">
-                          <span>{formatCheckInDate(staffMember.checkIn.checkedInAt)}</span>
-                          <span className="text-muted-foreground text-xs">
-                            ยืนยันโดย {staffMember.checkIn.checkedInByName}
-                          </span>
+              return (
+                <TableRow key={staffMember.id}>
+                  <TableCell className="font-medium">{staffMember.name || "ไม่ระบุชื่อ"}</TableCell>
+                  <TableCell>{staffMember.email}</TableCell>
+                  <TableCell>
+                    {staffMember.checkIn ? (
+                      <span className="flex flex-col gap-0.5">
+                        <span>{formatCheckInDate(staffMember.checkIn.checkedInAt)}</span>
+                        <span className="text-muted-foreground text-xs">
+                          ยืนยันโดย {staffMember.checkIn.checkedInByName}
                         </span>
-                      ) : (
-                        <span className="text-muted-foreground">ยังไม่เข้างาน</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {staffMember.checkIn ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                            <Check aria-hidden="true" className="size-4 text-emerald-600" />
-                            เข้างานแล้ว
-                          </span>
-                          <StaffCheckInCancel
-                            onCancelled={handleCheckInCancelled}
-                            round={round}
-                            staffName={staffMember.name || staffMember.email}
-                            staffUserId={staffMember.id}
-                          />
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">ยังไม่เข้างาน</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {staffMember.checkIn ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                          <Check aria-hidden="true" className="size-4 text-emerald-600" />
+                          เข้างานแล้ว
                         </span>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={isCheckingIn}
-                          onClick={() => {
-                            void checkIn(staffMember.id, staffMember.name || staffMember.email);
-                          }}
-                        >
-                          {isCheckingIn ? (
-                            <Loader2 aria-hidden="true" className="animate-spin" />
-                          ) : null}
-                          ลงทะเบียนเข้างาน
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                        <StaffCheckInCancel
+                          onCancelled={handleCheckInCancelled}
+                          round={round}
+                          staffName={staffMember.name || staffMember.email}
+                          staffUserId={staffMember.id}
+                        />
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isCheckingIn}
+                        onClick={() => {
+                          void checkIn(staffMember.id, staffMember.name || staffMember.email);
+                        }}
+                      >
+                        {isCheckingIn ? (
+                          <Loader2 aria-hidden="true" className="animate-spin" />
+                        ) : null}
+                        ลงทะเบียนเข้างาน
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
 
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">ทั้งหมด {rowCount} คน</p>

@@ -1,5 +1,4 @@
 import { hasStaffAccess } from "@bmhk-2026/auth/permission";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { StaffCheckInTable } from "@/features/staff-check-ins/staff-check-in-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
@@ -18,16 +17,12 @@ function StaffCheckInPage() {
   const { session } = Route.useRouteContext();
 
   return (
-    <section>
-      <Card>
-        <CardHeader>
-          <CardTitle>ลงทะเบียนเข้างานทีมงาน</CardTitle>
-          <CardDescription>บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างาน</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <StaffCheckInTable actorId={session.data?.user.id} round="ROUND_1" />
-        </CardContent>
-      </Card>
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานทีมงาน</h1>
+        <p className="text-sm text-muted-foreground">บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างาน</p>
+      </div>
+      <StaffCheckInTable actorId={session.data?.user.id} round="ROUND_1" />
     </section>
   );
 }

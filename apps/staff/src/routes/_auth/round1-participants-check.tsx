@@ -1,5 +1,4 @@
 import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { ParticipantCheckInTable } from "@/features/participant-check-ins/participant-check-in-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
@@ -17,16 +16,12 @@ export const Route = createFileRoute("/_auth/round1-participants-check")({
 function ParticipantCheckInPage() {
   const { session } = Route.useRouteContext();
   return (
-    <section>
-      <Card>
-        <CardHeader>
-          <CardTitle>ลงทะเบียนเข้างานผู้เข้าร่วม</CardTitle>
-          <CardDescription>บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงาน</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ParticipantCheckInTable actorId={session.data?.user.id} round="ROUND_1" />
-        </CardContent>
-      </Card>
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานผู้เข้าร่วม</h1>
+        <p className="text-sm text-muted-foreground">บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงาน</p>
+      </div>
+      <ParticipantCheckInTable actorId={session.data?.user.id} round="ROUND_1" />
     </section>
   );
 }

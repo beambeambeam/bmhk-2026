@@ -7,15 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/select";
-import { Button } from "@/components/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
-import type {
-  TeamRegistrationReviewListFilter,
-  TeamRegistrationReviewListSort,
-} from "@bmhk-2026/api";
+import type { TeamRegistrationReviewListFilter } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
+import { ArrowUp } from "lucide-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ParticipationPagination } from "./participation-pagination";
@@ -36,32 +32,30 @@ interface ParticipationTableProps {
   readonly canReview: boolean;
 }
 
-const sortableColumns = [
-  { id: "name", label: "ทีม" },
-  { id: "school", label: "โรงเรียน" },
-  { id: "memberCount", label: "สมาชิก" },
-  { id: "registrationSubmittedAt", label: "การส่งสมัคร" },
-  { id: "registrationSubmittedAt", label: "วันที่ส่ง" },
-  { id: "reviewStatus", label: "ตรวจสอบ" },
-  { id: "reviewedByName", label: "อัปเดตโดย" },
-  { id: "lastUpdatedAt", label: "อัปเดตล่าสุด" },
-] as const satisfies readonly { id: TeamRegistrationReviewListSort; label: string }[];
+const tableColumns = [
+  "ทีม",
+  "โรงเรียน",
+  "สมาชิก",
+  "การส่งสมัคร",
+  "วันที่ส่ง",
+  "ตรวจสอบ",
+  "อัปเดตโดย",
+  "อัปเดตล่าสุด",
+] as const;
 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
-  const [sortBy, setSortBy] = useState<TeamRegistrationReviewListSort>("name");
-  const [sortDesc, setSortDesc] = useState(false);
   const query = useQuery({
     ...getTeamRegistrationReviewListQueryOptions({
       limit: PARTICIPATIONS_PAGE_SIZE,
       offset,
       reviewStatus,
       search: debouncedSearch,
-      sortBy,
-      sortDesc,
+      sortBy: "registrationSubmittedAt",
+      sortDesc: false,
     }),
     placeholderData: keepPreviousData,
   });
@@ -78,16 +72,6 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
       window.clearTimeout(timeoutId);
     };
   }, [search]);
-
-  function toggleSorting(column: TeamRegistrationReviewListSort): void {
-    if (sortBy === column) {
-      setSortDesc((current) => !current);
-    } else {
-      setSortBy(column);
-      setSortDesc(false);
-    }
-    setOffset(0);
-  }
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -135,7 +119,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              {sortableColumns.map((column, index) => (
+              {tableColumns.map((label, index) => (
                 <TableHead
                   className={`${
                     [
@@ -149,23 +133,12 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                       "w-[14%]",
                     ][index]
                   } whitespace-normal`}
-                  key={`${column.id}-${column.label}`}
+                  key={label}
                 >
-                  <Button
-                    className="-ml-3 h-auto whitespace-normal text-left"
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      toggleSorting(column.id);
-                    }}
-                  >
-                    {column.label}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={sortBy === column.id ? "text-foreground" : "text-muted-foreground"}
-                    />
-                  </Button>
+                  <span className="inline-flex items-center gap-1">
+                    {label}
+                    {label === "วันที่ส่ง" ? <ArrowUp aria-hidden="true" className="size-4" /> : null}
+                  </span>
                 </TableHead>
               ))}
               <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>

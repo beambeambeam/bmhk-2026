@@ -21,7 +21,7 @@ function ParticipationsPage() {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h1 className="text-base leading-snug font-medium">รายการสมัครแข่งขัน</h1>
+        <h1 className="text-base leading-snug font-medium">ตรวจสอบผู้สมัครเข้าแข่งขัน</h1>
         <p className="text-sm text-muted-foreground">
           ตรวจสอบข้อมูลทีม สมาชิก อาจารย์ที่ปรึกษา และเอกสารที่ส่งสมัคร
         </p>

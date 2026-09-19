@@ -19,7 +19,7 @@ function StaffCheckInPage() {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานทีมงาน (รอบ 2)</h1>
+        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานทีมงาน (รอบที่ 2)</h1>
         <p className="text-sm text-muted-foreground">
           บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างานรอบชิงชนะเลิศ
         </p>

@@ -19,7 +19,7 @@ function AchievementsPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-base leading-snug font-medium">ผลงานการแข่งขัน</h1>
         <p className="text-sm text-muted-foreground">
-          อัปเดตผลงานการแข่งขันของทีม สำหรับสถานะการสมัครดูที่หน้ารายการสมัครแข่งขัน
+          อัปเดตผลงานการแข่งขันของทีม สำหรับสถานะการสมัครดูที่หน้าตรวจสอบผู้สมัครเข้าแข่งขัน
         </p>
       </div>
       <AchievementsTable />

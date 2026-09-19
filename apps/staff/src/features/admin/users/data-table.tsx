@@ -88,47 +88,42 @@ function AdminUsersDataTable({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    aria-sort={getAriaSort(header.column.getIsSorted())}
-                    className={header.column.columnDef.meta?.headerClassName}
-                  >
-                    {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                  </TableHead>
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  aria-sort={getAriaSort(header.column.getIsSorted())}
+                  className={header.column.columnDef.meta?.headerClassName}
+                >
+                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {statusMessage === undefined ? (
+            rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getAllCells().map((cell) => (
+                  <TableCell key={cell.id} className={cell.column.columnDef.meta?.cellClassName}>
+                    <table.FlexRender cell={cell} />
+                  </TableCell>
                 ))}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {statusMessage === undefined ? (
-              rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id} className={cell.column.columnDef.meta?.cellClassName}>
-                      <table.FlexRender cell={cell} />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columnCount}
-                  className={cn("h-24 text-center", statusClassName)}
-                >
-                  {statusMessage}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columnCount} className={cn("h-24 text-center", statusClassName)}>
+                {statusMessage}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
       <AdminUsersPagination table={table} visibleRowCount={rows.length} />
     </div>
   );

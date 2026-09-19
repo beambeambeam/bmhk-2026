@@ -1,4 +1,5 @@
 import { Button } from "@/components/button";
+import { Separator } from "@/components/separator";
 import {
   DialogContent,
   DialogDescription,
@@ -20,6 +21,7 @@ import { CircleAlert, ExternalLink, ImageOff, Quote, UserRound, UsersRound, X } 
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DetailFields } from "./detail-fields";
 import { StatusChip } from "./participation-review-status";
 import { formatStaffDateTime } from "./review-utils";
 
@@ -161,7 +163,7 @@ function DocumentPreview({
 
   const isImage = document.contentType !== "application/pdf";
   return (
-    <section className="flex flex-col gap-2 rounded-lg border bg-background p-2">
+    <section className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2">
         <h4 className="font-medium text-sm">{label}</h4>
         <Button
@@ -181,14 +183,9 @@ function DocumentPreview({
         </Button>
       </div>
       {isImage ? (
-        <img alt={label} className="max-h-56 w-full rounded-md object-contain" src={document.url} />
+        <img alt={label} className="max-h-40 w-full rounded-md object-contain" src={document.url} />
       ) : (
-        <iframe
-          className="h-56 w-full rounded-md border"
-          sandbox=""
-          src={document.url}
-          title={label}
-        />
+        <iframe className="h-40 w-full rounded-md" sandbox="" src={document.url} title={label} />
       )}
     </section>
   );
@@ -197,7 +194,7 @@ function DocumentPreview({
 function ProfilePreview({ profilePhoto }: { readonly profilePhoto: PublicFileWithUrl | null }) {
   if (profilePhoto === null) {
     return (
-      <div className="flex aspect-square w-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-destructive/40 bg-destructive/10 p-3 text-center font-medium text-destructive text-xs">
+      <div className="flex size-20 shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-destructive/40 bg-destructive/10 p-3 text-center font-medium text-destructive text-xs sm:size-24">
         <UserRound aria-hidden="true" className="size-7" />
         ไม่มีรูปโปรไฟล์
       </div>
@@ -207,7 +204,7 @@ function ProfilePreview({ profilePhoto }: { readonly profilePhoto: PublicFileWit
   return (
     <img
       alt="รูปโปรไฟล์"
-      className="aspect-square w-32 rounded-lg object-cover"
+      className="size-20 shrink-0 rounded-lg object-cover sm:size-24"
       src={profilePhoto.url}
     />
   );
@@ -232,64 +229,45 @@ function PersonPreview({
   const fullNameEn = [person.titleEn, person.firstNameEn, person.middleNameEn, person.lastNameEn]
     .filter((name) => name !== null && name.length > 0)
     .join(" ");
+  const detailFields = [
+    { label: "อีเมล", value: person.email },
+    { label: "เบอร์โทรศัพท์", value: person.phone },
+    { label: "ไลน์ไอดี", value: person.lineId },
+    { label: "การแพ้อาหาร", value: person.foodAllergies },
+    { label: "ข้อกำหนดด้านอาหาร", value: person.dietaryRequirements },
+    { label: "การแพ้ยา", value: person.drugAllergies },
+    { label: "โรคประจำตัวและการปฐมพยาบาล", value: person.chronicConditionsAndFirstAidNotes },
+    ...(isParticipant ? [{ label: "วันเกิด", value: participant.dateOfBirth }] : []),
+  ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-muted-foreground text-sm">
-          {isParticipant ? "สมาชิกทีม" : "อาจารย์ที่ปรึกษา"}
-        </p>
-        <h2 className="font-semibold text-xl">{fullName}</h2>
-        <p className="text-muted-foreground text-sm">{fullNameEn}</p>
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 items-start gap-3">
+        {isParticipant ? <ProfilePreview profilePhoto={participant.portraitPhoto} /> : null}
+        <div className="min-w-0 flex-1">
+          <p className="text-muted-foreground text-sm">
+            {isParticipant ? "สมาชิกทีม" : "อาจารย์ที่ปรึกษา"}
+          </p>
+          <h2 className="break-words font-semibold text-xl leading-tight">{fullName}</h2>
+          {fullNameEn ? (
+            <p className="break-words text-muted-foreground text-sm">{fullNameEn}</p>
+          ) : null}
+        </div>
       </div>
-      {isParticipant ? <ProfilePreview profilePhoto={participant.portraitPhoto} /> : null}
-      <dl className="grid gap-3 text-sm">
-        <div>
-          <dt className="text-muted-foreground">อีเมล</dt>
-          <dd className="font-medium">{person.email}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">เบอร์โทรศัพท์</dt>
-          <dd className="font-medium">{person.phone}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">ไลน์ไอดี</dt>
-          <dd className="font-medium">{person.lineId ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">การแพ้อาหาร</dt>
-          <dd className="font-medium">{person.foodAllergies ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">ข้อกำหนดด้านอาหาร</dt>
-          <dd className="font-medium">{person.dietaryRequirements ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">การแพ้ยา</dt>
-          <dd className="font-medium">{person.drugAllergies ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">โรคประจำตัวและการปฐมพยาบาล</dt>
-          <dd className="font-medium">{person.chronicConditionsAndFirstAidNotes ?? "—"}</dd>
-        </div>
-        {isParticipant ? (
-          <div>
-            <dt className="text-muted-foreground">วันเกิด</dt>
-            <dd className="font-medium">{participant.dateOfBirth}</dd>
-          </div>
-        ) : null}
-      </dl>
+      <DetailFields fields={detailFields} title="รายละเอียดข้อมูล" />
       <div className="flex flex-col gap-2">
         <h3 className="font-medium">เอกสารที่ส่ง</h3>
-        <DocumentPreview document={person.identityDocument} label="บัตรประชาชน" />
-        {isParticipant ? (
-          <>
-            <DocumentPreview document={participant.academicRecordDocument} label="ปพ.7" />
-            <DocumentPreview document={participant.portraitPhoto} label="รูปถ่าย" />
-          </>
-        ) : (
-          <DocumentPreview document={advisor?.teacherStatusDocument ?? null} label="บัตรอาจารย์" />
-        )}
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-3">
+          <DocumentPreview document={person.identityDocument} label="บัตรประชาชน" />
+          {isParticipant ? (
+            <>
+              <DocumentPreview document={participant.academicRecordDocument} label="ปพ.7" />
+              <DocumentPreview document={participant.portraitPhoto} label="รูปถ่าย" />
+            </>
+          ) : (
+            <DocumentPreview document={advisor?.teacherStatusDocument ?? null} label="บัตรอาจารย์" />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -297,16 +275,16 @@ function PersonPreview({
 
 function ConsentSummary({ consent }: { readonly consent: TeamConsent | undefined }) {
   return (
-    <section className="flex flex-col gap-3 rounded-lg border bg-background p-3">
+    <section className="flex flex-col gap-2">
       <h3 className="font-medium">การยินยอม</h3>
       {consent === undefined ? (
         <p className="text-muted-foreground text-sm">ไม่มีข้อมูลการยินยอม</p>
       ) : (
-        <dl className="grid gap-2 text-sm">
+        <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
           {CONSENT_FIELDS.map(({ key, label }) => (
-            <div className="flex items-center justify-between gap-3" key={key}>
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="font-medium">{consent[key] ? "ยินยอม" : "ยังไม่ยินยอม"}</dd>
+            <div className="flex min-w-0 items-start gap-3" key={key}>
+              <dt className="min-w-0 flex-1 text-muted-foreground">{label}</dt>
+              <dd className="shrink-0 font-medium">{consent[key] ? "ยินยอม" : "ยังไม่ยินยอม"}</dd>
             </div>
           ))}
         </dl>
@@ -333,8 +311,8 @@ function TeamSummary({
   const isTeamSelected = selectedSubject === "team";
 
   return (
-    <aside className="flex flex-col gap-5 rounded-xl border bg-muted/30 p-5">
-      <div className="flex flex-wrap gap-2" aria-label="หมวดข้อมูลสำหรับตรวจสอบ">
+    <aside className="flex min-w-0 flex-col gap-2">
+      <div className="flex shrink-0 flex-wrap gap-2" aria-label="หมวดข้อมูลสำหรับตรวจสอบ">
         <Button
           size="sm"
           variant={isTeamSelected ? "secondary" : "outline"}
@@ -370,38 +348,41 @@ function TeamSummary({
       </div>
       {isTeamSelected ? (
         <>
-          <div className="overflow-hidden rounded-lg border bg-background">
+          <div className="overflow-hidden rounded-lg">
             {imageUrl === null ? (
-              <div className="flex aspect-video items-center justify-center text-muted-foreground">
+              <div className="flex aspect-video max-h-32 items-center justify-center bg-muted text-muted-foreground">
                 <ImageOff aria-hidden="true" className="size-8" />
                 <span className="sr-only">ไม่มีรูปทีม</span>
               </div>
             ) : (
               <img
                 alt={`รูปทีม ${team.name}`}
-                className="aspect-video w-full object-cover"
+                className="aspect-video max-h-32 w-full object-cover"
                 src={imageUrl}
               />
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="font-semibold text-xl">{team.name}</h2>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-semibold text-lg">{team.name}</h2>
             <p className="text-muted-foreground">{team.school}</p>
-            <p className="flex items-start gap-2 text-muted-foreground text-sm">
-              <Quote aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              ข้อมูลทีมสำหรับการตรวจสอบการสมัครแข่งขัน
-            </p>
-            <p className="flex items-center gap-2 font-medium text-sm">
-              <UsersRound aria-hidden="true" className="size-4" />
-              สมาชิก {team.memberCount} คน
+            <p className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+              <span className="flex items-center gap-1.5">
+                <Quote aria-hidden="true" className="size-4 shrink-0" />
+                ข้อมูลทีมสำหรับการตรวจสอบการสมัครแข่งขัน
+              </span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <UsersRound aria-hidden="true" className="size-4 shrink-0" />
+                สมาชิก {team.memberCount} คน
+              </span>
             </p>
           </div>
-          <dl className="rounded-lg border bg-background p-3 text-sm">
+          <dl className="text-sm">
             <div>
               <dt className="text-muted-foreground">วันที่ส่งใบสมัคร</dt>
               <dd className="font-medium">{formatStaffDateTime(team.registrationSubmittedAt)}</dd>
             </div>
           </dl>
+          <Separator />
           <ConsentSummary consent={consent} />
         </>
       ) : (
@@ -410,20 +391,21 @@ function TeamSummary({
           participant={selectedParticipant}
         />
       )}
-      <div className="flex items-center justify-between rounded-lg border bg-background p-3">
-        <span className="text-muted-foreground text-sm">สถานะการยืนยัน</span>
-        <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
-      </div>
-      <dl className="grid gap-2 rounded-lg border bg-background p-3 text-sm">
-        <div>
+      <Separator />
+      <div className="grid shrink-0 gap-3 text-sm sm:grid-cols-3">
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-muted-foreground">สถานะการยืนยัน</span>
+          <StatusChip value={review?.status ?? "PENDING_REVIEW"} />
+        </div>
+        <dl>
           <dt className="text-muted-foreground">อัปเดตโดย</dt>
           <dd className="font-medium">{reviewedByName ?? "—"}</dd>
-        </div>
-        <div>
+        </dl>
+        <dl>
           <dt className="text-muted-foreground">อัปเดตล่าสุด</dt>
           <dd className="font-medium">{formatStaffDateTime(lastUpdatedAt)}</dd>
-        </div>
-      </dl>
+        </dl>
+      </div>
     </aside>
   );
 }
@@ -458,40 +440,42 @@ function ReviewForm({
   onNotesChange,
 }: ReviewFormProps) {
   return (
-    <section className="flex flex-col gap-5">
+    <section className="flex flex-col gap-4">
       <h2 className="font-semibold text-lg">แบบฟอร์มตรวจสอบ</h2>
-      <IssueCodeField
-        canReview={canReview}
-        id={`advisor-issues-${teamId}`}
-        label="อาจารย์ที่ปรึกษา"
-        options={ADVISOR_ISSUE_OPTIONS}
-        value={advisorIssueCodes}
-        onChange={onAdvisorIssueCodesChange}
-      />
-      <IssueCodeField
-        canReview={canReview}
-        id={`member-1-issues-${teamId}`}
-        label="สมาชิก 1"
-        options={MEMBER_ISSUE_OPTIONS}
-        value={member1IssueCodes}
-        onChange={onMember1IssueCodesChange}
-      />
-      <IssueCodeField
-        canReview={canReview}
-        id={`member-2-issues-${teamId}`}
-        label="สมาชิก 2"
-        options={MEMBER_ISSUE_OPTIONS}
-        value={member2IssueCodes}
-        onChange={onMember2IssueCodesChange}
-      />
-      <IssueCodeField
-        canReview={canReview}
-        id={`member-3-issues-${teamId}`}
-        label="สมาชิก 3"
-        options={MEMBER_ISSUE_OPTIONS}
-        value={member3IssueCodes}
-        onChange={onMember3IssueCodesChange}
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <IssueCodeField
+          canReview={canReview}
+          id={`advisor-issues-${teamId}`}
+          label="อาจารย์ที่ปรึกษา"
+          options={ADVISOR_ISSUE_OPTIONS}
+          value={advisorIssueCodes}
+          onChange={onAdvisorIssueCodesChange}
+        />
+        <IssueCodeField
+          canReview={canReview}
+          id={`member-1-issues-${teamId}`}
+          label="สมาชิก 1"
+          options={MEMBER_ISSUE_OPTIONS}
+          value={member1IssueCodes}
+          onChange={onMember1IssueCodesChange}
+        />
+        <IssueCodeField
+          canReview={canReview}
+          id={`member-2-issues-${teamId}`}
+          label="สมาชิก 2"
+          options={MEMBER_ISSUE_OPTIONS}
+          value={member2IssueCodes}
+          onChange={onMember2IssueCodesChange}
+        />
+        <IssueCodeField
+          canReview={canReview}
+          id={`member-3-issues-${teamId}`}
+          label="สมาชิก 3"
+          options={MEMBER_ISSUE_OPTIONS}
+          value={member3IssueCodes}
+          onChange={onMember3IssueCodesChange}
+        />
+      </div>
       <label className="flex flex-col gap-2 font-medium text-sm" htmlFor={`review-notes-${teamId}`}>
         หมายเหตุเพิ่มเติมสำหรับทีม
         <Textarea
@@ -617,41 +601,50 @@ function ParticipationReviewContent({
   }
 
   return (
-    <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-6xl">
+    <DialogContent className="h-[90dvh] max-h-[90dvh] w-[calc(100%-2rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:w-[90vw] sm:max-w-none">
       <DialogHeader>
         <DialogTitle>ตรวจสอบข้อมูลทีม</DialogTitle>
         <DialogDescription>ตรวจสอบเอกสารและบันทึกผลการยืนยันข้อมูลทีม</DialogDescription>
       </DialogHeader>
-      {isLoading ? <p>กำลังโหลดข้อมูลทีม...</p> : null}
-      {hasDetailsError ? <p className="text-destructive">ไม่สามารถโหลดข้อมูลการสมัครทั้งหมดได้</p> : null}
-      {team ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)]">
-          <TeamSummary
-            advisor={advisor}
-            consent={consent}
-            imageUrl={imageUrl}
-            lastUpdatedAt={lastUpdatedAt}
-            participants={participants}
-            review={review}
-            reviewedByName={reviewedByName}
-            team={team}
-          />
-          <ReviewForm
-            advisorIssueCodes={advisorIssueCodes}
-            canReview={canReview}
-            member1IssueCodes={member1IssueCodes}
-            member2IssueCodes={member2IssueCodes}
-            member3IssueCodes={member3IssueCodes}
-            notes={notes}
-            teamId={teamId}
-            onAdvisorIssueCodesChange={setAdvisorIssueCodes}
-            onMember1IssueCodesChange={setMember1IssueCodes}
-            onMember2IssueCodesChange={setMember2IssueCodes}
-            onMember3IssueCodesChange={setMember3IssueCodes}
-            onNotesChange={setNotes}
-          />
-        </div>
-      ) : null}
+
+      <div className="min-h-0">
+        {isLoading ? <p>กำลังโหลดข้อมูลทีม...</p> : null}
+        {hasDetailsError ? (
+          <p className="text-destructive">ไม่สามารถโหลดข้อมูลการสมัครทั้งหมดได้</p>
+        ) : null}
+        {team ? (
+          <div className="grid h-full min-h-0 gap-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+            <div className="min-h-0 overflow-y-auto">
+              <TeamSummary
+                advisor={advisor}
+                consent={consent}
+                imageUrl={imageUrl}
+                lastUpdatedAt={lastUpdatedAt}
+                participants={participants}
+                review={review}
+                reviewedByName={reviewedByName}
+                team={team}
+              />
+            </div>
+            <div className="min-h-0 overflow-y-auto">
+              <ReviewForm
+                advisorIssueCodes={advisorIssueCodes}
+                canReview={canReview}
+                member1IssueCodes={member1IssueCodes}
+                member2IssueCodes={member2IssueCodes}
+                member3IssueCodes={member3IssueCodes}
+                notes={notes}
+                teamId={teamId}
+                onAdvisorIssueCodesChange={setAdvisorIssueCodes}
+                onMember1IssueCodesChange={setMember1IssueCodes}
+                onMember2IssueCodesChange={setMember2IssueCodes}
+                onMember3IssueCodesChange={setMember3IssueCodes}
+                onNotesChange={setNotes}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
       <ReviewActions
         canApprove={team !== undefined && !hasIssues}
         canRequestChanges={team !== undefined && hasIssues && hasNotes}

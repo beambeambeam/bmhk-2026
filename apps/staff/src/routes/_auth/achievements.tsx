@@ -1,5 +1,4 @@
 import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card";
 import { AchievementsTable } from "@/features/achievements/achievements-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
@@ -17,17 +16,13 @@ export const Route = createFileRoute("/_auth/achievements")({
 function AchievementsPage() {
   return (
     <section className="flex flex-col gap-5">
-      <Card>
-        <CardHeader>
-          <CardTitle>ผลงานการแข่งขัน</CardTitle>
-          <CardDescription>
-            อัปเดตผลงานการแข่งขันของทีม สำหรับสถานะการสมัครดูที่หน้ารายการสมัครแข่งขัน
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AchievementsTable />
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-base leading-snug font-medium">ผลงานการแข่งขัน</h1>
+        <p className="text-sm text-muted-foreground">
+          อัปเดตผลงานการแข่งขันของทีม สำหรับสถานะการสมัครดูที่หน้าตรวจสอบผู้สมัครเข้าแข่งขัน
+        </p>
+      </div>
+      <AchievementsTable />
     </section>
   );
 }

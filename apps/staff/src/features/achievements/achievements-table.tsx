@@ -122,71 +122,69 @@ function AchievementsTable() {
         </Select>
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {sortableColumns.map((column) => (
-                <TableHead key={column.id}>
-                  <Button
-                    className="-ml-3"
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      toggleSorting(column.id);
-                    }}
-                  >
-                    {column.label}
-                    <ArrowUpDown
-                      aria-hidden="true"
-                      className={sortBy === column.id ? "text-foreground" : "text-muted-foreground"}
-                    />
-                  </Button>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {teamsQuery.isLoading || teamsQuery.isError || teams.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  className={
-                    teamsQuery.isError
-                      ? "h-24 text-center text-destructive"
-                      : "h-24 text-center text-muted-foreground"
-                  }
-                  colSpan={5}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {sortableColumns.map((column) => (
+              <TableHead key={column.id}>
+                <Button
+                  className="-ml-3"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    toggleSorting(column.id);
+                  }}
                 >
-                  {getTableMessage(teamsQuery.isError, teamsQuery.isLoading)}
+                  {column.label}
+                  <ArrowUpDown
+                    aria-hidden="true"
+                    className={sortBy === column.id ? "text-foreground" : "text-muted-foreground"}
+                  />
+                </Button>
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {teamsQuery.isLoading || teamsQuery.isError || teams.length === 0 ? (
+            <TableRow>
+              <TableCell
+                className={
+                  teamsQuery.isError
+                    ? "h-24 text-center text-destructive"
+                    : "h-24 text-center text-muted-foreground"
+                }
+                colSpan={5}
+              >
+                {getTableMessage(teamsQuery.isError, teamsQuery.isLoading)}
+              </TableCell>
+            </TableRow>
+          ) : (
+            teams.map((team) => (
+              <TableRow key={team.id}>
+                <TableCell className="font-medium">{team.name}</TableCell>
+                <TableCell>{team.school}</TableCell>
+                <TableCell>{team.memberCount}</TableCell>
+                <TableCell>
+                  <span
+                    className={
+                      team.registrationStatus === "APPROVED"
+                        ? "text-emerald-600"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {registrationStatusLabels[team.registrationStatus]}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <AchievementsAward team={team} />
                 </TableCell>
               </TableRow>
-            ) : (
-              teams.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell>{team.school}</TableCell>
-                  <TableCell>{team.memberCount}</TableCell>
-                  <TableCell>
-                    <span
-                      className={
-                        team.registrationStatus === "APPROVED"
-                          ? "text-emerald-600"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {registrationStatusLabels[team.registrationStatus]}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <AchievementsAward team={team} />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">ทั้งหมด {pagination?.total ?? 0} ทีม</p>

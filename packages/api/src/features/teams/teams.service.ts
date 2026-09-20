@@ -11,10 +11,15 @@ import {
   toPublicFileWithUrl,
 } from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
-import type { TeamAwardChange, TeamRepository } from "./teams.repository";
+import type {
+  TeamAwardChange,
+  TeamFirstRoundEligibilityChange,
+  TeamRepository,
+} from "./teams.repository";
 import { createTeamAlreadyExistsError } from "./teams.errors";
 import type {
   CreateTeamData,
+  FirstRoundEligibilityDecision,
   Team,
   TeamAward,
   TeamDetails,
@@ -35,6 +40,11 @@ export interface TeamService {
   get: (access: TeamAccessContext, id: string) => Promise<TeamDetails>;
   list: (access: TeamAccessContext, input: TeamListInput) => Promise<TeamListResult>;
   setAward: (access: TeamAccessContext, id: string, award: TeamAward) => Promise<TeamAwardChange>;
+  setFirstRoundEligibility: (
+    access: TeamAccessContext,
+    id: string,
+    firstRoundEligibility: FirstRoundEligibilityDecision,
+  ) => Promise<TeamFirstRoundEligibilityChange>;
   update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team>;
   uploadImage: (input: {
     access: TeamAccessContext;
@@ -120,6 +130,14 @@ export function createTeamService(
     },
     setAward: async (access, id, award) => {
       const result = await repository.setAward(access, id, award);
+      if (!result) {
+        throw createTeamNotFoundError();
+      }
+
+      return result;
+    },
+    setFirstRoundEligibility: async (access, id, firstRoundEligibility) => {
+      const result = await repository.setFirstRoundEligibility(access, id, firstRoundEligibility);
       if (!result) {
         throw createTeamNotFoundError();
       }

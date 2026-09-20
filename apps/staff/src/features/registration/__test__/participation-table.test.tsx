@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 
-import type { TeamAward, TeamRegistrationReviewListResult } from "@bmhk-2026/api";
+import type {
+  FirstRoundEligibility,
+  TeamAward,
+  TeamRegistrationReviewListResult,
+} from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ParticipationTable } from "../participation-table";
 
-function renderTable(award: TeamAward): void {
+function renderTable(award: TeamAward, firstRoundEligibility: FirstRoundEligibility): void {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -17,6 +21,7 @@ function renderTable(award: TeamAward): void {
       {
         advisor: "APPROVED",
         award,
+        firstRoundEligibility,
         id: "11111111-1111-4111-8111-111111111111",
         index: 1,
         lastUpdatedAt: null,
@@ -54,25 +59,22 @@ describe("participations table", () => {
   afterEach(cleanup);
 
   it.each([
-    ["NO_ACHIEVEMENT", "ยังไม่ได้พิจารณา"],
-    ["REGISTRATION_COMPLETED", "มีสิทธิ์เข้าแข่งขันในรอบแรก"],
-    ["NOT_QUALIFIED", "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก"],
-  ] as const)("shows first-round eligibility for %s", (award, label) => {
-    renderTable(award);
+    ["PENDING", "ยังไม่ได้พิจารณา"],
+    ["ELIGIBLE", "มีสิทธิ์เข้าแข่งขันในรอบแรก"],
+    ["NOT_ELIGIBLE", "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก"],
+  ] as const)("shows first-round eligibility for %s", (eligibility, label) => {
+    renderTable("NO_ACHIEVEMENT", eligibility);
     expect(screen.getByRole("columnheader", { name: "สิทธิ์เข้าแข่งขันในรอบแรก" })).toBeDefined();
     expect(screen.getByRole("cell", { name: label })).toBeDefined();
   });
 
-  it.each(["ROUND_1_COMPLETED", "FIRST_PLACE"] as const)(
-    "shows higher award %s as first-round eligibility",
-    (award) => {
-      renderTable(award);
-      expect(screen.getByRole("cell", { name: "มีสิทธิ์เข้าแข่งขันในรอบแรก" })).toBeDefined();
-    },
-  );
+  it("does not derive eligibility from the competition result", () => {
+    renderTable("ROUND_1_COMPLETED", "PENDING");
+    expect(screen.getByRole("cell", { name: "ยังไม่ได้พิจารณา" })).toBeDefined();
+  });
 
   it("opens eligibility from the team actions menu", async () => {
-    renderTable("NO_ACHIEVEMENT");
+    renderTable("NO_ACHIEVEMENT", "PENDING");
     fireEvent.click(screen.getByRole("button", { name: "จัดการทีม" }));
     await expect(screen.findByRole("menuitem", { name: "ตรวจสอบข้อมูลทีม" })).resolves.toBeDefined();
     fireEvent.click(screen.getByRole("menuitem", { name: "สิทธิ์เข้ารอบแรก" }));

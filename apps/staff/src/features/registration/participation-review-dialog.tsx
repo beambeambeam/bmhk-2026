@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
 import { ParticipationEligibilityContent } from "./participation-eligibility-content";
-import type { EligibilityAward } from "./participation-eligibility";
+import type { EligibilityDecision } from "./participation-eligibility";
 import { Button } from "@/components/button";
 import {
   Dialog,
@@ -91,8 +91,8 @@ function ParticipationReviewDialog({
     }),
   );
 
-  const setAward = useMutation(
-    orpc.teams.setAward.mutationOptions({
+  const setFirstRoundEligibility = useMutation(
+    orpc.teams.setFirstRoundEligibility.mutationOptions({
       onError: () => {
         toast.error("ไม่สามารถบันทึกสิทธิ์เข้าแข่งขันได้ กรุณาลองใหม่อีกครั้ง");
       },
@@ -110,8 +110,8 @@ function ParticipationReviewDialog({
     }),
   );
 
-  function confirmEligibility(award: EligibilityAward): void {
-    setAward.mutate({ award, id: teamId });
+  function confirmEligibility(firstRoundEligibility: EligibilityDecision): void {
+    setFirstRoundEligibility.mutate({ firstRoundEligibility, id: teamId });
   }
 
   async function save(
@@ -157,7 +157,7 @@ function ParticipationReviewDialog({
       <Dialog
         open={isOpen}
         onOpenChange={(open) => {
-          if (!open && !setAward.isPending) {
+          if (!open && !setFirstRoundEligibility.isPending) {
             setMode(null);
           }
         }}
@@ -182,7 +182,7 @@ function ParticipationReviewDialog({
             schoolTeamsLoading={schoolTeamsQuery.isLoading}
             teamId={teamId}
             canEdit={canReview}
-            pending={setAward.isPending}
+            pending={setFirstRoundEligibility.isPending}
             onConfirm={confirmEligibility}
           />
         ) : null}

@@ -9,29 +9,33 @@ import {
   AlertDialogTitle,
 } from "@/components/alert-dialog";
 import { Button } from "@/components/button";
-import type { TeamAward } from "@bmhk-2026/api";
+import type { FirstRoundEligibility, FirstRoundEligibilityDecision } from "@bmhk-2026/api";
 import { CheckCircle2, CircleAlert, Clock3 } from "lucide-react";
 import { useState } from "react";
 
-export type EligibilityAward = "REGISTRATION_COMPLETED" | "NOT_QUALIFIED";
+export type EligibilityDecision = FirstRoundEligibilityDecision;
 
-export function getEligibilityLabel(award: TeamAward): string {
-  if (award === "NO_ACHIEVEMENT") {
+export function getEligibilityLabel(eligibility: FirstRoundEligibility): string {
+  if (eligibility === "PENDING") {
     return "ยังไม่ได้พิจารณา";
   }
-  return award === "NOT_QUALIFIED" ? "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก" : "มีสิทธิ์เข้าแข่งขันในรอบแรก";
+  return eligibility === "NOT_ELIGIBLE" ? "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก" : "มีสิทธิ์เข้าแข่งขันในรอบแรก";
 }
 
-export function EligibilityChip({ award }: { readonly award: TeamAward }) {
-  const isEligible = award !== "NO_ACHIEVEMENT" && award !== "NOT_QUALIFIED";
-  const isNotQualified = award === "NOT_QUALIFIED";
+export function EligibilityChip({
+  firstRoundEligibility,
+}: {
+  readonly firstRoundEligibility: FirstRoundEligibility;
+}) {
+  const isEligible = firstRoundEligibility === "ELIGIBLE";
+  const isNotEligible = firstRoundEligibility === "NOT_ELIGIBLE";
   let Icon = Clock3;
   let className = "bg-muted text-muted-foreground";
 
   if (isEligible) {
     Icon = CheckCircle2;
     className = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
-  } else if (isNotQualified) {
+  } else if (isNotEligible) {
     Icon = CircleAlert;
     className = "bg-destructive/15 text-destructive";
   }
@@ -41,35 +45,37 @@ export function EligibilityChip({ award }: { readonly award: TeamAward }) {
       className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 font-medium text-xs ${className}`}
     >
       <Icon aria-hidden="true" className="size-3.5" />
-      {getEligibilityLabel(award)}
+      {getEligibilityLabel(firstRoundEligibility)}
     </span>
   );
 }
 
 interface ParticipationEligibilityProps {
-  readonly award: TeamAward;
+  readonly firstRoundEligibility: FirstRoundEligibility;
   readonly canEdit: boolean;
   readonly pending: boolean;
-  readonly onConfirm: (award: EligibilityAward) => void;
+  readonly onConfirm: (eligibility: EligibilityDecision) => void;
 }
 
 export function ParticipationEligibility({
-  award,
+  firstRoundEligibility,
   canEdit,
   pending,
   onConfirm,
 }: ParticipationEligibilityProps) {
-  const [selection, setSelection] = useState<EligibilityAward | null>(null);
+  const [selection, setSelection] = useState<EligibilityDecision | null>(null);
   return (
     <section className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold">สิทธิ์การเข้าสู่รอบคัดเลือกรอบแรก</h2>
-      <p className="text-sm text-muted-foreground">สถานะปัจจุบัน: {getEligibilityLabel(award)}</p>
+      <p className="text-sm text-muted-foreground">
+        สถานะปัจจุบัน: {getEligibilityLabel(firstRoundEligibility)}
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           className="h-auto min-h-24 whitespace-normal px-4 py-6 text-base leading-snug"
-          disabled={!canEdit || pending || award === "REGISTRATION_COMPLETED"}
+          disabled={!canEdit || pending || firstRoundEligibility === "ELIGIBLE"}
           onClick={() => {
-            setSelection("REGISTRATION_COMPLETED");
+            setSelection("ELIGIBLE");
           }}
         >
           มีสิทธิ์เข้าแข่งขันในรอบแรก
@@ -77,9 +83,9 @@ export function ParticipationEligibility({
         <Button
           className="h-auto min-h-24 whitespace-normal px-4 py-6 text-base leading-snug"
           variant="destructive"
-          disabled={!canEdit || pending || award === "NOT_QUALIFIED"}
+          disabled={!canEdit || pending || firstRoundEligibility === "NOT_ELIGIBLE"}
           onClick={() => {
-            setSelection("NOT_QUALIFIED");
+            setSelection("NOT_ELIGIBLE");
           }}
         >
           ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก

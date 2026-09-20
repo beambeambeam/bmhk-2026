@@ -71,6 +71,16 @@ export const awardChangedAudit = defineAuditAction("team.award.changed", {
   target: "team",
 });
 
+export const firstRoundEligibilityChangedAudit = defineAuditAction(
+  "team.first-round-eligibility.changed",
+  {
+    description: "A Registration Operator changed a Team's first-round eligibility",
+    requiresChanges: true,
+    severity: "critical",
+    target: "team",
+  },
+);
+
 export const legalConsentCreatedAudit = defineAuditAction("legal-consent.created", {
   description: "A Team Owner created Legal Consent",
   requiresChanges: true,

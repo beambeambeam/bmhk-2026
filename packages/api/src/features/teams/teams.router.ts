@@ -5,7 +5,11 @@ import type {
   TeamAccessProcedure,
   TeamOwnerProcedure,
 } from "../../core/procedure";
-import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
+import {
+  awardChangedAudit,
+  firstRoundEligibilityChangedAudit,
+  teamDeletedAudit,
+} from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamService } from "./teams.service";
@@ -14,6 +18,7 @@ import {
   deleteTeamResultSchema,
   listTeamsSchema,
   setTeamAwardSchema,
+  setTeamFirstRoundEligibilitySchema,
   teamDetailsSchema,
   teamIdInputSchema,
   teamListResultSchema,
@@ -121,6 +126,33 @@ export function createTeamsRouter(
             changes: {
               after: { award: changedTeam.award },
               before: { award: previous.award },
+            },
+          }),
+        });
+        context.log.set({ team: { id: team.id } });
+        return team;
+      }),
+    setFirstRoundEligibility: registrationProcedure
+      .route({ method: "PATCH", tags: ["Team"] })
+      .input(setTeamFirstRoundEligibilitySchema)
+      .output(teamSchema)
+      .handler(async ({ context, input }) => {
+        const { team } = await executeAudited({
+          audit: firstRoundEligibilityChangedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: { id: input.id, teamId: input.id },
+          }),
+          execute: async () =>
+            await service.setFirstRoundEligibility(
+              context.teamAccess,
+              input.id,
+              input.firstRoundEligibility,
+            ),
+          log: context.log,
+          onSuccess: ({ previous, team: changedTeam }) => ({
+            changes: {
+              after: { firstRoundEligibility: changedTeam.firstRoundEligibility },
+              before: { firstRoundEligibility: previous.firstRoundEligibility },
             },
           }),
         });

@@ -6,15 +6,21 @@ export const adminAccessDeniedAudit = defineAuditAction("admin.access.denied", {
   target: "admin-operation",
 });
 
+export const userManagementAccessDeniedAudit = defineAuditAction("user-management.access.denied", {
+  description: "A user without user-management access attempted a user-management operation",
+  severity: "critical",
+  target: "user-management-operation",
+});
+
 export const userRoleChangedAudit = defineAuditAction("user.role.changed", {
-  description: "An Administrator changed a user's authorization role",
+  description: "An authorized operator changed a user's authorization role",
   requiresChanges: true,
   severity: "critical",
   target: "user",
 });
 
 export const userDirectoryAccessedAudit = defineAuditAction("user-directory.accessed", {
-  description: "An Administrator accessed the sensitive user directory",
+  description: "An authorized operator accessed the sensitive user directory",
   severity: "critical",
   target: "user-directory",
 });

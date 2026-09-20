@@ -8,27 +8,17 @@ import {
 } from "@/components/combobox";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/select";
 import { useMemo } from "react";
 
 import { getAuthRoleLabel, isAuthRole } from "./types";
-import type { AuthRole, EmailDomainFilter, RoleFilter } from "./types";
+import type { AuthRole, RoleFilter } from "./types";
 
 interface AdminUsersFilterProps {
   readonly email: string;
-  readonly emailDomainFilter: EmailDomainFilter;
   readonly name: string;
   readonly roleFilter: RoleFilter;
   readonly roles: readonly AuthRole[];
   readonly onEmailChange: (email: string) => void;
-  readonly onEmailDomainChange: (emailDomain: EmailDomainFilter) => void;
   readonly onNameChange: (name: string) => void;
   readonly onRoleChange: (role: RoleFilter) => void;
 }
@@ -39,23 +29,13 @@ interface RoleOption {
 }
 
 const allRolesOption = { label: "ทุกบทบาท", value: "all" } as const satisfies RoleOption;
-const emailDomainOptions = [
-  { label: "อีเมลทั้งหมด", value: "all" },
-  { label: "ลงท้ายด้วย @kmutt.ac.th", value: "kmutt.ac.th" },
-] as const satisfies readonly { label: string; value: EmailDomainFilter }[];
-
-function isEmailDomainFilter(value: string): value is EmailDomainFilter {
-  return emailDomainOptions.some((option) => option.value === value);
-}
 
 function AdminUsersFilter({
   email,
-  emailDomainFilter,
   name,
   roleFilter,
   roles,
   onEmailChange,
-  onEmailDomainChange,
   onNameChange,
   onRoleChange,
 }: AdminUsersFilterProps) {
@@ -71,9 +51,6 @@ function AdminUsersFilter({
   );
   const selectedRole =
     roleOptions.find((roleOption) => roleOption.value === roleFilter) ?? allRolesOption;
-  const selectedEmailDomain =
-    emailDomainOptions.find((option) => option.value === emailDomainFilter) ??
-    emailDomainOptions[0];
 
   return (
     <FieldGroup className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[16rem_16rem_16rem_12rem]">
@@ -90,29 +67,10 @@ function AdminUsersFilter({
         />
       </Field>
       <Field className="w-full">
-        <FieldLabel htmlFor="admin-user-email-domain">โดเมนอีเมล</FieldLabel>
-        <Select
-          items={emailDomainOptions}
-          value={emailDomainFilter}
-          onValueChange={(value) => {
-            if (value !== null && isEmailDomainFilter(value)) {
-              onEmailDomainChange(value);
-            }
-          }}
-        >
-          <SelectTrigger id="admin-user-email-domain" className="w-full">
-            <SelectValue>{selectedEmailDomain.label}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {emailDomainOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <FieldLabel>โดเมนอีเมล</FieldLabel>
+        <p className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm">
+          ลงท้ายด้วย @kmutt.ac.th
+        </p>
       </Field>
       <Field className="w-full">
         <FieldLabel htmlFor="admin-user-name">ชื่อ</FieldLabel>

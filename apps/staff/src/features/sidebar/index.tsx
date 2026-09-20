@@ -1,4 +1,9 @@
-import { hasAdminAccess, hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permission";
+import {
+  hasAdminAccess,
+  hasRegistrationAccess,
+  hasStaffAccess,
+  hasUserManagementAccess,
+} from "@bmhk-2026/auth/permission";
 import {
   Sidebar,
   SidebarContent,
@@ -44,13 +49,13 @@ interface StaffNavItem {
     | "/admin/api-keys"
     | "/admin/staff-overseers"
     | "/admin/team-groups"
-    | "/admin/users"
     | "/dashboard"
     | "/participations"
     | "/round1-participants-check"
     | "/round1-staff-check"
     | "/round2-participants-check"
-    | "/round2-staff-check";
+    | "/round2-staff-check"
+    | "/users";
   readonly icon: LucideIcon;
 }
 
@@ -59,10 +64,13 @@ const baseNavItems: readonly StaffNavItem[] = [
 ];
 
 const adminNavItems: readonly StaffNavItem[] = [
-  { icon: UsersRound, label: "ผู้ใช้", to: "/admin/users" },
   { icon: KeyRound, label: "คีย์ API", to: "/admin/api-keys" },
   { icon: ShieldCheck, label: "ทีมงานดูแลการแข่งขันรอบออนไลน์", to: "/admin/staff-overseers" },
   { icon: FolderKanban, label: "แบ่งหมวดทีม", to: "/admin/team-groups" },
+];
+
+const userManagementNavItems: readonly StaffNavItem[] = [
+  { icon: UsersRound, label: "จัดการผู้ใช้ในระบบ", to: "/users" },
 ];
 
 const registrationNavItems: readonly StaffNavItem[] = [
@@ -142,6 +150,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const isAdmin = hasAdminAccess(role);
   const canAccessParticipations = hasRegistrationAccess(role);
   const canAccessStaffCheckIn = hasStaffAccess(role);
+  const canManageUsers = hasUserManagementAccess(role);
   const homeRoute = getHomeRoute(isAdmin, canAccessParticipations);
   let navGroups: readonly StaffNavGroup[] = [];
   if (isAdmin) {
@@ -157,6 +166,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
         items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems],
         label: "ลงทะเบียนเข้างาน รอบที่ 2",
       },
+      { items: userManagementNavItems, label: "บัญชีและสิทธิ์" },
       { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
   } else {
@@ -186,6 +196,10 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
           label: "ลงทะเบียนเข้างาน รอบที่ 2",
         },
       );
+    }
+
+    if (canManageUsers) {
+      accessNavGroups.push({ items: userManagementNavItems, label: "บัญชีและสิทธิ์" });
     }
 
     navGroups = accessNavGroups;

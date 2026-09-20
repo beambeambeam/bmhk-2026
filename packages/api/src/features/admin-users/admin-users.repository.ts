@@ -1,7 +1,7 @@
 import { db } from "@bmhk-2026/db";
 import { session, user } from "@bmhk-2026/db/schema/auth";
 import { isAuthRole } from "@bmhk-2026/auth/permission";
-import { count, eq, ilike, sql } from "drizzle-orm";
+import { and, count, eq, ilike, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import { createTableOrderBy, createTableWhere, escapeLikePattern } from "../../core/query-builder";
@@ -33,6 +33,7 @@ export interface AdminUserRepository {
 
 type Database = typeof db;
 const normalizedUserRole = sql<string>`coalesce(${user.role}, 'user')`;
+const KMUTT_EMAIL_DOMAIN = "kmutt.ac.th";
 const adminUserSortColumns = {
   email: user.email,
   name: user.name,
@@ -50,9 +51,6 @@ function createAdminUserFilterCondition(filter: AdminUserColumnFilter): SQL | un
   switch (filter.id) {
     case "email": {
       return ilike(user.email, `%${escapeLikePattern(filter.value)}%`);
-    }
-    case "emailDomain": {
-      return ilike(user.email, `%@${escapeLikePattern(filter.value)}`);
     }
     case "name": {
       return ilike(user.name, `%${escapeLikePattern(filter.value)}%`);
@@ -75,7 +73,10 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
         async () =>
           await database.transaction(
             async (transaction) => {
-              const where = createTableWhere(columnFilters, createAdminUserFilterCondition);
+              const where = and(
+                ilike(user.email, `%@${KMUTT_EMAIL_DOMAIN}`),
+                createTableWhere(columnFilters, createAdminUserFilterCondition),
+              );
               const [totalResult] = await transaction
                 .select({ value: count() })
                 .from(user)
@@ -125,7 +126,7 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
             const [currentUser] = await transaction
               .select({ role: user.role })
               .from(user)
-              .where(eq(user.id, userId))
+              .where(and(eq(user.id, userId), ilike(user.email, `%@${KMUTT_EMAIL_DOMAIN}`)))
               .for("update")
               .limit(1);
 

@@ -78,4 +78,12 @@ describe("participations table", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "สิทธิ์เข้ารอบแรก" }));
     await expect(screen.findByRole("dialog", { name: "สิทธิ์เข้ารอบแรก" })).resolves.toBeDefined();
   });
+
+  it("opens a confirmation dialog before deleting a team", async () => {
+    renderTable("NO_ACHIEVEMENT");
+    fireEvent.click(screen.getByRole("button", { name: "จัดการทีม" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "ลบทีม" }));
+    await expect(screen.findByRole("alertdialog", { name: "ลบทีม" })).resolves.toBeDefined();
+    expect(screen.getByRole("button", { name: "ยืนยันการลบ" })).toBeDefined();
+  });
 });

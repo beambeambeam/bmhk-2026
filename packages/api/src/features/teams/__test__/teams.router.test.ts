@@ -1108,4 +1108,32 @@ describe("teams router", () => {
       target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
     });
   });
+
+  it("lets registration staff delete a team", async () => {
+    const repository = createTeamRepository({
+      delete: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
+        return await Promise.resolve(true);
+      },
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
+    );
+    const { context, log } = createContext();
+
+    await expect(
+      call(
+        router.teams.deleteRegistration,
+        { id: TEAM_ID },
+        { context, path: ["teams", "deleteRegistration"] },
+      ),
+    ).resolves.toStrictEqual({ id: TEAM_ID });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.deleted",
+      actor: { id: "staff-user", type: "user" },
+      outcome: "success",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
+  });
 });

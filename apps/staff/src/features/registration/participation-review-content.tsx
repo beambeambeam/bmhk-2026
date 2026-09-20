@@ -588,13 +588,13 @@ function ReviewActions({ review, canSubmit, canReview, savePending, onSave }: Re
   return (
     <DialogFooter>
       <Button
-        disabled={review?.status === "APPROVED" || savePending || !canSubmit}
+        disabled={savePending || !canSubmit}
         variant="destructive"
         onClick={() => {
           onSave("CHANGES_REQUESTED");
         }}
       >
-        ขอให้แก้ไข
+        {review?.status === "APPROVED" ? "ยกเลิกอนุมัติและขอให้แก้ไข" : "ขอให้แก้ไข"}
       </Button>
       <Button
         disabled={review?.status === "APPROVED" || savePending || !canSubmit}

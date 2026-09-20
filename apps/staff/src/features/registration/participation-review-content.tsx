@@ -104,7 +104,11 @@ function IssueCodeField({ canReview, id, label, options, value, onChange }: Issu
       <label className="font-medium text-sm" htmlFor={id}>
         {label}
       </label>
-      <Select disabled={!canReview} onValueChange={addIssueCode}>
+      <Select
+        disabled={!canReview}
+        items={options.map((option) => ({ label: option, value: option }))}
+        onValueChange={addIssueCode}
+      >
         <SelectTrigger aria-label={`เลือกปัญหาของ${label}`} className="w-full" id={id}>
           <SelectValue>เลือกปัญหา</SelectValue>
         </SelectTrigger>

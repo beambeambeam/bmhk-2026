@@ -44,6 +44,16 @@ jobs:
           changed_files="$(git diff --name-only "$staging_sha" "$MAIN_SHA")"
 
           sync_branch="automation/staging-sync"
+          # Staging uses squash merges, so its history is not an ancestor of main.
+          # Make the sync commit a child of staging while preserving main's tree.
+          main_tree_sha="$(git rev-parse "${MAIN_SHA}^{tree}")"
+          sync_commit_sha="$(gh api \
+            --method POST \
+            "/repos/${GITHUB_REPOSITORY}/git/commits" \
+            -f "message=chore: sync staging with main" \
+            -f "tree=${main_tree_sha}" \
+            -f "parents[]=${staging_sha}" \
+            --jq '.sha')"
           sync_branch_sha="$(gh api \
             "/repos/${GITHUB_REPOSITORY}/git/matching-refs/heads/${sync_branch}" \
             --jq '.[0].object.sha // empty')"
@@ -53,14 +63,14 @@ jobs:
               --method POST \
               "/repos/${GITHUB_REPOSITORY}/git/refs" \
               -f "ref=refs/heads/${sync_branch}" \
-              -f "sha=${MAIN_SHA}" \
+              -f "sha=${sync_commit_sha}" \
               --silent
-          elif [ "$sync_branch_sha" != "$MAIN_SHA" ]; then
+          elif [ "$sync_branch_sha" != "$sync_commit_sha" ]; then
             gh api \
               --method PATCH \
               "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${sync_branch}" \
-              -f "sha=${MAIN_SHA}" \
-              -F force=false \
+              -f "sha=${sync_commit_sha}" \
+              -F force=true \
               --silent
           fi
 
@@ -73,14 +83,41 @@ jobs:
             --jq '.[0].number // empty')"
 
           if [ -z "$pr_number" ]; then
-            pr_url="$(gh pr create \
+            pr_number="$(gh pr list \
               --repo "$GITHUB_REPOSITORY" \
               --base staging \
               --head "$sync_branch" \
-              --title "chore: sync staging with main" \
-              --body "Automated sync of the green main commit ${MAIN_SHA}.")"
-            pr_number="$(gh pr view "$pr_url" --json number --jq '.number')"
+              --state closed \
+              --json number,mergedAt \
+              --jq 'map(select(.mergedAt == null)) | .[0].number // empty')"
+
+            if [ -n "$pr_number" ]; then
+              gh pr reopen "$pr_number" --repo "$GITHUB_REPOSITORY"
+            else
+              pr_url="$(gh pr create \
+                --repo "$GITHUB_REPOSITORY" \
+                --base staging \
+                --head "$sync_branch" \
+                --title "chore: sync staging with main" \
+                --body "Automated sync of the green main commit ${MAIN_SHA}.")"
+              pr_number="$(gh pr view "$pr_url" --json number --jq '.number')"
+            fi
           fi
+
+          for attempt in {1..30}; do
+            read -r mergeable merge_state <<< "$(gh pr view "$pr_number" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json mergeable,mergeStateStatus \
+              --jq '[.mergeable, .mergeStateStatus] | @tsv')"
+            if [ "$mergeable" = MERGEABLE ] && [ "$merge_state" = CLEAN ]; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Sync PR #${pr_number} did not become mergeable: ${mergeable}/${merge_state}."
+              exit 1
+            fi
+            sleep 2
+          done
 
           merged="$(gh api \
             --method PUT \

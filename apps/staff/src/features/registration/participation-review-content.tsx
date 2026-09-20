@@ -573,6 +573,7 @@ function ReviewForm({
 }
 
 interface ReviewActionsProps {
+  readonly review: TeamRegistrationReview | null | undefined;
   readonly canApprove: boolean;
   readonly canRequestChanges: boolean;
   readonly canReview: boolean;
@@ -581,6 +582,7 @@ interface ReviewActionsProps {
 }
 
 function ReviewActions({
+  review,
   canApprove,
   canRequestChanges,
   canReview,
@@ -594,7 +596,7 @@ function ReviewActions({
   return (
     <DialogFooter>
       <Button
-        disabled={savePending || !canRequestChanges}
+        disabled={review?.status === "APPROVED" || savePending || !canRequestChanges}
         variant="destructive"
         onClick={() => {
           onSave("CHANGES_REQUESTED");
@@ -603,7 +605,7 @@ function ReviewActions({
         ขอให้แก้ไข
       </Button>
       <Button
-        disabled={savePending || !canApprove}
+        disabled={review?.status === "APPROVED" || savePending || !canApprove}
         onClick={() => {
           onSave("APPROVED");
         }}
@@ -736,6 +738,7 @@ function ParticipationReviewContent({
         ) : null}
       </div>
       <ReviewActions
+        review={review}
         canApprove={team !== undefined && !hasIssues}
         canRequestChanges={team !== undefined && hasIssues && hasNotes}
         canReview={canReview}
@@ -746,4 +749,4 @@ function ParticipationReviewContent({
   );
 }
 
-export { ParticipationReviewContent };
+export { ParticipationReviewContent, TeamSummary };

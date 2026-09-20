@@ -99,6 +99,7 @@ function AchievementsTable() {
           />
         </div>
         <Select
+          items={awardFilters}
           value={award}
           onValueChange={(value) => {
             if (value !== null && awardFilters.some((filter) => filter.value === value)) {

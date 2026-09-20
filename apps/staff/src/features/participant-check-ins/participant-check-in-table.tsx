@@ -27,6 +27,10 @@ const flagLabels: Record<ParticipantCheckInFlag, string> = {
   bad_behavior: "พฤติกรรมไม่เหมาะสม",
   feeling_unwell: "ไม่สบาย",
 };
+const flagOptions = [
+  { label: "ไม่มี", value: noFlagValue },
+  ...Object.entries(flagLabels).map(([value, label]) => ({ label, value })),
+];
 
 function noop(): undefined {
   return undefined;
@@ -252,6 +256,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
                     {participant.checkIn ? (
                       <Select
                         disabled={isUpdatingFlag}
+                        items={flagOptions}
                         value={participant.checkIn.flag ?? noFlagValue}
                         onValueChange={(value) => void updateFlag(participant.id, value)}
                       >
@@ -262,8 +267,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={noFlagValue}>ไม่มี</SelectItem>
-                          {Object.entries(flagLabels).map(([value, label]) => (
+                          {flagOptions.map(({ label, value }) => (
                             <SelectItem key={value} value={value}>
                               {label}
                             </SelectItem>

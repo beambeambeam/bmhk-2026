@@ -91,6 +91,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           />
         </div>
         <Select
+          items={reviewFilters}
           value={reviewStatus}
           onValueChange={(value) => {
             if (value !== null && reviewFilters.some((filter) => filter.value === value)) {

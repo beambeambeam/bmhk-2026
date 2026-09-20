@@ -66,6 +66,10 @@ function AchievementsAward({ team }: AchievementsAwardProps) {
   );
   const isUpdating = setAwardMutation.isPending && setAwardMutation.variables?.id === team.id;
   const isBusy = isUpdating || isConfirming;
+  const awardItems = getAwardOptions(team.award).map((award) => ({
+    label: achievementLabels[award],
+    value: award,
+  }));
 
   const form = useForm({
     defaultValues: {
@@ -158,6 +162,7 @@ function AchievementsAward({ team }: AchievementsAwardProps) {
                       <Field data-invalid={isInvalid}>
                         <FieldLabel htmlFor={`${formId}-award`}>ผลงาน</FieldLabel>
                         <Select
+                          items={awardItems}
                           value={field.state.value}
                           onValueChange={(value) => {
                             if (value !== null && isTeamAward(value)) {
@@ -176,9 +181,9 @@ function AchievementsAward({ team }: AchievementsAwardProps) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              {getAwardOptions(team.award).map((award) => (
-                                <SelectItem key={award} value={award}>
-                                  {achievementLabels[award]}
+                              {awardItems.map(({ label, value }) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
                                 </SelectItem>
                               ))}
                             </SelectGroup>

@@ -86,6 +86,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
   const isUpdating =
     updateRoleMutation.isPending && updateRoleMutation.variables?.userId === user.id;
   const isBusy = isUpdating || isConfirming;
+  const roleItems = roles.map((role) => ({ label: getAuthRoleLabel(role), value: role }));
 
   const form = useForm({
     defaultValues: {
@@ -185,6 +186,7 @@ function AdminUserRole({ isCurrentUser, roles, user, onRoleUpdated }: AdminUserR
                       <Field data-invalid={isInvalid}>
                         <FieldLabel htmlFor={`${formId}-role`}>บทบาท</FieldLabel>
                         <Select
+                          items={roleItems}
                           value={field.state.value}
                           onValueChange={(value) => {
                             if (value !== null && isAuthRole(value, roles)) {

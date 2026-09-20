@@ -173,6 +173,14 @@ function ParticipationReviewDialog({
             reviewedByName={reviewedByName}
             isLoading={isDetailsLoading || reviewQuery.isLoading}
             hasError={hasDetailsError || reviewQuery.isError}
+            schoolTeams={
+              schoolTeamsQuery.data?.rows.filter(
+                (schoolTeam) => schoolTeam.school === teamQuery.data?.school,
+              ) ?? []
+            }
+            schoolTeamsError={schoolTeamsQuery.isError}
+            schoolTeamsLoading={schoolTeamsQuery.isLoading}
+            teamId={teamId}
             canEdit={canReview}
             pending={setAward.isPending}
             onConfirm={confirmEligibility}

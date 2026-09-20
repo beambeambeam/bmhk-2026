@@ -1,9 +1,10 @@
+import { Separator } from "@/components/separator";
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/dialog";
 import type { ComponentProps } from "react";
 import type { TeamDetails } from "@bmhk-2026/api";
 import { ParticipationEligibility } from "./participation-eligibility";
 import type { EligibilityAward } from "./participation-eligibility";
-import { TeamSummary } from "./participation-review-content";
+import { SchoolTeamsSummary, TeamSummary } from "./participation-review-content";
 
 type ParticipationEligibilityContentProps = Omit<
   ComponentProps<typeof TeamSummary>,
@@ -14,6 +15,10 @@ type ParticipationEligibilityContentProps = Omit<
   readonly hasError: boolean;
   readonly canEdit: boolean;
   readonly pending: boolean;
+  readonly schoolTeams: ComponentProps<typeof SchoolTeamsSummary>["schoolTeams"];
+  readonly schoolTeamsError: boolean;
+  readonly schoolTeamsLoading: boolean;
+  readonly teamId: string;
   readonly onConfirm: (award: EligibilityAward) => void;
 };
 
@@ -23,6 +28,10 @@ export function ParticipationEligibilityContent({
   hasError,
   canEdit,
   pending,
+  schoolTeams,
+  schoolTeamsError,
+  schoolTeamsLoading,
+  teamId,
   onConfirm,
   ...summary
 }: ParticipationEligibilityContentProps) {
@@ -36,11 +45,18 @@ export function ParticipationEligibilityContent({
         {isLoading ? <p>กำลังโหลดข้อมูลทีม...</p> : null}
         {hasError ? <p className="text-destructive">ไม่สามารถโหลดข้อมูลการสมัครทั้งหมดได้</p> : null}
         {team ? (
-          <div className="grid min-h-0 gap-6 md:h-full md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+          <div className="grid h-full min-h-0 gap-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
             <div className="min-h-0 overflow-y-auto">
               <TeamSummary {...summary} imageUrl={team.image?.url ?? null} team={team} />
             </div>
-            <div className="min-h-0 overflow-y-auto">
+            <div className="flex min-h-0 flex-col gap-6 overflow-y-auto">
+              <SchoolTeamsSummary
+                currentTeamId={teamId}
+                schoolTeams={schoolTeams}
+                schoolTeamsError={schoolTeamsError}
+                schoolTeamsLoading={schoolTeamsLoading}
+              />
+              <Separator />
               <ParticipationEligibility
                 award={team.award}
                 canEdit={canEdit && !isLoading && !hasError}

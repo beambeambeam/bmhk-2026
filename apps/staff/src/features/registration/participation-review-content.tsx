@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select";
 import { Textarea } from "@/components/textarea";
 import type {
@@ -15,9 +16,19 @@ import type {
   TeamConsent,
   TeamDetails,
   TeamParticipantDetails,
+  TeamRegistrationReviewListResult,
   TeamRegistrationReview,
 } from "@bmhk-2026/api";
-import { CircleAlert, ExternalLink, ImageOff, Quote, UserRound, UsersRound, X } from "lucide-react";
+import {
+  ArrowUp,
+  CircleAlert,
+  ExternalLink,
+  ImageOff,
+  Quote,
+  UserRound,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -57,6 +68,9 @@ interface ParticipationReviewContentProps {
   readonly lastUpdatedAt: Date | null;
   readonly review: TeamRegistrationReview | null | undefined;
   readonly participants: readonly TeamParticipantDetails[];
+  readonly schoolTeams: TeamRegistrationReviewListResult["rows"];
+  readonly schoolTeamsError: boolean;
+  readonly schoolTeamsLoading: boolean;
   readonly reviewedByName: string | null;
   readonly savePending: boolean;
   readonly team: TeamDetails | undefined;
@@ -414,6 +428,68 @@ function TeamSummary({
   );
 }
 
+interface SchoolTeamsSummaryProps {
+  readonly currentTeamId: string;
+  readonly schoolTeams: TeamRegistrationReviewListResult["rows"];
+  readonly schoolTeamsError: boolean;
+  readonly schoolTeamsLoading: boolean;
+}
+
+function SchoolTeamsSummary({
+  currentTeamId,
+  schoolTeams,
+  schoolTeamsError,
+  schoolTeamsLoading,
+}: SchoolTeamsSummaryProps) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="font-semibold text-lg">ข้อมูลเพิ่มเติม</h2>
+      {schoolTeamsLoading ? (
+        <p className="text-muted-foreground text-sm">กำลังโหลดทีมจากโรงเรียนเดียวกัน...</p>
+      ) : null}
+      {schoolTeamsError ? (
+        <p className="text-destructive text-sm">ไม่สามารถโหลดทีมจากโรงเรียนเดียวกันได้</p>
+      ) : null}
+      {!schoolTeamsLoading && !schoolTeamsError ? (
+        <Table className="table-fixed">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-14">#</TableHead>
+              <TableHead>ทีม</TableHead>
+              <TableHead className="w-40 whitespace-normal">
+                <span className="inline-flex items-center gap-1">
+                  วันที่ส่ง
+                  <ArrowUp aria-hidden="true" className="size-4" />
+                </span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {schoolTeams.length === 0 ? (
+              <TableRow>
+                <TableCell className="text-muted-foreground" colSpan={3}>
+                  ไม่พบทีมจากโรงเรียนเดียวกัน
+                </TableCell>
+              </TableRow>
+            ) : (
+              schoolTeams.map((schoolTeam) => (
+                <TableRow
+                  key={schoolTeam.id}
+                  data-state={schoolTeam.id === currentTeamId ? "selected" : undefined}
+                >
+                  <TableCell>{schoolTeam.index}</TableCell>
+                  <TableCell className="whitespace-normal font-medium">{schoolTeam.name}</TableCell>
+                  <TableCell>{formatStaffDateTime(schoolTeam.registrationSubmittedAt)}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      ) : null}
+    </section>
+  );
+}
+
 interface ReviewFormProps {
   readonly advisorIssueCodes: readonly string[];
   readonly canReview: boolean;
@@ -547,6 +623,9 @@ function ParticipationReviewContent({
   lastUpdatedAt,
   review,
   participants,
+  schoolTeams,
+  schoolTeamsError,
+  schoolTeamsLoading,
   reviewedByName,
   savePending,
   team,
@@ -630,7 +709,14 @@ function ParticipationReviewContent({
                 team={team}
               />
             </div>
-            <div className="min-h-0 overflow-y-auto">
+            <div className="flex min-h-0 flex-col gap-6 overflow-y-auto">
+              <SchoolTeamsSummary
+                currentTeamId={teamId}
+                schoolTeams={schoolTeams}
+                schoolTeamsError={schoolTeamsError}
+                schoolTeamsLoading={schoolTeamsLoading}
+              />
+              <Separator />
               <ReviewForm
                 advisorIssueCodes={advisorIssueCodes}
                 canReview={canReview}

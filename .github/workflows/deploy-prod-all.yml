@@ -1,19 +1,25 @@
-name: Deploy Prod all
+name: Deploy production changes
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: Deploy every production service
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   actions: write
   contents: read
 
 concurrency:
-  group: deploy-prod-all
+  group: deploy-production
   cancel-in-progress: true
 
 jobs:
   dispatch-builds:
-    name: Build and deploy all production services
+    name: Build and deploy changed production services
     runs-on: ubuntu-latest
 
     steps:
@@ -34,19 +40,120 @@ jobs:
             exit 1
           }
 
-      - name: Dispatch production image builds
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Dispatch changed production builds
         env:
           GH_TOKEN: ${{ github.token }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          DEPLOY_ALL: ${{ inputs.deploy_all }}
           TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
-          workflows=(
-            docker-server.yml
-            docker-web.yml
-            docker-staff.yml
-            docker-discord.yml
-          )
+          build_server=false
+          build_web=false
+          build_staff=false
+          build_discord=false
+
+          if [ "$DEPLOY_ALL" = "true" ]; then
+            echo "Full production deploy requested."
+            build_server=true
+            build_web=true
+            build_staff=true
+            build_discord=true
+          else
+            # Production has no deployment branch, so use the last successful
+            # run of this workflow as the production baseline.
+            baseline_sha="$(gh api \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-prod-all.yml/runs?branch=main&event=workflow_dispatch&status=completed&per_page=100" \
+              --jq '[.workflow_runs[] | select((.id | tostring) != env.CURRENT_RUN_ID and .conclusion == "success")] | sort_by(.run_started_at) | last | .head_sha // empty')"
+
+            if [ -z "$baseline_sha" ]; then
+              echo "No successful production deploy found; selecting all services."
+              build_server=true
+              build_web=true
+              build_staff=true
+              build_discord=true
+            elif ! git cat-file -e "${baseline_sha}^{commit}" 2>/dev/null; then
+              echo "Production baseline ${baseline_sha} is unavailable; selecting all services."
+              build_server=true
+              build_web=true
+              build_staff=true
+              build_discord=true
+            else
+              changed_files="$(git diff --name-only "$baseline_sha" "$TARGET_SHA")"
+
+              if [ -n "$changed_files" ]; then
+                echo "Changed files since production deploy ${baseline_sha}:"
+                printf '%s\n' "$changed_files"
+              fi
+
+              while IFS= read -r path; do
+                [ -n "$path" ] || continue
+
+                # Every image installs and copies the workspace, so shared package
+                # changes can affect more than one production service.
+                case "$path" in
+                  package.json|bun.lock|.dockerignore|tsconfig.json|vite.config.ts|packages/*)
+                    build_server=true
+                    build_web=true
+                    build_staff=true
+                    build_discord=true
+                    ;;
+                esac
+
+                case "$path" in
+                  apps/server/*|composes/production/server.yaml|.github/workflows/docker-server.yml)
+                    build_server=true
+                    ;;
+                esac
+
+                case "$path" in
+                  apps/web/*|composes/production/web.yaml|.github/workflows/docker-web.yml)
+                    build_web=true
+                    ;;
+                esac
+
+                case "$path" in
+                  apps/staff/*|composes/production/staff.yaml|.github/workflows/docker-staff.yml)
+                    build_staff=true
+                    ;;
+                esac
+
+                case "$path" in
+                  apps/discord/*|composes/production/discord.yaml|.github/workflows/docker-discord.yml)
+                    build_discord=true
+                    ;;
+                esac
+              done <<< "$changed_files"
+            fi
+          fi
+
+          workflows=()
+          if [ "$build_server" = true ]; then
+            workflows+=(docker-server.yml)
+          fi
+          if [ "$build_web" = true ]; then
+            workflows+=(docker-web.yml)
+          fi
+          if [ "$build_staff" = true ]; then
+            workflows+=(docker-staff.yml)
+          fi
+          if [ "$build_discord" = true ]; then
+            workflows+=(docker-discord.yml)
+          fi
+
+          if [ "${#workflows[@]}" -eq 0 ]; then
+            echo "No production service changes found; nothing to deploy."
+            exit 0
+          fi
+
+          echo "Production workflows to run: ${workflows[*]}"
           started_epoch="$(date +%s)"
           run_ids=()
 

@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import AuthPageShell, { RESULT_ACTION, ResultCard } from "@/components/auth-page-shell";
-import { useAuthBackLink } from "@/components/form/wizard-nav";
+import { authLink, useAuthBackLink } from "@/components/form/wizard-nav";
+import { z } from "zod";
 /* oxlint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable unicorn/no-abusive-eslint-disable */
 /* eslint-disable */
@@ -23,27 +24,40 @@ export const Route = createFileRoute("/register/error")({
   head: () => ({
     meta: [{ content: "noindex, nofollow", name: "robots" }],
   }),
+  validateSearch: z.object({ reason: z.string().optional() }),
 });
 
 export default function ErrorStep() {
   const authBack = useAuthBackLink();
+  const { reason } = Route.useSearch();
+  const isRegistrationClosed = reason === "registration_closed";
 
   return (
     <AuthPageShell muted>
       <ResultCard
         image="/assets/figma/88a60428462d844f1f3ed64f3d0783097c2d33ac.png"
-        title="ลงทะเบียนเข้าแข่งขันไม่สำเร็จ"
+        title={isRegistrationClosed ? "ปิดรับสมัครแล้ว" : "ลงทะเบียนเข้าแข่งขันไม่สำเร็จ"}
         titleClassName="text-brand-red"
-        lines={["เกิดข้อผิดพลาดขึ้นในระหว่างการลงทะเบียน กรุณาลองอีกครั้ง"]}
+        lines={
+          isRegistrationClosed
+            ? ["หมดเขตรับสมัครแล้ว ไม่สามารถส่งใบสมัครได้"]
+            : ["เกิดข้อผิดพลาดขึ้นในระหว่างการลงทะเบียน กรุณาลองอีกครั้ง"]
+        }
         action={
-          /* `submit-back`, not `back`: this undoes the submit, so it is the whole result
-             screen coming apart — the colour blocks sink away and the wizard's pasta spills
-             back in — not a step sliding sideways. And when the terms step is genuinely the
-             entry behind this one, it is reached by popping it, so the user's answers and
-             their scroll position come back with it. */
-          <Link {...authBack("/register/terms", "submit-back")} className={RESULT_ACTION}>
-            ลองอีกครั้ง
-          </Link>
+          isRegistrationClosed ? (
+            <Link {...authLink("/", "leave")} className={RESULT_ACTION}>
+              กลับหน้าหลัก
+            </Link>
+          ) : (
+            /* `submit-back`, not `back`: this undoes the submit, so it is the whole result
+               screen coming apart — the colour blocks sink away and the wizard's pasta spills
+               back in — not a step sliding sideways. And when the terms step is genuinely the
+               entry behind this one, it is reached by popping it, so the user's answers and
+               their scroll position come back with it. */
+            <Link {...authBack("/register/terms", "submit-back")} className={RESULT_ACTION}>
+              ลองอีกครั้ง
+            </Link>
+          )
         }
       />
     </AuthPageShell>

@@ -190,6 +190,36 @@ export const STEP_RANKS: Record<string, number> = {
   "/register/success": 7,
 };
 
+const REGISTRATION_ERROR_PATH = "/register/error";
+const REGISTRATION_CLOSED_REASON = "registration_closed";
+
+function isRegistrationErrorPath(pathname: string): boolean {
+  const normalizedPathname =
+    pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+  return normalizedPathname === REGISTRATION_ERROR_PATH;
+}
+
+function getErrorCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) {
+    return undefined;
+  }
+
+  const directCode = Reflect.get(error, "code");
+  if (typeof directCode === "string") {
+    return directCode;
+  }
+
+  const data = Reflect.get(error, "data");
+  if (typeof data === "object" && data !== null) {
+    const dataCode = Reflect.get(data, "code");
+    if (typeof dataCode === "string") {
+      return dataCode;
+    }
+  }
+
+  return undefined;
+}
+
 export const Route = createFileRoute("/register")({
   component: RegisterLayout,
   ssr: false,
@@ -202,9 +232,17 @@ export const Route = createFileRoute("/register")({
       });
     }
   },
-  loader: async () => {
+  loader: async ({ location }) => {
     try {
-      const statusRes = await client.teamRegistrationStatus.get({});
+      const featureFlags = await client.featureFlags.getAll();
+      let statusRes: Awaited<ReturnType<typeof client.teamRegistrationStatus.get>> | null = null;
+      let statusError: unknown;
+
+      try {
+        statusRes = await client.teamRegistrationStatus.get({});
+      } catch (error: unknown) {
+        statusError = error;
+      }
 
       if (
         statusRes !== null &&
@@ -214,6 +252,22 @@ export const Route = createFileRoute("/register")({
       ) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
         throw redirect({ to: "/my-team" as any });
+      }
+
+      const statusErrorCode = getErrorCode(statusError);
+      const isNotSubmitted = statusError === undefined || statusErrorCode === "TEAM_NOT_FOUND";
+      if (
+        featureFlags.registration === false &&
+        !isRegistrationErrorPath(location.pathname) &&
+        isNotSubmitted
+      ) {
+        throw redirect({
+          href: `${REGISTRATION_ERROR_PATH}?reason=${REGISTRATION_CLOSED_REASON}`,
+        });
+      }
+
+      if (statusError !== undefined && statusErrorCode !== "TEAM_NOT_FOUND") {
+        console.error(statusError);
       }
 
       if (

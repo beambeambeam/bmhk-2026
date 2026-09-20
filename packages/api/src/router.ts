@@ -109,6 +109,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository();
   const teamRegistrationReviewRepository =
     dependencies.teamRegistrationReviews ?? createTeamRegistrationReviewRepository();
+  const featureFlagService = createFeatureFlagService(dependencies.featureFlagClock);
   const fileRepository = dependencies.files ?? createFileRepository();
   const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
   const staffCheckInRepository = dependencies.staffCheckIns ?? createStaffCheckInRepository();
@@ -125,10 +126,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
       adminProcedure,
       createApiKeyService(apiKeyRepository, dependencies.auth),
     ),
-    featureFlags: createFeatureFlagsRouter(
-      publicProcedure,
-      createFeatureFlagService(dependencies.featureFlagClock),
-    ),
+    featureFlags: createFeatureFlagsRouter(publicProcedure, featureFlagService),
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     participantCheckIns: createParticipantCheckInsRouter(
@@ -181,6 +179,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
       teamAccessProcedure,
       teamOwnerProcedure,
       createTeamService(teamRepository, fileStorage, fileRepository),
+      featureFlagService,
     ),
   };
 }

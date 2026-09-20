@@ -1,5 +1,6 @@
 import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
+import { Temporal } from "temporal-polyfill";
 import { describe, expect, it, vi } from "vitest";
 
 import type {
@@ -111,13 +112,18 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
   };
 }
 
+const REGISTRATION_OPEN_AT = "2026-09-01T00:00:00+07:00";
+const REGISTRATION_CLOSED_AT = "2026-09-21T00:00:00+07:00";
+
 function createRouter(
   repository: TeamRepository,
   auth: AuthReader = createAuthReader(),
   fileRepository: FileRepository = createUnusedFileRepository(),
+  now = REGISTRATION_OPEN_AT,
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: () => Temporal.Instant.from(now),
     files: fileRepository,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teams: repository,
@@ -150,6 +156,25 @@ describe("teams router", () => {
       code: "UNAUTHORIZED",
       status: 401,
     });
+  });
+
+  it("rejects team creation after the registration window closes", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(
+      repository,
+      createAuthReader(),
+      createUnusedFileRepository(),
+      REGISTRATION_CLOSED_AT,
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Team One", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).rejects.toMatchObject({ code: "REGISTRATION_CLOSED", status: 403 });
   });
 
   it("creates a team for the authenticated owner with defaults", async () => {

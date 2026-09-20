@@ -92,6 +92,7 @@ function AdminUsersFilter({
       <Field className="w-full">
         <FieldLabel htmlFor="admin-user-email-domain">โดเมนอีเมล</FieldLabel>
         <Select
+          items={emailDomainOptions}
           value={emailDomainFilter}
           onValueChange={(value) => {
             if (value !== null && isEmailDomainFilter(value)) {

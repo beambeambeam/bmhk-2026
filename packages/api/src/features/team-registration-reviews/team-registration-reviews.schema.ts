@@ -5,6 +5,8 @@ import {
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
+import { teamSchema } from "../teams/teams.schema";
+
 const MAX_INTERNAL_NOTES_LENGTH = 4000;
 const MAX_ISSUE_CODE_LENGTH = 100;
 const MAX_ISSUE_CODES_PER_SUBJECT = 50;
@@ -87,7 +89,9 @@ export const teamRegistrationReviewListInputSchema = z
 export const teamRegistrationReviewListRowSchema = z
   .object({
     advisor: teamRegistrationReviewListSubjectStatusSchema,
+    award: teamSchema.shape.award,
     id: z.uuid(),
+    index: z.number().int(),
     lastUpdatedAt: z.date().nullable(),
     memberCount: z.int().nonnegative(),
     name: z.string(),

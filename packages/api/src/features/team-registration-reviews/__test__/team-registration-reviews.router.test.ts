@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type {
   AuthReader,
+  Team,
   TeamRegistrationReview,
   TeamRegistrationReviewRepository,
 } from "../../../index";
@@ -237,6 +238,64 @@ describe("team registration reviews router", () => {
     ).resolves.toStrictEqual({
       pagination: { nextOffset: null, offset: 0, total: 0 },
       rows: [],
+    });
+  });
+
+  it("returns the team's award with each review queue row", async () => {
+    const team = {
+      award: "REGISTRATION_COMPLETED",
+      createdAt: REVIEWED_AT,
+      id: TEAM_ID,
+      image: null,
+      index: 1,
+      memberCount: 3,
+      name: "Team One",
+      registrationSubmittedAt: REVIEWED_AT,
+      school: "Test School",
+      updatedAt: REVIEWED_AT,
+      userId: "owner-1",
+    } satisfies Team;
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve(null),
+        list: async () =>
+          await Promise.resolve({
+            offset: 0,
+            records: [{ review: approvedReview, reviewedByName: "Operator", team }],
+            total: 1,
+          }),
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.list,
+        { reviewStatus: "ALL", search: "" },
+        { context, path: ["teamRegistrationReviews", "list"] },
+      ),
+    ).resolves.toStrictEqual({
+      pagination: { nextOffset: null, offset: 0, total: 1 },
+      rows: [
+        {
+          advisor: "APPROVED",
+          award: "REGISTRATION_COMPLETED",
+          id: TEAM_ID,
+          index: 1,
+          lastUpdatedAt: REVIEWED_AT,
+          memberCount: 3,
+          name: "Team One",
+          participant1: "APPROVED",
+          participant2: "APPROVED",
+          participant3: "APPROVED",
+          registrationSubmittedAt: REVIEWED_AT,
+          reviewStatus: "APPROVED",
+          reviewedByName: "Operator",
+          school: "Test School",
+        },
+      ],
     });
   });
 

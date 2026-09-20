@@ -5,10 +5,18 @@ import { z } from "zod";
 import { createTableListResultSchema, createTableQuerySchema } from "../../core/table-query";
 
 export const adminUserRoleSchema = z.enum(authRoleValues);
+export const ADMIN_USER_EMAIL_SUFFIX = "@kmutt.ac.th" as const;
+
+const adminUserEmailSchema = z
+  .email()
+  .refine(
+    (email) => email.toLowerCase().endsWith(ADMIN_USER_EMAIL_SUFFIX),
+    `Email must end with ${ADMIN_USER_EMAIL_SUFFIX}`,
+  );
 
 export const adminUserSchema = z
   .object({
-    email: z.email(),
+    email: adminUserEmailSchema,
     id: z.string().min(1),
     name: z.string(),
     role: adminUserRoleSchema,
@@ -33,6 +41,7 @@ export const adminUserListResultSchema = createTableListResultSchema(adminUserSc
 
 export const adminUserFilterOptionsSchema = z
   .object({
+    emailSuffix: z.literal(ADMIN_USER_EMAIL_SUFFIX),
     roles: z.array(adminUserRoleSchema).length(authRoleValues.length),
   })
   .strict();

@@ -15,6 +15,7 @@ import type { AuthRole, RoleFilter } from "./types";
 
 interface AdminUsersFilterProps {
   readonly email: string;
+  readonly emailSuffix: string;
   readonly name: string;
   readonly roleFilter: RoleFilter;
   readonly roles: readonly AuthRole[];
@@ -32,6 +33,7 @@ const allRolesOption = { label: "ทุกบทบาท", value: "all" } as co
 
 function AdminUsersFilter({
   email,
+  emailSuffix,
   name,
   roleFilter,
   roles,
@@ -69,7 +71,7 @@ function AdminUsersFilter({
       <Field className="w-full">
         <FieldLabel>โดเมนอีเมล</FieldLabel>
         <p className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm">
-          ลงท้ายด้วย @kmutt.ac.th
+          ลงท้ายด้วย {emailSuffix}
         </p>
       </Field>
       <Field className="w-full">

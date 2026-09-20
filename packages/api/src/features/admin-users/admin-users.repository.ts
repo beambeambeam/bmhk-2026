@@ -8,6 +8,7 @@ import { createTableOrderBy, createTableWhere, escapeLikePattern } from "../../c
 import { createRepositoryExecutor } from "../../core/repository";
 import { getTableOffset } from "../../core/table-query";
 import { adminUserRepositoryError, createAdminUserRepositoryError } from "./admin-users.errors";
+import { ADMIN_USER_EMAIL_SUFFIX } from "./admin-users.schema";
 import type {
   AdminUserColumnFilter,
   AdminUserListQuery,
@@ -33,7 +34,6 @@ export interface AdminUserRepository {
 
 type Database = typeof db;
 const normalizedUserRole = sql<string>`coalesce(${user.role}, 'user')`;
-const KMUTT_EMAIL_DOMAIN = "kmutt.ac.th";
 const adminUserSortColumns = {
   email: user.email,
   name: user.name,
@@ -74,7 +74,7 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
           await database.transaction(
             async (transaction) => {
               const where = and(
-                ilike(user.email, `%@${KMUTT_EMAIL_DOMAIN}`),
+                ilike(user.email, `%${ADMIN_USER_EMAIL_SUFFIX}`),
                 createTableWhere(columnFilters, createAdminUserFilterCondition),
               );
               const [totalResult] = await transaction
@@ -126,7 +126,7 @@ export function createAdminUserRepository(database: Database = db): AdminUserRep
             const [currentUser] = await transaction
               .select({ role: user.role })
               .from(user)
-              .where(and(eq(user.id, userId), ilike(user.email, `%@${KMUTT_EMAIL_DOMAIN}`)))
+              .where(and(eq(user.id, userId), ilike(user.email, `%${ADMIN_USER_EMAIL_SUFFIX}`)))
               .for("update")
               .limit(1);
 

@@ -5,6 +5,7 @@ import {
   createAdminUserRoleForbiddenError,
 } from "./admin-users.errors";
 import type { AdminUserRepository } from "./admin-users.repository";
+import { ADMIN_USER_EMAIL_SUFFIX } from "./admin-users.schema";
 import type {
   AdminUserListQuery,
   AdminUserListResult,
@@ -28,7 +29,7 @@ export interface AdminUserService {
 
 export function createAdminUserService(repository: AdminUserRepository): AdminUserService {
   return {
-    filter: () => ({ roles: [...authRoleValues] }),
+    filter: () => ({ emailSuffix: ADMIN_USER_EMAIL_SUFFIX, roles: [...authRoleValues] }),
     list: async (query) => await repository.list(query),
     setRole: async (userId, role, actor) => {
       const manageableRoles = getManageableRoles(actor.role);

@@ -175,7 +175,7 @@ describe("resume registration modal", () => {
     vi.restoreAllMocks();
   });
 
-  it("resumes a complete draft without an optional team photo at the final participant", async () => {
+  it("resumes a draft without a team photo at the team step", async () => {
     const router = createModalRouter({
       ...registration,
       team: { ...registration.team, photoName: null, photoUrl: null },
@@ -189,7 +189,7 @@ describe("resume registration modal", () => {
     fireEvent.click(screen.getByRole("button", { name: "กรอกฟอร์มต่อ" }));
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/register/entrant/2");
+      expect(router.state.location.pathname).toBe("/register/team");
     });
   });
 

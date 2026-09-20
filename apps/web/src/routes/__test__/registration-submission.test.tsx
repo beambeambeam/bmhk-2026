@@ -231,7 +231,7 @@ describe("registration submission", () => {
     expect(screen.getByText("/register/entrant/2")).toBeDefined();
   });
 
-  it("allows a complete draft without an optional team photo to reach submission", () => {
+  it("returns a draft without a team photo to the team step", () => {
     render(
       <DraftNextStepProbe
         defaultValues={{
@@ -242,7 +242,7 @@ describe("registration submission", () => {
       />,
     );
 
-    expect(screen.getByText("/register/entrant/2")).toBeDefined();
+    expect(screen.getByText("/register/team")).toBeDefined();
   });
 
   it("returns an advisor with a missing document to the advisor step", () => {

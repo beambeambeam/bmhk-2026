@@ -34,7 +34,7 @@ import type { RegisterFormApi } from "@/routes/register";
 import { z } from "zod";
 import { MAX_TEAM_NAME_LENGTH, teamNameSchema } from "@bmhk-2026/client/teams";
 import { client } from "@bmhk-2026/client/orpc";
-import { useAuthNavigate, useGateValidate } from "@/components/form/wizard-nav";
+import { useAuthNavigate, useGateField, useGateValidate } from "@/components/form/wizard-nav";
 import { fieldErrorReader } from "@/features/register/lib/field-errors";
 import { toast } from "sonner";
 import { env } from "@bmhk-2026/env/web";
@@ -126,6 +126,11 @@ function TeamNextButton({ to, label = "ถัดไป" }: { to: string; label?:
         try {
           const team = form.getFieldValue("team");
           const status = form.getFieldValue("status") as { teamId?: string } | null | undefined;
+          const hasSavedPhoto = typeof team.photoUrl === "string" && team.photoUrl !== "";
+          if (team.photoFile === null && !hasSavedPhoto) {
+            toast.error("กรุณาแนบรูปโปรไฟล์ทีม");
+            return;
+          }
           const initialTeam = form.options.defaultValues?.team;
           const isNameUnchanged =
             status?.teamId !== undefined &&
@@ -321,13 +326,24 @@ function TeamPhotoPicker({
   photo: ReturnType<typeof useFileSlot>;
 }) {
   const savedPhotoUrl = form.getFieldValue("team.photoUrl");
+  const hasSavedPhoto = typeof savedPhotoUrl === "string" && savedPhotoUrl !== "";
+  const photoRequirement = photo.file === null && !hasSavedPhoto ? "กรุณาแนบรูปโปรไฟล์ทีม" : null;
+  const {
+    ref: photoRef,
+    invalid: photoInvalid,
+    message: photoMessage,
+    messageId: photoMessageId,
+  } = useGateField<HTMLLabelElement>(photoRequirement);
 
   return (
     <div className="flex flex-col items-center justify-center gap-[calc(7.896px_+_4.104*var(--fl))]">
       <label
         {...photo.drop}
+        ref={photoRef}
         tabIndex={-1}
-        className="auth-drop mm-press relative flex size-[calc(138.439px_+_61.561*var(--fl))] cursor-pointer flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[calc(15.896px_+_4.104*var(--fl))] border border-dashed hover:border-brand-red border-[#dcdcdc]"
+        aria-invalid={photoInvalid || undefined}
+        aria-describedby={photoMessage === null ? undefined : photoMessageId}
+        className={`auth-drop mm-press relative flex size-[calc(138.439px_+_61.561*var(--fl))] cursor-pointer flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[calc(15.896px_+_4.104*var(--fl))] border border-dashed hover:border-brand-red ${photoInvalid ? "border-[#ea4335]" : "border-[#dcdcdc]"}`}
       >
         <img
           src={`${F}18691121244d1cc30f2fff4bf73c50850cbef49f.svg`}
@@ -336,7 +352,7 @@ function TeamPhotoPicker({
           className={GLYPH_20_24}
         />
         <span className="text-[calc(13.844px_+_6.156*var(--fl))] leading-[normal]">
-          รูปโปรไฟล์ทีม (ไม่บังคับ)
+          <Label required>รูปโปรไฟล์ทีม</Label>
         </span>
         {((photo.preview != null && photo.preview !== "") ||
           (savedPhotoUrl != null && savedPhotoUrl !== "")) && (
@@ -350,10 +366,12 @@ function TeamPhotoPicker({
         <input {...photo.inputProps} className="sr-only" />
       </label>
       <p
+        id={photoMessageId}
         aria-live="polite"
         className={`w-[calc(138.439px_+_61.561*var(--fl))] truncate text-center text-[calc(11.896px_+_4.104*var(--fl))] leading-[normal] ${photo.error != null && photo.error !== "" ? "text-[#ea4335]" : "text-gray-1"}`}
       >
         {photo.error ??
+          photoMessage ??
           photo.file?.name ??
           form.getFieldValue("team.photoName") ??
           "จำกัดขนาดไม่เกิน 5 MB"}

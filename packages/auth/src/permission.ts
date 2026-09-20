@@ -3,7 +3,7 @@ import { defaultStatements, adminAc, userAc } from "better-auth/plugins/admin/ac
 
 const permissionStatement = {
   ...defaultStatements,
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "registration_review"],
 } as const;
 
 const ac = createAccessControl(permissionStatement);
@@ -12,12 +12,12 @@ const authRoleValues = ["superAdmin", "admin", "registrationStaff", "staff", "us
 export type AuthRole = (typeof authRoleValues)[number];
 
 const admin = ac.newRole({
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "registration_review"],
   ...adminAc.statements,
 });
 
 const superAdmin = ac.newRole({
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "registration_review"],
   ...adminAc.statements,
 });
 
@@ -27,7 +27,7 @@ const staff = ac.newRole({
 });
 
 const registrationStaff = ac.newRole({
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "registration_review"],
   ...userAc.statements,
 });
 
@@ -69,6 +69,14 @@ function hasRegistrationAccess(role: string | null | undefined): boolean {
   return roles[role].authorize({ staff: ["registration_access"] }).success;
 }
 
+function hasRegistrationReviewAccess(role: string | null | undefined): boolean {
+  if (role === null || role === undefined || role.length === 0 || !isAuthRole(role)) {
+    return false;
+  }
+
+  return roles[role].authorize({ staff: ["registration_review"] }).success;
+}
+
 function hasUserManagementAccess(role: string | null | undefined): boolean {
   return getManageableRoles(role).length > 0;
 }
@@ -89,6 +97,7 @@ export {
   hasAdminAccess,
   getManageableRoles,
   hasRegistrationAccess,
+  hasRegistrationReviewAccess,
   hasStaffAccess,
   hasUserManagementAccess,
   permissionStatement,

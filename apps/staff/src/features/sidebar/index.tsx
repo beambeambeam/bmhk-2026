@@ -1,6 +1,7 @@
 import {
   hasAdminAccess,
   hasRegistrationAccess,
+  hasRegistrationReviewAccess,
   hasStaffAccess,
   hasUserManagementAccess,
 } from "@bmhk-2026/auth/permission";
@@ -55,6 +56,7 @@ interface StaffNavItem {
     | "/round1-staff-check"
     | "/round2-participants-check"
     | "/round2-staff-check"
+    | "/wait-access"
     | "/users";
   readonly icon: LucideIcon;
 }
@@ -107,12 +109,24 @@ interface StaffNavGroupProps {
   readonly pathname: string;
 }
 
-function getHomeRoute(isAdmin: boolean, canAccessParticipations: boolean): StaffNavItem["to"] {
+function getHomeRoute(
+  isAdmin: boolean,
+  canAccessParticipations: boolean,
+  canAccessRegistration: boolean,
+  canAccessStaffCheckIn: boolean,
+): StaffNavItem["to"] {
   if (isAdmin) {
     return "/dashboard";
   }
 
-  return canAccessParticipations ? "/participations" : "/round1-staff-check";
+  if (canAccessParticipations) {
+    return "/participations";
+  }
+  if (canAccessRegistration) {
+    return "/round1-participants-check";
+  }
+
+  return canAccessStaffCheckIn ? "/round1-staff-check" : "/wait-access";
 }
 
 function StaffNavGroup({ group, pathname }: StaffNavGroupProps) {
@@ -148,10 +162,16 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = hasAdminAccess(role);
-  const canAccessParticipations = hasRegistrationAccess(role);
+  const canAccessParticipations = hasRegistrationReviewAccess(role);
+  const canAccessRegistration = hasRegistrationAccess(role);
   const canAccessStaffCheckIn = hasStaffAccess(role);
   const canManageUsers = hasUserManagementAccess(role);
-  const homeRoute = getHomeRoute(isAdmin, canAccessParticipations);
+  const homeRoute = getHomeRoute(
+    isAdmin,
+    canAccessParticipations,
+    canAccessRegistration,
+    canAccessStaffCheckIn,
+  );
   let navGroups: readonly StaffNavGroup[] = [];
   if (isAdmin) {
     navGroups = [
@@ -173,24 +193,25 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     const accessNavGroups: StaffNavGroup[] = [];
 
     if (canAccessParticipations) {
-      accessNavGroups.push(
-        { items: registrationNavItems, label: "การสมัครแข่งขัน" },
-        { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
-      );
+      accessNavGroups.push({ items: registrationNavItems, label: "การสมัครแข่งขัน" });
     }
 
-    if (canAccessParticipations || canAccessStaffCheckIn) {
+    if (canAccessRegistration) {
+      accessNavGroups.push({ items: achievementsNavItems, label: "ผลงานการแข่งขัน" });
+    }
+
+    if (canAccessRegistration || canAccessStaffCheckIn) {
       accessNavGroups.push(
         {
           items: [
-            ...(canAccessParticipations ? participantCheckInNavItems : []),
+            ...(canAccessRegistration ? participantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? staffNavItems : []),
           ],
           label: "ลงทะเบียนเข้างาน รอบที่ 1",
         },
         {
           items: [
-            ...(canAccessParticipations ? round2ParticipantCheckInNavItems : []),
+            ...(canAccessRegistration ? round2ParticipantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
           ],
           label: "ลงทะเบียนเข้างาน รอบที่ 2",

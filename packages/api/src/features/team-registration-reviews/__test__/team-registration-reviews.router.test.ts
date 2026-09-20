@@ -225,7 +225,7 @@ describe("team registration reviews router", () => {
         },
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context } = createTestContext();
 
@@ -239,6 +239,30 @@ describe("team registration reviews router", () => {
       pagination: { nextOffset: null, offset: 0, total: 0 },
       rows: [],
     });
+  });
+
+  it("rejects ordinary staff from the review queue", async () => {
+    const list = vi.fn<TeamRegistrationReviewRepository["list"]>(
+      async () => await Promise.resolve({ offset: 0, records: [], total: 0 }),
+    );
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve(null),
+        list,
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.list,
+        { reviewStatus: "ALL", search: "" },
+        { context, path: ["teamRegistrationReviews", "list"] },
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+    expect(list).not.toHaveBeenCalled();
   });
 
   it("returns the team's award with each review queue row", async () => {
@@ -266,7 +290,7 @@ describe("team registration reviews router", () => {
           }),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context } = createTestContext();
 
@@ -348,7 +372,7 @@ describe("team registration reviews router", () => {
           await Promise.resolve({ review: approvedReview, teamId: TEAM_ID }),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context, log } = createTestContext();
 
@@ -364,7 +388,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve({ review: null, teamId: TEAM_ID }),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context } = createTestContext();
 
@@ -379,7 +403,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save: async () => await Promise.resolve(null),
       },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context } = createTestContext();
 
@@ -410,7 +434,9 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
     );
     const { context, log } = createTestContext();
 
@@ -473,7 +499,9 @@ describe("team registration reviews router", () => {
         save: async () => await Promise.resolve(null),
         saveSubject,
       },
-      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
     );
     const { context, log } = createTestContext();
 
@@ -505,7 +533,9 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
     );
     const { context, log } = createTestContext();
 
@@ -539,7 +569,9 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
     );
     const { context } = createTestContext();
 
@@ -572,7 +604,7 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save,
       },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      createTestAuthReader(createTestSession({ user: { role: "registrationStaff" } })),
     );
     const { context } = createTestContext();
 
@@ -604,7 +636,9 @@ describe("team registration reviews router", () => {
         findByTeamId: async () => await Promise.resolve(null),
         save: async () => await Promise.reject(createTeamRegistrationReviewRepositoryError()),
       },
-      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
     );
     const { context, log } = createTestContext();
 

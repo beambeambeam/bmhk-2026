@@ -1,4 +1,4 @@
-import type { RegistrationProcedure, TeamOwnerProcedure } from "../../core/procedure";
+import type { RegistrationReviewProcedure, TeamOwnerProcedure } from "../../core/procedure";
 import { teamRegistrationReviewChangedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import type { TeamRegistrationReviewService } from "./team-registration-reviews.service";
@@ -24,7 +24,7 @@ function toAuditedReview(review: TeamRegistrationReview) {
 }
 
 export function createTeamRegistrationReviewsRouter(
-  registrationProcedure: RegistrationProcedure,
+  registrationReviewProcedure: RegistrationReviewProcedure,
   teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamRegistrationReviewService,
 ) {
@@ -38,7 +38,7 @@ export function createTeamRegistrationReviewsRouter(
         context.log.set({ teamRegistrationReviewFeedback: { teamId: input.teamId } });
         return feedback;
       }),
-    get: registrationProcedure
+    get: registrationReviewProcedure
       .route({ method: "GET", tags: ["Team Registration Review"] })
       .input(teamRegistrationReviewTeamInputSchema)
       .output(teamRegistrationReviewSchema.nullable())
@@ -47,12 +47,12 @@ export function createTeamRegistrationReviewsRouter(
         context.log.set({ teamRegistrationReview: { teamId: input.teamId } });
         return review;
       }),
-    list: registrationProcedure
+    list: registrationReviewProcedure
       .route({ method: "GET", tags: ["Team Registration Review"] })
       .input(teamRegistrationReviewListInputSchema)
       .output(teamRegistrationReviewListResultSchema)
       .handler(async ({ input }) => await service.list(input)),
-    save: registrationProcedure
+    save: registrationReviewProcedure
       .route({ method: "PUT", tags: ["Team Registration Review"] })
       .input(saveTeamRegistrationReviewSchema)
       .output(teamRegistrationReviewSchema)
@@ -83,7 +83,7 @@ export function createTeamRegistrationReviewsRouter(
         context.log.set({ teamRegistrationReview: { id: review.id, teamId: review.teamId } });
         return review;
       }),
-    saveSubject: registrationProcedure
+    saveSubject: registrationReviewProcedure
       .route({ method: "PUT", tags: ["Team Registration Review"] })
       .input(saveTeamRegistrationReviewSubjectSchema)
       .output(teamRegistrationReviewSchema)

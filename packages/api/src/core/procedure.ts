@@ -2,6 +2,7 @@ import { os } from "@orpc/server";
 import {
   hasAdminAccess,
   hasRegistrationAccess,
+  hasRegistrationReviewAccess,
   hasStaffAccess,
   hasUserManagementAccess,
 } from "@bmhk-2026/auth/permission";
@@ -162,6 +163,19 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     };
     return await next({ context: { teamAccess } });
   });
+  const registrationReviewProcedure = registrationProcedure.use(async ({ context, next }) => {
+    if (!hasRegistrationReviewAccess(context.session.user.role)) {
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for registration review access",
+        message: "Registration review access required",
+        status: 403,
+        why: "The authenticated user lacks registration review access permission",
+      });
+    }
+
+    return await next();
+  });
   const staffProcedure = protectedProcedure.use(async ({ context, next }) => {
     if (!hasStaffAccess(context.session.user.role)) {
       throw createError({
@@ -228,6 +242,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     protectedProcedure,
     publicProcedure: base.use(evlog()),
     registrationProcedure,
+    registrationReviewProcedure,
     staffProcedure,
     teamAccessProcedure,
     teamOwnerProcedure,
@@ -241,6 +256,9 @@ export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedP
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
 export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
+export type RegistrationReviewProcedure = ReturnType<
+  typeof createProcedures
+>["registrationReviewProcedure"];
 export type StaffProcedure = ReturnType<typeof createProcedures>["staffProcedure"];
 export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];
 export type UserManagementProcedure = ReturnType<

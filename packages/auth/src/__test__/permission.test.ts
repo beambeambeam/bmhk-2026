@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getManageableRoles,
   hasRegistrationAccess,
+  hasRegistrationReviewAccess,
   hasStaffAccess,
   hasUserManagementAccess,
   isAuthRole,
@@ -27,6 +28,7 @@ describe("super administrator permissions", () => {
   it("recognizes superAdmin and grants administrative and staff permissions", () => {
     expect(isAuthRole("superAdmin")).toBeTruthy();
     expect(hasRegistrationAccess("superAdmin")).toBeTruthy();
+    expect(hasRegistrationReviewAccess("superAdmin")).toBeTruthy();
     expect(hasStaffAccess("superAdmin")).toBeTruthy();
     expect(
       roles.superAdmin.authorize({ session: ["revoke"], user: ["set-role", "set-password"] })
@@ -36,7 +38,15 @@ describe("super administrator permissions", () => {
 
   it("gives registration staff registration and staff permissions", () => {
     expect(hasRegistrationAccess("registrationStaff")).toBeTruthy();
+    expect(hasRegistrationReviewAccess("registrationStaff")).toBeTruthy();
     expect(hasStaffAccess("registrationStaff")).toBeTruthy();
+  });
+
+  it("does not give ordinary staff registration review access", () => {
+    expect(hasRegistrationAccess("staff")).toBeTruthy();
+    expect(hasRegistrationReviewAccess("staff")).toBeFalsy();
+    expect(hasRegistrationReviewAccess("user")).toBeFalsy();
+    expect(hasRegistrationReviewAccess("unknown")).toBeFalsy();
   });
 
   it("only grants user management access to roles with manageable accounts", () => {

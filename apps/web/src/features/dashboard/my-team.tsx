@@ -25,6 +25,7 @@ const COPY_BOX = "size-[calc(15.896px_+_4.104*var(--fl))]";
 const LOCKUP_14_18 = "text-[calc(13.896px_+_4.104*var(--fl))]";
 const LOCKUP_ROW_GAP_8_12 = "gap-[calc(7.896px_+_4.104*var(--fl))]";
 const LOCKUP_STACK_GAP_8_16 = "gap-[calc(7.792px_+_8.208*var(--fl))]";
+type FirstRoundEligibility = "PENDING" | "ELIGIBLE" | "NOT_ELIGIBLE";
 
 /** No Figma asset for the copied state — the tick is drawn in the tone the labels use. */
 function Tick({ className = "" }: { className?: string }) {
@@ -94,6 +95,7 @@ interface ReviewFeedback {
 interface TeamData {
   award?: string;
   createdAt?: Date | string | null;
+  firstRoundEligibility?: FirstRoundEligibility;
   id: string;
   name: string;
   school: string;
@@ -119,6 +121,7 @@ interface FeatureFlagsInput {
 
 function getApprovedStatus(
   award: string | undefined,
+  firstRoundEligibility: FirstRoundEligibility | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
   const isEligibleTeamsAnnounced = featureFlags?.eligibleTeamsAnnouncement === true;
@@ -145,11 +148,11 @@ function getApprovedStatus(
     return "semifinal-pending";
   }
 
-  if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
+  if (firstRoundEligibility === "ELIGIBLE") {
     return "qualified";
   }
 
-  return "selection-failed";
+  return firstRoundEligibility === "NOT_ELIGIBLE" ? "selection-failed" : "selection-pending";
 }
 
 function getMappedStatus(
@@ -172,7 +175,7 @@ function getMappedStatus(
   }
 
   if (feedbackStatus === "APPROVED") {
-    return getApprovedStatus(team?.award, featureFlags);
+    return getApprovedStatus(team?.award, team?.firstRoundEligibility, featureFlags);
   }
 
   return "reviewing";

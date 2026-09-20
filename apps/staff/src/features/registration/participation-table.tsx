@@ -182,7 +182,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                 <StatusChip value={team.reviewStatus} />
               </TableCell>
               <TableCell className="whitespace-normal">
-                <EligibilityChip award={team.award} />
+                <EligibilityChip firstRoundEligibility={team.firstRoundEligibility} />
               </TableCell>
               <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
               <TableCell className="whitespace-normal">

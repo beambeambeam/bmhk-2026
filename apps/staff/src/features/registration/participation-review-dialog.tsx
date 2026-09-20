@@ -14,6 +14,7 @@ import {
   getParticipationParticipantsQueryOptions,
   getParticipationQueryOptions,
   getParticipationReviewQueryOptions,
+  getTeamRegistrationReviewListQueryOptions,
 } from "@bmhk-2026/client/query-options";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -45,6 +46,17 @@ function ParticipationReviewDialog({
   const participantsQuery = useQuery({
     ...getParticipationParticipantsQueryOptions(teamId),
     enabled: isOpen,
+  });
+  const schoolTeamsQuery = useQuery({
+    ...getTeamRegistrationReviewListQueryOptions({
+      limit: 100,
+      offset: 0,
+      reviewStatus: "ALL",
+      search: teamQuery.data?.school ?? "",
+      sortBy: "registrationSubmittedAt",
+      sortDesc: false,
+    }),
+    enabled: isOpen && teamQuery.isSuccess,
   });
   const consentQuery = useQuery({
     ...getParticipationConsentQueryOptions(teamId),
@@ -97,6 +109,13 @@ function ParticipationReviewDialog({
           hasDetailsError={hasDetailsError}
           isLoading={isDetailsLoading}
           participants={participantsQuery.data ?? []}
+          schoolTeams={
+            schoolTeamsQuery.data?.rows.filter(
+              (schoolTeam) => schoolTeam.school === teamQuery.data?.school,
+            ) ?? []
+          }
+          schoolTeamsError={schoolTeamsQuery.isError}
+          schoolTeamsLoading={schoolTeamsQuery.isLoading}
           lastUpdatedAt={lastUpdatedAt}
           review={reviewQuery.data}
           reviewedByName={reviewedByName}

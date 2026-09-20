@@ -14,7 +14,7 @@ import { ArrowUp } from "lucide-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import { getEligibilityLabel } from "./participation-eligibility";
+import { EligibilityChip } from "./participation-eligibility";
 import { ParticipationPagination } from "./participation-pagination";
 import { ParticipationReviewDialog } from "./participation-review-dialog";
 import { StatusChip } from "./participation-review-status";
@@ -181,7 +181,9 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
               <TableCell>
                 <StatusChip value={team.reviewStatus} />
               </TableCell>
-              <TableCell className="whitespace-normal">{getEligibilityLabel(team.award)}</TableCell>
+              <TableCell className="whitespace-normal">
+                <EligibilityChip award={team.award} />
+              </TableCell>
               <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
               <TableCell className="whitespace-normal">
                 {formatStaffDateTime(team.lastUpdatedAt)}

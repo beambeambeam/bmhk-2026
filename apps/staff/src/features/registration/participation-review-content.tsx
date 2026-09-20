@@ -428,14 +428,14 @@ function TeamSummary({
   );
 }
 
-interface SchoolTeamsSummaryProps {
+export interface SchoolTeamsSummaryProps {
   readonly currentTeamId: string;
   readonly schoolTeams: TeamRegistrationReviewListResult["rows"];
   readonly schoolTeamsError: boolean;
   readonly schoolTeamsLoading: boolean;
 }
 
-function SchoolTeamsSummary({
+export function SchoolTeamsSummary({
   currentTeamId,
   schoolTeams,
   schoolTeamsError,

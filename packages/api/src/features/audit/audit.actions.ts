@@ -108,12 +108,6 @@ export const teamDeletedAudit = defineAuditAction("team.deleted", {
   target: "team",
 });
 
-export const teamRegistrationDeletedAudit = defineAuditAction("team-registration.deleted", {
-  description: "A Registration Operator deleted a Team and its Registration Information",
-  severity: "critical",
-  target: "team",
-});
-
 export const teamRegistrationSubmittedAudit = defineAuditAction("team-registration.submitted", {
   description: "A Team Owner submitted a Team Registration",
   requiresChanges: true,

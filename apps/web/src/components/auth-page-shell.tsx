@@ -146,7 +146,7 @@ export function ResultCard({
   title: string;
   titleClassName?: string;
   lines: string[];
-  action: ReactNode;
+  action?: ReactNode;
 }) {
   const own = useOwnArrival();
 

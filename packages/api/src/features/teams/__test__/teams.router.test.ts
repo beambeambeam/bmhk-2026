@@ -1,5 +1,6 @@
 import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
+import { Temporal } from "temporal-polyfill";
 import { describe, expect, it, vi } from "vitest";
 
 import type {
@@ -111,13 +112,18 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
   };
 }
 
+const REGISTRATION_OPEN_AT = "2026-09-01T00:00:00+07:00";
+const REGISTRATION_CLOSED_AT = "2026-09-21T00:00:00+07:00";
+
 function createRouter(
   repository: TeamRepository,
   auth: AuthReader = createAuthReader(),
   fileRepository: FileRepository = createUnusedFileRepository(),
+  now = REGISTRATION_OPEN_AT,
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: () => Temporal.Instant.from(now),
     files: fileRepository,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teams: repository,
@@ -150,6 +156,25 @@ describe("teams router", () => {
       code: "UNAUTHORIZED",
       status: 401,
     });
+  });
+
+  it("rejects team creation after the registration window closes", async () => {
+    const repository = createTeamRepository();
+    const router = createRouter(
+      repository,
+      createAuthReader(),
+      createUnusedFileRepository(),
+      REGISTRATION_CLOSED_AT,
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Team One", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).rejects.toMatchObject({ code: "REGISTRATION_CLOSED", status: 403 });
   });
 
   it("creates a team for the authenticated owner with defaults", async () => {
@@ -1105,34 +1130,6 @@ describe("teams router", () => {
       actor: { id: USER_ID, type: "user" },
       outcome: "denied",
       reason: "TEAM_NOT_FOUND",
-      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
-    });
-  });
-
-  it("lets registration staff delete a team", async () => {
-    const repository = createTeamRepository({
-      delete: async (access) => {
-        expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
-        return await Promise.resolve(true);
-      },
-    });
-    const router = createRouter(
-      repository,
-      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
-    );
-    const { context, log } = createContext();
-
-    await expect(
-      call(
-        router.teams.deleteRegistration,
-        { id: TEAM_ID },
-        { context, path: ["teams", "deleteRegistration"] },
-      ),
-    ).resolves.toStrictEqual({ id: TEAM_ID });
-    expect(log.audit).toHaveBeenCalledWith({
-      action: "team-registration.deleted",
-      actor: { id: "staff-user", type: "user" },
-      outcome: "success",
       target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
     });
   });

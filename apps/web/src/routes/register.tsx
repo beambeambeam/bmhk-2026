@@ -190,6 +190,17 @@ export const STEP_RANKS: Record<string, number> = {
   "/register/success": 7,
 };
 
+const REGISTRATION_CLOSED_PATH = "/register/closed";
+
+// Fail open: a flags outage must not lock out registrants inside the window.
+async function isRegistrationOpen(): Promise<boolean> {
+  try {
+    return (await client.featureFlags.getAll({})).registration;
+  } catch {
+    return true;
+  }
+}
+
 export const Route = createFileRoute("/register")({
   component: RegisterLayout,
   ssr: false,
@@ -202,7 +213,7 @@ export const Route = createFileRoute("/register")({
       });
     }
   },
-  loader: async () => {
+  loader: async ({ location }) => {
     try {
       const statusRes = await client.teamRegistrationStatus.get({});
 
@@ -214,6 +225,11 @@ export const Route = createFileRoute("/register")({
       ) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
         throw redirect({ to: "/my-team" as any });
+      }
+
+      if (location.pathname !== REGISTRATION_CLOSED_PATH && !(await isRegistrationOpen())) {
+        // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
+        throw redirect({ to: REGISTRATION_CLOSED_PATH });
       }
 
       if (

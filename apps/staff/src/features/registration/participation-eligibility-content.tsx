@@ -3,7 +3,7 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/c
 import type { ComponentProps } from "react";
 import type { TeamDetails } from "@bmhk-2026/api";
 import { ParticipationEligibility } from "./participation-eligibility";
-import type { EligibilityAward } from "./participation-eligibility";
+import type { EligibilityDecision } from "./participation-eligibility";
 import { SchoolTeamsSummary, TeamSummary } from "./participation-review-content";
 
 type ParticipationEligibilityContentProps = Omit<
@@ -19,7 +19,7 @@ type ParticipationEligibilityContentProps = Omit<
   readonly schoolTeamsError: boolean;
   readonly schoolTeamsLoading: boolean;
   readonly teamId: string;
-  readonly onConfirm: (award: EligibilityAward) => void;
+  readonly onConfirm: (eligibility: EligibilityDecision) => void;
 };
 
 export function ParticipationEligibilityContent({
@@ -58,7 +58,7 @@ export function ParticipationEligibilityContent({
               />
               <Separator />
               <ParticipationEligibility
-                award={team.award}
+                firstRoundEligibility={team.firstRoundEligibility}
                 canEdit={canEdit && !isLoading && !hasError}
                 pending={pending}
                 onConfirm={onConfirm}

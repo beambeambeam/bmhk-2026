@@ -1,5 +1,9 @@
 import { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";
-import { teamAwardValues, teams } from "@bmhk-2026/db/schema/teams";
+import {
+  firstRoundEligibilityDecisionValues,
+  teamAwardValues,
+  teams,
+} from "@bmhk-2026/db/schema/teams";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -73,6 +77,10 @@ export const updateTeamSchema = teamIdInputSchema.extend({ data: updateTeamDataS
 export const setTeamAwardSchema = teamIdInputSchema
   .extend({ award: teamSchema.shape.award })
   .strict();
+export const firstRoundEligibilityDecisionSchema = z.enum(firstRoundEligibilityDecisionValues);
+export const setTeamFirstRoundEligibilitySchema = teamIdInputSchema
+  .extend({ firstRoundEligibility: firstRoundEligibilityDecisionSchema })
+  .strict();
 export const teamListPaginationSchema = z
   .object({
     currentPage: z.int().positive(),
@@ -102,6 +110,8 @@ export type TeamListSort = z.output<typeof teamListSortSchema>;
 export type TeamAwardFilter = z.output<typeof teamAwardFilterSchema>;
 export type TeamDetails = z.output<typeof teamDetailsSchema>;
 export type TeamAward = Team["award"];
+export type FirstRoundEligibility = Team["firstRoundEligibility"];
+export type FirstRoundEligibilityDecision = z.output<typeof firstRoundEligibilityDecisionSchema>;
 export type CreateTeamData = z.output<typeof createTeamSchema>;
 export type UpdateTeamData = z.output<typeof updateTeamDataSchema>;
 export type TeamListPagination = z.output<typeof teamListPaginationSchema>;

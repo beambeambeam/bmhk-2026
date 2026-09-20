@@ -124,6 +124,7 @@ export function createUnusedTeamRepository(): TeamRepository {
     list: createUnusedMethod("TeamRepository", "list"),
     replaceImage: createUnusedMethod("TeamRepository", "replaceImage"),
     setAward: createUnusedMethod("TeamRepository", "setAward"),
+    setFirstRoundEligibility: createUnusedMethod("TeamRepository", "setFirstRoundEligibility"),
     update: createUnusedMethod("TeamRepository", "update"),
   };
 }

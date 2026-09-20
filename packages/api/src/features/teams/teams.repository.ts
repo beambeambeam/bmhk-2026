@@ -16,6 +16,7 @@ import {
 } from "./teams.errors";
 import type {
   CreateTeamData,
+  FirstRoundEligibilityDecision,
   Team,
   TeamAward,
   TeamListInput,
@@ -49,9 +50,19 @@ export interface TeamRepository {
     id: string,
     award: TeamAward,
   ) => Promise<TeamAwardChange | null>;
+  setFirstRoundEligibility: (
+    access: TeamAccessContext,
+    id: string,
+    firstRoundEligibility: FirstRoundEligibilityDecision,
+  ) => Promise<TeamFirstRoundEligibilityChange | null>;
 }
 
 export interface TeamAwardChange {
+  previous: Team;
+  team: Team;
+}
+
+export interface TeamFirstRoundEligibilityChange {
   previous: Team;
   team: Team;
 }
@@ -244,6 +255,34 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               .returning();
             if (!team) {
               throw createTeamRepositoryError(new Error("Team award update returned no row"));
+            }
+
+            return { previous, team };
+          }),
+      ),
+    setFirstRoundEligibility: async (access, id, firstRoundEligibility) =>
+      await execute(
+        async () =>
+          await database.transaction(async (transaction) => {
+            const [previous] = await transaction
+              .select()
+              .from(teams)
+              .where(createTeamAccessCondition(access, id))
+              .for("update")
+              .limit(1);
+            if (!previous) {
+              return null;
+            }
+
+            const [team] = await transaction
+              .update(teams)
+              .set({ firstRoundEligibility })
+              .where(eq(teams.id, previous.id))
+              .returning();
+            if (!team) {
+              throw createTeamRepositoryError(
+                new Error("Team first-round eligibility update returned no row"),
+              );
             }
 
             return { previous, team };

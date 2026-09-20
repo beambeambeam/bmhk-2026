@@ -66,6 +66,8 @@ export type {
   CreateTeamData,
   Team,
   TeamAward,
+  FirstRoundEligibility,
+  FirstRoundEligibilityDecision,
   TeamDetails,
   TeamListPagination,
   TeamListResult,

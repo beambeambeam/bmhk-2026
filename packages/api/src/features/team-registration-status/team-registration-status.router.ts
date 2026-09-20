@@ -1,4 +1,8 @@
-import type { RegistrationProcedure, TeamOwnerProcedure } from "../../core/procedure";
+import type {
+  RegistrationProcedure,
+  TeamOwnerProcedure,
+  TeamOwnerRegistrationProcedure,
+} from "../../core/procedure";
 import type { TeamRegistrationStatusService } from "./team-registration-status.service";
 import {
   currentTeamRegistrationStatusInputSchema,
@@ -11,6 +15,7 @@ import { executeAudited } from "../audit/audit.service";
 export function createTeamRegistrationStatusRouter(
   registrationProcedure: RegistrationProcedure,
   teamOwnerProcedure: TeamOwnerProcedure,
+  teamOwnerRegistrationProcedure: TeamOwnerRegistrationProcedure,
   service: TeamRegistrationStatusService,
 ) {
   return {
@@ -34,7 +39,7 @@ export function createTeamRegistrationStatusRouter(
 
         return status;
       }),
-    submit: teamOwnerProcedure
+    submit: teamOwnerRegistrationProcedure
       .route({ method: "POST", tags: ["Team Registration Status"] })
       .input(teamRegistrationStatusTeamInputSchema)
       .output(teamRegistrationStatusSchema)

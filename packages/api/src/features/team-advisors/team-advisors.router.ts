@@ -1,4 +1,4 @@
-import type { TeamAccessProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure, TeamAccessRegistrationProcedure } from "../../core/procedure";
 import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
@@ -14,11 +14,11 @@ import {
 import type { TeamAdvisorDocumentType } from "./team-advisors.schema";
 
 function createTeamAdvisorDocumentUploadProcedure(
-  teamAccessProcedure: TeamAccessProcedure,
+  teamAccessRegistrationProcedure: TeamAccessRegistrationProcedure,
   service: TeamAdvisorService,
   documentType: TeamAdvisorDocumentType,
 ) {
-  return teamAccessProcedure
+  return teamAccessRegistrationProcedure
     .route({ method: "POST", tags: ["Team Advisor", "File"] })
     .input(teamAdvisorDocumentUploadSchema)
     .output(teamAdvisorSchema)
@@ -64,10 +64,11 @@ function createTeamAdvisorDocumentUploadProcedure(
 
 export function createTeamAdvisorsRouter(
   teamAccessProcedure: TeamAccessProcedure,
+  teamAccessRegistrationProcedure: TeamAccessRegistrationProcedure,
   service: TeamAdvisorService,
 ) {
   return {
-    create: teamAccessProcedure
+    create: teamAccessRegistrationProcedure
       .route({
         method: "POST",
         tags: ["Team Advisor"],
@@ -94,16 +95,16 @@ export function createTeamAdvisorsRouter(
         return advisor;
       }),
     identityDocument: createTeamAdvisorDocumentUploadProcedure(
-      teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       service,
       "identity",
     ),
     teacherStatusDocument: createTeamAdvisorDocumentUploadProcedure(
-      teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       service,
       "teacherStatus",
     ),
-    update: teamAccessProcedure
+    update: teamAccessRegistrationProcedure
       .route({
         method: "PATCH",
         tags: ["Team Advisor"],

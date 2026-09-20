@@ -9,6 +9,17 @@ import { adminAccessDeniedAudit } from "../features/audit/audit.actions";
 
 export interface ProcedureDependencies {
   auth: AuthReader;
+  isRegistrationOpen: () => boolean;
+}
+
+function createRegistrationClosedError() {
+  return createError({
+    code: "REGISTRATION_CLOSED",
+    fix: "Registration changes are no longer accepted",
+    message: "Registration is closed",
+    status: 403,
+    why: "The registration deadline has passed",
+  });
 }
 
 function maskEmail(email: string): string {
@@ -74,6 +85,15 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
 
   const protectedProcedure = base.use(evlog()).use(requireAuth);
+  function assertRegistrationOpen(): void {
+    if (!dependencies.isRegistrationOpen()) {
+      throw createRegistrationClosedError();
+    }
+  }
+  const registrationMutationProcedure = protectedProcedure.use(async ({ next }) => {
+    assertRegistrationOpen();
+    return await next();
+  });
   const adminProcedure = protectedProcedure.use(async ({ context, next, path }) => {
     if (!hasAdminAccess(context.session.user.role)) {
       context.log.audit(
@@ -102,6 +122,10 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     };
     return await next({ context: { teamAccess } });
   });
+  const teamOwnerRegistrationProcedure = teamOwnerProcedure.use(async ({ next }) => {
+    assertRegistrationOpen();
+    return await next();
+  });
   const teamAccessProcedure = protectedProcedure.use(async ({ context, next }) => {
     const scope: TeamAccessContext["scope"] = hasRegistrationAccess(context.session.user.role)
       ? "ALL_TEAMS"
@@ -115,6 +139,12 @@ export function createProcedures(dependencies: ProcedureDependencies) {
         },
       },
     });
+  });
+  const teamAccessRegistrationProcedure = teamAccessProcedure.use(async ({ context, next }) => {
+    if (context.teamAccess.scope === "OWN_TEAM") {
+      assertRegistrationOpen();
+    }
+    return await next();
   });
   const registrationProcedure = protectedProcedure.use(async ({ context, next }) => {
     if (!hasRegistrationAccess(context.session.user.role)) {
@@ -198,18 +228,30 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     apiKeyProcedure,
     protectedProcedure,
     publicProcedure: base.use(evlog()),
+    registrationMutationProcedure,
     registrationProcedure,
     staffProcedure,
     teamAccessProcedure,
+    teamAccessRegistrationProcedure,
     teamOwnerProcedure,
+    teamOwnerRegistrationProcedure,
   };
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
 export type ApiKeyProcedure = ReturnType<typeof createProcedures>["apiKeyProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
+export type RegistrationMutationProcedure = ReturnType<
+  typeof createProcedures
+>["registrationMutationProcedure"];
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
+export type TeamAccessRegistrationProcedure = ReturnType<
+  typeof createProcedures
+>["teamAccessRegistrationProcedure"];
 export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
 export type StaffProcedure = ReturnType<typeof createProcedures>["staffProcedure"];
 export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];
+export type TeamOwnerRegistrationProcedure = ReturnType<
+  typeof createProcedures
+>["teamOwnerRegistrationProcedure"];

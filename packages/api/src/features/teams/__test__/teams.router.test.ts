@@ -20,6 +20,7 @@ import {
   createTestSession,
   createUnusedFileRepository,
   createUnusedStaffDiscordLinkService,
+  testRegistrationClock,
 } from "../../../__test__/test-support";
 
 const s3Mocks = vi.hoisted(() => ({
@@ -118,6 +119,7 @@ function createRouter(
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: testRegistrationClock,
     files: fileRepository,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teams: repository,

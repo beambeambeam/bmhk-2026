@@ -86,15 +86,22 @@ export interface ApiDependencies {
 }
 
 export function createAppRouter(dependencies: ApiDependencies) {
+  const featureFlagService = createFeatureFlagService(dependencies.featureFlagClock);
   const {
     adminProcedure,
     protectedProcedure,
     publicProcedure,
+    registrationMutationProcedure,
     registrationProcedure,
     staffProcedure,
     teamAccessProcedure,
+    teamAccessRegistrationProcedure,
     teamOwnerProcedure,
-  } = createProcedures(dependencies);
+    teamOwnerRegistrationProcedure,
+  } = createProcedures({
+    auth: dependencies.auth,
+    isRegistrationOpen: () => featureFlagService.getAll().registration,
+  });
   const adminUserRepository = dependencies.adminUsers ?? createAdminUserRepository();
   const apiKeyRepository = dependencies.apiKeys ?? createApiKeyRepository();
   const discordTeamGroupsRepository =
@@ -121,11 +128,12 @@ export function createAppRouter(dependencies: ApiDependencies) {
       adminProcedure,
       createApiKeyService(apiKeyRepository, dependencies.auth),
     ),
-    featureFlags: createFeatureFlagsRouter(
-      publicProcedure,
-      createFeatureFlagService(dependencies.featureFlagClock),
+    featureFlags: createFeatureFlagsRouter(publicProcedure, featureFlagService),
+    files: createFilesRouter(
+      protectedProcedure,
+      registrationMutationProcedure,
+      createFileService(fileRepository, fileStorage),
     ),
-    files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     participantCheckIns: createParticipantCheckInsRouter(
       registrationProcedure,
@@ -146,11 +154,12 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamAdvisors: createTeamAdvisorsRouter(
       teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       createTeamAdvisorService(teamAdvisorRepository, fileStorage, fileRepository),
     ),
     teamConsents: createTeamConsentsRouter(
       teamAccessProcedure,
-      teamOwnerProcedure,
+      teamOwnerRegistrationProcedure,
       createTeamConsentService(teamConsentRepository),
     ),
     teamGroups: createDiscordTeamGroupsAdminRouter(
@@ -159,6 +168,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamParticipants: createTeamParticipantsRouter(
       teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       createTeamParticipantService(teamParticipantRepository, fileStorage, fileRepository),
     ),
     teamRegistrationReviews: createTeamRegistrationReviewsRouter(
@@ -169,13 +179,15 @@ export function createAppRouter(dependencies: ApiDependencies) {
     teamRegistrationStatus: createTeamRegistrationStatusRouter(
       registrationProcedure,
       teamOwnerProcedure,
+      teamOwnerRegistrationProcedure,
       createTeamRegistrationStatusService(teamRegistrationStatusRepository),
     ),
     teams: createTeamsRouter(
-      protectedProcedure,
+      registrationMutationProcedure,
       registrationProcedure,
       teamAccessProcedure,
-      teamOwnerProcedure,
+      teamAccessRegistrationProcedure,
+      teamOwnerRegistrationProcedure,
       createTeamService(teamRepository, fileStorage, fileRepository),
     ),
   };

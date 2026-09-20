@@ -18,6 +18,7 @@ import {
   createUnusedFileRepository,
   createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
+  testRegistrationClock,
 } from "../../../__test__/test-support";
 import type { TeamAdvisorWithStoredDocuments } from "../team-advisors.repository";
 import { createTeamAdvisorAlreadyExistsError } from "../team-advisors.errors";
@@ -126,6 +127,7 @@ function createRouter(
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: testRegistrationClock,
     files: fileRepository,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamAdvisors: repository,

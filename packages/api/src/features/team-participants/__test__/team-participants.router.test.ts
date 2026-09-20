@@ -18,6 +18,7 @@ import {
   createUnusedFileRepository,
   createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
+  testRegistrationClock,
 } from "../../../__test__/test-support";
 import type { TeamParticipantWithStoredDocuments } from "../team-participants.repository";
 
@@ -122,6 +123,7 @@ function createRouter(
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: testRegistrationClock,
     files: fileRepository,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamParticipants: repository,

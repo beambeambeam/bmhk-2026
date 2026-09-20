@@ -1,4 +1,4 @@
-import type { TeamAccessProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure, TeamAccessRegistrationProcedure } from "../../core/procedure";
 import { registrationDocumentReplacedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
@@ -14,11 +14,11 @@ import {
 import type { TeamParticipantDocumentType } from "./team-participants.schema";
 
 function createTeamParticipantDocumentUploadProcedure(
-  teamAccessProcedure: TeamAccessProcedure,
+  teamAccessRegistrationProcedure: TeamAccessRegistrationProcedure,
   service: TeamParticipantService,
   documentType: TeamParticipantDocumentType,
 ) {
-  return teamAccessProcedure
+  return teamAccessRegistrationProcedure
     .route({ method: "POST", tags: ["Team Participant", "File"] })
     .input(teamParticipantDocumentUploadSchema)
     .output(teamParticipantSchema)
@@ -101,15 +101,16 @@ function createTeamParticipantDocumentUploadProcedure(
 
 export function createTeamParticipantsRouter(
   teamAccessProcedure: TeamAccessProcedure,
+  teamAccessRegistrationProcedure: TeamAccessRegistrationProcedure,
   service: TeamParticipantService,
 ) {
   return {
     academicRecordDocument: createTeamParticipantDocumentUploadProcedure(
-      teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       service,
       "academicRecordDocument",
     ),
-    create: teamAccessProcedure
+    create: teamAccessRegistrationProcedure
       .route({ method: "POST", tags: ["Team Participant"] })
       .input(createTeamParticipantSchema)
       .output(teamParticipantSchema)
@@ -131,7 +132,7 @@ export function createTeamParticipantsRouter(
           await service.get(context.teamAccess, input.teamId, input.index),
       ),
     identityDocument: createTeamParticipantDocumentUploadProcedure(
-      teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       service,
       "identityDocument",
     ),
@@ -141,11 +142,11 @@ export function createTeamParticipantsRouter(
       .output(teamParticipantDetailsSchema.array())
       .handler(async ({ context, input }) => await service.list(context.teamAccess, input.teamId)),
     portraitPhoto: createTeamParticipantDocumentUploadProcedure(
-      teamAccessProcedure,
+      teamAccessRegistrationProcedure,
       service,
       "portraitPhoto",
     ),
-    update: teamAccessProcedure
+    update: teamAccessRegistrationProcedure
       .route({ method: "PATCH", tags: ["Team Participant"] })
       .input(updateTeamParticipantSchema)
       .output(teamParticipantSchema)

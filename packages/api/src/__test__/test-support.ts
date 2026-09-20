@@ -9,7 +9,12 @@ import type {
   TeamRepository,
   TeamParticipantRepository,
 } from "../index";
+import { Temporal } from "temporal-polyfill";
 import { vi } from "vitest";
+
+export function testRegistrationClock(): Temporal.Instant {
+  return Temporal.Instant.from("2026-09-19T16:59:59.999Z");
+}
 
 export interface TestSessionOverrides {
   session?: Partial<ApiSession["session"]>;

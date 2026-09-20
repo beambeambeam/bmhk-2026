@@ -1,9 +1,10 @@
 import { z } from "zod";
 import type {
-  ProtectedProcedure,
+  RegistrationMutationProcedure,
   RegistrationProcedure,
   TeamAccessProcedure,
-  TeamOwnerProcedure,
+  TeamAccessRegistrationProcedure,
+  TeamOwnerRegistrationProcedure,
 } from "../../core/procedure";
 import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
@@ -24,14 +25,15 @@ import {
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
 
 export function createTeamsRouter(
-  protectedProcedure: ProtectedProcedure,
+  registrationMutationProcedure: RegistrationMutationProcedure,
   registrationProcedure: RegistrationProcedure,
   teamAccessProcedure: TeamAccessProcedure,
-  teamOwnerProcedure: TeamOwnerProcedure,
+  teamAccessRegistrationProcedure: TeamAccessRegistrationProcedure,
+  teamOwnerRegistrationProcedure: TeamOwnerRegistrationProcedure,
   service: TeamService,
 ) {
   return {
-    create: protectedProcedure
+    create: registrationMutationProcedure
       .route({
         method: "POST",
         tags: ["Team"],
@@ -43,7 +45,7 @@ export function createTeamsRouter(
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    delete: teamOwnerProcedure
+    delete: teamOwnerRegistrationProcedure
       .route({
         method: "DELETE",
         tags: ["Team"],
@@ -77,7 +79,7 @@ export function createTeamsRouter(
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    image: teamAccessProcedure
+    image: teamAccessRegistrationProcedure
       .route({ method: "POST", tags: ["Team", "File"] })
       .input(imageSchema)
       .output(teamSchema)
@@ -127,7 +129,7 @@ export function createTeamsRouter(
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    update: teamAccessProcedure
+    update: teamAccessRegistrationProcedure
       .route({
         method: "PATCH",
         tags: ["Team"],

@@ -16,6 +16,7 @@ import {
   createUnusedFileRepository,
   createUnusedStaffDiscordLinkService,
   createUnusedTeamRepository,
+  testRegistrationClock,
 } from "../../../__test__/test-support";
 import {
   createTeamConsentAlreadyExistsError,
@@ -67,6 +68,7 @@ function createRouter(
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: testRegistrationClock,
     files: createUnusedFileRepository(),
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamConsents: repository,

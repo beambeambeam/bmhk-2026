@@ -8,6 +8,7 @@ import { createProcedures } from "../procedure";
 function createRouter(verifyApiKey?: Parameters<typeof createTestAuthReader>[1]) {
   const { apiKeyProcedure } = createProcedures({
     auth: createTestAuthReader(undefined, verifyApiKey),
+    isRegistrationOpen: () => true,
   });
 
   return apiKeyProcedure.handler(({ context }) => context.apiKey);

@@ -1,4 +1,4 @@
-import type { TeamAccessProcedure, TeamOwnerProcedure } from "../../core/procedure";
+import type { TeamAccessProcedure, TeamOwnerRegistrationProcedure } from "../../core/procedure";
 import {
   legalConsentCreatedAudit,
   legalConsentUpdatedAudit,
@@ -45,11 +45,11 @@ function isConsentWithdrawal(
 
 export function createTeamConsentsRouter(
   teamAccessProcedure: TeamAccessProcedure,
-  teamOwnerProcedure: TeamOwnerProcedure,
+  teamOwnerRegistrationProcedure: TeamOwnerRegistrationProcedure,
   service: TeamConsentService,
 ) {
   return {
-    create: teamOwnerProcedure
+    create: teamOwnerRegistrationProcedure
       .route({ method: "POST", tags: ["Team Consent"] })
       .input(createTeamConsentSchema)
       .output(teamConsentSchema)
@@ -95,7 +95,7 @@ export function createTeamConsentsRouter(
         context.log.set({ teamConsent: { id: consent.id, teamId: consent.teamId } });
         return consent;
       }),
-    update: teamOwnerProcedure
+    update: teamOwnerRegistrationProcedure
       .route({ method: "PATCH", tags: ["Team Consent"] })
       .input(updateTeamConsentSchema)
       .output(teamConsentSchema)

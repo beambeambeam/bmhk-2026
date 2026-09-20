@@ -1,4 +1,4 @@
-import type { ProtectedProcedure } from "../../core/procedure";
+import type { ProtectedProcedure, RegistrationMutationProcedure } from "../../core/procedure";
 import {
   fileIdSchema,
   fileMetadataSchema,
@@ -8,7 +8,11 @@ import {
 import { assertAllowedOrigin } from "./files.service";
 import type { FileService } from "./files.service";
 
-export function createFilesRouter(protectedProcedure: ProtectedProcedure, service: FileService) {
+export function createFilesRouter(
+  protectedProcedure: ProtectedProcedure,
+  registrationMutationProcedure: RegistrationMutationProcedure,
+  service: FileService,
+) {
   return {
     get: protectedProcedure
       .route({
@@ -23,7 +27,7 @@ export function createFilesRouter(protectedProcedure: ProtectedProcedure, servic
         context.log.set({ file: { id: file.id } });
         return file;
       }),
-    upload: protectedProcedure
+    upload: registrationMutationProcedure
       .route({
         method: "POST",
         tags: ["File"],

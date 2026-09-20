@@ -15,6 +15,7 @@ describe("admin users filter", () => {
     const { rerender } = render(
       <AdminUsersFilter
         email=""
+        emailSuffix="@kmutt.ac.th"
         name=""
         roleFilter="all"
         roles={["admin", "staff"]}
@@ -34,6 +35,7 @@ describe("admin users filter", () => {
     rerender(
       <AdminUsersFilter
         email=""
+        emailSuffix="@kmutt.ac.th"
         name=""
         roleFilter="all"
         roles={["admin", "staff"]}

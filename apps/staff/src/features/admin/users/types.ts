@@ -1,7 +1,6 @@
 import type { AdminUserRole } from "@bmhk-2026/api";
 
 type AuthRole = AdminUserRole;
-type EmailDomainFilter = "all" | "kmutt.ac.th";
 type RoleFilter = AuthRole | "all";
 
 function getAuthRoleLabel(role: string | null | undefined): string {
@@ -32,4 +31,4 @@ function isAuthRole(role: string, roles: readonly AuthRole[]): role is AuthRole 
 }
 
 export type { AdminUser } from "@bmhk-2026/api";
-export { getAuthRoleLabel, isAuthRole, type AuthRole, type EmailDomainFilter, type RoleFilter };
+export { getAuthRoleLabel, isAuthRole, type AuthRole, type RoleFilter };

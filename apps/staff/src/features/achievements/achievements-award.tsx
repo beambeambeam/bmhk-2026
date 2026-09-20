@@ -60,7 +60,10 @@ function AchievementsAward({ team }: AchievementsAwardProps) {
   const setAwardMutation = useMutation(
     orpc.teams.setAward.mutationOptions({
       onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() }),
+          queryClient.invalidateQueries({ queryKey: orpc.teamRegistrationReviews.list.key() }),
+        ]);
       },
     }),
   );

@@ -88,6 +88,7 @@ export const teamRegistrationReviewListRowSchema = z
   .object({
     advisor: teamRegistrationReviewListSubjectStatusSchema,
     id: z.uuid(),
+    index: z.number().int(),
     lastUpdatedAt: z.date().nullable(),
     memberCount: z.int().nonnegative(),
     name: z.string(),

@@ -1,4 +1,4 @@
-import type { AdminProcedure } from "../../core/procedure";
+import type { UserManagementProcedure } from "../../core/procedure";
 import { userDirectoryAccessedAudit, userRoleChangedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import {
@@ -10,14 +10,17 @@ import {
 } from "./admin-users.schema";
 import type { AdminUserService } from "./admin-users.service";
 
-export function createAdminUsersRouter(adminProcedure: AdminProcedure, service: AdminUserService) {
+export function createAdminUsersRouter(
+  userManagementProcedure: UserManagementProcedure,
+  service: AdminUserService,
+) {
   return {
-    filter: adminProcedure
-      .route({ method: "GET", tags: ["Admin User"] })
+    filter: userManagementProcedure
+      .route({ method: "GET", tags: ["User Management"] })
       .output(adminUserFilterOptionsSchema)
       .handler(() => service.filter()),
-    list: adminProcedure
-      .route({ method: "GET", tags: ["Admin User"] })
+    list: userManagementProcedure
+      .route({ method: "GET", tags: ["User Management"] })
       .input(listAdminUsersSchema)
       .output(adminUserListResultSchema)
       .handler(
@@ -31,8 +34,8 @@ export function createAdminUsersRouter(adminProcedure: AdminProcedure, service: 
             log: context.log,
           }),
       ),
-    setRole: adminProcedure
-      .route({ method: "PATCH", tags: ["Admin User"] })
+    setRole: userManagementProcedure
+      .route({ method: "PATCH", tags: ["User Management"] })
       .input(setAdminUserRoleSchema)
       .output(adminUserRoleResultSchema)
       .handler(async ({ context, input }) => {

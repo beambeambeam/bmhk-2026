@@ -94,6 +94,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     staffProcedure,
     teamAccessProcedure,
     teamOwnerProcedure,
+    userManagementProcedure,
   } = createProcedures(dependencies);
   const adminUserRepository = dependencies.adminUsers ?? createAdminUserRepository();
   const apiKeyRepository = dependencies.apiKeys ?? createApiKeyRepository();
@@ -116,7 +117,10 @@ export function createAppRouter(dependencies: ApiDependencies) {
   const staffOverseersRepository = dependencies.staffOverseers ?? createStaffOverseersRepository();
 
   return {
-    adminUsers: createAdminUsersRouter(adminProcedure, createAdminUserService(adminUserRepository)),
+    adminUsers: createAdminUsersRouter(
+      userManagementProcedure,
+      createAdminUserService(adminUserRepository),
+    ),
     apiKeys: createApiKeysRouter(
       adminProcedure,
       createApiKeyService(apiKeyRepository, dependencies.auth),

@@ -1,11 +1,19 @@
 import { os } from "@orpc/server";
-import { hasAdminAccess, hasRegistrationAccess, hasStaffAccess } from "@bmhk-2026/auth/permission";
+import {
+  hasAdminAccess,
+  hasRegistrationAccess,
+  hasStaffAccess,
+  hasUserManagementAccess,
+} from "@bmhk-2026/auth/permission";
 import { createError } from "evlog";
 import { evlog } from "evlog/orpc";
 
 import type { ApiKeyVerification, ApiSession, AuthReader, TeamAccessContext } from "./auth";
 import type { ApiContext } from "./context";
-import { adminAccessDeniedAudit } from "../features/audit/audit.actions";
+import {
+  adminAccessDeniedAudit,
+  userManagementAccessDeniedAudit,
+} from "../features/audit/audit.actions";
 
 export interface ProcedureDependencies {
   auth: AuthReader;
@@ -90,6 +98,27 @@ export function createProcedures(dependencies: ProcedureDependencies) {
         message: "Administrator access required",
         status: 403,
         why: "The authenticated user is not an administrator",
+      });
+    }
+
+    return await next();
+  });
+  const userManagementProcedure = protectedProcedure.use(async ({ context, next, path }) => {
+    if (!hasUserManagementAccess(context.session.user.role)) {
+      context.log.audit(
+        userManagementAccessDeniedAudit({
+          actor: { id: context.session.user.id, type: "user" },
+          outcome: "denied",
+          reason: "USER_MANAGEMENT_ACCESS_REQUIRED",
+          target: { id: path.join("."), type: "user-management-operation" },
+        }),
+      );
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for user management access",
+        message: "User management access required",
+        status: 403,
+        why: "The authenticated user lacks user management access permission",
       });
     }
 
@@ -202,6 +231,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     staffProcedure,
     teamAccessProcedure,
     teamOwnerProcedure,
+    userManagementProcedure,
   };
 }
 
@@ -213,3 +243,6 @@ export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAcces
 export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
 export type StaffProcedure = ReturnType<typeof createProcedures>["staffProcedure"];
 export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];
+export type UserManagementProcedure = ReturnType<
+  typeof createProcedures
+>["userManagementProcedure"];

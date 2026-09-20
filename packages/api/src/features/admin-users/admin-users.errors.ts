@@ -38,6 +38,6 @@ export function createAdminUserRoleForbiddenError() {
     fix: "Ask a super administrator to manage this account",
     message: "Role change not permitted",
     status: 403,
-    why: "Administrators may only manage lower roles and cannot change their own role",
+    why: "Operators may only manage lower roles and cannot change their own role",
   });
 }

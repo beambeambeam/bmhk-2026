@@ -4,6 +4,7 @@ import {
   getManageableRoles,
   hasRegistrationAccess,
   hasStaffAccess,
+  hasUserManagementAccess,
   isAuthRole,
   roles,
 } from "../permission";
@@ -18,6 +19,7 @@ describe("super administrator permissions", () => {
       "staff",
       "user",
     ]);
+    expect(getManageableRoles("registrationStaff")).toStrictEqual(["staff", "user"]);
     expect(getManageableRoles("staff")).toStrictEqual([]);
     expect(getManageableRoles("admin,superAdmin")).toStrictEqual([]);
   });
@@ -35,6 +37,14 @@ describe("super administrator permissions", () => {
   it("gives registration staff registration and staff permissions", () => {
     expect(hasRegistrationAccess("registrationStaff")).toBeTruthy();
     expect(hasStaffAccess("registrationStaff")).toBeTruthy();
+  });
+
+  it("only grants user management access to roles with manageable accounts", () => {
+    expect(hasUserManagementAccess("registrationStaff")).toBeTruthy();
+    expect(hasUserManagementAccess("admin")).toBeTruthy();
+    expect(hasUserManagementAccess("superAdmin")).toBeTruthy();
+    expect(hasUserManagementAccess("staff")).toBeFalsy();
+    expect(hasUserManagementAccess("user")).toBeFalsy();
   });
 
   it("rejects unknown and combined roles at application boundaries", () => {

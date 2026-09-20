@@ -51,6 +51,9 @@ function getManageableRoles(role: string | null | undefined): readonly AuthRole[
   if (role === "superAdmin") {
     return authRoleValues;
   }
+  if (role === "registrationStaff") {
+    return ["staff", "user"];
+  }
   return role === "admin" ? ["registrationStaff", "staff", "user"] : [];
 }
 
@@ -64,6 +67,10 @@ function hasRegistrationAccess(role: string | null | undefined): boolean {
   }
 
   return roles[role].authorize({ staff: ["registration_access"] }).success;
+}
+
+function hasUserManagementAccess(role: string | null | undefined): boolean {
+  return getManageableRoles(role).length > 0;
 }
 
 function hasStaffAccess(role: string | null | undefined): boolean {
@@ -83,6 +90,7 @@ export {
   getManageableRoles,
   hasRegistrationAccess,
   hasStaffAccess,
+  hasUserManagementAccess,
   permissionStatement,
   registrationStaff,
   roles,

@@ -5,13 +5,11 @@ import type {
   TeamAccessProcedure,
   TeamOwnerProcedure,
 } from "../../core/procedure";
-import {
-  awardChangedAudit,
-  teamDeletedAudit,
-  teamRegistrationDeletedAudit,
-} from "../audit/audit.actions";
+import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
+import type { FeatureFlagService } from "../feature-flags/feature-flags.service";
 import { assertAllowedOrigin } from "../files/files.service";
+import { createRegistrationClosedError } from "./teams.errors";
 import type { TeamService } from "./teams.service";
 import {
   createTeamSchema,
@@ -33,6 +31,7 @@ export function createTeamsRouter(
   teamAccessProcedure: TeamAccessProcedure,
   teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamService,
+  featureFlagService: FeatureFlagService,
 ) {
   return {
     create: protectedProcedure
@@ -43,6 +42,9 @@ export function createTeamsRouter(
       .input(createTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
+        if (!featureFlagService.getAll().registration) {
+          throw createRegistrationClosedError();
+        }
         const team = await service.create(context.session.user.id, input);
         context.log.set({ team: { id: team.id } });
         return team;
@@ -57,27 +59,6 @@ export function createTeamsRouter(
       .handler(async ({ context, input }) => {
         const result = await executeAudited({
           audit: teamDeletedAudit({
-            actor: { id: context.teamAccess.actorId, type: "user" },
-            target: { id: input.id, teamId: input.id },
-          }),
-          deniedErrorCodes: ["TEAM_NOT_FOUND"],
-          execute: async () => await service.delete(context.teamAccess, input.id),
-          log: context.log,
-        });
-
-        context.log.set({ team: { id: input.id } });
-        return result;
-      }),
-    deleteRegistration: registrationProcedure
-      .route({
-        method: "DELETE",
-        tags: ["Team"],
-      })
-      .input(teamIdInputSchema)
-      .output(deleteTeamResultSchema)
-      .handler(async ({ context, input }) => {
-        const result = await executeAudited({
-          audit: teamRegistrationDeletedAudit({
             actor: { id: context.teamAccess.actorId, type: "user" },
             target: { id: input.id, teamId: input.id },
           }),

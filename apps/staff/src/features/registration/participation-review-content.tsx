@@ -749,4 +749,4 @@ function ParticipationReviewContent({
   );
 }
 
-export { ParticipationReviewContent };
+export { ParticipationReviewContent, TeamSummary };

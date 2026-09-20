@@ -14,6 +14,7 @@ import { ArrowUp } from "lucide-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { getEligibilityLabel } from "./participation-eligibility";
 import { ParticipationPagination } from "./participation-pagination";
 import { ParticipationReviewDialog } from "./participation-review-dialog";
 import { StatusChip } from "./participation-review-status";
@@ -39,6 +40,7 @@ const tableColumns = [
   "การส่งสมัคร",
   "วันที่ส่ง",
   "ตรวจสอบ",
+  "สิทธิ์เข้าแข่งขันในรอบแรก",
   "อัปเดตโดย",
   "อัปเดตล่าสุด",
 ] as const;
@@ -116,21 +118,22 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           </SelectContent>
         </Select>
       </div>
-      <Table className="table-fixed min-w-[64rem]">
+      <Table className="table-fixed min-w-[76rem]">
         <TableHeader>
           <TableRow>
             {tableColumns.map((label, index) => (
               <TableHead
                 className={`${
                   [
-                    "w-[14%]",
                     "w-[12%]",
+                    "w-[11%]",
+                    "w-[6%]",
                     "w-[8%]",
                     "w-[9%]",
+                    "w-[9%]",
+                    "w-[16%]",
                     "w-[10%]",
-                    "w-[10%]",
-                    "w-[11%]",
-                    "w-[14%]",
+                    "w-[13%]",
                   ][index]
                 } whitespace-normal`}
                 key={label}
@@ -141,25 +144,27 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                 </span>
               </TableHead>
             ))}
-            <TableHead className="w-[12%] whitespace-normal">จัดการ</TableHead>
+            <TableHead className="w-[6%] whitespace-normal">
+              <span className="sr-only">จัดการ</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {query.isLoading ? (
             <TableRow>
-              <TableCell colSpan={9}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
+              <TableCell colSpan={10}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
             </TableRow>
           ) : null}
           {query.isError ? (
             <TableRow>
-              <TableCell className="text-destructive" colSpan={9}>
+              <TableCell className="text-destructive" colSpan={10}>
                 ไม่สามารถโหลดข้อมูลการสมัครได้
               </TableCell>
             </TableRow>
           ) : null}
           {!query.isLoading && !query.isError && teams.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9}>ไม่พบข้อมูลการสมัคร</TableCell>
+              <TableCell colSpan={10}>ไม่พบข้อมูลการสมัคร</TableCell>
             </TableRow>
           ) : null}
           {teams.map((team) => (
@@ -176,6 +181,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
               <TableCell>
                 <StatusChip value={team.reviewStatus} />
               </TableCell>
+              <TableCell className="whitespace-normal">{getEligibilityLabel(team.award)}</TableCell>
               <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
               <TableCell className="whitespace-normal">
                 {formatStaffDateTime(team.lastUpdatedAt)}

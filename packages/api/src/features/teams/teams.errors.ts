@@ -14,6 +14,16 @@ export function createTeamAlreadyExistsError() {
   });
 }
 
+export function createRegistrationClosedError() {
+  return createError({
+    code: "REGISTRATION_CLOSED",
+    fix: "Wait for the next competition round to register",
+    message: "Registration is closed",
+    status: 403,
+    why: "Teams can only be created while the registration window is open",
+  });
+}
+
 export function createTeamRepositoryError(
   cause: unknown = new Error("Unknown team repository error"),
 ) {

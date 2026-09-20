@@ -7,7 +7,9 @@ import type {
 } from "../../core/procedure";
 import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
+import type { FeatureFlagService } from "../feature-flags/feature-flags.service";
 import { assertAllowedOrigin } from "../files/files.service";
+import { createRegistrationClosedError } from "./teams.errors";
 import type { TeamService } from "./teams.service";
 import {
   createTeamSchema,
@@ -29,6 +31,7 @@ export function createTeamsRouter(
   teamAccessProcedure: TeamAccessProcedure,
   teamOwnerProcedure: TeamOwnerProcedure,
   service: TeamService,
+  featureFlagService: FeatureFlagService,
 ) {
   return {
     create: protectedProcedure
@@ -39,6 +42,9 @@ export function createTeamsRouter(
       .input(createTeamSchema)
       .output(teamSchema)
       .handler(async ({ context, input }) => {
+        if (!featureFlagService.getAll().registration) {
+          throw createRegistrationClosedError();
+        }
         const team = await service.create(context.session.user.id, input);
         context.log.set({ team: { id: team.id } });
         return team;

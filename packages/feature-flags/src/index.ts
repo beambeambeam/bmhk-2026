@@ -16,7 +16,7 @@ export const featureFlags = {
     startsAt: "2026-09-22T00:00:00+07:00",
   },
   registration: {
-    endsAt: "2026-09-20T00:00:00+07:00",
+    endsAt: "2026-09-21T00:00:00+07:00",
     startsAt: "2026-08-19T00:00:00+07:00",
   },
 } as const;

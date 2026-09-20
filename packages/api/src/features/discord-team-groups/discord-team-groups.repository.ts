@@ -2,9 +2,8 @@ import { db } from "@bmhk-2026/db";
 import { discordTeamGroupMembers } from "@bmhk-2026/db/schema/discord-team-group-members";
 import { discordTeamGroupOverseers } from "@bmhk-2026/db/schema/discord-team-group-overseers";
 import { discordTeamGroups } from "@bmhk-2026/db/schema/discord-team-groups";
-import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
+import { asc, eq, isNotNull, notInArray, sql } from "drizzle-orm";
 
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import {
@@ -144,17 +143,11 @@ export function createDiscordTeamGroupsRepository(
             teamSchool: teams.school,
           })
           .from(teams)
-          // Only teams whose registration documents passed staff review are eligible for a team
-          // group — an inner join excludes teams with no review yet or a non-approved one.
-          .innerJoin(
-            teamRegistrationReviews,
-            and(
-              eq(teamRegistrationReviews.teamId, teams.id),
-              eq(teamRegistrationReviews.status, "APPROVED"),
-            ),
-          )
           .leftJoin(discordTeamGroupMembers, eq(discordTeamGroupMembers.teamId, teams.id))
           .leftJoin(discordTeamGroups, eq(discordTeamGroups.id, discordTeamGroupMembers.groupId))
+          // Only teams eligible for the first round ("มีสิทธิ์เข้าแข่งขันในรอบแรก"): judged, and not
+          // NOT_QUALIFIED.
+          .where(notInArray(teams.award, ["NO_ACHIEVEMENT", "NOT_QUALIFIED"]))
           .orderBy(asc(teams.index));
 
         return rows.map((row) => ({

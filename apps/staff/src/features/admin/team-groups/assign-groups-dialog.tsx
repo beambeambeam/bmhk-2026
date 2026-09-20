@@ -89,8 +89,8 @@ function AssignGroupsDialog() {
         <DialogHeader>
           <DialogTitle>Assign team groups</DialogTitle>
           <DialogDescription>
-            This overwrites every existing group and reassigns all teams that passed document
-            review, in team-index order, into new groups of the given size.
+            This overwrites every existing group and reassigns all teams eligible for the first
+            round, in team-index order, into new groups of the given size.
           </DialogDescription>
         </DialogHeader>
         <FieldGroup>

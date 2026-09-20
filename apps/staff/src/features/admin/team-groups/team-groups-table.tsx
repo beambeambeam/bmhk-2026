@@ -37,7 +37,7 @@ function TeamGroupsTable({ teams }: TeamGroupsTableProps) {
           {teams.length === 0 ? (
             <TableRow>
               <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                No teams have passed document review yet.
+                No teams are eligible for the first round yet.
               </TableCell>
             </TableRow>
           ) : (

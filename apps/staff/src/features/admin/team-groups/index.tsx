@@ -11,7 +11,7 @@ function TeamGroupsAdminPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-base leading-snug font-medium">Team groups</h1>
         <p className="text-sm text-muted-foreground">
-          Every team that passed document review, and the Discord team group it&apos;s assigned to.
+          Every team eligible for the first round, and the Discord team group it&apos;s assigned to.
         </p>
       </div>
       <TeamGroupsTable teams={teamsQuery.data ?? []} />

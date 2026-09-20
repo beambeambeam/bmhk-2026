@@ -90,7 +90,6 @@ export const teamRegistrationReviewListRowSchema = z
   .object({
     advisor: teamRegistrationReviewListSubjectStatusSchema,
     award: teamSchema.shape.award,
-    firstRoundEligibility: teamSchema.shape.firstRoundEligibility,
     id: z.uuid(),
     index: z.number().int(),
     lastUpdatedAt: z.date().nullable(),

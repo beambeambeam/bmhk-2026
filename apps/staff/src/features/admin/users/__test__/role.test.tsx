@@ -56,8 +56,10 @@ describe("admin user role", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "แก้ไขบทบาทของ staff@kmutt.ac.th" }));
 
-    const roleDialog = await screen.findByRole("dialog", { name: "แก้ไขบทบาทผู้ใช้" });
-    expect(roleDialog).toBeTruthy();
+    await screen.findByRole("dialog", { name: "แก้ไขบทบาทผู้ใช้" });
+    expect(screen.getByRole("combobox", { name: "บทบาท" }).textContent).toContain(
+      getAuthRoleLabel(user.role),
+    );
 
     fireEvent.click(screen.getByRole("combobox", { name: "บทบาท" }));
     const adminOption = await screen.findByRole("option", { name: getAuthRoleLabel(role) });

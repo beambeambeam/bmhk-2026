@@ -63,6 +63,14 @@ describe("participations table", () => {
     expect(screen.getByRole("cell", { name: label })).toBeDefined();
   });
 
+  it.each(["ROUND_1_COMPLETED", "FIRST_PLACE"] as const)(
+    "shows higher award %s as first-round eligibility",
+    (award) => {
+      renderTable(award);
+      expect(screen.getByRole("cell", { name: "มีสิทธิ์เข้าแข่งขันในรอบแรก" })).toBeDefined();
+    },
+  );
+
   it("opens eligibility from the team actions menu", async () => {
     renderTable("NO_ACHIEVEMENT");
     fireEvent.click(screen.getByRole("button", { name: "จัดการทีม" }));

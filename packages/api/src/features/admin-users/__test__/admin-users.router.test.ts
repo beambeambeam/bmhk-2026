@@ -73,7 +73,6 @@ describe("admin users router", () => {
     const input = {
       columnFilters: [
         { id: "email" as const, value: "@kmutt.ac.th" },
-        { id: "emailDomain" as const, value: "kmutt.ac.th" as const },
         { id: "name" as const, value: "Beam" },
         { id: "role" as const, value: "staff" as const },
       ],
@@ -160,7 +159,7 @@ describe("admin users router", () => {
     expect(list).not.toHaveBeenCalled();
   });
 
-  it("denies non-administrators before listing sensitive users", async () => {
+  it("denies staff before listing sensitive users", async () => {
     const list = vi.fn<AdminUserRepository["list"]>();
     const router = createRouter(
       createRepository({ list }),
@@ -177,11 +176,11 @@ describe("admin users router", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
     expect(list).not.toHaveBeenCalled();
     expect(log.audit).toHaveBeenCalledWith({
-      action: "admin.access.denied",
+      action: "user-management.access.denied",
       actor: { id: "staff-1", type: "user" },
       outcome: "denied",
-      reason: "ADMIN_ACCESS_REQUIRED",
-      target: { id: "adminUsers.list", type: "admin-operation" },
+      reason: "USER_MANAGEMENT_ACCESS_REQUIRED",
+      target: { id: "adminUsers.list", type: "user-management-operation" },
     });
   });
 
@@ -218,8 +217,12 @@ describe("admin users router", () => {
     });
   });
 
-  it("denies non-administrators before changing a role and audits the attempt", async () => {
-    const setRole = vi.fn<AdminUserRepository["setRole"]>();
+  it("lets registration staff change a user to staff and audits the change", async () => {
+    const setRole = vi.fn<AdminUserRepository["setRole"]>(async (userId, role) => ({
+      previousRole: "user",
+      role,
+      userId,
+    }));
     const router = createRouter(
       createRepository({ setRole }),
       createTestAuthReader(
@@ -234,14 +237,42 @@ describe("admin users router", () => {
         { role: "staff", userId: TARGET_USER_ID },
         { context, path: ["adminUsers", "setRole"] },
       ),
+    ).resolves.toStrictEqual({ role: "staff", userId: TARGET_USER_ID });
+    expect(setRole).toHaveBeenCalledWith(TARGET_USER_ID, "staff", ["staff", "user"]);
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "user.role.changed",
+      actor: { id: "staff-1", type: "user" },
+      changes: {
+        after: { role: "staff" },
+        before: { role: "user" },
+      },
+      outcome: "success",
+      target: { id: TARGET_USER_ID, type: "user" },
+    });
+  });
+
+  it("denies staff before changing a role and audits the attempt", async () => {
+    const setRole = vi.fn<AdminUserRepository["setRole"]>();
+    const router = createRouter(
+      createRepository({ setRole }),
+      createTestAuthReader(createTestSession({ user: { id: "staff-1", role: "staff" } })),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.setRole,
+        { role: "user", userId: TARGET_USER_ID },
+        { context, path: ["adminUsers", "setRole"] },
+      ),
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
     expect(setRole).not.toHaveBeenCalled();
     expect(log.audit).toHaveBeenCalledWith({
-      action: "admin.access.denied",
+      action: "user-management.access.denied",
       actor: { id: "staff-1", type: "user" },
       outcome: "denied",
-      reason: "ADMIN_ACCESS_REQUIRED",
-      target: { id: "adminUsers.setRole", type: "admin-operation" },
+      reason: "USER_MANAGEMENT_ACCESS_REQUIRED",
+      target: { id: "adminUsers.setRole", type: "user-management-operation" },
     });
   });
 
@@ -301,6 +332,25 @@ describe("admin users router", () => {
     const { context, log } = createTestContext();
     await expect(
       call(router.setRole, { role, userId: TARGET_USER_ID }, { context }),
+    ).rejects.toMatchObject({ code: "ADMIN_USER_ROLE_FORBIDDEN", status: 403 });
+    expect(setRole).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "user.role.changed", outcome: "denied" }),
+    );
+  });
+
+  it("denies registration staff promotion to registration staff", async () => {
+    const setRole = vi.fn<AdminUserRepository["setRole"]>();
+    const router = createRouter(
+      createRepository({ setRole }),
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-1", role: "registrationStaff" } }),
+      ),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(router.setRole, { role: "registrationStaff", userId: TARGET_USER_ID }, { context }),
     ).rejects.toMatchObject({ code: "ADMIN_USER_ROLE_FORBIDDEN", status: 403 });
     expect(setRole).not.toHaveBeenCalled();
     expect(log.audit).toHaveBeenCalledWith(

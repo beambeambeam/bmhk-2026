@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
-import type { AuthRole, EmailDomainFilter, RoleFilter } from "./types";
+import type { AuthRole, RoleFilter } from "./types";
 
 const TABLE_USER_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -50,7 +50,6 @@ function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
     email: "",
     name: "",
   });
-  const [emailDomainFilter, setEmailDomainFilter] = useState<EmailDomainFilter>("all");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -81,9 +80,6 @@ function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
     if (debouncedSearches.email.length > 0) {
       filters.push({ id: "email", value: debouncedSearches.email });
     }
-    if (emailDomainFilter !== "all") {
-      filters.push({ id: "emailDomain", value: emailDomainFilter });
-    }
     if (debouncedSearches.name.length > 0) {
       filters.push({ id: "name", value: debouncedSearches.name });
     }
@@ -92,7 +88,7 @@ function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
     }
 
     return filters;
-  }, [debouncedSearches, emailDomainFilter, roleFilter]);
+  }, [debouncedSearches, roleFilter]);
 
   const listQuery = useMemo<AdminUserListQuery>(
     () => ({
@@ -147,16 +143,11 @@ function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
     <div className="flex flex-col gap-5">
       <AdminUsersFilter
         email={searches.email}
-        emailDomainFilter={emailDomainFilter}
         name={searches.name}
         roleFilter={roleFilter}
         roles={roles}
         onEmailChange={(email) => {
           setSearches((currentSearches) => ({ ...currentSearches, email }));
-        }}
-        onEmailDomainChange={(emailDomain) => {
-          setEmailDomainFilter(emailDomain);
-          resetPage();
         }}
         onNameChange={(name) => {
           setSearches((currentSearches) => ({ ...currentSearches, name }));

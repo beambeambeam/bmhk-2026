@@ -43,6 +43,13 @@ const review: TeamRegistrationReview = {
   updatedAt: new Date("2026-01-01"),
 };
 
+const changesRequestedReview: TeamRegistrationReview = {
+  ...review,
+  advisorIssueCodes: ["ข้อมูลไม่ตรง"],
+  internalNotes: "กรุณาแก้ไขข้อมูล",
+  status: "CHANGES_REQUESTED",
+};
+
 describe("participation review", () => {
   afterEach(cleanup);
 
@@ -77,5 +84,63 @@ describe("participation review", () => {
     fireEvent.click(approve);
     fireEvent.click(requestChanges);
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("keeps both footer actions enabled while a review is pending", () => {
+    const onSave = vi.fn<() => void>();
+    render(
+      <Dialog open>
+        <ParticipationReviewContent
+          schoolTeams={[]}
+          schoolTeamsError={false}
+          schoolTeamsLoading={false}
+          advisor={undefined}
+          canReview
+          consent={undefined}
+          hasDetailsError={false}
+          isLoading={false}
+          lastUpdatedAt={null}
+          review={{ ...review, status: "PENDING_REVIEW" }}
+          participants={[]}
+          reviewedByName={null}
+          savePending={false}
+          team={team}
+          teamId={team.id}
+          onSave={onSave}
+        />
+      </Dialog>,
+    );
+
+    expect(screen.getByRole("button", { name: "อนุมัติ" }).hasAttribute("disabled")).toBeFalsy();
+    expect(screen.getByRole("button", { name: "ขอให้แก้ไข" }).hasAttribute("disabled")).toBeFalsy();
+  });
+
+  it("keeps both footer actions enabled when changes were requested", () => {
+    const onSave = vi.fn<() => void>();
+    render(
+      <Dialog open>
+        <ParticipationReviewContent
+          schoolTeams={[]}
+          schoolTeamsError={false}
+          schoolTeamsLoading={false}
+          advisor={undefined}
+          canReview
+          consent={undefined}
+          hasDetailsError={false}
+          isLoading={false}
+          lastUpdatedAt={null}
+          review={changesRequestedReview}
+          participants={[]}
+          reviewedByName={null}
+          savePending={false}
+          team={team}
+          teamId={team.id}
+          onSave={onSave}
+        />
+      </Dialog>,
+    );
+
+    expect(screen.getByRole("button", { name: "อนุมัติ" }).hasAttribute("disabled")).toBeFalsy();
+    expect(screen.getByRole("button", { name: "ขอให้แก้ไข" }).hasAttribute("disabled")).toBeFalsy();
   });
 });

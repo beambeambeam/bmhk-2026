@@ -14,6 +14,7 @@ import type { AuthRole, RoleFilter } from "./types";
 
 const TABLE_USER_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
+const DEFAULT_ADMIN_USER_EMAIL_SUFFIX = "@kmutt.ac.th";
 const SORTABLE_COLUMN_IDS = ["email", "name", "role"] as const;
 
 interface AdminUserSearches {
@@ -143,6 +144,7 @@ function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
     <div className="flex flex-col gap-5">
       <AdminUsersFilter
         email={searches.email}
+        emailSuffix={filterOptionsQuery.data?.emailSuffix ?? DEFAULT_ADMIN_USER_EMAIL_SUFFIX}
         name={searches.name}
         roleFilter={roleFilter}
         roles={roles}

@@ -201,6 +201,17 @@ async function isRegistrationOpen(): Promise<boolean> {
   }
 }
 
+// A user without a team gets TEAM_NOT_FOUND. That is a normal state, and it must not abort the
+// loader before the closed-window check runs.
+async function getRegistrationStatusOrNull() {
+  try {
+    return await client.teamRegistrationStatus.get({});
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
 export const Route = createFileRoute("/register")({
   component: RegisterLayout,
   ssr: false,
@@ -215,7 +226,7 @@ export const Route = createFileRoute("/register")({
   },
   loader: async ({ location }) => {
     try {
-      const statusRes = await client.teamRegistrationStatus.get({});
+      const statusRes = await getRegistrationStatusOrNull();
 
       if (
         statusRes !== null &&

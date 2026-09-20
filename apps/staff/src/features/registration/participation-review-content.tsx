@@ -574,21 +574,13 @@ function ReviewForm({
 
 interface ReviewActionsProps {
   readonly review: TeamRegistrationReview | null | undefined;
-  readonly canApprove: boolean;
-  readonly canRequestChanges: boolean;
+  readonly canSubmit: boolean;
   readonly canReview: boolean;
   readonly savePending: boolean;
   readonly onSave: (status: ReviewStatus) => void;
 }
 
-function ReviewActions({
-  review,
-  canApprove,
-  canRequestChanges,
-  canReview,
-  savePending,
-  onSave,
-}: ReviewActionsProps) {
+function ReviewActions({ review, canSubmit, canReview, savePending, onSave }: ReviewActionsProps) {
   if (!canReview) {
     return null;
   }
@@ -596,7 +588,7 @@ function ReviewActions({
   return (
     <DialogFooter>
       <Button
-        disabled={review?.status === "APPROVED" || savePending || !canRequestChanges}
+        disabled={review?.status === "APPROVED" || savePending || !canSubmit}
         variant="destructive"
         onClick={() => {
           onSave("CHANGES_REQUESTED");
@@ -605,7 +597,7 @@ function ReviewActions({
         ขอให้แก้ไข
       </Button>
       <Button
-        disabled={review?.status === "APPROVED" || savePending || !canApprove}
+        disabled={review?.status === "APPROVED" || savePending || !canSubmit}
         onClick={() => {
           onSave("APPROVED");
         }}
@@ -739,8 +731,7 @@ function ParticipationReviewContent({
       </div>
       <ReviewActions
         review={review}
-        canApprove={team !== undefined && !hasIssues}
-        canRequestChanges={team !== undefined && hasIssues && hasNotes}
+        canSubmit={team !== undefined}
         canReview={canReview}
         savePending={savePending}
         onSave={save}

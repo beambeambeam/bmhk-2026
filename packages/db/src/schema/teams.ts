@@ -28,17 +28,6 @@ export const teamAwardValues = [
 
 export const teamAwardEnum = pgEnum("team_award", teamAwardValues);
 
-export const firstRoundEligibilityValues = ["PENDING", "ELIGIBLE", "NOT_ELIGIBLE"] as const;
-export const firstRoundEligibilityDecisionValues = [
-  "ELIGIBLE",
-  "NOT_ELIGIBLE",
-] as const satisfies readonly Exclude<(typeof firstRoundEligibilityValues)[number], "PENDING">[];
-
-export const firstRoundEligibilityEnum = pgEnum(
-  "first_round_eligibility",
-  firstRoundEligibilityValues,
-);
-
 export const roundTwoEligibleAwardValues = [
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
@@ -53,9 +42,6 @@ export const teams = pgTable(
   {
     award: teamAwardEnum("award").default("NO_ACHIEVEMENT").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    firstRoundEligibility: firstRoundEligibilityEnum("first_round_eligibility")
-      .default("PENDING")
-      .notNull(),
     id: uuid("id").defaultRandom().primaryKey(),
     image: uuid("image").references(() => files.id, { onDelete: "set null" }),
     index: serial("index").notNull(),

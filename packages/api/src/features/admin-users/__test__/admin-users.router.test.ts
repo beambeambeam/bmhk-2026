@@ -54,6 +54,7 @@ describe("admin users router", () => {
     await expect(
       call(router.filter, undefined, { context, path: ["adminUsers", "filter"] }),
     ).resolves.toStrictEqual({
+      emailSuffix: "@kmutt.ac.th",
       roles: ["superAdmin", "admin", "registrationStaff", "staff", "user"],
     });
   });
@@ -90,6 +91,30 @@ describe("admin users router", () => {
       outcome: "success",
       target: { id: "admin-users", type: "user-directory" },
     });
+  });
+
+  it("rejects user rows outside the configured email suffix", async () => {
+    const list = vi.fn<AdminUserRepository["list"]>(async () => ({
+      rowCount: 1,
+      rows: [
+        {
+          email: "member@example.com",
+          id: TARGET_USER_ID,
+          name: "Member",
+          role: "user",
+        },
+      ],
+    }));
+    const router = createRouter(createRepository({ list }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.list,
+        { columnFilters: [], pagination: { pageIndex: 0, pageSize: 10 }, sorting: [] },
+        { context, path: ["adminUsers", "list"] },
+      ),
+    ).rejects.toThrow("Output validation failed");
   });
 
   it("applies shared table query defaults", async () => {

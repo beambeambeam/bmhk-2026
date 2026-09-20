@@ -1,4 +1,14 @@
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +56,7 @@ function ParticipationReviewDialog({
   teamId,
 }: ParticipationReviewDialogProps) {
   const [mode, setMode] = useState<"review" | "eligibility" | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const isOpen = mode !== null;
   const queryClient = useQueryClient();
   const teamQuery = useQuery({ ...getParticipationQueryOptions(teamId), enabled: isOpen });
@@ -91,6 +102,23 @@ function ParticipationReviewDialog({
     }),
   );
 
+  const deleteTeam = useMutation(
+    orpc.teams.deleteRegistration.mutationOptions({
+      onError: () => {
+        toast.error("ไม่สามารถลบทีมได้ กรุณาลองใหม่อีกครั้ง");
+      },
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.teamRegistrationReviews.list.key() }),
+          queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() }),
+        ]);
+        toast.success("ลบทีมและข้อมูลการสมัครแล้ว");
+        setIsDeleteOpen(false);
+        setMode(null);
+      },
+    }),
+  );
+
   const setAward = useMutation(
     orpc.teams.setAward.mutationOptions({
       onError: () => {
@@ -127,6 +155,10 @@ function ParticipationReviewDialog({
     });
   }
 
+  function deleteRegistration(): void {
+    deleteTeam.mutate({ id: teamId });
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -150,6 +182,15 @@ function ParticipationReviewDialog({
               }}
             >
               สิทธิ์เข้ารอบแรก
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => {
+                setIsDeleteOpen(true);
+              }}
+            >
+              <Trash2 aria-hidden="true" />
+              ลบทีม
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
@@ -226,6 +267,41 @@ function ParticipationReviewDialog({
           </DialogContent>
         ) : null}
       </Dialog>
+      <AlertDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!deleteTeam.isPending) {
+            setIsDeleteOpen(open);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ลบทีม</AlertDialogTitle>
+            <AlertDialogDescription>
+              การลบทีมจะลบข้อมูลทีมและการสมัครออกจากระบบ และไม่สามารถย้อนกลับได้
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={deleteTeam.isPending}
+              render={<Button type="button" variant="outline" />}
+            >
+              ยกเลิก
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="text-white"
+              render={<Button type="button" variant="destructive" />}
+              onClick={(event) => {
+                event.preventDefault();
+                deleteRegistration();
+              }}
+            >
+              {deleteTeam.isPending ? "กำลังลบ..." : "ยืนยันการลบ"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

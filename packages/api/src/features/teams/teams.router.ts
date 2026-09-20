@@ -5,7 +5,11 @@ import type {
   TeamAccessProcedure,
   TeamOwnerProcedure,
 } from "../../core/procedure";
-import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
+import {
+  awardChangedAudit,
+  teamDeletedAudit,
+  teamRegistrationDeletedAudit,
+} from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import type { TeamService } from "./teams.service";
@@ -53,6 +57,27 @@ export function createTeamsRouter(
       .handler(async ({ context, input }) => {
         const result = await executeAudited({
           audit: teamDeletedAudit({
+            actor: { id: context.teamAccess.actorId, type: "user" },
+            target: { id: input.id, teamId: input.id },
+          }),
+          deniedErrorCodes: ["TEAM_NOT_FOUND"],
+          execute: async () => await service.delete(context.teamAccess, input.id),
+          log: context.log,
+        });
+
+        context.log.set({ team: { id: input.id } });
+        return result;
+      }),
+    deleteRegistration: registrationProcedure
+      .route({
+        method: "DELETE",
+        tags: ["Team"],
+      })
+      .input(teamIdInputSchema)
+      .output(deleteTeamResultSchema)
+      .handler(async ({ context, input }) => {
+        const result = await executeAudited({
+          audit: teamRegistrationDeletedAudit({
             actor: { id: context.teamAccess.actorId, type: "user" },
             target: { id: input.id, teamId: input.id },
           }),

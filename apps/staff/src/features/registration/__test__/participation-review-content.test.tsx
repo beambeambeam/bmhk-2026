@@ -2,7 +2,7 @@
 
 import type { TeamDetails, TeamRegistrationReview } from "@bmhk-2026/api";
 import { Dialog } from "@/components/dialog";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ParticipationReviewContent } from "../participation-review-content";
 
@@ -53,7 +53,7 @@ const changesRequestedReview: TeamRegistrationReview = {
 describe("participation review", () => {
   afterEach(cleanup);
 
-  it("disables both footer actions once the review is approved", () => {
+  it("allows an approved review to request changes again", () => {
     const onSave = vi.fn<() => void>();
     render(
       <Dialog open>
@@ -78,12 +78,11 @@ describe("participation review", () => {
       </Dialog>,
     );
     const approve = screen.getByRole("button", { name: "อนุมัติ" });
-    const requestChanges = screen.getByRole("button", { name: "ขอให้แก้ไข" });
+    const requestChanges = screen.getByRole("button", {
+      name: "ยกเลิกอนุมัติและขอให้แก้ไข",
+    });
     expect(approve.hasAttribute("disabled")).toBeTruthy();
-    expect(requestChanges.hasAttribute("disabled")).toBeTruthy();
-    fireEvent.click(approve);
-    fireEvent.click(requestChanges);
-    expect(onSave).not.toHaveBeenCalled();
+    expect(requestChanges.hasAttribute("disabled")).toBeFalsy();
   });
 
   it("keeps both footer actions enabled while a review is pending", () => {

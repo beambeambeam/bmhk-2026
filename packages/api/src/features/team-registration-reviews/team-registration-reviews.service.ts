@@ -163,7 +163,6 @@ export function createTeamRegistrationReviewService(
       const rows = records.map(({ review, reviewedByName, team }) => ({
         advisor: listSubjectStatus(review, "advisor"),
         award: team.award,
-        firstRoundEligibility: team.firstRoundEligibility,
         id: team.id,
         index: team.index,
         lastUpdatedAt: review?.updatedAt ?? null,

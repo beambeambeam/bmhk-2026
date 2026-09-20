@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import type { FirstRoundEligibility } from "@bmhk-2026/api";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ParticipationEligibility } from "../participation-eligibility";
@@ -9,13 +8,13 @@ describe("first-round eligibility", () => {
   afterEach(cleanup);
 
   it.each([
-    ["มีสิทธิ์เข้าแข่งขันในรอบแรก", "ELIGIBLE"],
-    ["ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก", "NOT_ELIGIBLE"],
+    ["มีสิทธิ์เข้าแข่งขันในรอบแรก", "REGISTRATION_COMPLETED"],
+    ["ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก", "NOT_QUALIFIED"],
   ] as const)("confirms before saving %s", async (label, award) => {
-    const onConfirm = vi.fn<(eligibility: Exclude<FirstRoundEligibility, "PENDING">) => void>();
+    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETED" | "NOT_QUALIFIED") => void>();
     render(
       <ParticipationEligibility
-        firstRoundEligibility="PENDING"
+        award="NO_ACHIEVEMENT"
         canEdit
         pending={false}
         onConfirm={onConfirm}
@@ -34,10 +33,10 @@ describe("first-round eligibility", () => {
     expect(onConfirm).toHaveBeenCalledExactlyOnceWith(award);
   });
   it("blocks further actions while confirmation is saving", () => {
-    const onConfirm = vi.fn<(eligibility: Exclude<FirstRoundEligibility, "PENDING">) => void>();
+    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETED" | "NOT_QUALIFIED") => void>();
     const { rerender } = render(
       <ParticipationEligibility
-        firstRoundEligibility="PENDING"
+        award="NO_ACHIEVEMENT"
         canEdit
         pending={false}
         onConfirm={onConfirm}
@@ -45,12 +44,7 @@ describe("first-round eligibility", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "มีสิทธิ์เข้าแข่งขันในรอบแรก" }));
     rerender(
-      <ParticipationEligibility
-        firstRoundEligibility="PENDING"
-        canEdit
-        pending
-        onConfirm={onConfirm}
-      />,
+      <ParticipationEligibility award="NO_ACHIEVEMENT" canEdit pending onConfirm={onConfirm} />,
     );
     const confirm = screen.getByRole("button", { name: "กำลังบันทึก..." });
     expect(confirm.hasAttribute("disabled")).toBeTruthy();
@@ -60,10 +54,10 @@ describe("first-round eligibility", () => {
   });
 
   it("disables eligibility changes without permission", () => {
-    const onConfirm = vi.fn<(eligibility: Exclude<FirstRoundEligibility, "PENDING">) => void>();
+    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETED" | "NOT_QUALIFIED") => void>();
     render(
       <ParticipationEligibility
-        firstRoundEligibility="PENDING"
+        award="NO_ACHIEVEMENT"
         canEdit={false}
         pending={false}
         onConfirm={onConfirm}

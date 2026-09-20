@@ -243,9 +243,8 @@ describe("team registration reviews router", () => {
 
   it("returns the team's award with each review queue row", async () => {
     const team = {
-      award: "NO_ACHIEVEMENT",
+      award: "REGISTRATION_COMPLETED",
       createdAt: REVIEWED_AT,
-      firstRoundEligibility: "ELIGIBLE",
       id: TEAM_ID,
       image: null,
       index: 1,
@@ -282,8 +281,7 @@ describe("team registration reviews router", () => {
       rows: [
         {
           advisor: "APPROVED",
-          award: "NO_ACHIEVEMENT",
-          firstRoundEligibility: "ELIGIBLE",
+          award: "REGISTRATION_COMPLETED",
           id: TEAM_ID,
           index: 1,
           lastUpdatedAt: REVIEWED_AT,

@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import type {
   AuthReader,
-  FirstRoundEligibilityDecision,
   FileRepository,
   StoredFile,
   Team,
@@ -54,15 +53,9 @@ const expectedAwards = [
   "FIRST_PLACE",
 ] as const satisfies readonly TeamAward[];
 
-const expectedFirstRoundEligibilityDecisions = [
-  "ELIGIBLE",
-  "NOT_ELIGIBLE",
-] as const satisfies readonly FirstRoundEligibilityDecision[];
-
 const testTeam = {
   award: "NO_ACHIEVEMENT",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
-  firstRoundEligibility: "PENDING",
   id: TEAM_ID,
   image: null,
   index: 1,
@@ -111,13 +104,6 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
         await Promise.resolve({
           previous: testTeam,
           team: { ...testTeam, award },
-        })),
-    setFirstRoundEligibility:
-      overrides.setFirstRoundEligibility ??
-      (async (_access, _id, firstRoundEligibility) =>
-        await Promise.resolve({
-          previous: testTeam,
-          team: { ...testTeam, firstRoundEligibility },
         })),
     update:
       overrides.update ??
@@ -965,64 +951,6 @@ describe("teams router", () => {
     ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
     expect(log.audit).toHaveBeenCalledWith({
       action: "team.award.changed",
-      actor: { id: USER_ID, type: "user" },
-      outcome: "failure",
-      reason: "TEAM_NOT_FOUND",
-      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
-    });
-  });
-
-  it.each(expectedFirstRoundEligibilityDecisions)(
-    "lets registration staff set first-round eligibility to %s",
-    async (firstRoundEligibility) => {
-      const repository = createTeamRepository({
-        setFirstRoundEligibility: async (access, _id, nextEligibility) => {
-          expect(access).toStrictEqual({ actorId: USER_ID, scope: "ALL_TEAMS" });
-          return await Promise.resolve({
-            previous: testTeam,
-            team: { ...testTeam, firstRoundEligibility: nextEligibility },
-          });
-        },
-      });
-      const router = createRouter(repository, createRegistrationAuthReader());
-      const { context, log } = createContext();
-
-      await expect(
-        call(
-          router.teams.setFirstRoundEligibility,
-          { firstRoundEligibility, id: TEAM_ID },
-          { context, path: ["teams", "setFirstRoundEligibility"] },
-        ),
-      ).resolves.toMatchObject({ firstRoundEligibility });
-      expect(log.audit).toHaveBeenCalledWith({
-        action: "team.first-round-eligibility.changed",
-        actor: { id: USER_ID, type: "user" },
-        changes: {
-          after: { firstRoundEligibility },
-          before: { firstRoundEligibility: "PENDING" },
-        },
-        outcome: "success",
-        target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
-      });
-    },
-  );
-
-  it("audits a failed first-round eligibility change", async () => {
-    const repository = createTeamRepository({
-      setFirstRoundEligibility: async () => await Promise.resolve(null),
-    });
-    const router = createRouter(repository, createRegistrationAuthReader());
-    const { context, log } = createContext();
-
-    await expect(
-      call(
-        router.teams.setFirstRoundEligibility,
-        { firstRoundEligibility: "ELIGIBLE", id: TEAM_ID },
-        { context, path: ["teams", "setFirstRoundEligibility"] },
-      ),
-    ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
-    expect(log.audit).toHaveBeenCalledWith({
-      action: "team.first-round-eligibility.changed",
       actor: { id: USER_ID, type: "user" },
       outcome: "failure",
       reason: "TEAM_NOT_FOUND",

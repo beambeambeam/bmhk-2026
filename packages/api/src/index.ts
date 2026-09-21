@@ -185,3 +185,20 @@ export { createStaffDiscordLinkService } from "./features/staff-discord-link/sta
 export type { StaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
 export { staffVerifyTokenCreateInputSchema } from "./features/staff-discord-link/staff-discord-link.schema";
 export type { StaffDiscordLinkResult } from "./features/staff-discord-link/staff-discord-link.schema";
+export { createDiscordAdminRepository } from "./features/discord-admin/discord-admin.repository";
+export type { DiscordAdminRepository } from "./features/discord-admin/discord-admin.repository";
+export { createDiscordAdminService } from "./features/discord-admin/discord-admin.service";
+export type {
+  AbsentTeam,
+  CodeInfoResult,
+  DiscordAdminService,
+  RepairFactsResponse,
+  TeamInfo,
+  UnlinkParticipantResult,
+  UnlinkStaffResult,
+} from "./features/discord-admin/discord-admin.service";
+export {
+  discordAdminCodeInputSchema,
+  discordAdminTeamQuerySchema,
+  discordAdminUserInputSchema,
+} from "./features/discord-admin/discord-admin.schema";

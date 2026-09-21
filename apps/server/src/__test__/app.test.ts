@@ -1,6 +1,7 @@
 import type {
   ApiSession,
   AuthReader,
+  DiscordAdminService,
   DiscordService,
   DiscordTeamGroupsService,
   FileRepository,
@@ -144,12 +145,27 @@ function createTestStaffDiscordLinkService(
   };
 }
 
+function createTestDiscordAdminService(
+  overrides: Partial<DiscordAdminService> = {},
+): DiscordAdminService {
+  return {
+    absentTeams: async () => await Promise.resolve([]),
+    codeInfo: async () => await Promise.resolve({ status: "NOT_FOUND" }),
+    repairFacts: async () => await Promise.resolve({ participants: [], staff: [] }),
+    teamInfo: async () => await Promise.resolve([]),
+    unlinkParticipant: async () => await Promise.resolve({ status: "NOT_LINKED" }),
+    unlinkStaff: async () => await Promise.resolve({ status: "NOT_LINKED" }),
+    ...overrides,
+  };
+}
+
 function createTestApp(
   getSession?: GetSession,
   teamGroupsService: DiscordTeamGroupsService = createTestTeamGroupsService(),
   verifyApiKey: AuthReader["verifyApiKey"] = createTestVerifyApiKey(),
   staffDiscordLinkService: StaffDiscordLinkService = createTestStaffDiscordLinkService(),
   drain?: DrainFn,
+  discordAdminService: DiscordAdminService = createTestDiscordAdminService(),
 ) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
@@ -167,6 +183,7 @@ function createTestApp(
       apiRouter,
       auth: testAuth.auth,
       corsOrigins: ["http://localhost:3001", "http://localhost:3002"],
+      discordAdminService,
       discordService: createTestDiscordService(),
       observability: {
         drain: composeDrains(createMemoryDrain({ store }), drain),
@@ -714,6 +731,109 @@ describe("server app", () => {
     await expect(response.json()).resolves.toStrictEqual({
       expires_at: "2026-01-01T00:10:00.000Z",
       token: "abc123",
+    });
+  });
+
+  describe("discord admin routes", () => {
+    function adminRequest(path: string, init: RequestInit = {}) {
+      return new Request(`http://localhost/api/discord/admin${path}`, {
+        ...init,
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+      });
+    }
+
+    it.each([
+      ["GET", "/code-info?code=ABCD2345"],
+      ["GET", "/teams?index=1"],
+      ["GET", "/absent-teams"],
+      ["GET", "/repair-facts"],
+      ["POST", "/unlink"],
+      ["POST", "/unlink-staff"],
+    ])("rejects %s %s without a valid api key", async (method, path) => {
+      const { app } = createTestApp();
+
+      const response = await app.handle(
+        new Request(`http://localhost/api/discord/admin${path}`, { method }),
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it("looks a team up by index", async () => {
+      const teamInfo = vi.fn<DiscordAdminService["teamInfo"]>(
+        async () => await Promise.resolve([]),
+      );
+      const { app } = createTestApp(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        createTestDiscordAdminService({ teamInfo }),
+      );
+
+      const response = await app.handle(adminRequest("/teams?index=12"));
+
+      expect(response.status).toBe(200);
+      expect(teamInfo).toHaveBeenCalledWith({ index: 12 });
+    });
+
+    it.each(["/teams", "/teams?index=1&name=a", "/teams?index=abc", "/teams?id=xyz"])(
+      "rejects the team lookup %s unless exactly one valid selector is given",
+      async (path) => {
+        const { app } = createTestApp();
+
+        const response = await app.handle(adminRequest(path));
+
+        expect(response.status).toBe(400);
+      },
+    );
+
+    it("unlinks a participant's Discord user", async () => {
+      const unlinkParticipant = vi.fn<DiscordAdminService["unlinkParticipant"]>(
+        async () => await Promise.resolve({ channel_id: "chan-1", status: "UNLINKED" }),
+      );
+      const { app } = createTestApp(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        createTestDiscordAdminService({ unlinkParticipant }),
+      );
+
+      const response = await app.handle(
+        adminRequest("/unlink", {
+          body: JSON.stringify({ discord_user_id: "111" }),
+          method: "POST",
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toStrictEqual({
+        channel_id: "chan-1",
+        status: "UNLINKED",
+      });
+      expect(unlinkParticipant).toHaveBeenCalledWith("111");
+    });
+
+    it("rejects an unlink without a Discord user id", async () => {
+      const { app } = createTestApp();
+
+      const response = await app.handle(
+        adminRequest("/unlink-staff", { body: JSON.stringify({}), method: "POST" }),
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it("answers code-info for a valid code", async () => {
+      const { app } = createTestApp();
+
+      const response = await app.handle(adminRequest("/code-info?code=ABCD2345"));
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toStrictEqual({ status: "NOT_FOUND" });
     });
   });
 });

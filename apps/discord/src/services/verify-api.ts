@@ -4,6 +4,7 @@ import { serverFetch } from "../lib/server-fetch.js";
 // Defined locally (not imported) because apps/discord must not depend on
 // @bmhk-2026/api directly — see apps/discord/AGENTS.md.
 export const bmhkDiscordStatus = {
+  ALREADY_LINKED: 3,
   ALREADY_REDEEMED: 2,
   NOT_FOUND: 1,
   SUCCESS: 0,

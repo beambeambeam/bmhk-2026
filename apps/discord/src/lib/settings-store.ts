@@ -4,6 +4,7 @@ import { getDb } from "./db.js";
 export interface SettingsStore {
   get: (key: string) => string | null;
   set: (key: string, value: string) => void;
+  remove: (key: string) => void;
   list: () => { key: string; value: string }[];
 }
 
@@ -16,6 +17,7 @@ export function createSqliteSettingsStore(db: Database): SettingsStore {
   const setStatement = db.query<never, [string, string]>(
     "INSERT INTO settings (key, value) VALUES (?1, ?2) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
   );
+  const removeStatement = db.query<never, [string]>("DELETE FROM settings WHERE key = ?1");
   const listStatement = db.query<{ key: string; value: string }, []>(
     "SELECT key, value FROM settings ORDER BY key",
   );
@@ -26,6 +28,9 @@ export function createSqliteSettingsStore(db: Database): SettingsStore {
     },
     list() {
       return listStatement.all();
+    },
+    remove(key) {
+      removeStatement.run(key);
     },
     set(key, value) {
       setStatement.run(key, value);
@@ -62,6 +67,12 @@ if (import.meta.main) {
   const rows = store.list();
   if (rows.length !== 2 || rows[0]?.key !== "a" || rows[1]?.key !== "b") {
     throw new Error(`expected ordered list of 2 rows, got ${JSON.stringify(rows)}`);
+  }
+
+  store.remove("a");
+  store.remove("never-set");
+  if (store.get("a") !== null || store.get("b") !== "3") {
+    throw new Error("expected remove to delete only the given key");
   }
 
   db.close();

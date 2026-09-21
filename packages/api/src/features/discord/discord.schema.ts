@@ -32,6 +32,7 @@ export const discordCodeLookupSchema = discordParticipantWithDiscordSchema
   .strict();
 
 export const discordStatus = {
+  ALREADY_LINKED: 3,
   ALREADY_REDEEMED: 2,
   NOT_FOUND: 1,
   SUCCESS: 0,

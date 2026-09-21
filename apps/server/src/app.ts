@@ -1,6 +1,7 @@
 import type {
   AppRouter,
   AuthReader,
+  DiscordAdminService,
   DiscordService,
   DiscordTeamGroupsService,
   StaffDiscordLinkService,
@@ -20,6 +21,7 @@ export interface CreateAppOptions {
   apiRouter: AppRouter;
   auth: typeof auth;
   corsOrigins: string[];
+  discordAdminService: DiscordAdminService;
   discordService: DiscordService;
   observability?: EvlogElysiaOptions;
   staffDiscordLinkService: StaffDiscordLinkService;
@@ -31,6 +33,7 @@ export function createApp({
   apiRouter,
   auth,
   corsOrigins,
+  discordAdminService,
   discordService,
   observability,
   staffDiscordLinkService,
@@ -48,7 +51,13 @@ export function createApp({
     .use(createAuthModule(auth))
     .use(createApiModule(apiRouter))
     .use(
-      createDiscordModule(discordService, teamGroupsService, staffDiscordLinkService, verifyApiKey),
+      createDiscordModule(
+        discordService,
+        teamGroupsService,
+        staffDiscordLinkService,
+        discordAdminService,
+        verifyApiKey,
+      ),
     )
     .get("/", () => "OK");
 }

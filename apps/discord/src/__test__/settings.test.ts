@@ -8,6 +8,9 @@ function createFakeStore(initial: Record<string, string> = {}): SettingsStore {
   return {
     get: (key) => rows.get(key) ?? null,
     list: () => [...rows.entries()].map(([key, value]) => ({ key, value })),
+    remove: (key) => {
+      rows.delete(key);
+    },
     set: (key, value) => {
       rows.set(key, value);
     },

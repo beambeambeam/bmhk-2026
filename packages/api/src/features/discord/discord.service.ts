@@ -8,6 +8,9 @@ export interface DiscordService {
 }
 
 const TEAM_NAME_MAX_LENGTH = 17;
+const TEAM_INDEX_PAD_LENGTH = 3;
+const NICKNAME_MAX_LENGTH = 32;
+const ALT_SUFFIX = " [A]";
 
 function toDisplayName(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`.trim();
@@ -20,8 +23,10 @@ function toNickname(params: {
   wasAlt: boolean;
 }): string {
   const cappedTeamName = params.teamName.slice(0, TEAM_NAME_MAX_LENGTH);
-  const base = `${params.teamIndex} - ${cappedTeamName} - ${params.firstNameTh}`;
-  return params.wasAlt ? `${base} [ALT]` : base;
+  const prefix = `${String(params.teamIndex).padStart(TEAM_INDEX_PAD_LENGTH, "0")}-${cappedTeamName}-`;
+  const suffix = params.wasAlt ? ALT_SUFFIX : "";
+  const nameBudget = Math.max(0, NICKNAME_MAX_LENGTH - prefix.length - suffix.length);
+  return `${prefix}${params.firstNameTh.slice(0, nameBudget)}${suffix}`;
 }
 
 export function createDiscordService(repository: DiscordRepository): DiscordService {

@@ -11,6 +11,7 @@ import ResultModal from "./components/result-modal";
 import DiscordCodesModal from "./components/discord-codes-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
 import TeamDecor from "./components/team-decor";
+import { formatCodernName, formatTeamCode } from "./team-code";
 import { getBaseMembers, QUALIFIED_MODAL, REJECTED_MODAL } from "./team-data";
 import type { TeamStatus } from "./team-data";
 
@@ -196,7 +197,7 @@ function getMappedStatus(
 function getDisplayTeam(
   team:
     | {
-        id: string;
+        index: number;
         name: string;
         school: string;
         image?: { url: string } | string | null;
@@ -205,11 +206,12 @@ function getDisplayTeam(
     | null,
 ) {
   if (team === undefined || team === null) {
-    return { code: "", image: undefined, name: "", school: "" };
+    return { code: "", codernName: "", image: undefined, name: "", school: "" };
   }
   const imageUrl = typeof team.image === "string" ? team.image : team.image?.url;
   return {
-    code: team.id.slice(0, 8).toUpperCase(),
+    code: formatTeamCode(team.index),
+    codernName: formatCodernName(team.index, team.name),
     image: imageUrl,
     name: team.name,
     school: team.school,
@@ -585,9 +587,26 @@ function PaneTabs({ pane, setPane }: { pane: Pane; setPane: (p: Pane) => void })
   );
 }
 
-function TeamHeader({ displayTeam }: { displayTeam: ReturnType<typeof getDisplayTeam> }) {
+function CopyButton({ label, value }: { label: string; value: string }) {
   const { copied, copy } = useCopiedState();
 
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        copy(value);
+      }}
+      aria-label={copied ? `คัดลอก${label}แล้ว` : `คัดลอก${label}`}
+      data-on={copied}
+      className={`mm-swap mm-press-icon transition-opacity hover:opacity-60 ${COPY_BOX}`}
+    >
+      <img src={COPY} alt="" aria-hidden className={`mm-swap-off ${COPY_BOX}`} />
+      <Tick className={`mm-swap-on text-brand-green ${COPY_BOX}`} />
+    </button>
+  );
+}
+
+function TeamHeader({ displayTeam }: { displayTeam: ReturnType<typeof getDisplayTeam> }) {
   const hasImage =
     displayTeam.image !== null && displayTeam.image !== undefined && displayTeam.image !== "";
 
@@ -609,22 +628,18 @@ function TeamHeader({ displayTeam }: { displayTeam: ReturnType<typeof getDisplay
         className={`flex min-w-0 flex-1 flex-col items-center ${LOCKUP_STACK_GAP_8_16} sm:items-start`}
       >
         <h1 className="fl-24 leading-[1.4] font-medium">{displayTeam.name}</h1>
-        <p className={`flex items-center ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}>
-          <span className="text-gray-2">รหัสทีม</span>
-          <span>{displayTeam.code}</span>
-          <button
-            type="button"
-            onClick={() => {
-              copy(displayTeam.code);
-            }}
-            aria-label={copied ? "คัดลอกรหัสทีมแล้ว" : "คัดลอกรหัสทีม"}
-            data-on={copied}
-            className={`mm-swap mm-press-icon transition-opacity hover:opacity-60 ${COPY_BOX}`}
-          >
-            <img src={COPY} alt="" aria-hidden className={`mm-swap-off ${COPY_BOX}`} />
-            <Tick className={`mm-swap-on text-brand-green ${COPY_BOX}`} />
-          </button>
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:justify-start">
+          <p className={`flex items-center ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}>
+            <span className="text-gray-2">รหัสทีม</span>
+            <span>{displayTeam.code}</span>
+            <CopyButton label="รหัสทีม" value={displayTeam.code} />
+          </p>
+          <p className={`flex items-center ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}>
+            <span className="text-gray-2">ชื่อบัญชี Codern</span>
+            <span className="break-all">{displayTeam.codernName}</span>
+            <CopyButton label="ชื่อ Codern" value={displayTeam.codernName} />
+          </p>
+        </div>
         <p
           className={`flex flex-wrap items-start ${LOCKUP_ROW_GAP_8_12} ${LOCKUP_14_18} leading-[1.4]`}
         >

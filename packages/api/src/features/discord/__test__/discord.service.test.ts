@@ -59,14 +59,14 @@ describe(createDiscordService, () => {
     });
   });
 
-  it("formats the nickname as index - team name - Thai first name", async () => {
+  it("formats the nickname as zero-padded index-team name-Thai first name", async () => {
     const service = createDiscordService(createFakeRepository());
 
     const result = await service.verify("good-code", "discord-1");
 
     expect(result).toStrictEqual({
       channel_id: "channel-1",
-      nickname: "1 - Team Alpha - นรินทร์",
+      nickname: "001-Team Alpha-นรินทร์",
       status: discordStatus.SUCCESS,
     });
   });
@@ -88,10 +88,10 @@ describe(createDiscordService, () => {
 
     const result = await service.verify("good-code", "discord-1");
 
-    expect(result.nickname).toBe("2 - A Very Long Team  - นรินทร์");
+    expect(result.nickname).toBe("002-A Very Long Team -นรินทร์");
   });
 
-  it("appends [ALT] for an alt-account redemption", async () => {
+  it("appends [A] for an alt-account redemption", async () => {
     const service = createDiscordService(
       createFakeRepository({
         redeem: async () =>
@@ -108,7 +108,47 @@ describe(createDiscordService, () => {
 
     const result = await service.verify("good-code", "discord-1");
 
-    expect(result.nickname).toBe("1 - Team Alpha - นรินทร์ [ALT]");
+    expect(result.nickname).toBe("001-Team Alpha-นรินทร์ [A]");
+  });
+
+  it("truncates the first name so the nickname fits 32 characters", async () => {
+    const service = createDiscordService(
+      createFakeRepository({
+        redeem: async () =>
+          await Promise.resolve({
+            channelId: null,
+            firstNameTh: "สมชายนามยาวมาก",
+            outcome: "redeemed",
+            teamIndex: 7,
+            teamName: "aaaaaaaaaaaaaaaaa",
+            wasAlt: false,
+          }),
+      }),
+    );
+
+    const result = await service.verify("good-code", "discord-1");
+
+    expect(result.nickname).toBe("007-aaaaaaaaaaaaaaaaa-สมชายนามยา");
+  });
+
+  it("keeps the [A] marker when an alt nickname is truncated", async () => {
+    const service = createDiscordService(
+      createFakeRepository({
+        redeem: async () =>
+          await Promise.resolve({
+            channelId: null,
+            firstNameTh: "สมชายนามยา",
+            outcome: "redeemed",
+            teamIndex: 7,
+            teamName: "aaaaaaaaaaaaaaaaa",
+            wasAlt: true,
+          }),
+      }),
+    );
+
+    const result = await service.verify("good-code", "discord-1");
+
+    expect(result.nickname).toBe("007-aaaaaaaaaaaaaaaaa-สมชายน [A]");
   });
 
   it("reports an unknown code without a nickname", async () => {

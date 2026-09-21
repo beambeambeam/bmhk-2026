@@ -11,6 +11,10 @@ import type { ApiKeyRepository } from "./features/api-keys/api-keys.repository";
 import { createApiKeyRepository } from "./features/api-keys/api-keys.repository";
 import { createApiKeysRouter } from "./features/api-keys/api-keys.router";
 import { createApiKeyService } from "./features/api-keys/api-keys.service";
+import type { DiscordCodeRepository } from "./features/discord-codes/discord-codes.repository";
+import { createDiscordCodeRepository } from "./features/discord-codes/discord-codes.repository";
+import { createDiscordCodesRouter } from "./features/discord-codes/discord-codes.router";
+import { createDiscordCodeService } from "./features/discord-codes/discord-codes.service";
 import type { DiscordTeamGroupsRepository } from "./features/discord-team-groups/discord-team-groups.repository";
 import { createDiscordTeamGroupsRepository } from "./features/discord-team-groups/discord-team-groups.repository";
 import { createDiscordTeamGroupsAdminRouter } from "./features/discord-team-groups/discord-team-groups.router";
@@ -68,6 +72,7 @@ export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
   apiKeys?: ApiKeyRepository;
   auth: AuthReader;
+  discordCodes?: DiscordCodeRepository;
   discordTeamGroups?: DiscordTeamGroupsRepository;
   featureFlagClock?: () => Temporal.Instant;
   fileStorage?: FileStorage;
@@ -98,6 +103,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
   } = createProcedures(dependencies);
   const adminUserRepository = dependencies.adminUsers ?? createAdminUserRepository();
   const apiKeyRepository = dependencies.apiKeys ?? createApiKeyRepository();
+  const discordCodeRepository = dependencies.discordCodes ?? createDiscordCodeRepository();
   const discordTeamGroupsRepository =
     dependencies.discordTeamGroups ?? createDiscordTeamGroupsRepository();
   const teamAdvisorRepository = dependencies.teamAdvisors ?? createTeamAdvisorRepository();
@@ -125,6 +131,11 @@ export function createAppRouter(dependencies: ApiDependencies) {
     apiKeys: createApiKeysRouter(
       adminProcedure,
       createApiKeyService(apiKeyRepository, dependencies.auth),
+    ),
+    discordCodes: createDiscordCodesRouter(
+      registrationProcedure,
+      teamOwnerProcedure,
+      createDiscordCodeService(discordCodeRepository),
     ),
     featureFlags: createFeatureFlagsRouter(publicProcedure, featureFlagService),
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),

@@ -55,12 +55,7 @@ function DiscordMention({
 
   if (typeof href === "string" && href.trim() !== "") {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-block"
-      >
+      <a href={href} target="_blank" rel="noopener noreferrer" className="inline-block">
         {badge}
       </a>
     );
@@ -82,11 +77,7 @@ interface DiscordCodesModalProps {
   teamName?: string;
 }
 
-export default function DiscordCodesModal({
-  open,
-  onClose,
-  teamName,
-}: DiscordCodesModalProps) {
+export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCodesModalProps) {
   const [mounted, setMounted] = useState(open);
   const [state, setState] = useState<"open" | "closed">(open ? "open" : "closed");
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -205,9 +196,7 @@ export default function DiscordCodesModal({
       return;
     }
     const hasTeamName = typeof teamName === "string" && teamName.trim() !== "";
-    const header = hasTeamName
-      ? `รหัสเข้าร่วม Discord สำหรับทีม ${teamName}:`
-      : "รหัสเข้าร่วม Discord:";
+    const header = hasTeamName ? `รหัสเข้าร่วม Discord สำหรับทีม ${teamName}:` : "รหัสเข้าร่วม Discord:";
     const serverLine = `Discord Server: ${inviteUrl}`;
     const lines = participants.map((p) => `${p.participantIndex}. ${p.name}: ${p.code ?? "-"}`);
     const text = [header, serverLine, ...lines].join("\n");
@@ -311,9 +300,8 @@ export default function DiscordCodesModal({
                 )
               </li>
               <li>
-                พิมพ์คำสั่ง{" "}
-                <DiscordMention type="slash">verify</DiscordMention>{" "}
-                แล้วกรอกรหัส 8 หลักของตนเองเพื่อรับสิทธิ์และยศผู้เข้าแข่งขัน
+                พิมพ์คำสั่ง <DiscordMention type="slash">verify</DiscordMention> แล้วกรอกรหัส 8
+                หลักของตนเองเพื่อรับสิทธิ์และยศผู้เข้าแข่งขัน
               </li>
             </ol>
           </div>
@@ -328,9 +316,7 @@ export default function DiscordCodesModal({
 
           {isError && (
             <div className="flex flex-col items-center gap-3 rounded-[16px] border border-brand-red/20 bg-brand-red/5 p-6 text-center">
-              <p className="fl-14 font-medium text-brand-red">
-                {errorMessage}
-              </p>
+              <p className="fl-14 font-medium text-brand-red">{errorMessage}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -385,9 +371,7 @@ export default function DiscordCodesModal({
                           <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-gray-2">
                             คนที่ {p.participantIndex}
                           </span>
-                          <span className="truncate text-sm font-medium text-ink">
-                            {p.name}
-                          </span>
+                          <span className="truncate text-sm font-medium text-ink">{p.name}</span>
                         </div>
                         {isRedeemed ? (
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-medium text-brand-green">

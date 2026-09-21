@@ -3,13 +3,14 @@ import { discord } from "@bmhk-2026/db/schema/discord";
 import { discordTeamGroupMembers } from "@bmhk-2026/db/schema/discord-team-group-members";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { eq } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 
 import { createRepositoryExecutor } from "../../core/repository";
 import { discordRepositoryError } from "./discord.errors";
 import type { DiscordCodeLookup } from "./discord.schema";
 
 export type DiscordRedemptionResult =
+  | { outcome: "already_linked" }
   | { outcome: "already_redeemed" }
   | {
       channelId: string | null;
@@ -81,6 +82,24 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
       await execute(
         async () =>
           await database.transaction(async (tx) => {
+            // Row locks are per-row, so two codes redeemed by the same user at once
+            // would both pass the check below; serialize per Discord user instead.
+            await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${discordUserId}))`);
+
+            const [existingLink] = await tx
+              .select({ id: discord.id })
+              .from(discord)
+              .where(
+                or(
+                  eq(discord.mainAccUserId, discordUserId),
+                  eq(discord.altAccUserId, discordUserId),
+                ),
+              )
+              .limit(1);
+            if (existingLink) {
+              return { outcome: "already_linked" as const };
+            }
+
             const [row] = await tx
               .select({
                 altRedeemedAt: discord.altRedeemedAt,

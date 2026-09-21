@@ -1,10 +1,14 @@
 import type {
   AuthReader,
+  DiscordAdminService,
   DiscordService,
   DiscordTeamGroupsService,
   StaffDiscordLinkService,
 } from "@bmhk-2026/api";
 import {
+  discordAdminCodeInputSchema,
+  discordAdminTeamQuerySchema,
+  discordAdminUserInputSchema,
   discordQueryInputSchema,
   discordTeamGroupCategoryInputSchema,
   discordTeamGroupMemberChannelInputSchema,
@@ -30,6 +34,7 @@ export function createDiscordModule(
   service: DiscordService,
   teamGroupsService: DiscordTeamGroupsService,
   staffDiscordLinkService: StaffDiscordLinkService,
+  adminService: DiscordAdminService,
   verifyApiKey: AuthReader["verifyApiKey"],
 ) {
   return new Elysia({ name: "discord" }).group("/api/discord", (app) =>
@@ -131,6 +136,68 @@ export function createDiscordModule(
           input.data.discord_avatar_url,
         );
         return { expires_at: expiresAt.toISOString(), token };
+      })
+      .get("/admin/code-info", async ({ headers, query, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const input = discordAdminCodeInputSchema.safeParse({ code: query.code });
+        if (!input.success) {
+          return status(400);
+        }
+
+        return await adminService.codeInfo(input.data.code);
+      })
+      .get("/admin/teams", async ({ headers, query, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const input = discordAdminTeamQuerySchema.safeParse(query);
+        if (!input.success) {
+          return status(400);
+        }
+
+        return await adminService.teamInfo(input.data);
+      })
+      .get("/admin/absent-teams", async ({ headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        return await adminService.absentTeams();
+      })
+      .get("/admin/repair-facts", async ({ headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        return await adminService.repairFacts();
+      })
+      .post("/admin/unlink", async ({ body, headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const input = discordAdminUserInputSchema.safeParse(body);
+        if (!input.success) {
+          return status(400);
+        }
+
+        return await adminService.unlinkParticipant(input.data.discord_user_id);
+      })
+      .post("/admin/unlink-staff", async ({ body, headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const input = discordAdminUserInputSchema.safeParse(body);
+        if (!input.success) {
+          return status(400);
+        }
+
+        return await adminService.unlinkStaff(input.data.discord_user_id);
       }),
   );
 }

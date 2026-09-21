@@ -56,6 +56,10 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
         return { channel_id: null, nickname: null, status: discordStatus.ALREADY_REDEEMED };
       }
 
+      if (result.outcome === "already_linked") {
+        return { channel_id: null, nickname: null, status: discordStatus.ALREADY_LINKED };
+      }
+
       return {
         channel_id: result.channelId,
         nickname: toNickname({

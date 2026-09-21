@@ -11,6 +11,7 @@ const CUSTOM_ID_PREFIX = "verify-confirm:";
 const PARTICIPANT_ROLE_SETTING_KEY = "participantRole";
 
 const MESSAGE = {
+  ALREADY_LINKED: "บัญชี Discord นี้ยืนยันตัวตนแล้ว หากต้องการเปลี่ยนบัญชีหรือพบปัญหา กรุณาติดต่อทีมงาน",
   CODE_NOT_FOUND_OR_USED_UP:
     "ไม่พบรหัสยืนยันตัวตนหรือรหัสนี้ถูกใช้ครบตามจำนวนครั้งที่อนุญาตแล้ว หากนี้เป็นข้อผิดพลาด กรุณาติดต่อทีมงาน",
   GENERIC_ERROR: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
@@ -58,6 +59,14 @@ export function resolveVerifyConfirm(
       applied: false,
       message: MESSAGE.CODE_NOT_FOUND_OR_USED_UP,
       reason: "code already redeemed",
+    };
+  }
+
+  if (response.status === bmhkDiscordStatus.ALREADY_LINKED) {
+    return {
+      applied: false,
+      message: MESSAGE.ALREADY_LINKED,
+      reason: "discord user already linked",
     };
   }
 

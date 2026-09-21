@@ -105,4 +105,20 @@ describe(createDiscordService, () => {
       status: discordStatus.ALREADY_REDEEMED,
     });
   });
+
+  it("reports a Discord user who is already linked to a participant", async () => {
+    const service = createDiscordService(
+      createFakeRepository({
+        redeem: async () => await Promise.resolve({ outcome: "already_linked" }),
+      }),
+    );
+
+    const result = await service.verify("fresh-code", "discord-1");
+
+    expect(result).toStrictEqual({
+      channel_id: null,
+      nickname: null,
+      status: discordStatus.ALREADY_LINKED,
+    });
+  });
 });

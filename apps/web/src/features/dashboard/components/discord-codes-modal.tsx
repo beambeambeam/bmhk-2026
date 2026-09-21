@@ -94,18 +94,11 @@ export default function DiscordCodesModal({
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
 
-  const inviteUrl =
-    typeof env.VITE_DISCORD_INVITE_URL === "string" && env.VITE_DISCORD_INVITE_URL.trim() !== ""
-      ? env.VITE_DISCORD_INVITE_URL
-      : "https://discord.gg/bangmodhackathon";
+  const inviteUrl = env.VITE_DISCORD_INVITE_URL;
+  const verifyChannelUrl = env.VITE_DISCORD_VERIFY_CHANNEL_URL;
 
-  const verifyChannelUrl =
-    typeof env.VITE_DISCORD_VERIFY_CHANNEL_URL === "string" &&
-    env.VITE_DISCORD_VERIFY_CHANNEL_URL.trim() !== ""
-      ? env.VITE_DISCORD_VERIFY_CHANNEL_URL
-      : "https://discord.com/channels/1549696123826864249/1549696124611203093";
-
-  // oRPC call: automatically get or create codes for the team when modal is open
+  // oRPC call: automatically get or create codes for the team when modal is open.
+  // Cache indefinitely so reopening the dialog reuses previously generated codes.
   const {
     data: participants,
     isPending,
@@ -115,6 +108,7 @@ export default function DiscordCodesModal({
   } = useQuery({
     ...orpc.discordCodes.getOrCreate.queryOptions(),
     enabled: open,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   useDialogFocus(open && mounted, sheetRef);
@@ -188,16 +182,26 @@ export default function DiscordCodesModal({
     return cleanup;
   }, [copiedAll]);
 
-  function copySingle(code: string, index: number) {
+  async function copySingle(code: string, index: number) {
     if (code.trim() === "" || code === "-") {
       return;
     }
-    void navigator.clipboard?.writeText(code);
-    setCopiedIndex(index);
+    if (typeof navigator.clipboard?.writeText !== "function") {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedIndex(index);
+    } catch {
+      // Clipboard write failed or permission denied
+    }
   }
 
-  function copyAll() {
+  async function copyAll() {
     if (participants === undefined || participants.length === 0) {
+      return;
+    }
+    if (typeof navigator.clipboard?.writeText !== "function") {
       return;
     }
     const hasTeamName = typeof teamName === "string" && teamName.trim() !== "";
@@ -207,8 +211,12 @@ export default function DiscordCodesModal({
     const serverLine = `Discord Server: ${inviteUrl}`;
     const lines = participants.map((p) => `${p.participantIndex}. ${p.name}: ${p.code ?? "-"}`);
     const text = [header, serverLine, ...lines].join("\n");
-    void navigator.clipboard?.writeText(text);
-    setCopiedAll(true);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedAll(true);
+    } catch {
+      // Clipboard write failed or permission denied
+    }
   }
 
   if (!mounted) {
@@ -285,7 +293,15 @@ export default function DiscordCodesModal({
             </div>
             <ol className="flex flex-col gap-1.5 ps-6 text-gray-2 list-decimal">
               <li>
-                เข้าร่วม Discord Server ของการแข่งขัน
+                เข้าร่วม{" "}
+                <a
+                  href={inviteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-[#5865f2] underline decoration-[#5865f2]/40 underline-offset-2 transition-colors hover:decoration-[#5865f2]"
+                >
+                  Discord Server ของการแข่งขัน
+                </a>
               </li>
               <li>
                 ไปที่ห้องยืนยันตัวตน (
@@ -334,7 +350,9 @@ export default function DiscordCodesModal({
                 <span className="fl-14 font-medium text-ink">รายชื่อสมาชิกและรหัสประจำตัว</span>
                 <button
                   type="button"
-                  onClick={copyAll}
+                  onClick={() => {
+                    void copyAll();
+                  }}
                   className="mm-press inline-flex items-center gap-1.5 text-xs font-medium text-gray-2 transition-colors hover:text-ink"
                 >
                   {copiedAll ? (
@@ -390,7 +408,7 @@ export default function DiscordCodesModal({
                         <button
                           type="button"
                           onClick={() => {
-                            copySingle(code, p.participantIndex);
+                            void copySingle(code, p.participantIndex);
                           }}
                           className="mm-press flex items-center gap-1.5 rounded-[8px] bg-[#f5f5f5] px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:bg-[#ececec]"
                         >

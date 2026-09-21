@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,14 +7,14 @@ import DiscordCodesModal from "../discord-codes-modal";
 
 const mockParticipantsData = [
   {
-    code: "DISC1234",
-    name: "สมชาย เข็มกลัด",
+    code: "ABCD1234",
+    name: "John Doe",
     participantIndex: 1,
     status: "NOT_REDEEMED",
   },
   {
-    code: "DISC5678",
-    name: "สมหญิง จริงใจ",
+    code: "XYZ98765",
+    name: "Jane Smith",
     participantIndex: 2,
     status: "REDEEMED_ONCE",
   },
@@ -26,9 +25,12 @@ interface QueryOptionsResult {
   queryKey: string[];
 }
 
-const mockGetOrCreateQueryOptions = vi.fn<() => QueryOptionsResult>();
+const mockGetOrCreateQueryOptions = vi.fn<() => QueryOptionsResult>().mockReturnValue({
+  queryFn: async () => await Promise.resolve(mockParticipantsData),
+  queryKey: ["discordCodes", "getOrCreate"],
+});
 
-// oxlint-disable-next-line vitest/prefer-import-in-mock
+// oxlint-disable-next-line vitest/prefer-import-in-mock -- Boundary fake supplies procedures.
 vi.mock("@bmhk-2026/client/orpc", () => ({
   orpc: {
     discordCodes: {
@@ -60,17 +62,9 @@ describe(DiscordCodesModal, () => {
         writeText: writeTextMock,
       },
     });
-
-    mockGetOrCreateQueryOptions.mockReturnValue({
-      queryFn: async () => await Promise.resolve(mockParticipantsData),
-      queryKey: ["discordCodes", "getOrCreate"],
-    });
   });
 
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
+  afterEach(cleanup);
 
   it("renders modal header and verification instructions", () => {
     renderWithClient(
@@ -84,8 +78,10 @@ describe(DiscordCodesModal, () => {
     );
 
     expect(screen.getByText("รหัสเข้าร่วม Discord")).toBeDefined();
-    expect(screen.getByText("วิธียืนยันตัวตนด้วยคำสั่ง /verify")).toBeDefined();
     expect(screen.getByText("/verify")).toBeDefined();
+
+    const inviteLink = screen.getByRole("link", { name: "Discord Server ของการแข่งขัน" });
+    expect(inviteLink.getAttribute("href")).toBe("https://discord.gg/bangmodhackathon");
 
     const verifyChannelLink = screen.getByRole("link", { name: "#verify" });
     expect(verifyChannelLink.getAttribute("href")).toBe(
@@ -105,14 +101,13 @@ describe(DiscordCodesModal, () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("สมชาย เข็มกลัด")).toBeDefined();
-      expect(screen.getByText("DISC1234")).toBeDefined();
-      expect(screen.getByText("ยังไม่ยืนยัน")).toBeDefined();
-      expect(screen.getByText("ยืนยันตัวตนแล้ว")).toBeDefined();
+      expect(screen.getByText("John Doe")).toBeDefined();
     });
 
-    const inviteLink = screen.getByRole("link", { name: /ไปยัง Discord Server/iu });
-    expect(inviteLink.getAttribute("href")).toBe("https://discord.gg/bangmodhackathon");
+    expect(screen.getByText("ABCD1234")).toBeDefined();
+    expect(screen.getByText("ยังไม่ยืนยัน")).toBeDefined();
+    expect(screen.getByText("Jane Smith")).toBeDefined();
+    expect(screen.getByText("ยืนยันตัวตนแล้ว")).toBeDefined();
   });
 
   it("copies single code when copy button is clicked", async () => {
@@ -127,13 +122,18 @@ describe(DiscordCodesModal, () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("DISC1234")).toBeDefined();
+      expect(screen.getByText("ABCD1234")).toBeDefined();
     });
 
-    const copyButtons = screen.getAllByRole("button", { name: /คัดลอก/iu });
+    const copyButtons = screen.getAllByRole("button", { name: /คัดลอก/u });
+    expect(copyButtons.length).toBeGreaterThan(1);
+
     fireEvent.click(copyButtons[1]);
 
-    expect(writeTextMock).toHaveBeenCalledWith("DISC1234");
+    expect(writeTextMock).toHaveBeenCalledWith("ABCD1234");
+    await waitFor(() => {
+      expect(screen.getByText("คัดลอกแล้ว")).toBeDefined();
+    });
   });
 
   it("copies all codes when batch copy button is clicked", async () => {
@@ -151,29 +151,29 @@ describe(DiscordCodesModal, () => {
       expect(screen.getByText("คัดลอกรหัสทั้งหมด")).toBeDefined();
     });
 
-    const copyAllButton = screen.getByRole("button", { name: /คัดลอกรหัสทั้งหมด/iu });
-    fireEvent.click(copyAllButton);
+    const batchCopyButton = screen.getByRole("button", { name: /คัดลอกรหัสทั้งหมด/u });
+    fireEvent.click(batchCopyButton);
 
-    expect(writeTextMock).toHaveBeenCalledWith(
-      "รหัสเข้าร่วม Discord สำหรับทีม Awesome Team:\nDiscord Server: https://discord.gg/bangmodhackathon\n1. สมชาย เข็มกลัด: DISC1234\n2. สมหญิง จริงใจ: DISC5678",
-    );
+    const expectedText = [
+      "รหัสเข้าร่วม Discord สำหรับทีม Awesome Team:",
+      "Discord Server: https://discord.gg/bangmodhackathon",
+      "1. John Doe: ABCD1234",
+      "2. Jane Smith: XYZ98765",
+    ].join("\n");
+
+    expect(writeTextMock).toHaveBeenCalledWith(expectedText);
+    await waitFor(() => {
+      expect(screen.getByText("คัดลอกครบทุกคนแล้ว")).toBeDefined();
+    });
   });
 
   it("calls onClose when close button is clicked", () => {
-    const handleClose = vi.fn<() => void>();
-    renderWithClient(
-      <DiscordCodesModal
-        open={true}
-        onClose={() => {
-          handleClose();
-        }}
-        teamName="Awesome Team"
-      />,
-    );
+    const onCloseMock = vi.fn<() => void>();
+    renderWithClient(<DiscordCodesModal open={true} onClose={onCloseMock} />);
 
     const closeButton = screen.getByRole("button", { name: "ปิด" });
     fireEvent.click(closeButton);
 
-    expect(handleClose).toHaveBeenCalledOnce();
+    expect(onCloseMock).toHaveBeenCalledOnce();
   });
 });

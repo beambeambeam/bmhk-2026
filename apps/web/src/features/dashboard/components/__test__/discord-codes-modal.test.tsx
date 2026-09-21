@@ -150,7 +150,7 @@ describe(DiscordCodesModal, () => {
     fireEvent.click(copyAllButton);
 
     expect(writeTextMock).toHaveBeenCalledWith(
-      "รหัสเข้าร่วม Discord สำหรับทีม Awesome Team:\n1. สมชาย เข็มกลัด: DISC1234\n2. สมหญิง จริงใจ: DISC5678",
+      "รหัสเข้าร่วม Discord สำหรับทีม Awesome Team:\nDiscord Server: https://discord.gg/bangmodhackathon\n1. สมชาย เข็มกลัด: DISC1234\n2. สมหญิง จริงใจ: DISC5678",
     );
   });
 

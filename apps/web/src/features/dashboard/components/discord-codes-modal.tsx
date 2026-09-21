@@ -53,6 +53,11 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
 
+  const inviteUrl =
+    typeof env.VITE_DISCORD_INVITE_URL === "string" && env.VITE_DISCORD_INVITE_URL.trim() !== ""
+      ? env.VITE_DISCORD_INVITE_URL
+      : "https://discord.gg/bangmodhackathon";
+
   // oRPC call: automatically get or create codes for the team when modal is open
   const {
     data: participants,
@@ -150,8 +155,9 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
     }
     const hasTeamName = typeof teamName === "string" && teamName.trim() !== "";
     const header = hasTeamName ? `รหัสเข้าร่วม Discord สำหรับทีม ${teamName}:` : "รหัสเข้าร่วม Discord:";
+    const serverLine = `Discord Server: ${inviteUrl}`;
     const lines = participants.map((p) => `${p.participantIndex}. ${p.name}: ${p.code ?? "-"}`);
-    const text = [header, ...lines].join("\n");
+    const text = [header, serverLine, ...lines].join("\n");
     void navigator.clipboard?.writeText(text);
     setCopiedAll(true);
   }
@@ -159,11 +165,6 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
   if (!mounted) {
     return null;
   }
-
-  const inviteUrl =
-    typeof env.VITE_DISCORD_INVITE_URL === "string" && env.VITE_DISCORD_INVITE_URL.trim() !== ""
-      ? env.VITE_DISCORD_INVITE_URL
-      : "https://discord.gg/bangmodhackathon";
 
   const errorMessage = getErrorMessage(error);
 

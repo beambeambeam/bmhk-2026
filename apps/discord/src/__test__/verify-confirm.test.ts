@@ -9,6 +9,19 @@ import { bmhkDiscordStatus } from "../services/verify-api";
 const ROLE_ID = "1234567890";
 
 describe(resolveVerifyConfirm, () => {
+  it("tells a Discord user who is already linked to contact staff, without touching the member", () => {
+    const outcome = resolveVerifyConfirm(
+      { channel_id: null, nickname: null, status: bmhkDiscordStatus.ALREADY_LINKED },
+      ROLE_ID,
+    );
+
+    expect(outcome).toStrictEqual({
+      applied: false,
+      message: "บัญชี Discord นี้ยืนยันตัวตนแล้ว หากต้องการเปลี่ยนบัญชีหรือพบปัญหา กรุณาติดต่อทีมงาน",
+      reason: "discord user already linked",
+    });
+  });
+
   it("applies the nickname and role when the code verifies", () => {
     const outcome = resolveVerifyConfirm(
       {

@@ -41,7 +41,7 @@
 - Response bodies use snake_case wire keys (e.g. `main_acc_id`) on purpose, to
   match what this bot expects — don't remap them to camelCase.
 - A `200` response can still mean failure: check `status` against
-  `discordStatus` (`SUCCESS` / `NOT_FOUND` / `ALREADY_REDEEMED`, defined in
+  `discordStatus` (`SUCCESS` / `NOT_FOUND` / `ALREADY_REDEEMED` / `ALREADY_LINKED`, defined in
   `packages/api/src/features/discord/discord.schema.ts`) before trusting
   `data`/`nickname`.
 

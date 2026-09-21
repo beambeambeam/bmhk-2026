@@ -1,5 +1,7 @@
 import {
   createAppRouter,
+  createDiscordAdminRepository,
+  createDiscordAdminService,
   createDiscordRepository,
   createDiscordService,
   createDiscordTeamGroupsRepository,
@@ -39,6 +41,7 @@ const apiRouter = createAppRouter({
   auth: authReader,
   staffDiscordLinkService,
 });
+const discordAdminService = createDiscordAdminService(createDiscordAdminRepository());
 const discordService = createDiscordService(createDiscordRepository());
 const teamGroupsService = createDiscordTeamGroupsService(createDiscordTeamGroupsRepository());
 const auditObservability = createAuditObservabilityOptions({
@@ -50,6 +53,7 @@ const app = createApp({
   apiRouter,
   auth,
   corsOrigins: env.CORS_ORIGIN,
+  discordAdminService,
   discordService,
   observability: {
     ...auditObservability,

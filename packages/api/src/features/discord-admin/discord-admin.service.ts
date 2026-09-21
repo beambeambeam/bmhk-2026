@@ -111,14 +111,17 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
   return {
     absentTeams: async () => {
       const teams = await repository.listTeams();
-      return teams
-        .filter(
-          (team) =>
-            isEligible(team) &&
-            !team.participants.some((participant) => accountsOf(participant).length > 0),
-        )
-        .toSorted((left, right) => left.index - right.index)
-        .map(({ index, name, school }) => ({ index, name, school }));
+      return (
+        teams
+          .filter(
+            (team) =>
+              isEligible(team) &&
+              !team.participants.some((participant) => accountsOf(participant).length > 0),
+          )
+          // oxlint-disable-next-line unicorn/no-array-sort -- sorts the fresh filter() copy; consumer tsconfigs lack toSorted
+          .sort((left, right) => left.index - right.index)
+          .map(({ index, name, school }) => ({ index, name, school }))
+      );
     },
     codeInfo: async (code) => {
       for (const team of await repository.listTeams()) {
@@ -151,21 +154,24 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
     },
     teamInfo: async (query) => {
       const teams = await repository.listTeams();
-      return teams
-        .filter((team) => isEligible(team) && matches(team, query))
-        .toSorted((left, right) => left.index - right.index)
-        .map((team) => ({
-          id: team.id,
-          index: team.index,
-          name: team.name,
-          participants: team.participants.map((participant) => ({
-            accounts: accountsOf(participant),
-            code: participant.code,
-            index: participant.index,
-            name: thaiName(participant),
-          })),
-          school: team.school,
-        }));
+      return (
+        teams
+          .filter((team) => isEligible(team) && matches(team, query))
+          // oxlint-disable-next-line unicorn/no-array-sort -- sorts the fresh filter() copy; consumer tsconfigs lack toSorted
+          .sort((left, right) => left.index - right.index)
+          .map((team) => ({
+            id: team.id,
+            index: team.index,
+            name: team.name,
+            participants: team.participants.map((participant) => ({
+              accounts: accountsOf(participant),
+              code: participant.code,
+              index: participant.index,
+              name: thaiName(participant),
+            })),
+            school: team.school,
+          }))
+      );
     },
     unlinkParticipant: async (discordUserId) => {
       const freed = await repository.unlinkParticipant(discordUserId);

@@ -92,10 +92,12 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
           .leftJoin(discord, eq(discord.participantId, teamParticipants.id))
           .orderBy(asc(teamParticipants.index));
 
-        const byTeam = Map.groupBy(participantRows, (row) => row.teamId);
+        // ponytail: O(teams x participants) filter, fine for a few hundred teams; group into a Map if it grows.
         return teamRows.map((team) => ({
           ...team,
-          participants: (byTeam.get(team.id) ?? []).map(({ teamId: _teamId, ...rest }) => rest),
+          participants: participantRows
+            .filter((row) => row.teamId === team.id)
+            .map(({ teamId: _teamId, ...rest }) => rest),
         }));
       }),
     repairFacts: async () =>

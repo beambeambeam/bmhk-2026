@@ -13,8 +13,7 @@ export type DiscordRedemptionResult =
   | { outcome: "already_redeemed" }
   | {
       channelId: string | null;
-      firstNameEn: string;
-      lastNameEn: string;
+      firstNameTh: string;
       outcome: "redeemed";
       teamIndex: number;
       teamName: string;
@@ -42,7 +41,9 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
             code: discord.code,
             discordId: discord.id,
             firstNameEn: teamParticipants.firstNameEn,
+            firstNameTh: teamParticipants.firstNameTh,
             lastNameEn: teamParticipants.lastNameEn,
+            lastNameTh: teamParticipants.lastNameTh,
             mainAccUserId: discord.mainAccUserId,
             participantId: teamParticipants.id,
             redeemedAt: discord.redeemedAt,
@@ -70,8 +71,10 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
             redeemedAt: row.redeemedAt,
           },
           firstNameEn: row.firstNameEn,
+          firstNameTh: row.firstNameTh,
           id: row.participantId,
           lastNameEn: row.lastNameEn,
+          lastNameTh: row.lastNameTh,
           school: row.school,
           teamId: row.teamId,
           teamName: row.teamName,
@@ -85,9 +88,8 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
               .select({
                 altRedeemedAt: discord.altRedeemedAt,
                 channelId: discordTeamGroupMembers.channelId,
-                firstNameEn: teamParticipants.firstNameEn,
+                firstNameTh: teamParticipants.firstNameTh,
                 id: discord.id,
-                lastNameEn: teamParticipants.lastNameEn,
                 redeemedAt: discord.redeemedAt,
                 teamIndex: teams.index,
                 teamName: teams.name,
@@ -126,8 +128,7 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
 
             return {
               channelId: row.channelId,
-              firstNameEn: row.firstNameEn,
-              lastNameEn: row.lastNameEn,
+              firstNameTh: row.firstNameTh,
               outcome: "redeemed" as const,
               teamIndex: row.teamIndex,
               teamName: row.teamName,

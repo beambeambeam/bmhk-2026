@@ -8,6 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import PersonDetails from "./components/person-details";
 import { AuthTopBar } from "@/components/account-menu";
 import ResultModal from "./components/result-modal";
+import DiscordCodesModal from "./components/discord-codes-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
 import TeamDecor from "./components/team-decor";
 import { getBaseMembers, QUALIFIED_MODAL, REJECTED_MODAL } from "./team-data";
@@ -44,15 +45,29 @@ function Tick({ className = "" }: { className?: string }) {
 /** Modal call to action — Figma sets these labels in Sukhumvit Set Semi Bold, not Noto. */
 function ModalButton({
   href,
+  onClick,
   className,
   icon,
   children,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   className: string;
   icon: React.ReactNode;
   children: React.ReactNode;
 }) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`mm-press flex w-full items-center justify-center gap-4 rounded-[16px] px-4 py-3 font-display fl-20 leading-normal font-semibold transition-opacity hover:opacity-90 ${className}`}
+      >
+        {icon}
+        {children}
+      </button>
+    );
+  }
   return (
     <a
       href={href}
@@ -247,9 +262,11 @@ function useTabsIndicator(active: number) {
 function MyTeamModals({
   modal,
   setModal,
+  teamName,
 }: {
   modal: string | null;
   setModal: (val: string | null) => void;
+  teamName?: string;
 }) {
   return (
     <>
@@ -261,11 +278,13 @@ function MyTeamModals({
         }}
         actions={
           <ModalButton
-            href="#"
+            onClick={() => {
+              setModal("discord");
+            }}
             className="bg-[#5865f2] text-white"
             icon={<DiscordGlyph size={32} src={DISCORD_32} />}
           >
-            รับรหัสเข้าร่วม Discord{" "}
+            รับรหัสเข้าร่วม Discord
           </ModalButton>
         }
       />
@@ -277,6 +296,14 @@ function MyTeamModals({
         onClose={() => {
           setModal(null);
         }}
+      />
+
+      <DiscordCodesModal
+        open={modal === "discord"}
+        onClose={() => {
+          setModal(null);
+        }}
+        teamName={teamName}
       />
     </>
   );
@@ -695,7 +722,7 @@ export default function MyTeam() {
       <TeamDecor />
       <ScrollEdgeEffect className="absolute inset-x-0 top-0 z-10 h-[calc(106px_+_54*var(--fl))]" />
       <div
-        data-recede={modal === "qualified" || modal === "rejected"}
+        data-recede={modal === "qualified" || modal === "rejected" || modal === "discord"}
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
         <AuthTopBar className="auth-rise w-full" data-rise="0" />
@@ -737,6 +764,9 @@ export default function MyTeam() {
                   reviewFeedback={reviewFeedback}
                   team={team}
                   submittedAt={statusData?.submittedAt}
+                  onOpenDiscordModal={() => {
+                    setModal("discord");
+                  }}
                 />
               )}
             </div>
@@ -752,12 +782,15 @@ export default function MyTeam() {
               reviewFeedback={reviewFeedback}
               team={team}
               submittedAt={statusData?.submittedAt}
+              onOpenDiscordModal={() => {
+                setModal("discord");
+              }}
             />
           </div>
         </div>
       </div>
 
-      <MyTeamModals modal={modal} setModal={setModal} />
+      <MyTeamModals modal={modal} setModal={setModal} teamName={displayTeam.name} />
     </div>
   );
 }

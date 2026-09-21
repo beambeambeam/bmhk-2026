@@ -9,6 +9,7 @@ export const env = createEnv({
   client: {
     VITE_BMHK_ENV: z.enum(["staging", "production"]).default("staging"),
     VITE_COMMIT_SHA: z.string().default("unknown"),
+    VITE_DISCORD_INVITE_URL: z.url().default("https://discord.gg/bangmodhackathon"),
     VITE_SERVER_URL: z.url(),
   },
   clientPrefix: "VITE_",

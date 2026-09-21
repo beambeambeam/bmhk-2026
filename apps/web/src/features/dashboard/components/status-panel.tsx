@@ -6,7 +6,7 @@ import type { Person, ReviewFeedbackInput, StatusStep, StepTone, TeamStatus } fr
 import { Mail } from "lucide-react";
 
 /**
- * ── Size ramps, both anchors measured ──────────────────────────────────────────────────────
+ * ── Size ramps, both anchors measured ──────────────────────────────────────────────
  * Almost nothing in this panel ramps: `1297:1392` … `1297:2275` on the 402 dashboard are the
  * same numbers as `708:2651` … `708:2744` at 1440 — 12 radius, 10 padding, a 12 gap, a 32
  * badge, 14/500 titles, 12/400 dates, 14/400 labels, an 8 row gap, 24 social marks. The one
@@ -344,6 +344,7 @@ export default function StatusPanel({
   reviewFeedback,
   team,
   submittedAt,
+  onOpenDiscordModal,
 }: {
   status: TeamStatus;
   /** The qualified dashboard also carries the Discord join card. */
@@ -360,6 +361,7 @@ export default function StatusPanel({
     updatedAt?: Date | string | null;
   } | null;
   submittedAt?: Date | string | null;
+  onOpenDiscordModal?: () => void;
 }) {
   const steps = getStatusSteps(members, reviewFeedback)[status];
   const overallLatestDate = getLatestDate(
@@ -422,6 +424,7 @@ export default function StatusPanel({
               </p>
               <button
                 type="button"
+                onClick={onOpenDiscordModal}
                 className="mm-press shrink-0 rounded-[10px] bg-[#f6f6f6] px-[20px] py-[8px] fl-14 leading-normal transition-colors hover:bg-[#ececec]"
               >
                 {DISCORD_CARD.action}

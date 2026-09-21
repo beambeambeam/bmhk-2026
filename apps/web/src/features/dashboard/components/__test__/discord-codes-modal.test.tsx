@@ -86,6 +86,11 @@ describe(DiscordCodesModal, () => {
     expect(screen.getByText("รหัสเข้าร่วม Discord")).toBeDefined();
     expect(screen.getByText("วิธียืนยันตัวตนด้วยคำสั่ง /verify")).toBeDefined();
     expect(screen.getByText("/verify")).toBeDefined();
+
+    const verifyChannelLink = screen.getByRole("link", { name: "#verify" });
+    expect(verifyChannelLink.getAttribute("href")).toBe(
+      "https://discord.com/channels/1549696123826864249/1549696124611203093",
+    );
   });
 
   it("displays participant codes and redemption badges", async () => {

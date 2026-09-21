@@ -32,6 +32,43 @@ function Tick({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * Discord mention pill replicated from skyra-project/discord-components
+ * (hsla(235, 85.6%, 64.7%, 0.15) background, 3px border-radius, blurple hover).
+ */
+function DiscordMention({
+  type = "channel",
+  children,
+  href,
+}: {
+  type?: "channel" | "slash";
+  children: string;
+  href?: string;
+}) {
+  const prefix = type === "channel" ? "#" : "/";
+  const badge = (
+    <span className="inline-flex items-center rounded-[3px] bg-[#5865f2]/15 px-1 py-0.5 font-sans text-xs font-medium text-[#5865f2] transition-colors duration-75 select-none hover:bg-[#5865f2] hover:text-white">
+      {prefix}
+      {children}
+    </span>
+  );
+
+  if (typeof href === "string" && href.trim() !== "") {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block"
+      >
+        {badge}
+      </a>
+    );
+  }
+
+  return badge;
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -45,7 +82,11 @@ interface DiscordCodesModalProps {
   teamName?: string;
 }
 
-export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCodesModalProps) {
+export default function DiscordCodesModal({
+  open,
+  onClose,
+  teamName,
+}: DiscordCodesModalProps) {
   const [mounted, setMounted] = useState(open);
   const [state, setState] = useState<"open" | "closed">(open ? "open" : "closed");
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -57,6 +98,12 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
     typeof env.VITE_DISCORD_INVITE_URL === "string" && env.VITE_DISCORD_INVITE_URL.trim() !== ""
       ? env.VITE_DISCORD_INVITE_URL
       : "https://discord.gg/bangmodhackathon";
+
+  const verifyChannelUrl =
+    typeof env.VITE_DISCORD_VERIFY_CHANNEL_URL === "string" &&
+    env.VITE_DISCORD_VERIFY_CHANNEL_URL.trim() !== ""
+      ? env.VITE_DISCORD_VERIFY_CHANNEL_URL
+      : "https://discord.com/channels/1549696123826864249/1549696124611203093";
 
   // oRPC call: automatically get or create codes for the team when modal is open
   const {
@@ -154,7 +201,9 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
       return;
     }
     const hasTeamName = typeof teamName === "string" && teamName.trim() !== "";
-    const header = hasTeamName ? `รหัสเข้าร่วม Discord สำหรับทีม ${teamName}:` : "รหัสเข้าร่วม Discord:";
+    const header = hasTeamName
+      ? `รหัสเข้าร่วม Discord สำหรับทีม ${teamName}:`
+      : "รหัสเข้าร่วม Discord:";
     const serverLine = `Discord Server: ${inviteUrl}`;
     const lines = participants.map((p) => `${p.participantIndex}. ${p.name}: ${p.code ?? "-"}`);
     const text = [header, serverLine, ...lines].join("\n");
@@ -235,13 +284,19 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
               <span>วิธียืนยันตัวตนด้วยคำสั่ง /verify</span>
             </div>
             <ol className="flex flex-col gap-1.5 ps-6 text-gray-2 list-decimal">
-              <li>เข้าร่วม Discord Server ของการแข่งขัน</li>
-              <li>ไปที่ห้องยืนยันตัวตน (Verify)</li>
+              <li>
+                เข้าร่วม Discord Server ของการแข่งขัน
+              </li>
+              <li>
+                ไปที่ห้องยืนยันตัวตน (
+                <DiscordMention type="channel" href={verifyChannelUrl}>
+                  verify
+                </DiscordMention>
+                )
+              </li>
               <li>
                 พิมพ์คำสั่ง{" "}
-                <code className="rounded bg-[#5865f2]/10 px-1.5 py-0.5 font-mono font-semibold text-[#4752c4]">
-                  /verify
-                </code>{" "}
+                <DiscordMention type="slash">verify</DiscordMention>{" "}
                 แล้วกรอกรหัส 8 หลักของตนเองเพื่อรับสิทธิ์และยศผู้เข้าแข่งขัน
               </li>
             </ol>
@@ -257,7 +312,9 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
 
           {isError && (
             <div className="flex flex-col items-center gap-3 rounded-[16px] border border-brand-red/20 bg-brand-red/5 p-6 text-center">
-              <p className="fl-14 font-medium text-brand-red">{errorMessage}</p>
+              <p className="fl-14 font-medium text-brand-red">
+                {errorMessage}
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -310,7 +367,9 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
                           <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-gray-2">
                             คนที่ {p.participantIndex}
                           </span>
-                          <span className="truncate text-sm font-medium text-ink">{p.name}</span>
+                          <span className="truncate text-sm font-medium text-ink">
+                            {p.name}
+                          </span>
                         </div>
                         {isRedeemed ? (
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-medium text-brand-green">

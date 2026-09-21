@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { formatTeamCode } from "../team-code";
 import { DISCORD_CARD, getStatusSteps } from "../team-data";
 import type { Person, ReviewFeedbackInput, StatusStep, StepTone, TeamStatus } from "../team-data";
 import { Mail } from "lucide-react";
@@ -244,7 +245,7 @@ function Step({
   updatedAt: string;
   team?: {
     code?: string;
-    id?: string;
+    index?: number;
     name?: string;
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;
@@ -254,8 +255,8 @@ function Step({
   let teamCode = "[รหัสทีม]";
   if (team?.code !== undefined && team.code.trim() !== "") {
     teamCode = team.code;
-  } else if (team?.id !== undefined && team.id.trim() !== "") {
-    teamCode = team.id.slice(0, 8).toUpperCase();
+  } else if (team?.index !== undefined) {
+    teamCode = formatTeamCode(team.index);
   }
 
   const issueRows = step.rows?.filter((row) => row.tone === "alert" || row.tone === "failed");
@@ -355,7 +356,7 @@ export default function StatusPanel({
   reviewFeedback?: ReviewFeedbackInput | null;
   team?: {
     code?: string;
-    id?: string;
+    index?: number;
     name?: string;
     createdAt?: Date | string | null;
     updatedAt?: Date | string | null;

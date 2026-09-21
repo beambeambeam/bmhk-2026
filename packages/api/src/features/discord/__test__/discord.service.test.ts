@@ -10,8 +10,7 @@ function createFakeRepository(overrides: Partial<DiscordRepository> = {}): Disco
     redeem: async () =>
       await Promise.resolve({
         channelId: "channel-1",
-        firstNameEn: "Narin",
-        lastNameEn: "Somsak",
+        firstNameTh: "นรินทร์",
         outcome: "redeemed",
         teamIndex: 1,
         teamName: "Team Alpha",
@@ -22,14 +21,52 @@ function createFakeRepository(overrides: Partial<DiscordRepository> = {}): Disco
 }
 
 describe(createDiscordService, () => {
-  it("formats the nickname as index - team name - first name", async () => {
+  it("shows the participant's Thai name on query", async () => {
+    const service = createDiscordService(
+      createFakeRepository({
+        findByCode: async () =>
+          await Promise.resolve({
+            discord: {
+              altAccUserId: null,
+              altRedeemedAt: null,
+              code: "good-code",
+              id: "discord-row-1",
+              mainAccUserId: null,
+              redeemedAt: null,
+            },
+            firstNameEn: "Narin",
+            firstNameTh: "นรินทร์",
+            id: "participant-1",
+            lastNameEn: "Somsak",
+            lastNameTh: "สมศักดิ์",
+            school: "KMUTT Demonstration School",
+            teamId: "team-1",
+            teamName: "Team Alpha",
+          }),
+      }),
+    );
+
+    const result = await service.query("good-code");
+
+    expect(result).toStrictEqual({
+      data: {
+        main_acc_id: null,
+        name: "นรินทร์ สมศักดิ์",
+        school: "KMUTT Demonstration School",
+        team: "Team Alpha",
+      },
+      status: discordStatus.SUCCESS,
+    });
+  });
+
+  it("formats the nickname as index - team name - Thai first name", async () => {
     const service = createDiscordService(createFakeRepository());
 
     const result = await service.verify("good-code", "discord-1");
 
     expect(result).toStrictEqual({
       channel_id: "channel-1",
-      nickname: "1 - Team Alpha - Narin",
+      nickname: "1 - Team Alpha - นรินทร์",
       status: discordStatus.SUCCESS,
     });
   });
@@ -40,8 +77,7 @@ describe(createDiscordService, () => {
         redeem: async () =>
           await Promise.resolve({
             channelId: null,
-            firstNameEn: "Narin",
-            lastNameEn: "Somsak",
+            firstNameTh: "นรินทร์",
             outcome: "redeemed",
             teamIndex: 2,
             teamName: "A Very Long Team Name That Exceeds The Limit",
@@ -52,7 +88,7 @@ describe(createDiscordService, () => {
 
     const result = await service.verify("good-code", "discord-1");
 
-    expect(result.nickname).toBe("2 - A Very Long Team  - Narin");
+    expect(result.nickname).toBe("2 - A Very Long Team  - นรินทร์");
   });
 
   it("appends [ALT] for an alt-account redemption", async () => {
@@ -61,8 +97,7 @@ describe(createDiscordService, () => {
         redeem: async () =>
           await Promise.resolve({
             channelId: null,
-            firstNameEn: "Narin",
-            lastNameEn: "Somsak",
+            firstNameTh: "นรินทร์",
             outcome: "redeemed",
             teamIndex: 1,
             teamName: "Team Alpha",
@@ -73,7 +108,7 @@ describe(createDiscordService, () => {
 
     const result = await service.verify("good-code", "discord-1");
 
-    expect(result.nickname).toBe("1 - Team Alpha - Narin [ALT]");
+    expect(result.nickname).toBe("1 - Team Alpha - นรินทร์ [ALT]");
   });
 
   it("reports an unknown code without a nickname", async () => {

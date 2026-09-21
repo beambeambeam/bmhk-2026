@@ -7,8 +7,10 @@ export const discordSchema = createSelectSchema(discord).strict();
 
 const discordParticipantFields = {
   firstNameEn: true,
+  firstNameTh: true,
   id: true,
   lastNameEn: true,
+  lastNameTh: true,
   teamId: true,
 } as const;
 

@@ -9,18 +9,18 @@ export interface DiscordService {
 
 const TEAM_NAME_MAX_LENGTH = 17;
 
-function toDisplayName(firstNameEn: string, lastNameEn: string): string {
-  return `${firstNameEn} ${lastNameEn}`.trim();
+function toDisplayName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
 }
 
 function toNickname(params: {
-  firstNameEn: string;
+  firstNameTh: string;
   teamIndex: number;
   teamName: string;
   wasAlt: boolean;
 }): string {
   const cappedTeamName = params.teamName.slice(0, TEAM_NAME_MAX_LENGTH);
-  const base = `${params.teamIndex} - ${cappedTeamName} - ${params.firstNameEn}`;
+  const base = `${params.teamIndex} - ${cappedTeamName} - ${params.firstNameTh}`;
   return params.wasAlt ? `${base} [ALT]` : base;
 }
 
@@ -39,7 +39,7 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
       return {
         data: {
           main_acc_id: lookup.discord.mainAccUserId,
-          name: toDisplayName(lookup.firstNameEn, lookup.lastNameEn),
+          name: toDisplayName(lookup.firstNameTh, lookup.lastNameTh),
           school: lookup.school,
           team: lookup.teamName,
         },
@@ -63,7 +63,7 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
       return {
         channel_id: result.channelId,
         nickname: toNickname({
-          firstNameEn: result.firstNameEn,
+          firstNameTh: result.firstNameTh,
           teamIndex: result.teamIndex,
           teamName: result.teamName,
           wasAlt: result.wasAlt,

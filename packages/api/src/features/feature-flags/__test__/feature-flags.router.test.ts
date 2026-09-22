@@ -47,10 +47,18 @@ describe("feature flags", () => {
   });
 
   it("includes the start and excludes the end of qualifying round identity confirmation", async () => {
-    const atStart = createRouter("2026-09-21T17:00:00.000Z");
-    const atEnd = createRouter("2026-09-25T17:00:00.000Z");
+    const beforeStart = createRouter("2026-09-22T15:59:59.999+07:00");
+    const atStart = createRouter("2026-09-22T16:00:00+07:00");
+    const beforeEnd = createRouter("2026-09-25T17:59:59.999+07:00");
+    const atEnd = createRouter("2026-09-25T18:00:00+07:00");
 
+    await expect(getAll(beforeStart)).resolves.toMatchObject({
+      qualifyingRoundIdentityConfirmation: false,
+    });
     await expect(getAll(atStart)).resolves.toMatchObject({
+      qualifyingRoundIdentityConfirmation: true,
+    });
+    await expect(getAll(beforeEnd)).resolves.toMatchObject({
       qualifyingRoundIdentityConfirmation: true,
     });
     await expect(getAll(atEnd)).resolves.toMatchObject({
@@ -75,13 +83,25 @@ describe("feature flags", () => {
   });
 
   it("keeps an open-ended flag available after its start", async () => {
-    const beforeStart = createRouter("2026-09-26T01:59:59.999Z");
-    const atStart = createRouter("2026-09-26T02:00:00.000Z");
+    const beforeStart = createRouter("2026-09-27T12:59:59.999+07:00");
+    const atStart = createRouter("2026-09-27T13:00:00+07:00");
     const longAfterStart = createRouter("2036-09-26T02:00:00.000Z");
 
     await expect(getAll(beforeStart)).resolves.toMatchObject({ qualifyingRound: false });
     await expect(getAll(atStart)).resolves.toMatchObject({ qualifyingRound: true });
     await expect(getAll(longAfterStart)).resolves.toMatchObject({ qualifyingRound: true });
+  });
+
+  it("announces qualifying results at the published 14:00 GMT+7 time", async () => {
+    const beforeStart = createRouter("2026-09-28T13:59:59.999+07:00");
+    const atStart = createRouter("2026-09-28T14:00:00+07:00");
+
+    await expect(getAll(beforeStart)).resolves.toMatchObject({
+      qualifyingResultsAnnouncement: false,
+    });
+    await expect(getAll(atStart)).resolves.toMatchObject({
+      qualifyingResultsAnnouncement: true,
+    });
   });
 
   it("returns feature availability to anonymous users", async () => {

@@ -103,7 +103,7 @@ export const registrationDocumentReplacedAudit = defineAuditAction(
 );
 
 export const teamDeletedAudit = defineAuditAction("team.deleted", {
-  description: "A Team Owner deleted a Team and its Registration Information",
+  description: "An authorized Registration Operator deleted a Team and its Registration Information",
   severity: "critical",
   target: "team",
 });

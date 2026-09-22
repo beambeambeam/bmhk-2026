@@ -37,6 +37,7 @@ interface ParticipationReviewDialogProps {
   readonly lastUpdatedAt: Date | null;
   readonly reviewedByName: string | null;
   readonly teamId: string;
+  readonly teamName: string;
 }
 
 function ParticipationReviewDialog({
@@ -44,6 +45,7 @@ function ParticipationReviewDialog({
   lastUpdatedAt,
   reviewedByName,
   teamId,
+  teamName,
 }: ParticipationReviewDialogProps) {
   const [mode, setMode] = useState<"review" | "eligibility" | null>(null);
   const isOpen = mode !== null;
@@ -110,6 +112,16 @@ function ParticipationReviewDialog({
       },
     }),
   );
+  const deleteTeam = useMutation(
+    orpc.teams.delete.mutationOptions({
+      onError: () => toast.error("ไม่สามารถลบทีมได้ กรุณาลองใหม่อีกครั้ง"),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.teamRegistrationReviews.list.key() });
+        toast.success("ลบทีมแล้ว");
+      },
+    }),
+  );
 
   function confirmEligibility(award: EligibilityAward): void {
     setAward.mutate({ award, id: teamId });
@@ -151,6 +163,19 @@ function ParticipationReviewDialog({
               }}
             >
               สิทธิ์เข้ารอบแรก
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => {
+                const confirmed = window.confirm(
+                  `ยืนยันการลบทีม “${teamName}” แบบถาวร? ข้อมูลสมาชิก อาจารย์ และผลตรวจสอบจะถูกลบด้วย ไฟล์ที่อัปโหลดจะยังคงอยู่`,
+                );
+                if (confirmed) {
+                  deleteTeam.mutate({ id: teamId });
+                }
+              }}
+            >
+              ลบทีมถาวร
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>

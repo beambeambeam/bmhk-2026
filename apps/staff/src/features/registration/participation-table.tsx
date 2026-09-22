@@ -273,6 +273,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
                   canReview={canReview}
                   lastUpdatedAt={team.lastUpdatedAt}
                   reviewedByName={team.reviewedByName}
+                  teamName={team.name}
                   teamId={team.id}
                 />
               </TableCell>

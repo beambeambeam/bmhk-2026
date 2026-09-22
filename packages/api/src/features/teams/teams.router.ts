@@ -49,7 +49,7 @@ export function createTeamsRouter(
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    delete: teamOwnerProcedure
+    delete: registrationProcedure
       .route({
         method: "DELETE",
         tags: ["Team"],

@@ -44,7 +44,11 @@ function getApprovedStatus(
     return "semifinal-pending";
   }
 
-  if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
+  if (
+    award === "REGISTRATION_COMPLETED" ||
+    award === "ROUND_1_COMPLETED" ||
+    (award !== undefined && SEMIFINAL_AWARDS.has(award))
+  ) {
     return "qualified";
   }
 

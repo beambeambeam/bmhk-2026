@@ -5,7 +5,7 @@ import { getAutoOpenedModal, getDashboardStatus } from "../dashboard-status";
 const announced = { eligibleTeamsAnnouncement: true };
 
 describe("dashboard selection results", () => {
-  it.each(["NO_ACHIEVEMENT", "REGISTRATION_COMPLETED", undefined])(
+  it.each(["NO_ACHIEVEMENT", undefined])(
     "keeps an approved team pending when its award is %s",
     (award) => {
       const status = getDashboardStatus({ status: "APPROVED" }, { award }, announced);
@@ -26,7 +26,7 @@ describe("dashboard selection results", () => {
     expect(getAutoOpenedModal("rejected", announced)).toBe("rejected");
   });
 
-  it.each(["NOT_QUALIFIED", "ROUND_1_COMPLETED"])(
+  it.each(["NOT_QUALIFIED", "REGISTRATION_COMPLETED"])(
     "withholds the %s selection result before announcement",
     (award) => {
       const flags = { eligibleTeamsAnnouncement: false };
@@ -36,6 +36,17 @@ describe("dashboard selection results", () => {
       expect(getAutoOpenedModal(status, flags)).toBeNull();
     },
   );
+
+  it("announces registration completion as qualified for the first round", () => {
+    const status = getDashboardStatus(
+      { status: "APPROVED" },
+      { award: "REGISTRATION_COMPLETED" },
+      announced,
+    );
+
+    expect(status).toBe("qualified");
+    expect(getAutoOpenedModal(status, announced)).toBe("qualified");
+  });
 
   it("announces a qualified team and preserves later round results", () => {
     const team = { award: "ROUND_1_COMPLETED" };

@@ -225,26 +225,4 @@ describe("staff check-ins router", () => {
     expect(cancel).toHaveBeenCalledWith(TARGET_STAFF_ID, "ROUND_2");
     expect(checkedInRounds.has("ROUND_1")).toBeTruthy();
   });
-
-  it("checks a staff member into round 3 independently of earlier rounds", async () => {
-    const checkInsByRound = new Set(["ROUND_1", "ROUND_2"]);
-    const checkIn = vi.fn<StaffCheckInRepository["checkIn"]>(async (userId, _actor, round) => {
-      if (checkInsByRound.has(round)) {
-        return await Promise.resolve(false);
-      }
-      checkInsByRound.add(round);
-      return await Promise.resolve(userId === TARGET_STAFF_ID);
-    });
-    const router = createRouter(createRepository({ checkIn }));
-    const { context } = createTestContext();
-
-    await expect(
-      call(
-        router.checkIn,
-        { round: "ROUND_3", staffUserId: TARGET_STAFF_ID },
-        { context, path: ["staffCheckIns", "checkIn"] },
-      ),
-    ).resolves.toStrictEqual({ round: "ROUND_3", staffUserId: TARGET_STAFF_ID });
-    expect(checkIn).toHaveBeenCalledWith(TARGET_STAFF_ID, ACTOR_ID, "ROUND_3");
-  });
 });

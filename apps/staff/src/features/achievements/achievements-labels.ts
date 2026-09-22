@@ -11,7 +11,6 @@ const achievementLabels = {
   REGISTRATION_COMPLETED: "สมัครสำเร็จ",
   ROUND_1_COMPLETED: "ผ่านรอบคัดเลือก",
   ROUND_2_COMPLETED: "ผ่านรอบชิงชนะเลิศ",
-  ROUND_3_COMPLETED: "ผ่านรอบที่ 3",
   SECOND_PLACE: "รางวัลอันดับที่ 2",
   THIRD_PLACE: "รางวัลอันดับที่ 3",
 } satisfies Record<TeamAward, string>;
@@ -26,7 +25,6 @@ const achievementOptions = [
   "NOT_QUALIFIED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
-  "ROUND_3_COMPLETED",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",
@@ -60,7 +58,6 @@ const awardFilters = [
   { label: achievementLabels.NOT_QUALIFIED, value: "NOT_QUALIFIED" },
   { label: achievementLabels.ROUND_1_COMPLETED, value: "ROUND_1_COMPLETED" },
   { label: achievementLabels.ROUND_2_COMPLETED, value: "ROUND_2_COMPLETED" },
-  { label: achievementLabels.ROUND_3_COMPLETED, value: "ROUND_3_COMPLETED" },
   { label: achievementLabels.HONORABLE_MENTION, value: "HONORABLE_MENTION" },
   { label: achievementLabels.THIRD_PLACE, value: "THIRD_PLACE" },
   { label: achievementLabels.SECOND_PLACE, value: "SECOND_PLACE" },

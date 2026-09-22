@@ -52,7 +52,11 @@ function getApprovedStatus(
     return "qualified";
   }
 
-  return award === "NOT_QUALIFIED" ? "selection-failed" : "selection-pending";
+  if (award === "NOT_QUALIFIED" || award === "NO_ACHIEVEMENT") {
+    return "selection-failed";
+  }
+
+  return "selection-pending";
 }
 
 export function getDashboardStatus(
@@ -62,19 +66,20 @@ export function getDashboardStatus(
 ): TeamStatus {
   const feedbackStatus = reviewFeedback?.status;
 
+  if (feedbackStatus === "APPROVED") {
+    return getApprovedStatus(team?.award, featureFlags);
+  }
+
+  if (featureFlags?.eligibleTeamsAnnouncement === true) {
+    return "selection-failed";
+  }
+
   if (feedbackStatus === "REJECTED" || feedbackStatus === "FAILED") {
     return "rejected";
   }
 
   if (feedbackStatus === "CHANGES_REQUESTED") {
-    if (featureFlags?.eligibleTeamsAnnouncement === true) {
-      return "rejected";
-    }
     return "issue";
-  }
-
-  if (feedbackStatus === "APPROVED") {
-    return getApprovedStatus(team?.award, featureFlags);
   }
 
   return "reviewing";

@@ -5,15 +5,34 @@ import { getAutoOpenedModal, getDashboardStatus } from "../dashboard-status";
 const announced = { eligibleTeamsAnnouncement: true };
 
 describe("dashboard selection results", () => {
-  it.each(["NO_ACHIEVEMENT", undefined])(
-    "keeps an approved team pending when its award is %s",
-    (award) => {
-      const status = getDashboardStatus({ status: "APPROVED" }, { award }, announced);
+  it.each([
+    { before: "selection-pending", review: { status: "APPROVED" } },
+    { before: "issue", review: { status: "CHANGES_REQUESTED" } },
+    { before: "rejected", review: { status: "REJECTED" } },
+    { before: "rejected", review: { status: "FAILED" } },
+    { before: "reviewing", review: { status: "PENDING_REVIEW" } },
+    { before: "reviewing", review: null },
+    { before: "reviewing", review: undefined },
+  ])(
+    "announces selection failure for $review while preserving the earlier $before state",
+    ({ review, before }) => {
+      const team = { award: "NO_ACHIEVEMENT" };
+      const flags = { eligibleTeamsAnnouncement: false };
+      const beforeStatus = getDashboardStatus(review, team, flags);
+      const status = getDashboardStatus(review, team, announced);
 
-      expect(status).toBe("selection-pending");
-      expect(getAutoOpenedModal(status, announced)).toBeNull();
+      expect(beforeStatus).toBe(before);
+      expect(getAutoOpenedModal(beforeStatus, flags)).toBeNull();
+      expect(status).toBe("selection-failed");
+      expect(getAutoOpenedModal(status, announced)).toBe("selection-failed");
     },
   );
+  it("keeps an approved team pending while its award is unavailable", () => {
+    const status = getDashboardStatus({ status: "APPROVED" }, {}, announced);
+
+    expect(status).toBe("selection-pending");
+    expect(getAutoOpenedModal(status, announced)).toBeNull();
+  });
   it("distinguishes selection rejection from document rejection", () => {
     const status = getDashboardStatus(
       { status: "APPROVED" },

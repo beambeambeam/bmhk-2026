@@ -1,4 +1,5 @@
 import type { DiscordBotGateway } from "./discord-bot-gateway";
+import { staffNicknameOf } from "./staff-nickname";
 import type { StaffDiscordLinkRepository } from "./staff-discord-link.repository";
 import type {
   StaffDiscordLinkPreviewResult,
@@ -23,12 +24,6 @@ export interface StaffDiscordLinkService {
   ) => Promise<{ expiresAt: Date; token: string }>;
   link: (params: LinkStaffDiscordParams) => Promise<StaffDiscordLinkResult>;
   preview: (token: string) => Promise<StaffDiscordLinkPreviewResult>;
-}
-
-function firstNameOf(name: string): string {
-  const trimmed = name.trim();
-  const spaceIndex = trimmed.indexOf(" ");
-  return spaceIndex === -1 ? trimmed : trimmed.slice(0, spaceIndex);
 }
 
 export function createStaffDiscordLinkService(
@@ -63,19 +58,12 @@ export function createStaffDiscordLinkService(
       const isAdmin = ADMIN_ROLES.has(role);
       const overseerGroup = isAdmin ? null : await repository.findOverseerGroup(userId);
 
-      let categoryId: string | null = null;
-      let nickname: string;
-      if (isAdmin) {
-        nickname = `[Admin] ${firstNameOf(userName)}`;
-      } else if (overseerGroup) {
-        if (overseerGroup.categoryId === null) {
-          return { status: "GROUP_NOT_SET_UP" };
-        }
-        ({ categoryId } = overseerGroup);
-        nickname = `[${overseerGroup.index}] ${firstNameOf(userName)}`;
-      } else {
-        nickname = `[Staff] ${firstNameOf(userName)}`;
+      const nicknameResult = staffNicknameOf({ overseerGroup, role, userName });
+      if (nicknameResult.status === "GROUP_NOT_SET_UP") {
+        return { status: "GROUP_NOT_SET_UP" };
       }
+      const { nickname } = nicknameResult;
+      const categoryId = overseerGroup ? overseerGroup.categoryId : null;
 
       await repository.upsertLink(userId, discordUserId);
 

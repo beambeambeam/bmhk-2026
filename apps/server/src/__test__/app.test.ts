@@ -151,7 +151,9 @@ function createTestDiscordAdminService(
   return {
     absentTeams: async () => await Promise.resolve([]),
     codeInfo: async () => await Promise.resolve({ status: "NOT_FOUND" }),
+    lookupParticipant: async () => await Promise.resolve({ status: "NOT_FOUND" }),
     repairFacts: async () => await Promise.resolve({ participants: [], staff: [] }),
+    staffNicknames: async () => await Promise.resolve([]),
     teamInfo: async () => await Promise.resolve([]),
     unlinkParticipant: async () => await Promise.resolve({ status: "NOT_LINKED" }),
     unlinkStaff: async () => await Promise.resolve({ status: "NOT_LINKED" }),
@@ -747,6 +749,8 @@ describe("server app", () => {
       ["GET", "/teams?index=1"],
       ["GET", "/absent-teams"],
       ["GET", "/repair-facts"],
+      ["GET", "/staff-nicknames"],
+      ["GET", "/lookup-participant?discord_user_id=111"],
       ["POST", "/unlink"],
       ["POST", "/unlink-staff"],
     ])("rejects %s %s without a valid api key", async (method, path) => {
@@ -788,6 +792,49 @@ describe("server app", () => {
         expect(response.status).toBe(400);
       },
     );
+
+    it("lists every staff member's computed nickname", async () => {
+      const staffNicknames = vi.fn<DiscordAdminService["staffNicknames"]>(
+        async () =>
+          await Promise.resolve([
+            { discord_user_id: "111", nickname: "[Staff] Somchai", status: "OK" },
+          ]),
+      );
+      const { app } = createTestApp(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        createTestDiscordAdminService({ staffNicknames }),
+      );
+
+      const response = await app.handle(adminRequest("/staff-nicknames"));
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toStrictEqual([
+        { discord_user_id: "111", nickname: "[Staff] Somchai", status: "OK" },
+      ]);
+    });
+
+    it("looks up a participant by their Discord user id", async () => {
+      const lookupParticipant = vi.fn<DiscordAdminService["lookupParticipant"]>(
+        async () => await Promise.resolve({ status: "NOT_FOUND" }),
+      );
+      const { app } = createTestApp(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        createTestDiscordAdminService({ lookupParticipant }),
+      );
+
+      const response = await app.handle(adminRequest("/lookup-participant?discord_user_id=111"));
+
+      expect(response.status).toBe(200);
+      expect(lookupParticipant).toHaveBeenCalledWith("111");
+    });
 
     it("unlinks a participant's Discord user", async () => {
       const unlinkParticipant = vi.fn<DiscordAdminService["unlinkParticipant"]>(

@@ -15,6 +15,7 @@ const DEFAULT_LIST_LIMIT = 20;
 const MAX_LIST_LIMIT = 100;
 
 export const teamRegistrationReviewListSortValues = [
+  "index",
   "name",
   "school",
   "memberCount",

@@ -16,7 +16,7 @@ import type {
   TeamRegistrationReviewListFilter,
 } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
-import { ArrowUp, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -28,6 +28,11 @@ import { formatStaffDate, formatStaffDateTime } from "./review-utils";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PARTICIPATIONS_PAGE_SIZE = 20;
+const sortableColumns = [
+  { id: "index", label: "รหัสทีม" },
+  { id: "registrationSubmittedAt", label: "วันที่ส่ง" },
+] as const;
+type ParticipationSort = (typeof sortableColumns)[number]["id"];
 const eligibilityFilters = [
   { label: "สิทธิ์เข้าแข่งขันทั้งหมด", value: "ALL" },
   { label: "มีสิทธิ์เข้าแข่งขันในรอบแรก", value: "ELIGIBLE" },
@@ -67,6 +72,8 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
+  const [sortBy, setSortBy] = useState<ParticipationSort>("registrationSubmittedAt");
+  const [sortDesc, setSortDesc] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
   const query = useQuery({
     ...getTeamRegistrationReviewListQueryOptions({
@@ -75,13 +82,19 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
       offset,
       reviewStatus,
       search: debouncedSearch,
-      sortBy: "registrationSubmittedAt",
-      sortDesc: false,
+      sortBy,
+      sortDesc,
     }),
     placeholderData: keepPreviousData,
   });
   const teams = query.data?.rows ?? [];
   const pagination = query.data?.pagination;
+
+  function toggleSorting(id: ParticipationSort): void {
+    setSortDesc(id === sortBy ? !sortDesc : false);
+    setSortBy(id);
+    setOffset(0);
+  }
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -200,30 +213,51 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
       <Table className="table-fixed min-w-[84rem]">
         <TableHeader>
           <TableRow>
-            {tableColumns.map((label, index) => (
-              <TableHead
-                className={`${
-                  [
-                    "w-[8%]",
-                    "w-[11%]",
-                    "w-[11%]",
-                    "w-[6%]",
-                    "w-[8%]",
-                    "w-[9%]",
-                    "w-[9%]",
-                    "w-[14%]",
-                    "w-[10%]",
-                    "w-[10%]",
-                  ][index]
-                } whitespace-normal`}
-                key={label}
-              >
-                <span className="inline-flex items-center gap-1">
-                  {label}
-                  {label === "วันที่ส่ง" ? <ArrowUp aria-hidden="true" className="size-4" /> : null}
-                </span>
-              </TableHead>
-            ))}
+            {tableColumns.map((label, index) => {
+              const column = sortableColumns.find((item) => item.label === label);
+              const direction = sortDesc ? "descending" : "ascending";
+              const isSorted = column?.id === sortBy;
+              const ariaSort = isSorted ? direction : "none";
+              const DirectionIcon = sortDesc ? ArrowDown : ArrowUp;
+              const SortIcon = isSorted ? DirectionIcon : ArrowUpDown;
+              return (
+                <TableHead
+                  aria-sort={column ? ariaSort : undefined}
+                  className={`${
+                    [
+                      "w-[8%]",
+                      "w-[11%]",
+                      "w-[11%]",
+                      "w-[6%]",
+                      "w-[8%]",
+                      "w-[9%]",
+                      "w-[9%]",
+                      "w-[14%]",
+                      "w-[10%]",
+                      "w-[10%]",
+                    ][index]
+                  } whitespace-normal`}
+                  key={label}
+                >
+                  {column ? (
+                    <Button
+                      className="-ml-3"
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        toggleSorting(column.id);
+                      }}
+                    >
+                      {label}
+                      <SortIcon aria-hidden="true" data-icon="inline-end" />
+                    </Button>
+                  ) : (
+                    label
+                  )}
+                </TableHead>
+              );
+            })}
             <TableHead className="w-[6%] whitespace-normal">
               <span className="sr-only">จัดการ</span>
             </TableHead>

@@ -55,6 +55,23 @@ function renderTable(award: TeamAward, canRemove = true): QueryClient {
 describe("participations table", () => {
   afterEach(cleanup);
 
+  it("sorts by team code in both directions and switches back to submission date", () => {
+    renderTable("NO_ACHIEVEMENT");
+    const codeHeader = screen.getByRole("columnheader", { name: "รหัสทีม" });
+    const dateHeader = screen.getByRole("columnheader", { name: "วันที่ส่ง" });
+    expect(dateHeader.getAttribute("aria-sort")).toBe("ascending");
+    fireEvent.click(screen.getByRole("button", { name: "รหัสทีม" }));
+    expect(codeHeader.getAttribute("aria-sort")).toBe("ascending");
+    expect(dateHeader.getAttribute("aria-sort")).toBe("none");
+    fireEvent.click(screen.getByRole("button", { name: "รหัสทีม" }));
+    expect(codeHeader.getAttribute("aria-sort")).toBe("descending");
+    fireEvent.click(screen.getByRole("button", { name: "วันที่ส่ง" }));
+    expect([
+      dateHeader.getAttribute("aria-sort"),
+      codeHeader.getAttribute("aria-sort"),
+    ]).toStrictEqual(["ascending", "none"]);
+  });
+
   it.each([
     ["NO_ACHIEVEMENT", "ยังไม่ได้พิจารณา"],
     ["REGISTRATION_COMPLETED", "มีสิทธิ์เข้าแข่งขันในรอบแรก"],

@@ -69,6 +69,36 @@ function createRouter(repository: TestTeamRegistrationReviewRepository, auth: Au
 }
 
 describe("team registration reviews router", () => {
+  it.each([false, true])("accepts team-code sorting with descending=%s", async (sortDesc) => {
+    const inputs: Parameters<TeamRegistrationReviewRepository["list"]>[0][] = [];
+    const router = createRouter(
+      {
+        findByTeamId: async () => await Promise.resolve(null),
+        list: async (input) => {
+          inputs.push(input);
+          return await Promise.resolve({ offset: 0, records: [], total: 0 });
+        },
+        save: async () => await Promise.resolve(null),
+      },
+      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+    );
+    const { context } = createTestContext();
+
+    await call(router.list, { sortBy: "index", sortDesc }, { context });
+
+    expect(inputs).toStrictEqual([
+      {
+        eligibility: "ALL",
+        limit: 20,
+        offset: 0,
+        reviewStatus: "ALL",
+        search: "",
+        sortBy: "index",
+        sortDesc,
+      },
+    ]);
+  });
+
   it("shows a Team Owner only per-subject Review Feedback for their Team", async () => {
     const findByTeamId = vi.fn<TeamRegistrationReviewRepository["findByTeamId"]>(async (access) => {
       expect(access).toStrictEqual({ actorId: "user-1", scope: "OWN_TEAM" });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getManageableRoles,
+  hasTeamRemovalAccess,
   hasRegistrationAccess,
   hasStaffAccess,
   hasUserManagementAccess,
@@ -37,6 +38,17 @@ describe("super administrator permissions", () => {
   it("gives registration staff registration and staff permissions", () => {
     expect(hasRegistrationAccess("registrationStaff")).toBeTruthy();
     expect(hasStaffAccess("registrationStaff")).toBeTruthy();
+  });
+
+  it.each([
+    ["registrationStaff", true],
+    ["admin", true],
+    ["superAdmin", true],
+    ["staff", false],
+    ["user", false],
+    ["unknown", false],
+  ] as const)("returns %s for all-team removal access", (role, expected) => {
+    expect(hasTeamRemovalAccess(role)).toBe(expected);
   });
 
   it("only grants user management access to roles with manageable accounts", () => {

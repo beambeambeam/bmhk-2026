@@ -3,6 +3,7 @@ import {
   hasAdminAccess,
   hasRegistrationAccess,
   hasStaffAccess,
+  hasTeamRemovalAccess,
   hasUserManagementAccess,
 } from "@bmhk-2026/auth/permission";
 import { createError } from "evlog";
@@ -131,6 +132,20 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     };
     return await next({ context: { teamAccess } });
   });
+  const teamRemovalProcedure = protectedProcedure.use(async ({ context, next }) => {
+    const scope: TeamAccessContext["scope"] = hasTeamRemovalAccess(context.session.user.role)
+      ? "ALL_TEAMS"
+      : "OWN_TEAM";
+
+    return await next({
+      context: {
+        teamAccess: {
+          actorId: context.session.user.id,
+          scope,
+        },
+      },
+    });
+  });
   const teamAccessProcedure = protectedProcedure.use(async ({ context, next }) => {
     const scope: TeamAccessContext["scope"] = hasRegistrationAccess(context.session.user.role)
       ? "ALL_TEAMS"
@@ -231,6 +246,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
     staffProcedure,
     teamAccessProcedure,
     teamOwnerProcedure,
+    teamRemovalProcedure,
     userManagementProcedure,
   };
 }
@@ -240,6 +256,7 @@ export type ApiKeyProcedure = ReturnType<typeof createProcedures>["apiKeyProcedu
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];
 export type TeamAccessProcedure = ReturnType<typeof createProcedures>["teamAccessProcedure"];
+export type TeamRemovalProcedure = ReturnType<typeof createProcedures>["teamRemovalProcedure"];
 export type RegistrationProcedure = ReturnType<typeof createProcedures>["registrationProcedure"];
 export type StaffProcedure = ReturnType<typeof createProcedures>["staffProcedure"];
 export type TeamOwnerProcedure = ReturnType<typeof createProcedures>["teamOwnerProcedure"];

@@ -98,6 +98,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     registrationProcedure,
     staffProcedure,
     teamAccessProcedure,
+    teamRemovalProcedure,
     teamOwnerProcedure,
     userManagementProcedure,
   } = createProcedures(dependencies);
@@ -188,7 +189,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
       protectedProcedure,
       registrationProcedure,
       teamAccessProcedure,
-      teamOwnerProcedure,
+      teamRemovalProcedure,
       createTeamService(teamRepository, fileStorage, fileRepository),
       featureFlagService,
     ),

@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createAuthReader } from "../auth-reader";
 
 function createAuthDouble() {
+  const findUserById = vi.fn<(id: string) => Promise<unknown>>();
   const getSession = vi.fn<(options: { headers: Headers }) => Promise<unknown>>();
   const verifyApiKey = vi.fn<(options: { body: { key: string } }) => Promise<unknown>>();
   const createApiKey =
@@ -16,10 +17,11 @@ function createAuthDouble() {
   // Test double only implements auth APIs exercised by reader tests.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   const authInstance = {
+    $context: Promise.resolve({ internalAdapter: { findUserById } }),
     api: { createApiKey, getSession, verifyApiKey },
   } as unknown as typeof auth;
 
-  return { authInstance, createApiKey, getSession, verifyApiKey };
+  return { authInstance, createApiKey, findUserById, getSession, verifyApiKey };
 }
 
 const testSession = {
@@ -66,8 +68,9 @@ describe("auth reader", () => {
     await expect(reader.getSession({ headers: new Headers() })).resolves.toBeNull();
   });
 
-  it("maps a valid api key verification to its id and owning reference", async () => {
-    const { authInstance, verifyApiKey } = createAuthDouble();
+  it.each(["admin", "superAdmin"])("accepts a bot key owned by an active %s", async (role) => {
+    const { authInstance, findUserById, verifyApiKey } = createAuthDouble();
+    findUserById.mockResolvedValue({ banned: false, id: "user-1", role });
     verifyApiKey.mockResolvedValue({
       error: null,
       key: { id: "key-1", referenceId: "user-1" },
@@ -80,6 +83,29 @@ describe("auth reader", () => {
       valid: true,
     });
     expect(verifyApiKey).toHaveBeenCalledWith({ body: { key: "test-key" } });
+    expect(findUserById).toHaveBeenCalledWith("user-1");
+  });
+
+  it.each([
+    { banned: false, id: "user-1", role: "user" },
+    { banned: false, id: "user-1", role: "staff" },
+    { banned: false, id: "user-1", role: "registrationStaff" },
+    { banned: true, id: "user-1", role: "admin" },
+    null,
+  ])("rejects a valid key when its owner is not an active administrator: %j", async (owner) => {
+    const { authInstance, findUserById, verifyApiKey } = createAuthDouble();
+    findUserById.mockResolvedValue(owner);
+    verifyApiKey.mockResolvedValue({
+      error: null,
+      key: { id: "key-1", referenceId: "user-1" },
+      valid: true,
+    });
+
+    const reader = createAuthReader(authInstance);
+    await expect(reader.verifyApiKey({ key: "test-key" })).resolves.toStrictEqual({
+      key: null,
+      valid: false,
+    });
   });
 
   it("maps an invalid api key verification to a null key", async () => {
@@ -94,6 +120,23 @@ describe("auth reader", () => {
     await expect(reader.verifyApiKey({ key: "bad-key" })).resolves.toStrictEqual({
       key: null,
       valid: false,
+    });
+  });
+
+  it("fails closed with a safe error when the key owner's account cannot be checked", async () => {
+    const { authInstance, findUserById, verifyApiKey } = createAuthDouble();
+    verifyApiKey.mockResolvedValue({
+      key: { id: "key-1", referenceId: "user-1" },
+      valid: true,
+    });
+    findUserById.mockRejectedValue(new Error("private database connection details"));
+
+    await expect(
+      createAuthReader(authInstance).verifyApiKey({ key: "test-key" }),
+    ).rejects.toMatchObject({
+      code: "AUTH_API_KEY_UNAVAILABLE",
+      message: "Bot authentication temporarily unavailable",
+      status: 503,
     });
   });
 

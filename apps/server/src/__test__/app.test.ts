@@ -81,10 +81,11 @@ function createTestFileRepository(): FileRepository {
   };
 }
 
-function createTestDiscordService(): DiscordService {
+function createTestDiscordService(overrides: Partial<DiscordService> = {}): DiscordService {
   return {
     query: async () => await Promise.resolve({ data: null, status: 1 }),
     verify: async () => await Promise.resolve({ channel_id: null, nickname: null, status: 1 }),
+    ...overrides,
   };
 }
 
@@ -166,6 +167,7 @@ function createTestApp(
   staffDiscordLinkService: StaffDiscordLinkService = createTestStaffDiscordLinkService(),
   drain?: DrainFn,
   discordAdminService: DiscordAdminService = createTestDiscordAdminService(),
+  discordService: DiscordService = createTestDiscordService(),
 ) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
@@ -184,7 +186,7 @@ function createTestApp(
       auth: testAuth.auth,
       corsOrigins: ["http://localhost:3001", "http://localhost:3002"],
       discordAdminService,
-      discordService: createTestDiscordService(),
+      discordService,
       observability: {
         drain: composeDrains(createMemoryDrain({ store }), drain),
       },
@@ -490,6 +492,159 @@ describe("server app", () => {
     expect(event).toMatchObject({
       path: "/missing",
       status: 404,
+    });
+  });
+
+  it("rejects the query route without an API key and audits the denial", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/query?code=secret-code"),
+    );
+
+    expect(response.status).toBe(401);
+    const [event] = await testApp.events();
+    expect(event).toMatchObject({
+      audit: {
+        action: "discord-verification.queried",
+        actor: { id: "unauthenticated", type: "api" },
+        outcome: "denied",
+        reason: "DISCORD_BOT_AUTH_REQUIRED",
+        target: { id: "discord-verification", type: "discord-verification" },
+      },
+      status: 401,
+    });
+    expect(JSON.stringify(event)).not.toContain("secret-code");
+  });
+
+  it("rejects the verify route without an API key and audits the denial", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/verify", {
+        body: JSON.stringify({ code: "secret-code", id: "discord-1" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    const [event] = await testApp.events();
+    expect(event).toMatchObject({
+      audit: {
+        action: "discord-verification.redeemed",
+        actor: { id: "unauthenticated", type: "api" },
+        outcome: "denied",
+        reason: "DISCORD_BOT_AUTH_REQUIRED",
+        target: { id: "discord-verification", type: "discord-verification" },
+      },
+      status: 401,
+    });
+    expect(JSON.stringify(event)).not.toContain("secret-code");
+  });
+
+  it("rejects the query route with an invalid API key and audits the denial", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/query?code=secret-code", {
+        headers: { "x-api-key": "invalid-key" },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    const [event] = await testApp.events();
+    expect(event).toMatchObject({
+      audit: { action: "discord-verification.queried", outcome: "denied" },
+      status: 401,
+    });
+    expect(JSON.stringify(event)).not.toContain("secret-code");
+  });
+
+  it("rejects the verify route with an invalid API key and audits the denial", async () => {
+    const testApp = createTestApp();
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/verify", {
+        body: JSON.stringify({ code: "secret-code", id: "discord-1" }),
+        headers: { "content-type": "application/json", "x-api-key": "invalid-key" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    const [event] = await testApp.events();
+    expect(event).toMatchObject({
+      audit: { action: "discord-verification.redeemed", outcome: "denied" },
+      status: 401,
+    });
+    expect(JSON.stringify(event)).not.toContain("secret-code");
+  });
+
+  it("passes the trusted API-key identity to the query service", async () => {
+    let receivedCode: string | null = null;
+    let receivedActorId: string | null = null;
+    const testApp = createTestApp(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      createTestDiscordService({
+        query: async (code, auditContext) => {
+          receivedCode = code;
+          receivedActorId = auditContext.actorId;
+          return await Promise.resolve({ data: null, status: 1 });
+        },
+      }),
+    );
+
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/query?code=ABCD2345", {
+        headers: { "x-api-key": TEST_API_KEY },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toStrictEqual({ data: null, status: 1 });
+    expect({ receivedActorId, receivedCode }).toStrictEqual({
+      receivedActorId: "key-1",
+      receivedCode: "ABCD2345",
+    });
+  });
+
+  it("passes the trusted API-key identity to the redemption service", async () => {
+    let received: { actorId: string; code: string; discordUserId: string } | null = null;
+    const testApp = createTestApp(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      createTestDiscordService({
+        verify: async (code, discordUserId, auditContext) => {
+          received = { actorId: auditContext.actorId, code, discordUserId };
+          return await Promise.resolve({ channel_id: null, nickname: null, status: 1 });
+        },
+      }),
+    );
+
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/verify", {
+        body: JSON.stringify({ code: "ABCD2345", id: "discord-1" }),
+        headers: { "content-type": "application/json", "x-api-key": TEST_API_KEY },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toStrictEqual({
+      channel_id: null,
+      nickname: null,
+      status: 1,
+    });
+    expect(received).toStrictEqual({
+      actorId: "key-1",
+      code: "ABCD2345",
+      discordUserId: "discord-1",
     });
   });
 

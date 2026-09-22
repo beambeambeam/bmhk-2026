@@ -1,5 +1,7 @@
 import type { AuthReader } from "@bmhk-2026/api";
 import type { auth } from "@bmhk-2026/auth";
+import { hasAdminAccess } from "@bmhk-2026/auth/permission";
+import { createError } from "evlog";
 
 export function createAuthReader(authInstance: typeof auth): AuthReader {
   return {
@@ -18,11 +20,38 @@ export function createAuthReader(authInstance: typeof auth): AuthReader {
       return await authInstance.api.getSession({ headers });
     },
     async verifyApiKey({ key }) {
-      const result = await authInstance.api.verifyApiKey({ body: { key } });
-      return {
-        key: result.key ? { id: result.key.id, referenceId: result.key.referenceId } : null,
-        valid: result.valid,
-      };
+      try {
+        const result = await authInstance.api.verifyApiKey({ body: { key } });
+        if (!result.valid || !result.key) {
+          return { key: null, valid: false };
+        }
+
+        const context = await authInstance.$context;
+        const owner = await context.internalAdapter.findUserById(result.key.referenceId);
+        if (
+          !owner ||
+          !("role" in owner) ||
+          typeof owner.role !== "string" ||
+          !hasAdminAccess(owner.role) ||
+          ("banned" in owner && owner.banned === true)
+        ) {
+          return { key: null, valid: false };
+        }
+
+        return {
+          key: { id: result.key.id, referenceId: result.key.referenceId },
+          valid: true,
+        };
+      } catch (error) {
+        throw createError({
+          cause: error instanceof Error ? error : undefined,
+          code: "AUTH_API_KEY_UNAVAILABLE",
+          fix: "Try again shortly",
+          message: "Bot authentication temporarily unavailable",
+          status: 503,
+          why: "The server could not validate the API key and its administrator account",
+        });
+      }
     },
   };
 }

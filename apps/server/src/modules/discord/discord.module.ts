@@ -9,6 +9,8 @@ import {
   discordAdminCodeInputSchema,
   discordAdminTeamQuerySchema,
   discordAdminUserInputSchema,
+  discordVerificationQueriedAudit,
+  discordVerificationRedeemedAudit,
   discordQueryInputSchema,
   discordTeamGroupCategoryInputSchema,
   discordTeamGroupMemberChannelInputSchema,
@@ -16,18 +18,26 @@ import {
   staffVerifyTokenCreateInputSchema,
 } from "@bmhk-2026/api";
 import { Elysia } from "elysia";
+import { useLogger } from "evlog/elysia";
+
+async function getApiKeyId(
+  headers: Record<string, string | undefined>,
+  verifyApiKey: AuthReader["verifyApiKey"],
+): Promise<string | null> {
+  const key = headers["x-api-key"];
+  if (key === undefined || key === "") {
+    return null;
+  }
+
+  const verification = await verifyApiKey({ key });
+  return verification.valid && verification.key !== null ? verification.key.id : null;
+}
 
 async function isValidApiKey(
   headers: Record<string, string | undefined>,
   verifyApiKey: AuthReader["verifyApiKey"],
 ): Promise<boolean> {
-  const key = headers["x-api-key"];
-  if (key === undefined || key === "") {
-    return false;
-  }
-
-  const verification = await verifyApiKey({ key });
-  return verification.valid;
+  return (await getApiKeyId(headers, verifyApiKey)) !== null;
 }
 
 export function createDiscordModule(
@@ -39,21 +49,45 @@ export function createDiscordModule(
 ) {
   return new Elysia({ name: "discord" }).group("/api/discord", (app) =>
     app
-      .get("/query", async ({ query, status }) => {
+      .get("/query", async ({ headers, query, status }) => {
+        const actorId = await getApiKeyId(headers, verifyApiKey);
+        if (actorId === null) {
+          useLogger().audit.deny(
+            "DISCORD_BOT_AUTH_REQUIRED",
+            discordVerificationQueriedAudit({
+              actor: { id: "unauthenticated", type: "api" },
+              target: { id: "discord-verification" },
+            }),
+          );
+          return status(401);
+        }
+
         const input = discordQueryInputSchema.safeParse({ code: query.code });
         if (!input.success) {
           return status(400);
         }
 
-        return await service.query(input.data.code);
+        return await service.query(input.data.code, { actorId, log: useLogger() });
       })
-      .post("/verify", async ({ body, status }) => {
+      .post("/verify", async ({ body, headers, status }) => {
+        const actorId = await getApiKeyId(headers, verifyApiKey);
+        if (actorId === null) {
+          useLogger().audit.deny(
+            "DISCORD_BOT_AUTH_REQUIRED",
+            discordVerificationRedeemedAudit({
+              actor: { id: "unauthenticated", type: "api" },
+              target: { id: "discord-verification" },
+            }),
+          );
+          return status(401);
+        }
+
         const input = discordVerifyInputSchema.safeParse(body);
         if (!input.success) {
           return status(400);
         }
 
-        return await service.verify(input.data.code, input.data.id);
+        return await service.verify(input.data.code, input.data.id, { actorId, log: useLogger() });
       })
       .get("/team-groups", async ({ headers, status }) => {
         if (!(await isValidApiKey(headers, verifyApiKey))) {

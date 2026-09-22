@@ -42,6 +42,12 @@ export type {
 export type { ApiRole, ApiSession, ApiUser, AuthReader, TeamAccessContext } from "./core/auth";
 export type { ApiContext } from "./core/context";
 export type { FeatureFlags } from "./features/feature-flags/feature-flags.schema";
+export { createFeatureFlagService } from "./features/feature-flags/feature-flags.service";
+export type { FeatureFlagService } from "./features/feature-flags/feature-flags.service";
+export {
+  discordVerificationQueriedAudit,
+  discordVerificationRedeemedAudit,
+} from "./features/audit/audit.actions";
 export type { TeamRepository } from "./features/teams/teams.repository";
 export type { FileRepository } from "./features/files/files.repository";
 export type { FileStorage } from "./features/files/files.storage";

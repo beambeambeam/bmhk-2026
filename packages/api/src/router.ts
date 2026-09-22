@@ -136,7 +136,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     discordCodes: createDiscordCodesRouter(
       registrationProcedure,
       teamOwnerProcedure,
-      createDiscordCodeService(discordCodeRepository),
+      createDiscordCodeService(discordCodeRepository, featureFlagService),
     ),
     featureFlags: createFeatureFlagsRouter(publicProcedure, featureFlagService),
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),

@@ -26,6 +26,8 @@ export const discordParticipantWithDiscordSchema = discordParticipantSchema
 
 export const discordCodeLookupSchema = discordParticipantWithDiscordSchema
   .extend({
+    award: z.string(),
+    reviewStatus: z.string().nullable(),
     school: z.string(),
     teamName: z.string(),
   })
@@ -34,6 +36,8 @@ export const discordCodeLookupSchema = discordParticipantWithDiscordSchema
 export const discordStatus = {
   ALREADY_LINKED: 3,
   ALREADY_REDEEMED: 2,
+  CLOSED: 4,
+  INELIGIBLE: 5,
   NOT_FOUND: 1,
   SUCCESS: 0,
 } as const;

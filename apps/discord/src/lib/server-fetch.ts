@@ -1,7 +1,8 @@
 import { env } from "@bmhk-2026/env/discord";
 
 export async function serverFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const response = await fetch(new URL(path, env.SERVER_BASE_URL), {
+  const url = new URL(path, env.SERVER_BASE_URL);
+  const response = await fetch(url, {
     ...init,
     headers: {
       ...Object.fromEntries(new Headers(init.headers)),
@@ -11,7 +12,7 @@ export async function serverFetch(path: string, init: RequestInit = {}): Promise
   });
 
   if (!response.ok) {
-    throw new Error(`Request to ${path} failed with status ${response.status}`);
+    throw new Error(`Request to ${url.pathname} failed with status ${response.status}`);
   }
 
   return response;

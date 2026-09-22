@@ -1,7 +1,9 @@
 import { randomInt } from "node:crypto";
 
 import { createTeamNotFoundError } from "../teams/teams.service";
+import type { FeatureFlagService } from "../feature-flags/feature-flags.service";
 import {
+  createDiscordCodesClosedError,
   createDiscordCodesRepositoryError,
   createDiscordCodesTeamNotEligibleError,
 } from "./discord-codes.errors";
@@ -70,7 +72,15 @@ function requireEligible(facts: DiscordCodeTeamFacts | null): DiscordCodeTeamFac
   return facts;
 }
 
-export function createDiscordCodeService(repository: DiscordCodeRepository): DiscordCodeService {
+function isCodeGenerationOpen(featureFlagService: FeatureFlagService): boolean {
+  const flags = featureFlagService.getAll();
+  return flags.eligibleTeamsAnnouncement && flags.qualifyingRoundIdentityConfirmation;
+}
+
+export function createDiscordCodeService(
+  repository: DiscordCodeRepository,
+  featureFlagService: FeatureFlagService,
+): DiscordCodeService {
   async function fillMissingCodes(
     ownerId: string,
     facts: DiscordCodeTeamFacts,
@@ -94,6 +104,10 @@ export function createDiscordCodeService(repository: DiscordCodeRepository): Dis
   return {
     getForTeam: async (teamId) => toEntries(requireEligible(await repository.findByTeamId(teamId))),
     getOrCreateForOwner: async (ownerId) => {
+      if (!isCodeGenerationOpen(featureFlagService)) {
+        throw createDiscordCodesClosedError();
+      }
+
       const facts = requireEligible(await repository.findByOwnerId(ownerId));
       return toEntries(await fillMissingCodes(ownerId, facts, MAX_GENERATION_ATTEMPTS));
     },

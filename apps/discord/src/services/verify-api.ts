@@ -6,6 +6,8 @@ import { serverFetch } from "../lib/server-fetch.js";
 export const bmhkDiscordStatus = {
   ALREADY_LINKED: 3,
   ALREADY_REDEEMED: 2,
+  CLOSED: 4,
+  INELIGIBLE: 5,
   NOT_FOUND: 1,
   SUCCESS: 0,
 } as const;

@@ -7,6 +7,7 @@ import {
   createDiscordTeamGroupsRepository,
   createDiscordTeamGroupsService,
   createFetchDiscordBotGateway,
+  createFeatureFlagService,
   createStaffDiscordLinkRepository,
   createStaffDiscordLinkService,
 } from "@bmhk-2026/api";
@@ -42,7 +43,7 @@ const apiRouter = createAppRouter({
   staffDiscordLinkService,
 });
 const discordAdminService = createDiscordAdminService(createDiscordAdminRepository());
-const discordService = createDiscordService(createDiscordRepository());
+const discordService = createDiscordService(createDiscordRepository(), createFeatureFlagService());
 const teamGroupsService = createDiscordTeamGroupsService(createDiscordTeamGroupsRepository());
 const auditObservability = createAuditObservabilityOptions({
   hmacKeyId: env.AUDIT_HMAC_KEY_ID,

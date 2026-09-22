@@ -10,6 +10,12 @@ import { bmhkDiscordStatus, queryDiscordCode } from "../../services/verify-api.j
 
 const CODE_PATTERN = /^[a-zA-Z0-9]{8}$/u;
 
+const MESSAGE = {
+  CLOSED: "ระบบยืนยันตัวตนยังไม่เปิดหรือปิดรับแล้ว กรุณาติดตามประกาศของงาน",
+  INELIGIBLE: "ทีมนี้ยังไม่มีสิทธิ์ยืนยันตัวตนในขณะนี้ กรุณาติดต่อทีมงานหากคิดว่าเป็นข้อผิดพลาด",
+  INVALID_CODE: "รหัสไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง",
+} as const;
+
 const verifyCode: Modal = {
   customId: "verify-code",
 
@@ -18,7 +24,7 @@ const verifyCode: Modal = {
 
     if (!CODE_PATTERN.test(code)) {
       await interaction.reply({
-        content: "รหัสไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง",
+        content: MESSAGE.INVALID_CODE,
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -28,9 +34,19 @@ const verifyCode: Modal = {
 
     if (result.status === bmhkDiscordStatus.NOT_FOUND) {
       await interaction.reply({
-        content: "รหัสไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง",
+        content: MESSAGE.INVALID_CODE,
         flags: MessageFlags.Ephemeral,
       });
+      return;
+    }
+
+    if (result.status === bmhkDiscordStatus.CLOSED) {
+      await interaction.reply({ content: MESSAGE.CLOSED, flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    if (result.status === bmhkDiscordStatus.INELIGIBLE) {
+      await interaction.reply({ content: MESSAGE.INELIGIBLE, flags: MessageFlags.Ephemeral });
       return;
     }
 

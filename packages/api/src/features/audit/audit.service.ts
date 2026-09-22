@@ -5,6 +5,8 @@ import type { ApiContext } from "../../core/context";
 interface AuditSuccessFields {
   action?: AuditInput["action"];
   changes?: AuditInput["changes"];
+  outcome?: "denied" | "success";
+  reason?: string;
   target?: AuditInput["target"];
 }
 
@@ -58,8 +60,8 @@ export async function executeAudited<Result>({
     const result = await execute();
     log.audit({
       ...audit,
-      ...onSuccess?.(result),
       outcome: "success",
+      ...onSuccess?.(result),
     });
     return result;
   } catch (error) {

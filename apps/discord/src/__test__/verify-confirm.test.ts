@@ -93,6 +93,32 @@ describe(resolveVerifyConfirm, () => {
     });
   });
 
+  it("reports when the verification window is closed", () => {
+    const outcome = resolveVerifyConfirm(
+      { channel_id: null, nickname: null, status: bmhkDiscordStatus.CLOSED },
+      ROLE_ID,
+    );
+
+    expect(outcome).toStrictEqual({
+      applied: false,
+      message: "ระบบยืนยันตัวตนยังไม่เปิดหรือปิดรับแล้ว กรุณาติดตามประกาศของงาน",
+      reason: "verification closed",
+    });
+  });
+
+  it("reports when a team is not eligible for verification", () => {
+    const outcome = resolveVerifyConfirm(
+      { channel_id: null, nickname: null, status: bmhkDiscordStatus.INELIGIBLE },
+      ROLE_ID,
+    );
+
+    expect(outcome).toStrictEqual({
+      applied: false,
+      message: "ทีมนี้ยังไม่มีสิทธิ์ยืนยันตัวตนในขณะนี้ กรุณาติดต่อทีมงานหากคิดว่าเป็นข้อผิดพลาด",
+      reason: "team ineligible",
+    });
+  });
+
   it("does not apply anything when a success response carries no nickname", () => {
     const outcome = resolveVerifyConfirm(
       { channel_id: null, nickname: null, status: bmhkDiscordStatus.SUCCESS },

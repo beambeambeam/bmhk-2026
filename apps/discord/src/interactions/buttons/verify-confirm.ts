@@ -12,10 +12,12 @@ const PARTICIPANT_ROLE_SETTING_KEY = "participantRole";
 
 const MESSAGE = {
   ALREADY_LINKED: "บัญชี Discord นี้ยืนยันตัวตนแล้ว หากต้องการเปลี่ยนบัญชีหรือพบปัญหา กรุณาติดต่อทีมงาน",
+  CLOSED: "ระบบยืนยันตัวตนยังไม่เปิดหรือปิดรับแล้ว กรุณาติดตามประกาศของงาน",
   CODE_NOT_FOUND_OR_USED_UP:
     "ไม่พบรหัสยืนยันตัวตนหรือรหัสนี้ถูกใช้ครบตามจำนวนครั้งที่อนุญาตแล้ว หากนี้เป็นข้อผิดพลาด กรุณาติดต่อทีมงาน",
   GENERIC_ERROR: "ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้งหรือติดต่อทีมงาน",
   GUILD_ONLY: "กรุณายืนยันตัวตนภายในเซิร์ฟเวอร์ของงาน",
+  INELIGIBLE: "ทีมนี้ยังไม่มีสิทธิ์ยืนยันตัวตนในขณะนี้ กรุณาติดต่อทีมงานหากคิดว่าเป็นข้อผิดพลาด",
   SUCCESS: "ยืนยันตัวตนสำเร็จ! ยินดีต้อนรับสู่ Bangmod Hackathon 2026 🎉",
 } as const;
 
@@ -68,6 +70,14 @@ export function resolveVerifyConfirm(
       message: MESSAGE.ALREADY_LINKED,
       reason: "discord user already linked",
     };
+  }
+
+  if (response.status === bmhkDiscordStatus.CLOSED) {
+    return { applied: false, message: MESSAGE.CLOSED, reason: "verification closed" };
+  }
+
+  if (response.status === bmhkDiscordStatus.INELIGIBLE) {
+    return { applied: false, message: MESSAGE.INELIGIBLE, reason: "team ineligible" };
   }
 
   if (response.nickname === null || response.nickname === "") {

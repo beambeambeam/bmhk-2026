@@ -1,4 +1,5 @@
 import { call } from "@orpc/server";
+import { Temporal } from "temporal-polyfill";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthReader, DiscordCodeRepository } from "../../../index";
@@ -74,10 +75,12 @@ function createFakeRepository(initial: Facts | null) {
 function createRouter(
   repository: DiscordCodeRepository,
   auth: AuthReader = createTestAuthReader(createTestSession()),
+  featureFlagClock: () => Temporal.Instant = () => Temporal.Instant.from("2026-09-23T00:00:00Z"),
 ) {
   return createAppRouter({
     auth,
     discordCodes: repository,
+    featureFlagClock,
     files: createUnusedFileRepository(),
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teams: createUnusedTeamRepository(),
@@ -222,6 +225,34 @@ describe("discord codes router", () => {
     await expect(call(router.getOrCreate, {}, { context })).rejects.toMatchObject({
       code: "TEAM_NOT_FOUND",
       status: 404,
+    });
+  });
+
+  it("keeps owner code generation closed outside the published window", async () => {
+    const router = createRouter(
+      createFakeRepository(teamFacts()),
+      createTestAuthReader(createTestSession()),
+      () => Temporal.Instant.from("2026-09-22T00:00:00Z"),
+    );
+    const { context } = createTestContext();
+
+    await expect(call(router.getOrCreate, {}, { context })).rejects.toMatchObject({
+      code: "DISCORD_CODES_CLOSED",
+      status: 403,
+    });
+  });
+
+  it("closes owner code generation at the exact confirmation end", async () => {
+    const router = createRouter(
+      createFakeRepository(teamFacts()),
+      createTestAuthReader(createTestSession()),
+      () => Temporal.Instant.from("2026-09-25T11:00:00Z"),
+    );
+    const { context } = createTestContext();
+
+    await expect(call(router.getOrCreate, {}, { context })).rejects.toMatchObject({
+      code: "DISCORD_CODES_CLOSED",
+      status: 403,
     });
   });
 

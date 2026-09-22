@@ -4,6 +4,16 @@ import { toError } from "../../core/errors";
 
 const DISCORD_CODES_REPOSITORY_ERROR_CODE = "DISCORD_CODES_REPOSITORY_ERROR";
 
+export function createDiscordCodesClosedError() {
+  return createError({
+    code: "DISCORD_CODES_CLOSED",
+    fix: "Wait until the Discord identity confirmation window opens",
+    message: "Discord code generation is not open",
+    status: 403,
+    why: "Discord codes are issued only during the published identity confirmation window",
+  });
+}
+
 export function createDiscordCodesTeamNotEligibleError() {
   return createError({
     code: "DISCORD_CODES_TEAM_NOT_ELIGIBLE",

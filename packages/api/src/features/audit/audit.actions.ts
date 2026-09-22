@@ -161,3 +161,16 @@ export const staffDiscordLinkedAudit = defineAuditAction("staff-discord.linked",
   severity: "critical",
   target: "staff-discord-link",
 });
+
+export const discordVerificationQueriedAudit = defineAuditAction("discord-verification.queried", {
+  description: "The Discord bot looked up a participant verification code",
+  severity: "critical",
+  target: "discord-verification",
+});
+
+export const discordVerificationRedeemedAudit = defineAuditAction("discord-verification.redeemed", {
+  description: "The Discord bot granted a participant identity from a verification code",
+  requiresChanges: true,
+  severity: "critical",
+  target: "discord-verification",
+});

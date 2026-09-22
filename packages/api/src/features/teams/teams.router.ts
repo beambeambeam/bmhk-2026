@@ -3,7 +3,7 @@ import type {
   ProtectedProcedure,
   RegistrationProcedure,
   TeamAccessProcedure,
-  TeamOwnerProcedure,
+  TeamRemovalProcedure,
 } from "../../core/procedure";
 import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
@@ -29,7 +29,7 @@ export function createTeamsRouter(
   protectedProcedure: ProtectedProcedure,
   registrationProcedure: RegistrationProcedure,
   teamAccessProcedure: TeamAccessProcedure,
-  teamOwnerProcedure: TeamOwnerProcedure,
+  teamRemovalProcedure: TeamRemovalProcedure,
   service: TeamService,
   featureFlagService: FeatureFlagService,
 ) {
@@ -49,7 +49,7 @@ export function createTeamsRouter(
         context.log.set({ team: { id: team.id } });
         return team;
       }),
-    delete: teamOwnerProcedure
+    delete: teamRemovalProcedure
       .route({
         method: "DELETE",
         tags: ["Team"],

@@ -1077,7 +1077,7 @@ describe("teams router", () => {
     });
   });
 
-  it("does not let registration staff delete another user's team", async () => {
+  it("does not let regular staff delete another user's team", async () => {
     const repository = createTeamRepository({
       delete: async (access) => {
         expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
@@ -1101,6 +1101,33 @@ describe("teams router", () => {
       target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
     });
   });
+
+  it.each(["registrationStaff", "admin", "superAdmin"] as const)(
+    "lets %s delete another user's team",
+    async (role) => {
+      const repository = createTeamRepository({
+        delete: async (access) => {
+          expect(access).toStrictEqual({ actorId: "operator-user", scope: "ALL_TEAMS" });
+          return await Promise.resolve(true);
+        },
+      });
+      const router = createRouter(
+        repository,
+        createAuthReader(createTestSession({ user: { id: "operator-user", role } })),
+      );
+      const { context, log } = createContext();
+
+      await expect(
+        call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
+      ).resolves.toStrictEqual({ id: TEAM_ID });
+      expect(log.audit).toHaveBeenCalledWith({
+        action: "team.deleted",
+        actor: { id: "operator-user", type: "user" },
+        outcome: "success",
+        target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+      });
+    },
+  );
 
   it("rejects an invalid team ID before deleting", async () => {
     const repository = createTeamRepository();

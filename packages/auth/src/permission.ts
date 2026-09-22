@@ -69,6 +69,10 @@ function hasRegistrationAccess(role: string | null | undefined): boolean {
   return roles[role].authorize({ staff: ["registration_access"] }).success;
 }
 
+function hasTeamRemovalAccess(role: string | null | undefined): boolean {
+  return role === "registrationStaff" || hasAdminAccess(role);
+}
+
 function hasUserManagementAccess(role: string | null | undefined): boolean {
   return getManageableRoles(role).length > 0;
 }
@@ -90,6 +94,7 @@ export {
   getManageableRoles,
   hasRegistrationAccess,
   hasStaffAccess,
+  hasTeamRemovalAccess,
   hasUserManagementAccess,
   permissionStatement,
   registrationStaff,

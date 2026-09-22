@@ -108,7 +108,7 @@ function createTestTeamGroupsService(
   overrides: Partial<DiscordTeamGroupsService> = {},
 ): DiscordTeamGroupsService {
   return {
-    assignGroups: async () => await Promise.resolve({ groupCount: 0 }),
+    assignGroups: async () => await Promise.resolve({ groupCount: 0, groups: [] }),
     clearCategoryId: async () => await Promise.resolve(true),
     clearChannelId: async () => await Promise.resolve(true),
     list: async () => await Promise.resolve([]),

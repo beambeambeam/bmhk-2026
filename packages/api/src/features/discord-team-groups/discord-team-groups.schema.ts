@@ -40,7 +40,7 @@ export const discordTeamGroupsListResponseSchema = z.array(discordTeamGroupRespo
 // Admin-facing (oRPC, camelCase) contracts — distinct from the snake_case
 // bot-wire contracts above, which mirror apps/server's Elysia REST routes.
 export const teamGroupAssignmentInputSchema = z
-  .object({ teamsPerGroup: z.number().int().positive() })
+  .object({ dryRun: z.boolean().optional(), staffAmount: z.number().int().positive() })
   .strict();
 
 export const teamGroupSummarySchema = z
@@ -63,7 +63,28 @@ export const teamWithGroupSchema = z
 
 export const teamWithGroupListSchema = z.array(teamWithGroupSchema);
 
-export const teamGroupAssignmentResultSchema = z.object({ groupCount: z.number().int() }).strict();
+export const teamGroupAssignmentResultTeamSchema = z
+  .object({
+    id: z.string(),
+    index: z.number().int(),
+    name: z.string(),
+    school: z.string(),
+  })
+  .strict();
+
+export const teamGroupAssignmentResultGroupSchema = z
+  .object({
+    name: z.string(),
+    teams: z.array(teamGroupAssignmentResultTeamSchema),
+  })
+  .strict();
+
+export const teamGroupAssignmentResultSchema = z
+  .object({
+    groupCount: z.number().int(),
+    groups: z.array(teamGroupAssignmentResultGroupSchema),
+  })
+  .strict();
 
 export type DiscordTeamGroupCategoryInput = z.output<typeof discordTeamGroupCategoryInputSchema>;
 export type DiscordTeamGroupMemberChannelInput = z.output<
@@ -76,4 +97,6 @@ export type TeamGroupAssignmentInput = z.output<typeof teamGroupAssignmentInputS
 export type TeamGroupSummary = z.output<typeof teamGroupSummarySchema>;
 export type TeamWithGroup = z.output<typeof teamWithGroupSchema>;
 export type TeamWithGroupList = z.output<typeof teamWithGroupListSchema>;
+export type TeamGroupAssignmentResultTeam = z.output<typeof teamGroupAssignmentResultTeamSchema>;
+export type TeamGroupAssignmentResultGroup = z.output<typeof teamGroupAssignmentResultGroupSchema>;
 export type TeamGroupAssignmentResult = z.output<typeof teamGroupAssignmentResultSchema>;

@@ -14,8 +14,13 @@ import type {
   TeamWithGroupList,
 } from "./discord-team-groups.schema";
 
+export interface DiscordTeamGroupsAssignmentOptions {
+  dryRun?: boolean;
+  staffAmount: number;
+}
+
 export interface DiscordTeamGroupsService {
-  assignGroups: (teamsPerGroup: number) => Promise<TeamGroupAssignmentResult>;
+  assignGroups: (options: DiscordTeamGroupsAssignmentOptions) => Promise<TeamGroupAssignmentResult>;
   clearCategoryId: (groupId: string) => Promise<boolean>;
   clearChannelId: (memberId: string) => Promise<boolean>;
   list: () => Promise<DiscordTeamGroupsListResponse>;
@@ -30,10 +35,26 @@ export function defaultGroupName(index: number): string {
   return `${DEFAULT_GROUP_NAME_PREFIX}${index}`;
 }
 
-export function chunkTeamIds(teamIds: readonly string[], teamsPerGroup: number): string[][] {
+/**
+ * Splits team ids into `min(staffAmount, teamIds.length)` groups (one group per
+ * staff member, capped at the team count so no group is empty), sized as evenly
+ * as possible. Any remainder team goes to the earliest groups, in index order.
+ */
+export function distributeTeamIds(teamIds: readonly string[], staffAmount: number): string[][] {
+  const groupCount = Math.min(staffAmount, teamIds.length);
+  if (groupCount === 0) {
+    return [];
+  }
+
+  const baseGroupSize = Math.floor(teamIds.length / groupCount);
+  const groupsWithExtraTeam = teamIds.length % groupCount;
+
   const chunks: string[][] = [];
-  for (let start = 0; start < teamIds.length; start += teamsPerGroup) {
-    chunks.push(teamIds.slice(start, start + teamsPerGroup));
+  let start = 0;
+  for (const groupIndex of Array.from({ length: groupCount }, (_, i) => i)) {
+    const size = baseGroupSize + (groupIndex < groupsWithExtraTeam ? 1 : 0);
+    chunks.push(teamIds.slice(start, start + size));
+    start += size;
   }
   return chunks;
 }
@@ -71,19 +92,35 @@ export function createDiscordTeamGroupsService(
   repository: DiscordTeamGroupsRepository,
 ): DiscordTeamGroupsService {
   return {
-    assignGroups: async (teamsPerGroup) => {
+    assignGroups: async ({ dryRun = false, staffAmount }) => {
       const teamsWithGroup = await repository.listTeamsWithGroup();
+      const teamsById = new Map(teamsWithGroup.map((team) => [team.id, team]));
       const teamIds = teamsWithGroup.map((team) => team.id);
-      const groups: TeamGroupAssignmentPlanGroup[] = chunkTeamIds(teamIds, teamsPerGroup).map(
-        (chunk, chunkIndex) => ({
-          name: defaultGroupName(chunkIndex + 1),
-          teamIds: chunk,
-        }),
-      );
+      const chunks = distributeTeamIds(teamIds, staffAmount);
 
-      await repository.replaceAssignment(groups);
+      const plan: TeamGroupAssignmentPlanGroup[] = chunks.map((chunk, chunkIndex) => ({
+        name: defaultGroupName(chunkIndex + 1),
+        teamIds: chunk,
+      }));
 
-      return { groupCount: groups.length };
+      if (!dryRun) {
+        await repository.replaceAssignment(plan);
+      }
+
+      return {
+        groupCount: plan.length,
+        groups: plan.map((group) => ({
+          name: group.name,
+          teams: group.teamIds.map((teamId) => {
+            // teamId always resolves: it came from teamsById's own keys via chunkTeamIds above.
+            const team = teamsById.get(teamId);
+            if (!team) {
+              throw new Error(`Team ${teamId} missing from fetched team list`);
+            }
+            return { id: team.id, index: team.index, name: team.name, school: team.school };
+          }),
+        })),
+      };
     },
     clearCategoryId: async (groupId) => await repository.clearCategoryId(groupId),
     clearChannelId: async (memberId) => await repository.clearMemberChannelId(memberId),

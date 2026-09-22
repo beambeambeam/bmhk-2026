@@ -168,6 +168,7 @@ export function createTeamRegistrationReviewRepository(
       await execute(async () => {
         const reviewer = alias(user, "team_registration_reviewer");
         const sortColumns = {
+          index: teams.index,
           lastUpdatedAt: teamRegistrationReviews.updatedAt,
           memberCount: teams.memberCount,
           name: teams.name,

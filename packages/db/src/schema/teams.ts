@@ -20,7 +20,6 @@ export const teamAwardValues = [
   "NOT_QUALIFIED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
-  "ROUND_3_COMPLETED",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",
@@ -32,15 +31,6 @@ export const teamAwardEnum = pgEnum("team_award", teamAwardValues);
 export const roundTwoEligibleAwardValues = [
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
-  "HONORABLE_MENTION",
-  "THIRD_PLACE",
-  "SECOND_PLACE",
-  "FIRST_PLACE",
-] as const satisfies readonly (typeof teamAwardValues)[number][];
-
-export const roundThreeEligibleAwardValues = [
-  "ROUND_2_COMPLETED",
-  "ROUND_3_COMPLETED",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",

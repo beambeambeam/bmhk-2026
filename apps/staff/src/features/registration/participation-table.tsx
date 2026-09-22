@@ -8,7 +8,10 @@ import {
   SelectValue,
 } from "@/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
-import type { TeamRegistrationReviewListFilter } from "@bmhk-2026/api";
+import type {
+  TeamRegistrationEligibilityFilter,
+  TeamRegistrationReviewListFilter,
+} from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
 import { ArrowUp } from "lucide-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -22,6 +25,13 @@ import { formatStaffDate, formatStaffDateTime } from "./review-utils";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PARTICIPATIONS_PAGE_SIZE = 20;
+const eligibilityFilters = [
+  { label: "สิทธิ์เข้าแข่งขันทั้งหมด", value: "ALL" },
+  { label: "มีสิทธิ์เข้าแข่งขันในรอบแรก", value: "ELIGIBLE" },
+  { label: "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก", value: "NOT_QUALIFIED" },
+  { label: "ยังไม่ได้พิจารณา", value: "NOT_REVIEWED" },
+] as const satisfies readonly { label: string; value: TeamRegistrationEligibilityFilter }[];
+
 const reviewFilters = [
   { label: "ทุกสถานะ", value: "ALL" },
   { label: "รอตรวจสอบ", value: "PENDING_REVIEW" },
@@ -47,12 +57,14 @@ const tableColumns = [
 ] as const;
 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
+  const [eligibility, setEligibility] = useState<TeamRegistrationEligibilityFilter>("ALL");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
   const query = useQuery({
     ...getTeamRegistrationReviewListQueryOptions({
+      eligibility,
       limit: PARTICIPATIONS_PAGE_SIZE,
       offset,
       reviewStatus,
@@ -78,7 +90,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_18rem]">
         <div>
           <label className="sr-only" htmlFor="participation-search">
             ค้นหาทีมที่สมัคร
@@ -111,6 +123,31 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           <SelectContent>
             <SelectGroup>
               {reviewFilters.map((filter) => (
+                <SelectItem key={filter.value} value={filter.value}>
+                  {filter.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <Select
+          items={eligibilityFilters}
+          value={eligibility}
+          onValueChange={(value) => {
+            if (value !== null && eligibilityFilters.some((filter) => filter.value === value)) {
+              setEligibility(value);
+              setOffset(0);
+            }
+          }}
+        >
+          <SelectTrigger aria-label="สิทธิ์เข้าแข่งขันในรอบแรก" className="w-full">
+            <SelectValue>
+              {eligibilityFilters.find((filter) => filter.value === eligibility)?.label}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {eligibilityFilters.map((filter) => (
                 <SelectItem key={filter.value} value={filter.value}>
                   {filter.label}
                 </SelectItem>

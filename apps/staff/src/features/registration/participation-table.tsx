@@ -43,6 +43,7 @@ const reviewFilters = [
 ] as const satisfies readonly { label: string; value: TeamRegistrationReviewListFilter }[];
 
 interface ParticipationTableProps {
+  readonly canRemove: boolean;
   readonly canReview: boolean;
 }
 
@@ -59,7 +60,7 @@ const tableColumns = [
   "อัปเดตล่าสุด",
 ] as const;
 
-function ParticipationTable({ canReview }: ParticipationTableProps) {
+function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
   const queryClient = useQueryClient();
   const [isExporting, setIsExporting] = useState(false);
   const [eligibility, setEligibility] = useState<TeamRegistrationEligibilityFilter>("ALL");
@@ -270,6 +271,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
               </TableCell>
               <TableCell>
                 <ParticipationReviewDialog
+                  canRemove={canRemove}
                   canReview={canReview}
                   lastUpdatedAt={team.lastUpdatedAt}
                   reviewedByName={team.reviewedByName}

@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ParticipationTable } from "../participation-table";
 
-function renderTable(award: TeamAward): QueryClient {
+function renderTable(award: TeamAward, canRemove = true): QueryClient {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -46,7 +46,7 @@ function renderTable(award: TeamAward): QueryClient {
   );
   render(
     <QueryClientProvider client={queryClient}>
-      <ParticipationTable canReview />
+      <ParticipationTable canReview canRemove={canRemove} />
     </QueryClientProvider>,
   );
   return queryClient;
@@ -103,5 +103,28 @@ describe("participations table", () => {
     await expect(screen.findByRole("menuitem", { name: "ตรวจสอบข้อมูลทีม" })).resolves.toBeDefined();
     fireEvent.click(screen.getByRole("menuitem", { name: "สิทธิ์เข้ารอบแรก" }));
     await expect(screen.findByRole("dialog", { name: "สิทธิ์เข้ารอบแรก" })).resolves.toBeDefined();
+  });
+
+  it("requires the exact team name before permanent deletion", async () => {
+    renderTable("FIRST_PLACE");
+    fireEvent.click(screen.getByRole("button", { name: "จัดการทีม" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "ลบทีมถาวร" }));
+    await expect(screen.findByRole("dialog", { name: "ลบทีมถาวร" })).resolves.toBeDefined();
+    const confirm = screen.getByRole<HTMLButtonElement>("button", { name: "ลบทีมถาวร" });
+    const input = screen.getByRole("textbox", { name: "พิมพ์ชื่อทีมเพื่อยืนยัน" });
+    expect(confirm.disabled).toBeTruthy();
+    fireEvent.change(input, { target: { value: "Wrong team" } });
+    expect(confirm.disabled).toBeTruthy();
+    fireEvent.change(input, { target: { value: "Team One" } });
+    expect(confirm.disabled).toBeFalsy();
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    expect(screen.queryByRole("dialog", { name: "ลบทีมถาวร" })).toBeNull();
+  });
+
+  it("hides team removal when the operator lacks permission", async () => {
+    renderTable("NO_ACHIEVEMENT", false);
+    fireEvent.click(screen.getByRole("button", { name: "จัดการทีม" }));
+    await screen.findByRole("menuitem", { name: "ตรวจสอบข้อมูลทีม" });
+    expect(screen.queryByRole("menuitem", { name: "ลบทีมถาวร" })).toBeNull();
   });
 });

@@ -31,8 +31,10 @@ import { toast } from "sonner";
 
 import { ParticipationReviewContent } from "./participation-review-content";
 import type { ReviewSubmissionData } from "./participation-review-content";
+import { ParticipationRemovalDialog } from "./participation-removal-dialog";
 
 interface ParticipationReviewDialogProps {
+  readonly canRemove: boolean;
   readonly canReview: boolean;
   readonly lastUpdatedAt: Date | null;
   readonly reviewedByName: string | null;
@@ -41,6 +43,7 @@ interface ParticipationReviewDialogProps {
 }
 
 function ParticipationReviewDialog({
+  canRemove,
   canReview,
   lastUpdatedAt,
   reviewedByName,
@@ -48,6 +51,7 @@ function ParticipationReviewDialog({
   teamName,
 }: ParticipationReviewDialogProps) {
   const [mode, setMode] = useState<"review" | "eligibility" | null>(null);
+  const [removalOpen, setRemovalOpen] = useState(false);
   const isOpen = mode !== null;
   const queryClient = useQueryClient();
   const teamQuery = useQuery({ ...getParticipationQueryOptions(teamId), enabled: isOpen });
@@ -112,16 +116,6 @@ function ParticipationReviewDialog({
       },
     }),
   );
-  const deleteTeam = useMutation(
-    orpc.teams.delete.mutationOptions({
-      onError: () => toast.error("ไม่สามารถลบทีมได้ กรุณาลองใหม่อีกครั้ง"),
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.teamRegistrationReviews.list.key() });
-        toast.success("ลบทีมแล้ว");
-      },
-    }),
-  );
 
   function confirmEligibility(award: EligibilityAward): void {
     setAward.mutate({ award, id: teamId });
@@ -164,22 +158,28 @@ function ParticipationReviewDialog({
             >
               สิทธิ์เข้ารอบแรก
             </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => {
-                const confirmed = window.confirm(
-                  `ยืนยันการลบทีม “${teamName}” แบบถาวร? ข้อมูลสมาชิก อาจารย์ และผลตรวจสอบจะถูกลบด้วย ไฟล์ที่อัปโหลดจะยังคงอยู่`,
-                );
-                if (confirmed) {
-                  deleteTeam.mutate({ id: teamId });
-                }
-              }}
-            >
-              ลบทีมถาวร
-            </DropdownMenuItem>
+            {canRemove ? (
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => {
+                  setRemovalOpen(true);
+                }}
+              >
+                ลบทีมถาวร
+              </DropdownMenuItem>
+            ) : null}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      {removalOpen ? (
+        <ParticipationRemovalDialog
+          teamId={teamId}
+          teamName={teamName}
+          onClose={() => {
+            setRemovalOpen(false);
+          }}
+        />
+      ) : null}
       <Dialog
         open={isOpen}
         onOpenChange={(open) => {

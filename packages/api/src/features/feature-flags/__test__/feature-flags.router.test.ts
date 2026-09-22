@@ -58,6 +58,22 @@ describe("feature flags", () => {
     });
   });
 
+  it("announces eligible teams at 16:00 GMT+7", async () => {
+    const at1138 = createRouter("2026-09-22T11:38:00+07:00");
+    const justBeforeStart = createRouter("2026-09-22T15:59:59.999+07:00");
+    const atStart = createRouter("2026-09-22T16:00:00+07:00");
+
+    await expect(getAll(at1138)).resolves.toMatchObject({
+      eligibleTeamsAnnouncement: false,
+    });
+    await expect(getAll(justBeforeStart)).resolves.toMatchObject({
+      eligibleTeamsAnnouncement: false,
+    });
+    await expect(getAll(atStart)).resolves.toMatchObject({
+      eligibleTeamsAnnouncement: true,
+    });
+  });
+
   it("keeps an open-ended flag available after its start", async () => {
     const beforeStart = createRouter("2026-09-26T01:59:59.999Z");
     const atStart = createRouter("2026-09-26T02:00:00.000Z");

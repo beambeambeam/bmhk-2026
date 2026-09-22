@@ -1,6 +1,6 @@
 export const featureFlags = {
   eligibleTeamsAnnouncement: {
-    startsAt: "2026-09-22T00:00:00+07:00",
+    startsAt: "2026-09-22T16:00:00+07:00",
   },
   finalRound: {
     startsAt: "2026-11-09T00:00:00+07:00",

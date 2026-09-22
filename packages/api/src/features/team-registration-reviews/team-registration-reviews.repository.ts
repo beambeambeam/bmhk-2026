@@ -161,6 +161,10 @@ export function createTeamRegistrationReviewRepository(
                 eq(normalizedUserRole, "user"),
                 isNotNull(teams.registrationSubmittedAt),
                 or(
+                  ilike(
+                    sql`'BH' || lpad(${teams.index}::text, greatest(3, length(${teams.index}::text)), '0') || '/26'`,
+                    searchPattern,
+                  ),
                   ilike(teams.name, searchPattern),
                   ilike(teams.school, searchPattern),
                   exists(

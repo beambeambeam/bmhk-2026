@@ -390,11 +390,11 @@ function useMappedMembers(
   });
 }
 
-function useAutoOpenModal(status: TeamStatus, featureFlags?: FeatureFlagsInput | null) {
+function useAutoOpenModal(status: TeamStatus | null, featureFlags?: FeatureFlagsInput | null) {
   const [modal, setModal] = useState<string | null>(null);
   const [hasAutoOpenedModal, setHasAutoOpenedModal] = useState(false);
 
-  if (!hasAutoOpenedModal) {
+  if (!hasAutoOpenedModal && status !== null) {
     const autoModal = getAutoOpenedModal(status, featureFlags);
     if (autoModal !== null) {
       setModal(autoModal);
@@ -610,7 +610,7 @@ export default function MyTeam() {
 
   const [pane, setPane] = useState<Pane>("team");
   const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
-  const { modal, setModal } = useAutoOpenModal(status, featureFlags);
+  const { modal, setModal } = useAutoOpenModal(isLoading ? null : status, featureFlags);
 
   if (isLoading) {
     return <Loader />;

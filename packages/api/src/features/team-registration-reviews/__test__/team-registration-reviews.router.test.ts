@@ -208,38 +208,42 @@ describe("team registration reviews router", () => {
     });
   });
 
-  it("filters the review queue by the overall review decision", async () => {
-    const router = createRouter(
-      {
-        findByTeamId: async () => await Promise.resolve(null),
-        list: async (input) => {
-          expect(input).toStrictEqual({
-            limit: 20,
-            offset: 0,
-            reviewStatus: "APPROVED",
-            search: "",
-            sortBy: "name",
-            sortDesc: false,
-          });
-          return await Promise.resolve({ offset: 0, records: [], total: 0 });
+  it.each(["ALL", "ELIGIBLE", "NOT_QUALIFIED", "NOT_REVIEWED"] as const)(
+    "filters the review queue by decision and eligibility %s",
+    async (eligibility) => {
+      const router = createRouter(
+        {
+          findByTeamId: async () => await Promise.resolve(null),
+          list: async (input) => {
+            expect(input).toStrictEqual({
+              eligibility,
+              limit: 20,
+              offset: 0,
+              reviewStatus: "APPROVED",
+              search: "",
+              sortBy: "name",
+              sortDesc: false,
+            });
+            return await Promise.resolve({ offset: 0, records: [], total: 0 });
+          },
+          save: async () => await Promise.resolve(null),
         },
-        save: async () => await Promise.resolve(null),
-      },
-      createTestAuthReader(createTestSession({ user: { role: "staff" } })),
-    );
-    const { context } = createTestContext();
+        createTestAuthReader(createTestSession({ user: { role: "staff" } })),
+      );
+      const { context } = createTestContext();
 
-    await expect(
-      call(
-        router.list,
-        { reviewStatus: "APPROVED", search: "" },
-        { context, path: ["teamRegistrationReviews", "list"] },
-      ),
-    ).resolves.toStrictEqual({
-      pagination: { nextOffset: null, offset: 0, total: 0 },
-      rows: [],
-    });
-  });
+      await expect(
+        call(
+          router.list,
+          { eligibility, reviewStatus: "APPROVED", search: "" },
+          { context, path: ["teamRegistrationReviews", "list"] },
+        ),
+      ).resolves.toStrictEqual({
+        pagination: { nextOffset: null, offset: 0, total: 0 },
+        rows: [],
+      });
+    },
+  );
 
   it("returns the team's award with each review queue row", async () => {
     const team = {

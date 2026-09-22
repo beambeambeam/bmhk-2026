@@ -68,8 +68,19 @@ export const teamRegistrationReviewListFilterValues = [
 export const teamRegistrationReviewListFilterSchema = z.enum(
   teamRegistrationReviewListFilterValues,
 );
+export const teamRegistrationEligibilityFilterSchema = z.enum([
+  "ALL",
+  "ELIGIBLE",
+  "NOT_QUALIFIED",
+  "NOT_REVIEWED",
+]);
+export type TeamRegistrationEligibilityFilter = z.output<
+  typeof teamRegistrationEligibilityFilterSchema
+>;
+
 export const teamRegistrationReviewListInputSchema = z
   .object({
+    eligibility: teamRegistrationEligibilityFilterSchema.default("ALL"),
     limit: z.int().min(1).max(MAX_LIST_LIMIT).default(DEFAULT_LIST_LIMIT),
     offset: z.int().nonnegative().default(0),
     reviewStatus: teamRegistrationReviewListFilterSchema.default("ALL"),
@@ -79,6 +90,7 @@ export const teamRegistrationReviewListInputSchema = z
   })
   .strict()
   .default({
+    eligibility: "ALL",
     limit: DEFAULT_LIST_LIMIT,
     offset: 0,
     reviewStatus: "ALL",

@@ -43,7 +43,33 @@ export interface RepairFacts {
   staff: { categoryId: string | null; discordUserId: string; isAdmin: boolean }[];
 }
 
+export interface StaffNicknameFactsRow {
+  discordUserId: string;
+  overseerGroup: { categoryId: string | null; index: number } | null;
+  role: string | null;
+  userName: string;
+}
+
+export interface ParticipantLookupFacts {
+  altAccUserId: string | null;
+  code: string;
+  email: string;
+  firstNameTh: string;
+  lastNameTh: string;
+  lineId: string | null;
+  mainAccUserId: string | null;
+  middleNameTh: string | null;
+  phone: string;
+  school: string;
+  teamName: string;
+  titleTh: string;
+}
+
 export interface DiscordAdminRepository {
+  /** A verified participant by either their main or alt Discord account; null when neither matches. */
+  findParticipantByDiscordUserId: (discordUserId: string) => Promise<ParticipantLookupFacts | null>;
+  /** Every linked staff member, with what their nickname should be computed from. */
+  listStaffNicknameFacts: () => Promise<StaffNicknameFactsRow[]>;
   /** Every team, eligible or not; the service filters. Small table, admin-only callers. */
   listTeams: () => Promise<AdminTeamFacts[]>;
   repairFacts: () => Promise<RepairFacts>;
@@ -59,6 +85,64 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
   const execute = createRepositoryExecutor(discordAdminRepositoryError);
 
   return {
+    findParticipantByDiscordUserId: async (discordUserId) =>
+      await execute(async () => {
+        const [row] = await database
+          .select({
+            altAccUserId: discord.altAccUserId,
+            code: discord.code,
+            email: teamParticipants.email,
+            firstNameTh: teamParticipants.firstNameTh,
+            lastNameTh: teamParticipants.lastNameTh,
+            lineId: teamParticipants.lineId,
+            mainAccUserId: discord.mainAccUserId,
+            middleNameTh: teamParticipants.middleNameTh,
+            phone: teamParticipants.phone,
+            school: teams.school,
+            teamName: teams.name,
+            titleTh: teamParticipants.titleTh,
+          })
+          .from(discord)
+          .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
+          .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+          .where(
+            or(eq(discord.mainAccUserId, discordUserId), eq(discord.altAccUserId, discordUserId)),
+          )
+          .limit(1);
+
+        return row ?? null;
+      }),
+    listStaffNicknameFacts: async () =>
+      await execute(async () => {
+        const rows = await database
+          .select({
+            categoryId: discordTeamGroups.categoryId,
+            discordUserId: staffDiscordLinks.discordUserId,
+            groupIndex: discordTeamGroups.index,
+            overseerGroupId: discordTeamGroupOverseers.groupId,
+            role: user.role,
+            userName: user.name,
+          })
+          .from(staffDiscordLinks)
+          .innerJoin(user, eq(user.id, staffDiscordLinks.userId))
+          .leftJoin(
+            discordTeamGroupOverseers,
+            eq(discordTeamGroupOverseers.userId, staffDiscordLinks.userId),
+          )
+          .leftJoin(discordTeamGroups, eq(discordTeamGroups.id, discordTeamGroupOverseers.groupId));
+
+        return rows.map(
+          ({ categoryId, discordUserId, groupIndex, overseerGroupId, role, userName }) => ({
+            discordUserId,
+            overseerGroup:
+              overseerGroupId === null || groupIndex === null
+                ? null
+                : { categoryId, index: groupIndex },
+            role,
+            userName,
+          }),
+        );
+      }),
     listTeams: async () =>
       await execute(async () => {
         const teamRows = await database

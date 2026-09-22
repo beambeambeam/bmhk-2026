@@ -1,3 +1,4 @@
+import { staffNicknameOf } from "../staff-discord-link/staff-nickname";
 import type {
   AdminParticipantFacts,
   AdminTeamFacts,
@@ -51,10 +52,29 @@ export interface RepairFactsResponse {
   staff: { category_id: string | null; discord_user_id: string; is_admin: boolean }[];
 }
 
+export type StaffNicknameFact =
+  | { discord_user_id: string; nickname: string; status: "OK" }
+  | { discord_user_id: string; status: "GROUP_NOT_SET_UP" };
+
+export type ParticipantLookupResult =
+  | { status: "NOT_FOUND" }
+  | {
+      code: string;
+      contact: { email: string; line_id: string | null; phone: string };
+      matched_account: "alt" | "main";
+      name_th: string;
+      other_discord_user_id: string | null;
+      school: string;
+      status: "FOUND";
+      team_name: string;
+    };
+
 export interface DiscordAdminService {
   absentTeams: () => Promise<AbsentTeam[]>;
   codeInfo: (code: string) => Promise<CodeInfoResult>;
+  lookupParticipant: (discordUserId: string) => Promise<ParticipantLookupResult>;
   repairFacts: () => Promise<RepairFactsResponse>;
+  staffNicknames: () => Promise<StaffNicknameFact[]>;
   teamInfo: (query: TeamInfoQuery) => Promise<TeamInfo[]>;
   unlinkParticipant: (discordUserId: string) => Promise<UnlinkParticipantResult>;
   unlinkStaff: (discordUserId: string) => Promise<UnlinkStaffResult>;
@@ -67,7 +87,14 @@ function isEligible(team: AdminTeamFacts): boolean {
   return !INELIGIBLE_AWARDS.has(team.award) && team.reviewStatus === "APPROVED";
 }
 
-function thaiName(participant: AdminParticipantFacts): string {
+interface ThaiNameFacts {
+  firstNameTh: string;
+  lastNameTh: string;
+  middleNameTh: string | null;
+  titleTh: string;
+}
+
+function thaiName(participant: ThaiNameFacts): string {
   return [
     participant.titleTh,
     participant.firstNameTh,
@@ -138,6 +165,24 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
       }
       return { status: "NOT_FOUND" };
     },
+    lookupParticipant: async (discordUserId) => {
+      const facts = await repository.findParticipantByDiscordUserId(discordUserId);
+      if (!facts) {
+        return { status: "NOT_FOUND" };
+      }
+
+      const matchedMain = facts.mainAccUserId === discordUserId;
+      return {
+        code: facts.code,
+        contact: { email: facts.email, line_id: facts.lineId, phone: facts.phone },
+        matched_account: matchedMain ? "main" : "alt",
+        name_th: thaiName(facts),
+        other_discord_user_id: matchedMain ? facts.altAccUserId : facts.mainAccUserId,
+        school: facts.school,
+        status: "FOUND",
+        team_name: facts.teamName,
+      };
+    },
     repairFacts: async () => {
       const facts = await repository.repairFacts();
       return {
@@ -151,6 +196,15 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
           is_admin: isAdmin,
         })),
       };
+    },
+    staffNicknames: async () => {
+      const rows = await repository.listStaffNicknameFacts();
+      return rows.map(({ discordUserId, overseerGroup, role, userName }) => {
+        const result = staffNicknameOf({ overseerGroup, role, userName });
+        return result.status === "OK"
+          ? { discord_user_id: discordUserId, nickname: result.nickname, status: "OK" }
+          : { discord_user_id: discordUserId, status: "GROUP_NOT_SET_UP" };
+      });
     },
     teamInfo: async (query) => {
       const teams = await repository.listTeams();

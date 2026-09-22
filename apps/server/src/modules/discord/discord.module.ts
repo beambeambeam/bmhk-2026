@@ -175,6 +175,27 @@ export function createDiscordModule(
 
         return await adminService.repairFacts();
       })
+      .get("/admin/staff-nicknames", async ({ headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        return await adminService.staffNicknames();
+      })
+      .get("/admin/lookup-participant", async ({ headers, query, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        const input = discordAdminUserInputSchema.safeParse({
+          discord_user_id: query.discord_user_id,
+        });
+        if (!input.success) {
+          return status(400);
+        }
+
+        return await adminService.lookupParticipant(input.data.discord_user_id);
+      })
       .post("/admin/unlink", async ({ body, headers, status }) => {
         if (!(await isValidApiKey(headers, verifyApiKey))) {
           return status(401);

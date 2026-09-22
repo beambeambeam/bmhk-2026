@@ -44,6 +44,8 @@ function team(index: number, overrides: Partial<AdminTeamFacts> = {}): AdminTeam
 
 function createService(teams: AdminTeamFacts[], overrides: Partial<DiscordAdminRepository> = {}) {
   return createDiscordAdminService({
+    findParticipantByDiscordUserId: async () => await Promise.resolve(null),
+    listStaffNicknameFacts: async () => await Promise.resolve([]),
     listTeams: async () => await Promise.resolve(teams),
     repairFacts: async () => await Promise.resolve({ participants: [], staff: [] }),
     unlinkParticipant: async () => await Promise.resolve(null),
@@ -250,6 +252,102 @@ describe(createDiscordAdminService, () => {
         participants: [{ channel_id: "chan-1", discord_user_id: "111" }],
         staff: [{ category_id: null, discord_user_id: "222", is_admin: true }],
       });
+    });
+  });
+
+  describe("staffNicknames", () => {
+    it("computes each staff member's nickname from the shared formula", async () => {
+      const service = createService([], {
+        listStaffNicknameFacts: async () =>
+          await Promise.resolve([
+            { discordUserId: "111", overseerGroup: null, role: "admin", userName: "Somchai Test" },
+            { discordUserId: "222", overseerGroup: null, role: "staff", userName: "Suda Test" },
+            {
+              discordUserId: "333",
+              overseerGroup: { categoryId: "cat-1", index: 4 },
+              role: "staff",
+              userName: "Anan Test",
+            },
+          ]),
+      });
+
+      await expect(service.staffNicknames()).resolves.toStrictEqual([
+        { discord_user_id: "111", nickname: "[Admin] Somchai", status: "OK" },
+        { discord_user_id: "222", nickname: "[Staff] Suda", status: "OK" },
+        { discord_user_id: "333", nickname: "[4] Anan", status: "OK" },
+      ]);
+    });
+
+    it("reports a staff overseer whose group has no category set up yet", async () => {
+      const service = createService([], {
+        listStaffNicknameFacts: async () =>
+          await Promise.resolve([
+            {
+              discordUserId: "333",
+              overseerGroup: { categoryId: null, index: 4 },
+              role: "staff",
+              userName: "Anan Test",
+            },
+          ]),
+      });
+
+      await expect(service.staffNicknames()).resolves.toStrictEqual([
+        { discord_user_id: "333", status: "GROUP_NOT_SET_UP" },
+      ]);
+    });
+  });
+
+  describe("lookupParticipant", () => {
+    const facts = {
+      altAccUserId: "222",
+      code: "CODE0001",
+      email: "somchai@example.com",
+      firstNameTh: "สมชาย",
+      lastNameTh: "ใจดี",
+      lineId: "somchai.line",
+      mainAccUserId: "111",
+      middleNameTh: null,
+      phone: "0800000000",
+      school: "โรงเรียนบางมด",
+      teamName: "Team 7",
+      titleTh: "นาย",
+    };
+
+    it("reports no record for a Discord user with no verified link", async () => {
+      const service = createService([], {
+        findParticipantByDiscordUserId: async () => await Promise.resolve(null),
+      });
+
+      await expect(service.lookupParticipant("999")).resolves.toStrictEqual({
+        status: "NOT_FOUND",
+      });
+    });
+
+    it("looks up a participant by their main account and points at their alt", async () => {
+      const service = createService([], {
+        findParticipantByDiscordUserId: async () => await Promise.resolve(facts),
+      });
+
+      await expect(service.lookupParticipant("111")).resolves.toStrictEqual({
+        code: "CODE0001",
+        contact: { email: "somchai@example.com", line_id: "somchai.line", phone: "0800000000" },
+        matched_account: "main",
+        name_th: "นาย สมชาย ใจดี",
+        other_discord_user_id: "222",
+        school: "โรงเรียนบางมด",
+        status: "FOUND",
+        team_name: "Team 7",
+      });
+    });
+
+    it("looks up a participant by their alt account and points at their main", async () => {
+      const service = createService([], {
+        findParticipantByDiscordUserId: async () => await Promise.resolve(facts),
+      });
+
+      const result = await service.lookupParticipant("222");
+
+      expect(result).toMatchObject({ matched_account: "alt", other_discord_user_id: "111" });
     });
   });
 });

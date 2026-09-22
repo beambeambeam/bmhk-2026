@@ -59,6 +59,7 @@ function ParticipationReviewDialog({
   });
   const schoolTeamsQuery = useQuery({
     ...getTeamRegistrationReviewListQueryOptions({
+      eligibility: "ALL",
       limit: 100,
       offset: 0,
       reviewStatus: "ALL",

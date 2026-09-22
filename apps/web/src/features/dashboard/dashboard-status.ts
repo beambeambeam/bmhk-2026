@@ -1,0 +1,103 @@
+import type { TeamStatus } from "./team-data";
+
+const SEMIFINAL_AWARDS = new Set([
+  "ROUND_2_COMPLETED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+]);
+
+export interface FeatureFlagsInput {
+  eligibleTeamsAnnouncement?: boolean;
+  finalRound?: boolean;
+  qualifyingResultsAnnouncement?: boolean;
+  qualifyingRound?: boolean;
+  registration?: boolean;
+}
+
+function getApprovedStatus(
+  award: string | undefined,
+  featureFlags?: FeatureFlagsInput | null,
+): TeamStatus {
+  const isEligibleTeamsAnnounced = featureFlags?.eligibleTeamsAnnouncement === true;
+  const isQualifyingRoundStarted = featureFlags?.qualifyingRound === true;
+  const isQualifyingResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
+
+  if (!isEligibleTeamsAnnounced) {
+    return "selection-pending";
+  }
+
+  if (isQualifyingResultsAnnounced) {
+    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
+      return "semifinal-qualified";
+    }
+    if (award === "ROUND_1_COMPLETED") {
+      return "semifinal-failed";
+    }
+  }
+
+  if (
+    isQualifyingRoundStarted &&
+    (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award)))
+  ) {
+    return "semifinal-pending";
+  }
+
+  if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
+    return "qualified";
+  }
+
+  return award === "NOT_QUALIFIED" ? "selection-failed" : "selection-pending";
+}
+
+export function getDashboardStatus(
+  reviewFeedback: { status: string } | null | undefined,
+  team: { award?: string } | null | undefined,
+  featureFlags?: FeatureFlagsInput | null,
+): TeamStatus {
+  const feedbackStatus = reviewFeedback?.status;
+
+  if (feedbackStatus === "REJECTED" || feedbackStatus === "FAILED") {
+    return "rejected";
+  }
+
+  if (feedbackStatus === "CHANGES_REQUESTED") {
+    if (featureFlags?.eligibleTeamsAnnouncement === true) {
+      return "rejected";
+    }
+    return "issue";
+  }
+
+  if (feedbackStatus === "APPROVED") {
+    return getApprovedStatus(team?.award, featureFlags);
+  }
+
+  return "reviewing";
+}
+
+export function getAutoOpenedModal(
+  status: TeamStatus,
+  featureFlags?: FeatureFlagsInput | null,
+): string | null {
+  const isAnnouncementWindow =
+    featureFlags?.eligibleTeamsAnnouncement === true &&
+    featureFlags?.qualifyingRound !== true &&
+    featureFlags?.qualifyingResultsAnnouncement !== true &&
+    featureFlags?.finalRound !== true;
+
+  if (isAnnouncementWindow) {
+    if (
+      status === "qualified" ||
+      status === "semifinal-qualified" ||
+      status === "semifinal-pending"
+    ) {
+      return "qualified";
+    }
+    if (status === "selection-failed" || status === "rejected") {
+      return status;
+    }
+  }
+
+  return null;
+}

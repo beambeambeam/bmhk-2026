@@ -15,7 +15,7 @@ interface StatusChipProps {
   readonly value: RegistrationStatus | undefined;
 }
 
-const statusLabels: Record<RegistrationStatus, string> = {
+export const statusLabels: Record<RegistrationStatus, string> = {
   APPROVED: "อนุมัติแล้ว",
   CHANGES_REQUESTED: "ขอให้แก้ไข",
   COMPLETED: "เสร็จสมบูรณ์",

@@ -1,3 +1,6 @@
+import { Button } from "@/components/button";
+import { toast } from "sonner";
+import { createParticipationCsv, downloadParticipationCsv } from "./participation-export";
 import { Input } from "@/components/input";
 import {
   Select,
@@ -13,8 +16,8 @@ import type {
   TeamRegistrationReviewListFilter,
 } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
-import { ArrowUp } from "lucide-react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { ArrowUp, Download } from "lucide-react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { EligibilityChip } from "./participation-eligibility";
@@ -57,6 +60,8 @@ const tableColumns = [
 ] as const;
 
 function ParticipationTable({ canReview }: ParticipationTableProps) {
+  const queryClient = useQueryClient();
+  const [isExporting, setIsExporting] = useState(false);
   const [eligibility, setEligibility] = useState<TeamRegistrationEligibilityFilter>("ALL");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -88,9 +93,28 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
     };
   }, [search]);
 
+  async function exportCsv(): Promise<void> {
+    setIsExporting(true);
+    try {
+      const csv = await createParticipationCsv(
+        { eligibility, reviewStatus, search: debouncedSearch },
+        async (input) =>
+          await queryClient.fetchQuery({
+            ...getTeamRegistrationReviewListQueryOptions(input),
+            staleTime: 0,
+          }),
+      );
+      downloadParticipationCsv(csv);
+    } catch {
+      toast.error("ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_18rem]">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_18rem_auto]">
         <div>
           <label className="sr-only" htmlFor="participation-search">
             ค้นหาทีมที่สมัคร
@@ -155,6 +179,22 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
             </SelectGroup>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          disabled={
+            isExporting ||
+            query.isFetching ||
+            query.isError ||
+            !teams.length ||
+            search.trim() !== debouncedSearch
+          }
+          onClick={() => {
+            void exportCsv();
+          }}
+        >
+          <Download data-icon="inline-start" />
+          {isExporting ? "กำลังส่งออก..." : "ส่งออก CSV"}
+        </Button>
       </div>
       <Table className="table-fixed min-w-[84rem]">
         <TableHeader>

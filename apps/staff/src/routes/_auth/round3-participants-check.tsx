@@ -18,9 +18,7 @@ function ParticipantCheckInPage() {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h1 className="text-base leading-snug font-medium">
-          ลงทะเบียนเข้างานผู้เข้าร่วม (รอบที่ 3)
-        </h1>
+        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานผู้เข้าร่วม (รอบที่ 3)</h1>
         <p className="text-sm text-muted-foreground">
           บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงานรอบที่ 3 เฉพาะทีมที่ผ่านรอบที่ 2
         </p>

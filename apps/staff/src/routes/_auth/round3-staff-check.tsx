@@ -20,9 +20,7 @@ function StaffCheckInPage() {
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
         <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานทีมงาน (รอบที่ 3)</h1>
-        <p className="text-sm text-muted-foreground">
-          บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างานรอบที่ 3
-        </p>
+        <p className="text-sm text-muted-foreground">บันทึกการมาถึงของทีมงานที่ปฏิบัติงานหน้างานรอบที่ 3</p>
       </div>
       <StaffCheckInTable actorId={session.data?.user.id} round="ROUND_3" />
     </section>

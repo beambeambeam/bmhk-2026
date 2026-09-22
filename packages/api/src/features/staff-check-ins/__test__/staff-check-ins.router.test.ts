@@ -228,15 +228,13 @@ describe("staff check-ins router", () => {
 
   it("checks a staff member into round 3 independently of earlier rounds", async () => {
     const checkInsByRound = new Set(["ROUND_1", "ROUND_2"]);
-    const checkIn = vi.fn<StaffCheckInRepository["checkIn"]>(
-      async (userId, _actor, round) => {
-        if (checkInsByRound.has(round)) {
-          return await Promise.resolve(false);
-        }
-        checkInsByRound.add(round);
-        return await Promise.resolve(userId === TARGET_STAFF_ID);
-      },
-    );
+    const checkIn = vi.fn<StaffCheckInRepository["checkIn"]>(async (userId, _actor, round) => {
+      if (checkInsByRound.has(round)) {
+        return await Promise.resolve(false);
+      }
+      checkInsByRound.add(round);
+      return await Promise.resolve(userId === TARGET_STAFF_ID);
+    });
     const router = createRouter(createRepository({ checkIn }));
     const { context } = createTestContext();
 

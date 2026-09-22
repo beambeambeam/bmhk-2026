@@ -119,7 +119,7 @@ describe(createDiscordAdminService, () => {
       team(3, { name: "Beta" }),
       team(4, { award: "NO_ACHIEVEMENT", name: "Alpha Ghosts" }),
       team(5, { name: "Alpha Pending", reviewStatus: "PENDING" }),
-      team(6, { award: "NOT_QUALIFIED", name: "Alpha Out" }),
+      team(6, { award: "REGISTRATION_FAILED", name: "Alpha Out" }),
     ];
 
     it("finds a team by index", async () => {

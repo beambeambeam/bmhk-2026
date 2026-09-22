@@ -36,7 +36,7 @@ describe("dashboard selection results", () => {
   it("distinguishes selection rejection from document rejection", () => {
     const status = getDashboardStatus(
       { status: "APPROVED" },
-      { award: "NOT_QUALIFIED" },
+      { award: "REGISTRATION_FAILED" },
       announced,
     );
 
@@ -45,7 +45,7 @@ describe("dashboard selection results", () => {
     expect(getAutoOpenedModal("rejected", announced)).toBe("rejected");
   });
 
-  it.each(["NOT_QUALIFIED", "REGISTRATION_COMPLETED"])(
+  it.each(["REGISTRATION_FAILED", "REGISTRATION_COMPLETED"])(
     "withholds the %s selection result before announcement",
     (award) => {
       const flags = { eligibleTeamsAnnouncement: false };

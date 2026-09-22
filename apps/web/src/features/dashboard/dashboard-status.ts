@@ -52,7 +52,7 @@ function getApprovedStatus(
     return "qualified";
   }
 
-  if (award === "NOT_QUALIFIED" || award === "NO_ACHIEVEMENT") {
+  if (award === "REGISTRATION_FAILED" || award === "NO_ACHIEVEMENT") {
     return "selection-failed";
   }
 

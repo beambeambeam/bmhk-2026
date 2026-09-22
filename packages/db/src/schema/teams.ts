@@ -17,7 +17,7 @@ export const teamAwardValues = [
   "REGISTRATION_COMPLETED",
   // Judged and did not advance to the qualifying round. Distinct from NO_ACHIEVEMENT,
   // which means the team has not been judged yet.
-  "NOT_QUALIFIED",
+  "REGISTRATION_FAILED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",

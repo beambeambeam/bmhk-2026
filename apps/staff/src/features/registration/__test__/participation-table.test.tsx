@@ -75,7 +75,7 @@ describe("participations table", () => {
   it.each([
     ["NO_ACHIEVEMENT", "ยังไม่ได้พิจารณา"],
     ["REGISTRATION_COMPLETED", "มีสิทธิ์เข้าแข่งขันในรอบแรก"],
-    ["NOT_QUALIFIED", "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก"],
+    ["REGISTRATION_FAILED", "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก"],
   ] as const)("shows first-round eligibility for %s", (award, label) => {
     renderTable(award);
     expect(screen.getByRole("columnheader", { name: "สิทธิ์เข้าแข่งขันในรอบแรก" })).toBeDefined();

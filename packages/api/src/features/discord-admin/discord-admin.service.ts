@@ -60,7 +60,7 @@ export interface DiscordAdminService {
   unlinkStaff: (discordUserId: string) => Promise<UnlinkStaffResult>;
 }
 
-const INELIGIBLE_AWARDS = new Set(["NO_ACHIEVEMENT", "NOT_QUALIFIED"]);
+const INELIGIBLE_AWARDS = new Set(["NO_ACHIEVEMENT", "REGISTRATION_FAILED"]);
 const ID_PREFIX_LENGTH = 8;
 
 function isEligible(team: AdminTeamFacts): boolean {

@@ -6,9 +6,9 @@ import type { TeamAward, TeamAwardFilter, TeamListRegistrationStatus } from "@bm
 const achievementLabels = {
   FIRST_PLACE: "รางวัลชนะเลิศ",
   HONORABLE_MENTION: "รางวัลชมเชย",
-  NOT_QUALIFIED: "ไม่ผ่านการคัดเลือก",
   NO_ACHIEVEMENT: "ยังไม่มีผลงาน",
   REGISTRATION_COMPLETED: "สมัครสำเร็จ",
+  REGISTRATION_FAILED: "ไม่ผ่านการคัดเลือก",
   ROUND_1_COMPLETED: "ผ่านรอบคัดเลือก",
   ROUND_2_COMPLETED: "ผ่านรอบชิงชนะเลิศ",
   SECOND_PLACE: "รางวัลอันดับที่ 2",
@@ -22,7 +22,7 @@ const achievementLabels = {
 // team until it is moved onto a real competition result.
 const achievementOptions = [
   "NO_ACHIEVEMENT",
-  "NOT_QUALIFIED",
+  "REGISTRATION_FAILED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",
@@ -55,7 +55,7 @@ const awardFilters = [
   { label: "ทุกผลงาน", value: "ALL" },
   { label: achievementLabels.NO_ACHIEVEMENT, value: "NO_ACHIEVEMENT" },
   { label: achievementLabels.REGISTRATION_COMPLETED, value: "REGISTRATION_COMPLETED" },
-  { label: achievementLabels.NOT_QUALIFIED, value: "NOT_QUALIFIED" },
+  { label: achievementLabels.REGISTRATION_FAILED, value: "REGISTRATION_FAILED" },
   { label: achievementLabels.ROUND_1_COMPLETED, value: "ROUND_1_COMPLETED" },
   { label: achievementLabels.ROUND_2_COMPLETED, value: "ROUND_2_COMPLETED" },
   { label: achievementLabels.HONORABLE_MENTION, value: "HONORABLE_MENTION" },

@@ -47,6 +47,23 @@ export interface RepairFacts {
   staff: { category_id: string | null; discord_user_id: string; is_admin: boolean }[];
 }
 
+export type StaffNicknameFact =
+  | { discord_user_id: string; nickname: string; status: "OK" }
+  | { discord_user_id: string; status: "GROUP_NOT_SET_UP" };
+
+export type ParticipantLookup =
+  | { status: "NOT_FOUND" }
+  | {
+      code: string;
+      contact: { email: string; line_id: string | null; phone: string };
+      matched_account: "alt" | "main";
+      name_th: string;
+      other_discord_user_id: string | null;
+      school: string;
+      status: "FOUND";
+      team_name: string;
+    };
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await serverFetch(path);
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
@@ -85,6 +102,16 @@ export async function fetchAbsentTeams(): Promise<AbsentTeam[]> {
 
 export async function fetchRepairFacts(): Promise<RepairFacts> {
   return await getJson("/api/discord/admin/repair-facts");
+}
+
+export async function fetchStaffNicknames(): Promise<StaffNicknameFact[]> {
+  return await getJson("/api/discord/admin/staff-nicknames");
+}
+
+export async function fetchLookupParticipant(discordUserId: string): Promise<ParticipantLookup> {
+  return await getJson(
+    `/api/discord/admin/lookup-participant?discord_user_id=${encodeURIComponent(discordUserId)}`,
+  );
 }
 
 export async function unlinkParticipant(discordUserId: string): Promise<UnlinkParticipantResult> {

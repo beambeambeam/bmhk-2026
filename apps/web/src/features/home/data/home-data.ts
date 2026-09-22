@@ -20,7 +20,7 @@ export const TIMELINE_HIGHLIGHTS = [
   {
     date: "22 ก.ย.",
     label: "ประกาศรายชื่อทีมที่มีสิทธิ์เข้าแข่งขัน",
-    note: "14:00 น.",
+    note: "16:00 น.",
     tone: "yellow" as const,
   },
 ];

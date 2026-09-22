@@ -36,6 +36,18 @@ _Avoid_: Membership
 The Team, participant, advisor, and supporting-document information submitted for competition entry.
 _Avoid_: Team data, form data
 
+**Competition Category**:
+The division in which a Team competes. Master's and doctoral participants share the Graduate Competition Category.
+_Avoid_: Participant degree level
+
+**Graduate Competition Category**:
+The shared competition category named “บัณฑิตศึกษา”, open only to master's and doctoral participants. A Team may contain either degree level or a mixture of both; bachelor's participants are ineligible.
+_Avoid_: Master's competition category, doctoral competition category
+
+**Participant Degree Level**:
+A participant's individual degree level, retained in their profile. Master's and doctoral remain distinct even though they share a Competition Category.
+_Avoid_: Competition category
+
 **Legal Consent**:
 A Team Owner's attestations and agreements associated with registration. It is distinct from registration information maintained by Registration Operators.
 _Avoid_: Registration setting

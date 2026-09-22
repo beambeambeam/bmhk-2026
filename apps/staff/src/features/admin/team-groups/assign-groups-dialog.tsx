@@ -10,9 +10,10 @@ import {
 } from "@/components/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
+import type { TeamGroupAssignmentResult } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Shuffle } from "lucide-react";
+import { Eye, Shuffle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,10 +35,38 @@ function getAssignGroupsErrorMessage(error: unknown): string {
     : "An error occurred while assigning team groups.";
 }
 
+function parseStaffAmount(staffAmount: string): number | null {
+  const parsed = Number(staffAmount);
+  return Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
+}
+
+function AssignGroupsPreview({ result }: { result: TeamGroupAssignmentResult }) {
+  return (
+    <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border border-border p-3 text-sm">
+      {result.groups.map((group) => (
+        <div key={group.name}>
+          <p className="font-medium">
+            {group.name} ({group.teams.length} team{group.teams.length === 1 ? "" : "s"})
+          </p>
+          <ul className="ml-4 list-disc text-muted-foreground">
+            {group.teams.map((team) => (
+              <li key={team.id}>
+                {team.index}. {team.name} ({team.school})
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AssignGroupsDialog() {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [staffAmount, setStaffAmount] = useState("");
+  const [previewResult, setPreviewResult] = useState<TeamGroupAssignmentResult | null>(null);
+  const previewMutation = useMutation(orpc.teamGroups.assignGroups.mutationOptions());
   const assignMutation = useMutation(
     orpc.teamGroups.assignGroups.mutationOptions({
       onSuccess: async () => {
@@ -45,15 +74,35 @@ function AssignGroupsDialog() {
       },
     }),
   );
+  const isPreviewing = previewMutation.isPending;
   const isAssigning = assignMutation.isPending;
 
   function resetForm(): void {
     setStaffAmount("");
+    setPreviewResult(null);
+  }
+
+  async function previewGroups(): Promise<void> {
+    const parsedStaffAmount = parseStaffAmount(staffAmount);
+    if (parsedStaffAmount === null) {
+      toast.error("Staff amount must be a positive whole number");
+      return;
+    }
+
+    try {
+      const result = await previewMutation.mutateAsync({
+        dryRun: true,
+        staffAmount: parsedStaffAmount,
+      });
+      setPreviewResult(result);
+    } catch {
+      toast.error("An error occurred while previewing team groups.");
+    }
   }
 
   async function assignGroups(): Promise<void> {
-    const parsedStaffAmount = Number(staffAmount);
-    if (!Number.isInteger(parsedStaffAmount) || parsedStaffAmount < 1) {
+    const parsedStaffAmount = parseStaffAmount(staffAmount);
+    if (parsedStaffAmount === null) {
       toast.error("Staff amount must be a positive whole number");
       return;
     }
@@ -105,11 +154,24 @@ function AssignGroupsDialog() {
               value={staffAmount}
               onChange={(event) => {
                 setStaffAmount(event.target.value);
+                setPreviewResult(null);
               }}
             />
           </Field>
         </FieldGroup>
+        {previewResult && <AssignGroupsPreview result={previewResult} />}
         <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isPreviewing || isAssigning}
+            onClick={() => {
+              void previewGroups();
+            }}
+          >
+            <Eye aria-hidden="true" />
+            {isPreviewing ? "Previewing..." : "Preview"}
+          </Button>
           <Button
             type="button"
             disabled={isAssigning}

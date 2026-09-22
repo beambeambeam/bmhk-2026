@@ -188,9 +188,21 @@ describe(createDiscordTeamGroupsService, () => {
     });
     const service = createDiscordTeamGroupsService(repository);
 
-    const result = await service.assignGroups(2);
+    const result = await service.assignGroups({ staffAmount: 2 });
 
-    expect(result).toStrictEqual({ groupCount: 2 });
+    expect(result).toStrictEqual({
+      groupCount: 2,
+      groups: [
+        {
+          name: "หมวดที่ 1",
+          teams: [
+            { id: "team-1", index: 1, name: "A", school: "S" },
+            { id: "team-2", index: 2, name: "B", school: "S" },
+          ],
+        },
+        { name: "หมวดที่ 2", teams: [{ id: "team-3", index: 3, name: "C", school: "S" }] },
+      ],
+    });
     expect(replacedGroups).toStrictEqual([
       { name: "หมวดที่ 1", teamIds: ["team-1", "team-2"] },
       { name: "หมวดที่ 2", teamIds: ["team-3"] },
@@ -212,13 +224,46 @@ describe(createDiscordTeamGroupsService, () => {
     });
     const service = createDiscordTeamGroupsService(repository);
 
-    const result = await service.assignGroups(5);
+    const result = await service.assignGroups({ staffAmount: 5 });
 
-    expect(result).toStrictEqual({ groupCount: 2 });
+    expect(result).toStrictEqual({
+      groupCount: 2,
+      groups: [
+        { name: "หมวดที่ 1", teams: [{ id: "team-1", index: 1, name: "A", school: "S" }] },
+        { name: "หมวดที่ 2", teams: [{ id: "team-2", index: 2, name: "B", school: "S" }] },
+      ],
+    });
     expect(replacedGroups).toStrictEqual([
       { name: "หมวดที่ 1", teamIds: ["team-1"] },
       { name: "หมวดที่ 2", teamIds: ["team-2"] },
     ]);
+  });
+
+  it("does not persist an assignment on a dry run, but still returns the full breakdown", async () => {
+    let replaceAssignmentCalled = false;
+    const repository = createFakeRepository({
+      listTeamsWithGroup: async () =>
+        await Promise.resolve([
+          { group: null, id: "team-1", index: 1, name: "A", school: "S" },
+          { group: null, id: "team-2", index: 2, name: "B", school: "S" },
+        ]),
+      replaceAssignment: async () => {
+        replaceAssignmentCalled = true;
+        await Promise.resolve();
+      },
+    });
+    const service = createDiscordTeamGroupsService(repository);
+
+    const result = await service.assignGroups({ dryRun: true, staffAmount: 2 });
+
+    expect(result).toStrictEqual({
+      groupCount: 2,
+      groups: [
+        { name: "หมวดที่ 1", teams: [{ id: "team-1", index: 1, name: "A", school: "S" }] },
+        { name: "หมวดที่ 2", teams: [{ id: "team-2", index: 2, name: "B", school: "S" }] },
+      ],
+    });
+    expect(replaceAssignmentCalled).toBeFalsy();
   });
 });
 

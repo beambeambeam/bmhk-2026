@@ -14,8 +14,13 @@ import type {
   TeamWithGroupList,
 } from "./discord-team-groups.schema";
 
+export interface DiscordTeamGroupsAssignmentOptions {
+  dryRun?: boolean;
+  staffAmount: number;
+}
+
 export interface DiscordTeamGroupsService {
-  assignGroups: (staffAmount: number) => Promise<TeamGroupAssignmentResult>;
+  assignGroups: (options: DiscordTeamGroupsAssignmentOptions) => Promise<TeamGroupAssignmentResult>;
   clearCategoryId: (groupId: string) => Promise<boolean>;
   clearChannelId: (memberId: string) => Promise<boolean>;
   list: () => Promise<DiscordTeamGroupsListResponse>;
@@ -87,19 +92,35 @@ export function createDiscordTeamGroupsService(
   repository: DiscordTeamGroupsRepository,
 ): DiscordTeamGroupsService {
   return {
-    assignGroups: async (staffAmount) => {
+    assignGroups: async ({ dryRun = false, staffAmount }) => {
       const teamsWithGroup = await repository.listTeamsWithGroup();
+      const teamsById = new Map(teamsWithGroup.map((team) => [team.id, team]));
       const teamIds = teamsWithGroup.map((team) => team.id);
-      const groups: TeamGroupAssignmentPlanGroup[] = distributeTeamIds(teamIds, staffAmount).map(
-        (chunk, chunkIndex) => ({
-          name: defaultGroupName(chunkIndex + 1),
-          teamIds: chunk,
-        }),
-      );
+      const chunks = distributeTeamIds(teamIds, staffAmount);
 
-      await repository.replaceAssignment(groups);
+      const plan: TeamGroupAssignmentPlanGroup[] = chunks.map((chunk, chunkIndex) => ({
+        name: defaultGroupName(chunkIndex + 1),
+        teamIds: chunk,
+      }));
 
-      return { groupCount: groups.length };
+      if (!dryRun) {
+        await repository.replaceAssignment(plan);
+      }
+
+      return {
+        groupCount: plan.length,
+        groups: plan.map((group) => ({
+          name: group.name,
+          teams: group.teamIds.map((teamId) => {
+            // teamId always resolves: it came from teamsById's own keys via chunkTeamIds above.
+            const team = teamsById.get(teamId);
+            if (!team) {
+              throw new Error(`Team ${teamId} missing from fetched team list`);
+            }
+            return { id: team.id, index: team.index, name: team.name, school: team.school };
+          }),
+        })),
+      };
     },
     clearCategoryId: async (groupId) => await repository.clearCategoryId(groupId),
     clearChannelId: async (memberId) => await repository.clearMemberChannelId(memberId),

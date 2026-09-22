@@ -8,6 +8,10 @@ This context manages competition teams, their registration information, and orga
 A competition entry owned by exactly one Team Owner. A user may own zero or one Team.
 _Avoid_: Group, organization
 
+**Team Removal**:
+Permanent deletion of a Team's competition registration.
+_Avoid_: Withdrawal, archival
+
 **Team Owner**:
 The user responsible for a Team and its registration information. Team participants and advisors are not Team Owners.
 _Avoid_: Team member, creator

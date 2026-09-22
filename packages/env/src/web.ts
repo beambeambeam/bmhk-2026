@@ -13,7 +13,6 @@ export const env = createEnv({
     VITE_DISCORD_VERIFY_CHANNEL_URL: z
       .url()
       .default("https://discord.com/channels/1549696123826864249/1549696124611203093"),
-    VITE_SERVER_INTERNAL_URL: z.url().optional(),
     VITE_SERVER_URL: z.url(),
   },
   clientPrefix: "VITE_",

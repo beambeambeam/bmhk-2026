@@ -2,7 +2,11 @@ import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
-import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
+import {
+  roundThreeEligibleAwardValues,
+  roundTwoEligibleAwardValues,
+  teams,
+} from "@bmhk-2026/db/schema/teams";
 import { and, count, eq, ilike, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
@@ -76,6 +80,20 @@ function isRoundTwoEligible(award: string): boolean {
   return (roundTwoEligibleAwardValues as readonly string[]).includes(award);
 }
 
+function isRoundThreeEligible(award: string): boolean {
+  return (roundThreeEligibleAwardValues as readonly string[]).includes(award);
+}
+
+function getRoundEligibilityCondition(round: CheckInRound): SQL | undefined {
+  if (round === "ROUND_2") {
+    return inArray(teams.award, roundTwoEligibleAwardValues);
+  }
+  if (round === "ROUND_3") {
+    return inArray(teams.award, roundThreeEligibleAwardValues);
+  }
+  return undefined;
+}
+
 function createParticipantCheckInFilterCondition(
   filter: ParticipantCheckInColumnFilter,
 ): SQL | undefined {
@@ -124,9 +142,12 @@ export function createParticipantCheckInRepository(
             if (!participant) {
               return "TARGET_NOT_FOUND";
             }
-            // Mirrors the round-2 gate in list(): the roster hides unqualified teams, so
+            // Mirrors the round-specific gate in list(): the roster hides unqualified teams, so
             // writes must refuse them too rather than relying on the UI to filter.
             if (round === "ROUND_2" && !isRoundTwoEligible(participant.award)) {
+              return "NOT_ELIGIBLE";
+            }
+            if (round === "ROUND_3" && !isRoundThreeEligible(participant.award)) {
               return "NOT_ELIGIBLE";
             }
             const created = await transaction
@@ -148,8 +169,7 @@ export function createParticipantCheckInRepository(
                 columnFilters,
                 createParticipantCheckInFilterCondition,
               );
-              const roundGate =
-                round === "ROUND_2" ? inArray(teams.award, roundTwoEligibleAwardValues) : undefined;
+              const roundGate = getRoundEligibilityCondition(round);
               const filters = roundGate
                 ? and(columnFilterCondition, roundGate)
                 : columnFilterCondition;

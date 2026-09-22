@@ -1,5 +1,6 @@
 import { call } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
+import { Temporal } from "temporal-polyfill";
 
 import type {
   AuthReader,
@@ -19,6 +20,8 @@ import { createTeamRegistrationStatusRepositoryError } from "../team-registratio
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "user-1";
+const REGISTRATION_OPEN_AT = "2026-09-01T00:00:00+07:00";
+const REGISTRATION_CLOSED_AT = "2026-09-21T00:00:00+07:00";
 const ownerAccess = { actorId: USER_ID, scope: "OWN_TEAM" } satisfies TeamAccessContext;
 
 type StatusFacts = NonNullable<
@@ -100,9 +103,11 @@ function createRepository(
 function createRouter(
   repository: Partial<TeamRegistrationStatusRepository>,
   auth: AuthReader = createTestAuthReader(createTestSession()),
+  now = REGISTRATION_OPEN_AT,
 ) {
   return createAppRouter({
     auth,
+    featureFlagClock: () => Temporal.Instant.from(now),
     files: createUnusedFileRepository(),
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     teamRegistrationStatus: createRepository(repository),
@@ -244,6 +249,34 @@ describe("team registration status router", () => {
       actor: { id: USER_ID, type: "user" },
       outcome: "denied",
       reason: "TEAM_REGISTRATION_INCOMPLETE",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
+    });
+  });
+
+  it("denies late final submission after registration closes and audits the decision", async () => {
+    const findByTeamId = vi.fn<TeamRegistrationStatusRepository["findByTeamId"]>(
+      async () => await Promise.resolve(completeTwoPersonFacts),
+    );
+    const submit = vi.fn<TeamRegistrationStatusRepository["submit"]>(
+      async () => await Promise.resolve("SUBMITTED"),
+    );
+    const router = createRouter({ findByTeamId, submit }, undefined, REGISTRATION_CLOSED_AT);
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.submit,
+        { teamId: TEAM_ID },
+        { context, path: ["teamRegistrationStatus", "submit"] },
+      ),
+    ).rejects.toMatchObject({ code: "REGISTRATION_CLOSED", status: 403 });
+    expect(findByTeamId).not.toHaveBeenCalled();
+    expect(submit).not.toHaveBeenCalled();
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team-registration.submitted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "REGISTRATION_CLOSED",
       target: { id: TEAM_ID, teamId: TEAM_ID, type: "team-registration" },
     });
   });

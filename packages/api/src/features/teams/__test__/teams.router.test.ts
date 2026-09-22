@@ -54,6 +54,15 @@ const expectedAwards = [
   "FIRST_PLACE",
 ] as const satisfies readonly TeamAward[];
 
+const higherAwards = [
+  "ROUND_1_COMPLETED",
+  "ROUND_2_COMPLETED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+] as const satisfies readonly TeamAward[];
+
 const testTeam = {
   award: "NO_ACHIEVEMENT",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -114,6 +123,9 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
 
 const REGISTRATION_OPEN_AT = "2026-09-01T00:00:00+07:00";
 const REGISTRATION_CLOSED_AT = "2026-09-21T00:00:00+07:00";
+const ELIGIBLE_TEAMS_ANNOUNCEMENT_AT = "2026-09-22T16:00:00+07:00";
+const QUALIFYING_ROUND_START_AT = "2026-09-27T13:00:00+07:00";
+const QUALIFYING_RESULTS_ANNOUNCEMENT_AT = "2026-09-28T14:00:00+07:00";
 
 function createRouter(
   repository: TeamRepository,
@@ -191,7 +203,37 @@ describe("teams router", () => {
         },
         { context, path: ["teams", "create"] },
       ),
-    ).resolves.toStrictEqual(testTeam);
+    ).resolves.toStrictEqual({ ...testTeam, award: null });
+  });
+
+  it("returns raw awards to registration staff when creating a team", async () => {
+    const router = createRouter(createTeamRepository(), createRegistrationAuthReader());
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Team One", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).resolves.toMatchObject({ award: "NO_ACHIEVEMENT" });
+  });
+
+  it("withholds an unreleased award from an owner create response", async () => {
+    const repository = createTeamRepository({
+      create: async (userId, data) =>
+        await Promise.resolve({ ...testTeam, ...data, award: "FIRST_PLACE", userId }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.create,
+        { name: "Team One", school: "Test School" },
+        { context, path: ["teams", "create"] },
+      ),
+    ).resolves.toMatchObject({ award: null });
   });
 
   it("rejects creating a second team for the same user", async () => {
@@ -594,15 +636,130 @@ describe("teams router", () => {
 
     await expect(
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
-    ).resolves.toStrictEqual(testTeam);
+    ).resolves.toStrictEqual({ ...testTeam, award: null });
     expect(getPresigned).not.toHaveBeenCalled();
+  });
+
+  it("withholds an unreleased award from an owner", async () => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, award: "FIRST_PLACE" }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ award: null });
+  });
+
+  it.each(higherAwards)("withholds %s before the eligible-team announcement", async (award) => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, award }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ award: null });
+  });
+
+  it("releases eligibility awards after the eligible-team announcement", async () => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, award: "REGISTRATION_COMPLETED" }),
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(),
+      createUnusedFileRepository(),
+      ELIGIBLE_TEAMS_ANNOUNCEMENT_AT,
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ award: "REGISTRATION_COMPLETED" });
+  });
+
+  it.each(higherAwards)(
+    "projects %s to the earned registration milestone before the qualifying round",
+    async (award) => {
+      const repository = createTeamRepository({
+        findById: async () => await Promise.resolve({ ...testTeam, award }),
+      });
+      const router = createRouter(
+        repository,
+        createAuthReader(),
+        createUnusedFileRepository(),
+        ELIGIBLE_TEAMS_ANNOUNCEMENT_AT,
+      );
+      const { context } = createContext();
+
+      await expect(
+        call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+      ).resolves.toMatchObject({ award: "REGISTRATION_COMPLETED" });
+    },
+  );
+
+  it.each(higherAwards)(
+    "projects %s to the earned round milestone during the qualifying round",
+    async (award) => {
+      const repository = createTeamRepository({
+        findById: async () => await Promise.resolve({ ...testTeam, award }),
+      });
+      const router = createRouter(
+        repository,
+        createAuthReader(),
+        createUnusedFileRepository(),
+        QUALIFYING_ROUND_START_AT,
+      );
+      const { context } = createContext();
+
+      await expect(
+        call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+      ).resolves.toMatchObject({ award: "ROUND_1_COMPLETED" });
+    },
+  );
+
+  it.each(higherAwards)("releases %s at the qualifying-results announcement", async (award) => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, award }),
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(),
+      createUnusedFileRepository(),
+      QUALIFYING_RESULTS_ANNOUNCEMENT_AT,
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ award });
+  });
+
+  it("releases qualifying results after the qualifying-results announcement", async () => {
+    const repository = createTeamRepository({
+      findById: async () => await Promise.resolve({ ...testTeam, award: "FIRST_PLACE" }),
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(),
+      createUnusedFileRepository(),
+      QUALIFYING_RESULTS_ANNOUNCEMENT_AT,
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ award: "FIRST_PLACE" });
   });
 
   it("gives registration staff cross-team access", async () => {
     const repository = createTeamRepository({
       findById: async (access) => {
         expect(access).toStrictEqual({ actorId: "staff-user", scope: "ALL_TEAMS" });
-        return await Promise.resolve(testTeam);
+        return await Promise.resolve({ ...testTeam, award: "FIRST_PLACE" });
       },
     });
     const router = createRouter(
@@ -613,7 +770,7 @@ describe("teams router", () => {
 
     await expect(
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
-    ).resolves.toMatchObject({ id: TEAM_ID });
+    ).resolves.toMatchObject({ award: "FIRST_PLACE", id: TEAM_ID });
   });
 
   it("returns an owned team with public image metadata and URL", async () => {
@@ -627,6 +784,7 @@ describe("teams router", () => {
       call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
     ).resolves.toStrictEqual({
       ...testTeam,
+      award: null,
       image: {
         contentType: "image/png",
         id: testImage.id,
@@ -729,6 +887,44 @@ describe("teams router", () => {
       key: testImage.objectKey,
     });
     expect(deleteMetadata).toHaveBeenCalledWith(testImage.id);
+  });
+
+  it("withholds unreleased awards from an owner image response", async () => {
+    const repository = createTeamRepository({
+      replaceImage: async (_access, _id, file) =>
+        await Promise.resolve({
+          previous: null,
+          team: { ...testTeam, award: "FIRST_PLACE", image: file.id },
+        }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+    const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
+      type: "image/png",
+    });
+
+    await expect(
+      call(router.teams.image, { file: image, id: TEAM_ID }, { context, path: ["teams", "image"] }),
+    ).resolves.toMatchObject({ award: null, id: TEAM_ID });
+  });
+
+  it("keeps raw awards in registration staff image responses", async () => {
+    const repository = createTeamRepository({
+      replaceImage: async (_access, _id, file) =>
+        await Promise.resolve({
+          previous: null,
+          team: { ...testTeam, award: "FIRST_PLACE", image: file.id },
+        }),
+    });
+    const router = createRouter(repository, createRegistrationAuthReader());
+    const { context } = createContext();
+    const image = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1])], "team.png", {
+      type: "image/png",
+    });
+
+    await expect(
+      call(router.teams.image, { file: image, id: TEAM_ID }, { context, path: ["teams", "image"] }),
+    ).resolves.toMatchObject({ award: "FIRST_PLACE", id: TEAM_ID });
   });
 
   it("cleans up an owner-uploaded image replaced by registration staff", async () => {
@@ -865,7 +1061,15 @@ describe("teams router", () => {
   });
 
   it("updates writable team fields for the owner", async () => {
-    const repository = createTeamRepository();
+    const repository = createTeamRepository({
+      update: async () =>
+        await Promise.resolve({
+          ...testTeam,
+          award: "FIRST_PLACE",
+          memberCount: 12,
+          name: "Updated Team",
+        }),
+    });
     const router = createRouter(repository);
     const { context } = createContext();
 
@@ -879,9 +1083,26 @@ describe("teams router", () => {
         { context, path: ["teams", "update"] },
       ),
     ).resolves.toMatchObject({
+      award: null,
       memberCount: 12,
       name: "Updated Team",
     });
+  });
+
+  it("keeps raw awards in registration staff update responses", async () => {
+    const repository = createTeamRepository({
+      update: async () => await Promise.resolve({ ...testTeam, award: "FIRST_PLACE" }),
+    });
+    const router = createRouter(repository, createRegistrationAuthReader());
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.update,
+        { data: { name: "Updated Team" }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).resolves.toMatchObject({ award: "FIRST_PLACE" });
   });
 
   it("updates team fields for registration staff", async () => {

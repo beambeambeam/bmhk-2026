@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type {
-  ProtectedProcedure,
   RegistrationProcedure,
   TeamAccessProcedure,
   TeamRemovalProcedure,
@@ -11,22 +10,23 @@ import type { FeatureFlagService } from "../feature-flags/feature-flags.service"
 import { assertAllowedOrigin } from "../files/files.service";
 import { createRegistrationClosedError } from "./teams.errors";
 import type { TeamService } from "./teams.service";
+import { toVisibleTeam } from "./teams.visibility";
 import {
   createTeamSchema,
   deleteTeamResultSchema,
   listTeamsSchema,
   setTeamAwardSchema,
-  teamDetailsSchema,
   teamIdInputSchema,
   teamListResultSchema,
   teamSchema,
+  teamOwnerDetailsSchema,
+  teamOwnerSchema,
   updateTeamSchema,
 } from "./teams.schema";
 
 const imageSchema = teamIdInputSchema.extend({ file: z.file() }).strict();
 
 export function createTeamsRouter(
-  protectedProcedure: ProtectedProcedure,
   registrationProcedure: RegistrationProcedure,
   teamAccessProcedure: TeamAccessProcedure,
   teamRemovalProcedure: TeamRemovalProcedure,
@@ -34,18 +34,22 @@ export function createTeamsRouter(
   featureFlagService: FeatureFlagService,
 ) {
   return {
-    create: protectedProcedure
+    create: teamAccessProcedure
       .route({
         method: "POST",
         tags: ["Team"],
       })
       .input(createTeamSchema)
-      .output(teamSchema)
+      .output(teamOwnerSchema)
       .handler(async ({ context, input }) => {
         if (!featureFlagService.getAll().registration) {
           throw createRegistrationClosedError();
         }
-        const team = await service.create(context.session.user.id, input);
+        const team = toVisibleTeam(
+          await service.create(context.session.user.id, input),
+          context.teamAccess,
+          featureFlagService,
+        );
         context.log.set({ team: { id: team.id } });
         return team;
       }),
@@ -76,17 +80,18 @@ export function createTeamsRouter(
         tags: ["Team"],
       })
       .input(teamIdInputSchema)
-      .output(teamDetailsSchema)
+      .output(teamOwnerDetailsSchema)
       .handler(async ({ context, input }) => {
         const team = await service.get(context.teamAccess, input.id);
+        const visibleTeam = toVisibleTeam(team, context.teamAccess, featureFlagService);
 
-        context.log.set({ team: { id: team.id } });
-        return team;
+        context.log.set({ team: { id: visibleTeam.id } });
+        return visibleTeam;
       }),
     image: teamAccessProcedure
       .route({ method: "POST", tags: ["Team", "File"] })
       .input(imageSchema)
-      .output(teamSchema)
+      .output(teamOwnerSchema)
       .handler(async ({ context, input }) => {
         assertAllowedOrigin(context.headers);
         const { file, team } = await service.uploadImage({
@@ -101,7 +106,7 @@ export function createTeamsRouter(
           team: { id: input.id },
         });
 
-        return team;
+        return toVisibleTeam(team, context.teamAccess, featureFlagService);
       }),
     list: registrationProcedure
       .route({
@@ -139,12 +144,13 @@ export function createTeamsRouter(
         tags: ["Team"],
       })
       .input(updateTeamSchema)
-      .output(teamSchema)
+      .output(teamOwnerSchema)
       .handler(async ({ context, input }) => {
         const team = await service.update(context.teamAccess, input.id, input.data);
+        const visibleTeam = toVisibleTeam(team, context.teamAccess, featureFlagService);
 
-        context.log.set({ team: { id: team.id } });
-        return team;
+        context.log.set({ team: { id: visibleTeam.id } });
+        return visibleTeam;
       }),
   };
 }

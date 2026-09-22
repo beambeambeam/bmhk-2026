@@ -23,6 +23,11 @@ export const teamDetailsSchema = teamSchema
   .omit({ image: true })
   .extend({ image: fileWithUrlSchema.nullable() })
   .strict();
+const teamOwnerAwardSchema = teamSchema.shape.award.nullable();
+export const teamOwnerSchema = teamSchema.extend({ award: teamOwnerAwardSchema }).strict();
+export const teamOwnerDetailsSchema = teamDetailsSchema
+  .extend({ award: teamOwnerAwardSchema })
+  .strict();
 const createTeamFieldsSchema = teamInsertSchema
   .pick({ memberCount: true, name: true, school: true })
   .strict();
@@ -101,6 +106,8 @@ export type TeamListInput = z.output<typeof listTeamsSchema>;
 export type TeamListSort = z.output<typeof teamListSortSchema>;
 export type TeamAwardFilter = z.output<typeof teamAwardFilterSchema>;
 export type TeamDetails = z.output<typeof teamDetailsSchema>;
+export type TeamOwner = z.output<typeof teamOwnerSchema>;
+export type TeamOwnerDetails = z.output<typeof teamOwnerDetailsSchema>;
 export type TeamAward = Team["award"];
 export type CreateTeamData = z.output<typeof createTeamSchema>;
 export type UpdateTeamData = z.output<typeof updateTeamDataSchema>;

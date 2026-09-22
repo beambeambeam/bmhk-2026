@@ -8,6 +8,10 @@ const SEMIFINAL_AWARDS = new Set([
   "FIRST_PLACE",
 ]);
 
+function isSemifinalAward(award: string | null | undefined): boolean {
+  return typeof award === "string" && SEMIFINAL_AWARDS.has(award);
+}
+
 export interface FeatureFlagsInput {
   eligibleTeamsAnnouncement?: boolean;
   finalRound?: boolean;
@@ -17,7 +21,7 @@ export interface FeatureFlagsInput {
 }
 
 function getApprovedStatus(
-  award: string | undefined,
+  award: string | null | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
   const isEligibleTeamsAnnounced = featureFlags?.eligibleTeamsAnnouncement === true;
@@ -29,7 +33,7 @@ function getApprovedStatus(
   }
 
   if (isQualifyingResultsAnnounced) {
-    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
+    if (isSemifinalAward(award)) {
       return "semifinal-qualified";
     }
     if (award === "ROUND_1_COMPLETED") {
@@ -37,17 +41,14 @@ function getApprovedStatus(
     }
   }
 
-  if (
-    isQualifyingRoundStarted &&
-    (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award)))
-  ) {
+  if (isQualifyingRoundStarted && (award === "ROUND_1_COMPLETED" || isSemifinalAward(award))) {
     return "semifinal-pending";
   }
 
   if (
     award === "REGISTRATION_COMPLETED" ||
     award === "ROUND_1_COMPLETED" ||
-    (award !== undefined && SEMIFINAL_AWARDS.has(award))
+    isSemifinalAward(award)
   ) {
     return "qualified";
   }
@@ -61,7 +62,7 @@ function getApprovedStatus(
 
 export function getDashboardStatus(
   reviewFeedback: { status: string } | null | undefined,
-  team: { award?: string } | null | undefined,
+  team: { award?: string | null } | null | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
   const feedbackStatus = reviewFeedback?.status;

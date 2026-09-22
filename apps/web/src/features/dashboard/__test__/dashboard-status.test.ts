@@ -27,12 +27,15 @@ describe("dashboard selection results", () => {
       expect(getAutoOpenedModal(status, announced)).toBe("selection-failed");
     },
   );
-  it("keeps an approved team pending while its award is unavailable", () => {
-    const status = getDashboardStatus({ status: "APPROVED" }, {}, announced);
+  it.each([{}, { award: null }])(
+    "keeps an approved team pending while its award is unavailable",
+    (team) => {
+      const status = getDashboardStatus({ status: "APPROVED" }, team, announced);
 
-    expect(status).toBe("selection-pending");
-    expect(getAutoOpenedModal(status, announced)).toBeNull();
-  });
+      expect(status).toBe("selection-pending");
+      expect(getAutoOpenedModal(status, announced)).toBeNull();
+    },
+  );
   it("distinguishes selection rejection from document rejection", () => {
     const status = getDashboardStatus(
       { status: "APPROVED" },
@@ -78,7 +81,10 @@ describe("dashboard selection results", () => {
       "semifinal-pending",
     );
     expect(
-      getDashboardStatus(review, team, { ...announced, qualifyingResultsAnnouncement: true }),
+      getDashboardStatus(review, team, {
+        ...announced,
+        qualifyingResultsAnnouncement: true,
+      }),
     ).toBe("semifinal-failed");
     expect(
       getDashboardStatus(

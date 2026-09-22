@@ -42,7 +42,16 @@ export function getTeamRegistrationReviewListQueryOptions(input: TeamRegistratio
 }
 
 export function getParticipationQueryOptions(teamId: string) {
-  return orpc.teams.get.queryOptions({ input: { id: teamId } });
+  return orpc.teams.get.queryOptions({
+    input: { id: teamId },
+    select: (team) => {
+      if (team.award === null) {
+        throw new Error("Registration access is required to review team awards");
+      }
+
+      return { ...team, award: team.award };
+    },
+  });
 }
 
 export function getParticipationParticipantsQueryOptions(teamId: string) {

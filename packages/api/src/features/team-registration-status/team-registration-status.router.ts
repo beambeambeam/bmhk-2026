@@ -45,6 +45,7 @@ export function createTeamRegistrationStatusRouter(
             target: { id: input.teamId, teamId: input.teamId },
           }),
           deniedErrorCodes: [
+            "REGISTRATION_CLOSED",
             "TEAM_NOT_FOUND",
             "TEAM_REGISTRATION_ALREADY_SUBMITTED",
             "TEAM_REGISTRATION_INCOMPLETE",

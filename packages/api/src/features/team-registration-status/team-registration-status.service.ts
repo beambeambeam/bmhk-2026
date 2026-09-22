@@ -1,5 +1,7 @@
 import { createTeamNotFoundError } from "../teams/teams.service";
 import type { TeamAccessContext } from "../../core/auth";
+import type { FeatureFlagService } from "../feature-flags/feature-flags.service";
+import { createRegistrationClosedError } from "../teams/teams.errors";
 import type {
   TeamRegistrationItemStatus,
   TeamRegistrationStatus,
@@ -136,6 +138,7 @@ export function calculateTeamRegistrationStatus(
 
 export function createTeamRegistrationStatusService(
   repository: TeamRegistrationStatusRepository,
+  featureFlagService: FeatureFlagService,
   now: () => Date = () => new Date(),
 ): TeamRegistrationStatusService {
   return {
@@ -156,6 +159,10 @@ export function createTeamRegistrationStatusService(
       return calculateTeamRegistrationStatus(facts);
     },
     submit: async (access, teamId) => {
+      if (!featureFlagService.getAll().registration) {
+        throw createRegistrationClosedError();
+      }
+
       const facts = await repository.findByTeamId(access, teamId);
       if (!facts) {
         throw createTeamNotFoundError();

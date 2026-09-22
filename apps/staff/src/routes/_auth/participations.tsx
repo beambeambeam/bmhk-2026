@@ -1,4 +1,4 @@
-import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
+import { hasRegistrationAccess, hasTeamRemovalAccess } from "@bmhk-2026/auth/permission";
 import { ParticipationTable } from "@/features/registration/participation-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
@@ -26,7 +26,7 @@ function ParticipationsPage() {
           ตรวจสอบข้อมูลทีม สมาชิก อาจารย์ที่ปรึกษา และเอกสารที่ส่งสมัคร
         </p>
       </div>
-      <ParticipationTable canReview={canReview} />
+      <ParticipationTable canReview={canReview} canRemove={hasTeamRemovalAccess(role)} />
     </section>
   );
 }

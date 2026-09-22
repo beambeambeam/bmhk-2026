@@ -12,8 +12,15 @@ import DiscordCodesModal from "./components/discord-codes-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
 import TeamDecor from "./components/team-decor";
 import { formatCodernName, formatTeamCode } from "./team-code";
-import { getBaseMembers, QUALIFIED_MODAL, REJECTED_MODAL } from "./team-data";
+import {
+  getBaseMembers,
+  QUALIFIED_MODAL,
+  REJECTED_MODAL,
+  SELECTION_FAILED_MODAL,
+} from "./team-data";
 import type { TeamStatus } from "./team-data";
+import { getAutoOpenedModal, getDashboardStatus } from "./dashboard-status";
+import type { FeatureFlagsInput } from "./dashboard-status";
 
 const COPY = "/assets/figma/85282b0baf589ceb0eb17e9e2d027684e76a4e8b.svg";
 const DISCORD_32 = "/assets/figma/8353328712043444b22094d1885d9862cc9e8a45.svg";
@@ -94,105 +101,6 @@ const PANES = [
 ] as const;
 
 type Pane = (typeof PANES)[number]["key"];
-
-interface StatusData {
-  submissionState: string;
-  submittedAt?: Date | string | null;
-}
-interface ReviewFeedback {
-  advisor?: string;
-  participant1?: string;
-  participant2?: string;
-  participant3?: string;
-  status: string;
-  statusUpdatedAt?: Date | null;
-}
-interface TeamData {
-  award?: string;
-  createdAt?: Date | string | null;
-  id: string;
-  name: string;
-  school: string;
-  image?: { url: string } | string | null;
-  updatedAt?: Date | string | null;
-}
-
-const SEMIFINAL_AWARDS = new Set([
-  "ROUND_2_COMPLETED",
-  "HONORABLE_MENTION",
-  "THIRD_PLACE",
-  "SECOND_PLACE",
-  "FIRST_PLACE",
-]);
-
-interface FeatureFlagsInput {
-  eligibleTeamsAnnouncement?: boolean;
-  finalRound?: boolean;
-  qualifyingResultsAnnouncement?: boolean;
-  qualifyingRound?: boolean;
-  registration?: boolean;
-}
-
-function getApprovedStatus(
-  award: string | undefined,
-  featureFlags?: FeatureFlagsInput | null,
-): TeamStatus {
-  const isEligibleTeamsAnnounced = featureFlags?.eligibleTeamsAnnouncement === true;
-  const isQualifyingRoundStarted = featureFlags?.qualifyingRound === true;
-  const isQualifyingResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
-
-  if (!isEligibleTeamsAnnounced) {
-    return "selection-pending";
-  }
-
-  if (isQualifyingResultsAnnounced) {
-    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
-      return "semifinal-qualified";
-    }
-    if (award === "ROUND_1_COMPLETED") {
-      return "semifinal-failed";
-    }
-  }
-
-  if (
-    isQualifyingRoundStarted &&
-    (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award)))
-  ) {
-    return "semifinal-pending";
-  }
-
-  if (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award))) {
-    return "qualified";
-  }
-
-  return "selection-failed";
-}
-
-function getMappedStatus(
-  _statusData: StatusData | null | undefined,
-  reviewFeedback: ReviewFeedback | null | undefined,
-  team: TeamData | null | undefined,
-  featureFlags?: FeatureFlagsInput | null,
-): TeamStatus {
-  const feedbackStatus = reviewFeedback?.status;
-
-  if (feedbackStatus === "REJECTED" || feedbackStatus === "FAILED") {
-    return "rejected";
-  }
-
-  if (feedbackStatus === "CHANGES_REQUESTED") {
-    if (featureFlags?.eligibleTeamsAnnouncement === true) {
-      return "rejected";
-    }
-    return "issue";
-  }
-
-  if (feedbackStatus === "APPROVED") {
-    return getApprovedStatus(team?.award, featureFlags);
-  }
-
-  return "reviewing";
-}
 
 function getDisplayTeam(
   team:
@@ -294,6 +202,15 @@ function MyTeamModals({
       <ResultModal
         open={modal === "rejected"}
         {...REJECTED_MODAL}
+        titleClassName="text-brand-red"
+        onClose={() => {
+          setModal(null);
+        }}
+      />
+
+      <ResultModal
+        open={modal === "selection-failed"}
+        {...SELECTION_FAILED_MODAL}
         titleClassName="text-brand-red"
         onClose={() => {
           setModal(null);
@@ -471,32 +388,6 @@ function useMappedMembers(
     }
     return mapAdvisor(advisor, mockMember);
   });
-}
-
-function getAutoOpenedModal(
-  status: TeamStatus,
-  featureFlags?: FeatureFlagsInput | null,
-): string | null {
-  const isAnnouncementWindow =
-    featureFlags?.eligibleTeamsAnnouncement === true &&
-    featureFlags?.qualifyingRound !== true &&
-    featureFlags?.qualifyingResultsAnnouncement !== true &&
-    featureFlags?.finalRound !== true;
-
-  if (isAnnouncementWindow) {
-    if (
-      status === "qualified" ||
-      status === "semifinal-qualified" ||
-      status === "semifinal-pending"
-    ) {
-      return "qualified";
-    }
-    if (status === "selection-failed" || status === "rejected") {
-      return "rejected";
-    }
-  }
-
-  return null;
 }
 
 function useAutoOpenModal(status: TeamStatus, featureFlags?: FeatureFlagsInput | null) {
@@ -715,7 +606,7 @@ export default function MyTeam() {
 
   const MEMBERS = useMappedMembers(participants, advisor, statusData, team);
 
-  const status = getMappedStatus(statusData, reviewFeedback, team, featureFlags);
+  const status = getDashboardStatus(reviewFeedback, team, featureFlags);
 
   const [pane, setPane] = useState<Pane>("team");
   const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
@@ -737,7 +628,12 @@ export default function MyTeam() {
       <TeamDecor />
       <ScrollEdgeEffect className="absolute inset-x-0 top-0 z-10 h-[calc(106px_+_54*var(--fl))]" />
       <div
-        data-recede={modal === "qualified" || modal === "rejected" || modal === "discord"}
+        data-recede={
+          modal === "qualified" ||
+          modal === "rejected" ||
+          modal === "selection-failed" ||
+          modal === "discord"
+        }
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
         <AuthTopBar className="auth-rise w-full" data-rise="0" />

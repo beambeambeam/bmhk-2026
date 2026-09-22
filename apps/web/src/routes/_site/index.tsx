@@ -4,7 +4,7 @@ import HomePage from "@/features/home/page";
 const URL = "https://bangmodhackathon.com/";
 const OG_IMAGE = "https://bangmodhackathon.com/og/home.png";
 
-/** `startDate` is the qualifying round (26 ก.ย.), not the registration open date — the
+/** `startDate` is the qualifying round (27 ก.ย.), not the registration open date — the
  *  registration window is `offers.validFrom`/`validThrough`, per Google's Event spec. */
 const EVENT_JSON_LD = {
   "@context": "https://schema.org",
@@ -56,7 +56,7 @@ const EVENT_JSON_LD = {
     name: "ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี",
     url: URL,
   },
-  startDate: "2026-09-26T09:00+07:00",
+  startDate: "2026-09-27T13:00+07:00",
   url: URL,
 };
 

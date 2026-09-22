@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ParticipationTable } from "../participation-table";
 
-function renderTable(award: TeamAward): void {
+function renderTable(award: TeamAward): QueryClient {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -34,6 +34,7 @@ function renderTable(award: TeamAward): void {
   };
   queryClient.setQueryData(
     getTeamRegistrationReviewListQueryOptions({
+      eligibility: "ALL",
       limit: 20,
       offset: 0,
       reviewStatus: "ALL",
@@ -48,6 +49,7 @@ function renderTable(award: TeamAward): void {
       <ParticipationTable canReview />
     </QueryClientProvider>,
   );
+  return queryClient;
 }
 
 describe("participations table", () => {
@@ -70,6 +72,30 @@ describe("participations table", () => {
       expect(screen.getByRole("cell", { name: "มีสิทธิ์เข้าแข่งขันในรอบแรก" })).toBeDefined();
     },
   );
+
+  it("filters teams by first-round eligibility", async () => {
+    const queryClient = renderTable("NO_ACHIEVEMENT");
+    queryClient.setQueryData(
+      getTeamRegistrationReviewListQueryOptions({
+        eligibility: "ELIGIBLE",
+        limit: 20,
+        offset: 0,
+        reviewStatus: "ALL",
+        search: "",
+        sortBy: "registrationSubmittedAt",
+        sortDesc: false,
+      }).queryKey,
+      { pagination: { nextOffset: null, offset: 0, total: 0 }, rows: [] },
+    );
+    fireEvent.click(screen.getByRole("combobox", { name: "สิทธิ์เข้าแข่งขันในรอบแรก" }));
+    const option = await screen.findByRole("option", { name: "มีสิทธิ์เข้าแข่งขันในรอบแรก" });
+    fireEvent.mouseMove(option);
+    fireEvent.mouseDown(option);
+    fireEvent.mouseUp(option);
+    fireEvent.click(option);
+    await expect(screen.findByText("ไม่พบข้อมูลการสมัคร")).resolves.toBeDefined();
+    expect(screen.queryByRole("cell", { name: "Team One" })).toBeNull();
+  });
 
   it("opens eligibility from the team actions menu", async () => {
     renderTable("NO_ACHIEVEMENT");

@@ -4,7 +4,20 @@ import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, count, desc, eq, exists, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  ilike,
+  isNotNull,
+  isNull,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { TeamAccessContext } from "../../core/auth";
@@ -17,6 +30,7 @@ import type {
   SaveTeamRegistrationReviewSubjectData,
   TeamRegistrationReview,
   TeamRegistrationReviewListFilter,
+  TeamRegistrationEligibilityFilter,
   TeamRegistrationReviewListSort,
   TeamRegistrationReviewSubject,
 } from "./team-registration-reviews.schema";
@@ -42,6 +56,7 @@ export interface TeamRegistrationReviewRepository {
     teamId: string,
   ) => Promise<TeamRegistrationReviewLookup | null>;
   list: (input: {
+    eligibility: TeamRegistrationEligibilityFilter;
     limit: number;
     offset: number;
     reviewStatus: TeamRegistrationReviewListFilter;
@@ -69,6 +84,16 @@ export interface TeamRegistrationReviewListRecord {
 
 type Database = typeof db;
 const normalizedUserRole = sql<string>`coalesce(${user.role}, 'user')`;
+
+function eligibilityListCondition(eligibility: TeamRegistrationEligibilityFilter) {
+  if (eligibility === "ALL") {
+    return sql`true`;
+  }
+  if (eligibility === "ELIGIBLE") {
+    return notInArray(teams.award, ["NO_ACHIEVEMENT", "NOT_QUALIFIED"]);
+  }
+  return eq(teams.award, eligibility === "NOT_REVIEWED" ? "NO_ACHIEVEMENT" : "NOT_QUALIFIED");
+}
 
 function reviewListCondition(reviewStatus: TeamRegistrationReviewListFilter) {
   if (reviewStatus === "ALL") {
@@ -139,7 +164,7 @@ export function createTeamRegistrationReviewRepository(
 
         return result ?? null;
       }),
-    list: async ({ limit, offset, reviewStatus, search, sortBy, sortDesc }) =>
+    list: async ({ eligibility, limit, offset, reviewStatus, search, sortBy, sortDesc }) =>
       await execute(async () => {
         const reviewer = alias(user, "team_registration_reviewer");
         const sortColumns = {
@@ -218,7 +243,8 @@ export function createTeamRegistrationReviewRepository(
                 ),
               );
         const reviewCondition = reviewListCondition(reviewStatus);
-        const condition = and(searchCondition, reviewCondition);
+        const eligibilityCondition = eligibilityListCondition(eligibility);
+        const condition = and(searchCondition, reviewCondition, eligibilityCondition);
 
         return await database.transaction(
           async (transaction) => {

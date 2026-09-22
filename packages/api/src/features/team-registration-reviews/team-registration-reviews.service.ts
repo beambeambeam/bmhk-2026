@@ -7,6 +7,7 @@ import type {
   TeamRegistrationReview,
   TeamRegistrationReviewFeedback,
   TeamRegistrationReviewListFilter,
+  TeamRegistrationEligibilityFilter,
   TeamRegistrationReviewListSort,
   TeamRegistrationReviewListResult,
   TeamRegistrationReviewSubject,
@@ -35,6 +36,7 @@ export interface TeamRegistrationReviewService {
     data: SaveTeamRegistrationReviewSubjectData,
   ) => Promise<TeamRegistrationReviewSaveResult>;
   list: (input: {
+    eligibility: TeamRegistrationEligibilityFilter;
     limit: number;
     offset: number;
     reviewStatus: TeamRegistrationReviewListFilter;
@@ -150,8 +152,9 @@ export function createTeamRegistrationReviewService(
 
       return toReviewFeedback(result.review);
     },
-    list: async ({ limit, offset, reviewStatus, search, sortBy, sortDesc }) => {
+    list: async ({ eligibility, limit, offset, reviewStatus, search, sortBy, sortDesc }) => {
       const result = await repository.list({
+        eligibility,
         limit,
         offset,
         reviewStatus,

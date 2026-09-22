@@ -107,6 +107,7 @@ export type {
   TeamRegistrationReview,
   TeamRegistrationReviewFeedback,
   TeamRegistrationReviewListFilter,
+  TeamRegistrationEligibilityFilter,
   TeamRegistrationReviewListInput,
   TeamRegistrationReviewListResult,
   TeamRegistrationReviewListSort,

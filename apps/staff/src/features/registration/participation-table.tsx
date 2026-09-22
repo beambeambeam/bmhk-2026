@@ -34,6 +34,7 @@ interface ParticipationTableProps {
 }
 
 const tableColumns = [
+  "รหัสทีม",
   "ทีม",
   "โรงเรียน",
   "สมาชิก",
@@ -84,7 +85,7 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           </label>
           <Input
             id="participation-search"
-            placeholder="ค้นหาชื่อทีม โรงเรียน สมาชิก หรืออาจารย์"
+            placeholder="ค้นหารหัสทีม ชื่อทีม โรงเรียน สมาชิก หรืออาจารย์"
             type="search"
             value={search}
             onChange={(event) => {
@@ -118,22 +119,23 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
           </SelectContent>
         </Select>
       </div>
-      <Table className="table-fixed min-w-[76rem]">
+      <Table className="table-fixed min-w-[84rem]">
         <TableHeader>
           <TableRow>
             {tableColumns.map((label, index) => (
               <TableHead
                 className={`${
                   [
-                    "w-[12%]",
+                    "w-[8%]",
+                    "w-[11%]",
                     "w-[11%]",
                     "w-[6%]",
                     "w-[8%]",
                     "w-[9%]",
                     "w-[9%]",
-                    "w-[16%]",
+                    "w-[14%]",
                     "w-[10%]",
-                    "w-[13%]",
+                    "w-[10%]",
                   ][index]
                 } whitespace-normal`}
                 key={label}
@@ -152,23 +154,24 @@ function ParticipationTable({ canReview }: ParticipationTableProps) {
         <TableBody>
           {query.isLoading ? (
             <TableRow>
-              <TableCell colSpan={10}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
+              <TableCell colSpan={tableColumns.length + 1}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
             </TableRow>
           ) : null}
           {query.isError ? (
             <TableRow>
-              <TableCell className="text-destructive" colSpan={10}>
+              <TableCell className="text-destructive" colSpan={tableColumns.length + 1}>
                 ไม่สามารถโหลดข้อมูลการสมัครได้
               </TableCell>
             </TableRow>
           ) : null}
           {!query.isLoading && !query.isError && teams.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10}>ไม่พบข้อมูลการสมัคร</TableCell>
+              <TableCell colSpan={tableColumns.length + 1}>ไม่พบข้อมูลการสมัคร</TableCell>
             </TableRow>
           ) : null}
           {teams.map((team) => (
             <TableRow key={team.id}>
+              <TableCell>{`BH${String(team.index).padStart(3, "0")}/26`}</TableCell>
               <TableCell className="whitespace-normal">
                 <p className="font-medium">{team.name}</p>
               </TableCell>

@@ -18,6 +18,9 @@ const EXIT_MS = 220;
 /** How long the copy feedback icon stays active before reverting. */
 const COPIED_MS = 1600;
 
+/** Redemption status can change while a team is completing Discord verification. */
+const REDEMPTION_STATUS_POLL_INTERVAL_MS = 30_000;
+
 function Tick({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden className={className}>
@@ -75,9 +78,15 @@ interface DiscordCodesModalProps {
   open: boolean;
   onClose: () => void;
   teamName?: string;
+  confirmationOpen: boolean;
 }
 
-export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCodesModalProps) {
+export default function DiscordCodesModal({
+  open,
+  onClose,
+  teamName,
+  confirmationOpen,
+}: DiscordCodesModalProps) {
   const [mounted, setMounted] = useState(open);
   const [state, setState] = useState<"open" | "closed">(open ? "open" : "closed");
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -89,7 +98,7 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
   const verifyChannelUrl = env.VITE_DISCORD_VERIFY_CHANNEL_URL;
 
   // oRPC call: automatically get or create codes for the team when modal is open.
-  // Cache indefinitely so reopening the dialog reuses previously generated codes.
+  // Codes stay in the query cache, while reopening and visible polling refresh redemption status.
   const {
     data: participants,
     isPending,
@@ -98,8 +107,11 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
     refetch,
   } = useQuery({
     ...orpc.discordCodes.getOrCreate.queryOptions(),
-    enabled: open,
-    staleTime: Number.POSITIVE_INFINITY,
+    enabled: open && confirmationOpen,
+    refetchInterval: open && confirmationOpen ? REDEMPTION_STATUS_POLL_INTERVAL_MS : false,
+    refetchIntervalInBackground: false,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   useDialogFocus(open && mounted, sheetRef);
@@ -272,49 +284,60 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
             </div>
           </div>
 
+          {!confirmationOpen && (
+            <output className="rounded-[16px] border border-brand-red/20 bg-brand-red/5 p-4 text-center">
+              <p className="fl-14 font-medium text-brand-red">ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว</p>
+              <p className="mt-1 fl-12 text-gray-2">
+                ช่วงเวลายืนยันตัวตนสิ้นสุดแล้ว จึงไม่สามารถขอหรือใช้รหัสเข้าร่วมได้
+              </p>
+            </output>
+          )}
+
           {/* Verification Command Instruction Box */}
-          <div className="flex flex-col gap-2 rounded-[16px] border border-[#e0e4fc] bg-[#f8f9ff] p-4 text-sm">
-            <div className="flex items-center gap-2 font-medium text-[#4752c4]">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#5865f2]/15 text-xs font-bold">
-                i
-              </span>
-              <span>วิธียืนยันตัวตนด้วยคำสั่ง /verify</span>
+          {confirmationOpen && (
+            <div className="flex flex-col gap-2 rounded-[16px] border border-[#e0e4fc] bg-[#f8f9ff] p-4 text-sm">
+              <div className="flex items-center gap-2 font-medium text-[#4752c4]">
+                <span className="flex size-5 items-center justify-center rounded-full bg-[#5865f2]/15 text-xs font-bold">
+                  i
+                </span>
+                <span>วิธียืนยันตัวตนด้วยคำสั่ง /verify</span>
+              </div>
+              <ol className="flex flex-col gap-1.5 ps-6 text-gray-2 list-decimal">
+                <li>
+                  เข้าร่วม{" "}
+                  <a
+                    href={inviteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-[#5865f2] underline decoration-[#5865f2]/40 underline-offset-2 transition-colors hover:decoration-[#5865f2]"
+                  >
+                    Discord Server ของการแข่งขัน
+                  </a>
+                </li>
+                <li>
+                  ไปที่ห้องยืนยันตัวตน (
+                  <DiscordMention type="channel" href={verifyChannelUrl}>
+                    verify
+                  </DiscordMention>
+                  )
+                </li>
+                <li>
+                  พิมพ์คำสั่ง <DiscordMention type="slash">verify</DiscordMention> แล้วกรอกรหัส 8
+                  หลักของตนเองเพื่อรับสิทธิ์และยศผู้เข้าแข่งขัน
+                </li>
+              </ol>
             </div>
-            <ol className="flex flex-col gap-1.5 ps-6 text-gray-2 list-decimal">
-              <li>
-                เข้าร่วม{" "}
-                <a
-                  href={inviteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-[#5865f2] underline decoration-[#5865f2]/40 underline-offset-2 transition-colors hover:decoration-[#5865f2]"
-                >
-                  Discord Server ของการแข่งขัน
-                </a>
-              </li>
-              <li>
-                ไปที่ห้องยืนยันตัวตน (
-                <DiscordMention type="channel" href={verifyChannelUrl}>
-                  verify
-                </DiscordMention>
-                )
-              </li>
-              <li>
-                พิมพ์คำสั่ง <DiscordMention type="slash">verify</DiscordMention> แล้วกรอกรหัส 8
-                หลักของตนเองเพื่อรับสิทธิ์และยศผู้เข้าแข่งขัน
-              </li>
-            </ol>
-          </div>
+          )}
 
           {/* Main Content: Loading / Error / List */}
-          {isPending && (
+          {confirmationOpen && isPending && (
             <div className="flex flex-col items-center justify-center gap-3 py-10">
               <RefreshCw className="size-7 animate-spin text-[#5865f2]" />
               <p className="fl-14 text-gray-2">กำลังโหลดรหัส Discord ของทีม...</p>
             </div>
           )}
 
-          {isError && (
+          {confirmationOpen && isError && (
             <div className="flex flex-col items-center gap-3 rounded-[16px] border border-brand-red/20 bg-brand-red/5 p-6 text-center">
               <p className="fl-14 font-medium text-brand-red">{errorMessage}</p>
               <button
@@ -330,7 +353,7 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
             </div>
           )}
 
-          {!isPending && !isError && participants !== undefined && (
+          {confirmationOpen && !isPending && !isError && participants !== undefined && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="fl-14 font-medium text-ink">รายชื่อสมาชิกและรหัสประจำตัว</span>

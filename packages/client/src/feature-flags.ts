@@ -15,6 +15,7 @@ const unavailableFeatureFlags: FeatureFlags = {
 };
 
 const CLOCK_SKEW_BUFFER_MS = 1000;
+const CLOCK_SKEW_RECHECK_INTERVAL_MS = 60_000;
 const ERROR_RECOVERY_INTERVAL_MS = 60_000;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 // Well under the 32-bit setTimeout limit on purpose. React Query schedules the stale
@@ -29,7 +30,8 @@ const featureFlagTransitions = Object.values(featureFlags)
     Date.parse(featureFlag.startsAt),
     ...("endsAt" in featureFlag ? [Date.parse(featureFlag.endsAt)] : []),
   ])
-  .toSorted((first, second) => first - second);
+  // oxlint-disable-next-line unicorn/no-array-sort -- sorts a fresh flatMap result; web targets lack toSorted
+  .sort((first: number, second: number) => first - second);
 
 function getNextTransition(after: number): number | undefined {
   return featureFlagTransitions.find((transition) => transition > after);
@@ -54,24 +56,42 @@ function getFeatureFlagsRefetchInterval(hasError: boolean): number | false {
 
   const nextTransition = getNextTransition(Date.now());
   if (nextTransition === undefined) {
-    return false;
+    return CLOCK_SKEW_RECHECK_INTERVAL_MS;
   }
 
-  return Math.min(nextTransition - Date.now() + CLOCK_SKEW_BUFFER_MS, MAX_TIMER_DELAY_MS);
+  const timeUntilTransition = nextTransition - Date.now() + CLOCK_SKEW_BUFFER_MS;
+
+  // Keep checking while a boundary is ahead as well as scheduling the precise boundary. This
+  // covers a browser clock that is ahead of or behind the server clock, and gives background tabs
+  // a bounded recovery path when the precise timer is throttled.
+  return Math.min(
+    Math.max(timeUntilTransition, 1),
+    CLOCK_SKEW_RECHECK_INTERVAL_MS,
+    MAX_TIMER_DELAY_MS,
+  );
 }
 
 export function useFeatureFlags(): FeatureFlags {
-  const query = useQuery(
-    orpc.featureFlags.getAll.queryOptions({
-      refetchInterval: (featureFlagsQuery) =>
-        getFeatureFlagsRefetchInterval(featureFlagsQuery.state.status === "error"),
-      retry: false,
-      staleTime: (featureFlagsQuery) =>
-        getFeatureFlagsStaleTime(featureFlagsQuery.state.dataUpdatedAt),
-    }),
-  );
+  const query = useFeatureFlagsQuery();
 
   return query.data ?? unavailableFeatureFlags;
+}
+
+export function getFeatureFlagsQueryOptions() {
+  return orpc.featureFlags.getAll.queryOptions({
+    refetchInterval: (featureFlagsQuery) =>
+      getFeatureFlagsRefetchInterval(featureFlagsQuery.state.status === "error"),
+    refetchIntervalInBackground: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    retry: false,
+    staleTime: (featureFlagsQuery) =>
+      getFeatureFlagsStaleTime(featureFlagsQuery.state.dataUpdatedAt),
+  });
+}
+
+export function useFeatureFlagsQuery() {
+  return useQuery(getFeatureFlagsQueryOptions());
 }
 
 export function useFeatureFlag(key: FeatureFlagKey): boolean {

@@ -135,4 +135,56 @@ describe(useFeatureFlags, () => {
     });
     expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledTimes(2);
   });
+
+  it("rechecks before the next boundary so a skewed browser clock cannot skip it", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-09-22T15:00:00+07:00"));
+    featureFlagsQueryOptions.queryFn
+      .mockResolvedValueOnce(unavailableFeatureFlags)
+      .mockResolvedValueOnce(availableRegistration);
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useFeatureFlags(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.registration).toBeFalsy();
+      expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledOnce();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    await waitFor(() => {
+      expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledTimes(2);
+      expect(result.current.registration).toBeTruthy();
+    });
+  });
+
+  it("keeps a bounded refresh after the local schedule has passed", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2036-09-22T15:00:00+07:00"));
+    featureFlagsQueryOptions.queryFn
+      .mockResolvedValueOnce(unavailableFeatureFlags)
+      .mockResolvedValueOnce(availableRegistration);
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useFeatureFlags(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.registration).toBeFalsy();
+      expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledOnce();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    await waitFor(() => {
+      expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledTimes(2);
+      expect(result.current.registration).toBeTruthy();
+    });
+  });
 });

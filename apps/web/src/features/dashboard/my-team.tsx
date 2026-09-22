@@ -21,6 +21,7 @@ import {
 import type { TeamStatus } from "./team-data";
 import { getAutoOpenedModal, getDashboardStatus } from "./dashboard-status";
 import type { FeatureFlagsInput } from "./dashboard-status";
+import { useFeatureFlagsQuery } from "@bmhk-2026/client/feature-flags";
 
 const COPY = "/assets/figma/85282b0baf589ceb0eb17e9e2d027684e76a4e8b.svg";
 const DISCORD_32 = "/assets/figma/8353328712043444b22094d1885d9862cc9e8a45.svg";
@@ -54,12 +55,16 @@ function Tick({ className = "" }: { className?: string }) {
 function ModalButton({
   href,
   onClick,
+  disabled = false,
+  title,
   className,
   icon,
   children,
 }: {
   href?: string;
   onClick?: () => void;
+  disabled?: boolean;
+  title?: string;
   className: string;
   icon: React.ReactNode;
   children: React.ReactNode;
@@ -69,7 +74,9 @@ function ModalButton({
       <button
         type="button"
         onClick={onClick}
-        className={`mm-press flex w-full items-center justify-center gap-4 rounded-[16px] px-4 py-3 font-display fl-20 leading-normal font-semibold transition-opacity hover:opacity-90 ${className}`}
+        disabled={disabled}
+        title={title}
+        className={`mm-press flex w-full items-center justify-center gap-4 rounded-[16px] px-4 py-3 font-display fl-20 leading-normal font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
       >
         {icon}
         {children}
@@ -173,10 +180,12 @@ function MyTeamModals({
   modal,
   setModal,
   teamName,
+  discordConfirmationOpen,
 }: {
   modal: string | null;
   setModal: (val: string | null) => void;
   teamName?: string;
+  discordConfirmationOpen: boolean;
 }) {
   return (
     <>
@@ -187,15 +196,22 @@ function MyTeamModals({
           setModal(null);
         }}
         actions={
-          <ModalButton
-            onClick={() => {
-              setModal("discord");
-            }}
-            className="bg-[#5865f2] text-white"
-            icon={<DiscordGlyph size={32} src={DISCORD_32} />}
-          >
-            รับรหัสเข้าร่วม Discord
-          </ModalButton>
+          <div className="flex flex-col gap-2">
+            <ModalButton
+              onClick={() => {
+                setModal("discord");
+              }}
+              disabled={!discordConfirmationOpen}
+              title={discordConfirmationOpen ? undefined : "ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว"}
+              className="bg-[#5865f2] text-white"
+              icon={<DiscordGlyph size={32} src={DISCORD_32} />}
+            >
+              รับรหัสเข้าร่วม Discord
+            </ModalButton>
+            {!discordConfirmationOpen && (
+              <p className="text-center fl-14 text-brand-red">ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว</p>
+            )}
+          </div>
         }
       />
 
@@ -223,52 +239,143 @@ function MyTeamModals({
           setModal(null);
         }}
         teamName={teamName}
+        confirmationOpen={discordConfirmationOpen}
       />
     </>
   );
 }
 
+function getDashboardResultFlags(featureFlags: FeatureFlagsInput | null | undefined) {
+  if (featureFlags === null || featureFlags === undefined) {
+    return null;
+  }
+  return {
+    eligibleTeamsAnnouncement: featureFlags.eligibleTeamsAnnouncement,
+    finalRound: featureFlags.finalRound,
+    qualifyingResultsAnnouncement: featureFlags.qualifyingResultsAnnouncement,
+    qualifyingRound: featureFlags.qualifyingRound,
+  };
+}
+
+function useDashboardResultQueries(
+  teamId: string | null | undefined,
+  enabled: boolean,
+  resultFlags: ReturnType<typeof getDashboardResultFlags>,
+) {
+  const inputTeamId = teamId ?? "";
+  const teamQuery = useQuery({
+    ...orpc.teams.get.queryOptions({ input: { id: inputTeamId } }),
+    enabled,
+    queryKey: [
+      ...orpc.teams.get.queryKey({ input: { id: inputTeamId } }),
+      { dashboardResultFlags: resultFlags },
+    ],
+  });
+  const reviewQuery = useQuery({
+    ...orpc.teamRegistrationReviews.feedback.queryOptions({ input: { teamId: inputTeamId } }),
+    enabled,
+    queryKey: [
+      ...orpc.teamRegistrationReviews.feedback.queryKey({ input: { teamId: inputTeamId } }),
+      { dashboardResultFlags: resultFlags },
+    ],
+  });
+
+  return { reviewQuery, teamQuery };
+}
+
+function useDashboardMemberQueries(teamId: string | null | undefined) {
+  const inputTeamId = teamId ?? "";
+  const participantsQuery = useQuery({
+    ...orpc.teamParticipants.list.queryOptions({ input: { teamId: inputTeamId } }),
+    enabled: Boolean(teamId),
+  });
+  const advisorQuery = useQuery({
+    ...orpc.teamAdvisors.get.queryOptions({ input: { teamId: inputTeamId } }),
+    enabled: Boolean(teamId),
+  });
+
+  return { advisorQuery, participantsQuery };
+}
+
 function useMyTeamData() {
-  const { data: statusData, isPending: isStatusPending } = useQuery(
-    orpc.teamRegistrationStatus.get.queryOptions({ input: {} }),
-  );
+  const statusQuery = useQuery(orpc.teamRegistrationStatus.get.queryOptions({ input: {} }));
+  const { data: statusData, isPending: isStatusPending } = statusQuery;
   const teamId = statusData?.teamId;
 
-  const { data: team, isPending: isTeamsPending } = useQuery({
-    ...orpc.teams.get.queryOptions({ input: { id: teamId ?? "" } }),
-    enabled: Boolean(teamId),
-  });
+  const featureFlagsQuery = useFeatureFlagsQuery();
+  const featureFlags = featureFlagsQuery.data;
+  const resultFlags = getDashboardResultFlags(featureFlags);
+  const hasTeamId = typeof teamId === "string" && teamId.length > 0;
+  const resultQueryEnabled = hasTeamId && !featureFlagsQuery.isPending;
+  const { reviewQuery, teamQuery } = useDashboardResultQueries(
+    teamId,
+    resultQueryEnabled,
+    resultFlags,
+  );
+  const {
+    data: team,
+    isError: isTeamError,
+    isFetching: isTeamsFetching,
+    isPending: isTeamsPending,
+  } = teamQuery;
 
-  const { data: reviewFeedback, isPending: isReviewPending } = useQuery({
-    ...orpc.teamRegistrationReviews.feedback.queryOptions({ input: { teamId: teamId ?? "" } }),
-    enabled: Boolean(teamId),
-  });
+  const {
+    data: reviewFeedback,
+    isError: isReviewError,
+    isFetching: isReviewFetching,
+    isPending: isReviewPending,
+  } = reviewQuery;
 
-  const { data: participants, isPending: isParticipantsPending } = useQuery({
-    ...orpc.teamParticipants.list.queryOptions({ input: { teamId: teamId ?? "" } }),
-    enabled: Boolean(teamId),
-  });
+  const { advisorQuery, participantsQuery } = useDashboardMemberQueries(teamId);
+  const {
+    data: participants,
+    isError: isParticipantsError,
+    isPending: isParticipantsPending,
+  } = participantsQuery;
 
-  const { data: advisor, isPending: isAdvisorPending } = useQuery({
-    ...orpc.teamAdvisors.get.queryOptions({ input: { teamId: teamId ?? "" } }),
-    enabled: Boolean(teamId),
-  });
+  const { data: advisor, isError: isAdvisorError, isPending: isAdvisorPending } = advisorQuery;
 
-  const { data: featureFlags, isPending: isFeatureFlagsPending } = useQuery({
-    ...orpc.featureFlags.getAll.queryOptions(),
-  });
+  const hasDataError =
+    statusQuery.isError ||
+    featureFlagsQuery.isError ||
+    isTeamError ||
+    isReviewError ||
+    isParticipantsError ||
+    isAdvisorError;
+
+  async function retry() {
+    await Promise.all([
+      statusQuery.refetch(),
+      featureFlagsQuery.refetch(),
+      ...(hasTeamId
+        ? [
+            teamQuery.refetch(),
+            reviewQuery.refetch(),
+            participantsQuery.refetch(),
+            advisorQuery.refetch(),
+          ]
+        : []),
+    ]);
+  }
 
   const isLoading =
     isStatusPending ||
-    isFeatureFlagsPending ||
-    (Boolean(teamId) &&
-      (isTeamsPending || isReviewPending || isParticipantsPending || isAdvisorPending));
+    featureFlagsQuery.isPending ||
+    (hasTeamId &&
+      (isTeamsPending ||
+        isTeamsFetching ||
+        isReviewPending ||
+        isReviewFetching ||
+        isParticipantsPending ||
+        isAdvisorPending));
 
   return {
     advisor,
     featureFlags,
+    hasDataError,
     isLoading,
     participants,
+    retry,
     reviewFeedback,
     statusData,
     team,
@@ -497,6 +604,27 @@ function CopyButton({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DashboardDataError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-[#fefdfc] px-4">
+      <div
+        role="alert"
+        className="flex w-full max-w-[480px] flex-col items-center gap-4 rounded-[20px] bg-white p-6 text-center shadow-soft"
+      >
+        <p className="fl-16 font-medium text-brand-red">ไม่สามารถโหลดข้อมูลสถานะทีมได้</p>
+        <p className="fl-14 text-gray-2">กรุณาลองใหม่อีกครั้งเพื่อดูข้อมูลล่าสุด</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mm-press rounded-[10px] bg-[#f6f6f6] px-5 py-2 fl-14 transition-colors hover:bg-[#ececec]"
+        >
+          ลองใหม่อีกครั้ง
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TeamHeader({ displayTeam }: { displayTeam: ReturnType<typeof getDisplayTeam> }) {
   const hasImage =
     displayTeam.image !== null && displayTeam.image !== undefined && displayTeam.image !== "";
@@ -601,8 +729,17 @@ function MemberTabs({
 }
 
 export default function MyTeam() {
-  const { advisor, featureFlags, isLoading, participants, reviewFeedback, statusData, team } =
-    useMyTeamData();
+  const {
+    advisor,
+    featureFlags,
+    hasDataError,
+    isLoading,
+    participants,
+    reviewFeedback,
+    retry,
+    statusData,
+    team,
+  } = useMyTeamData();
 
   const MEMBERS = useMappedMembers(participants, advisor, statusData, team);
 
@@ -610,7 +747,14 @@ export default function MyTeam() {
 
   const [pane, setPane] = useState<Pane>("team");
   const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
-  const { modal, setModal } = useAutoOpenModal(isLoading ? null : status, featureFlags);
+  const { modal, setModal } = useAutoOpenModal(
+    isLoading || hasDataError ? null : status,
+    featureFlags,
+  );
+
+  if (hasDataError) {
+    return <DashboardDataError onRetry={() => void retry()} />;
+  }
 
   if (isLoading) {
     return <Loader />;
@@ -622,6 +766,7 @@ export default function MyTeam() {
     status === "semifinal-pending" ||
     status === "semifinal-qualified" ||
     status === "semifinal-failed";
+  const discordConfirmationOpen = featureFlags?.qualifyingRoundIdentityConfirmation === true;
 
   return (
     <div className="relative min-h-dvh overflow-clip bg-[#fefdfc]" data-auth-entrance>
@@ -669,6 +814,7 @@ export default function MyTeam() {
                 <StatusPanel
                   status={status}
                   showDiscord={showDiscord}
+                  discordConfirmationOpen={discordConfirmationOpen}
                   heading={false}
                   card={false}
                   members={MEMBERS}
@@ -689,6 +835,7 @@ export default function MyTeam() {
             <StatusPanel
               status={status}
               showDiscord={showDiscord}
+              discordConfirmationOpen={discordConfirmationOpen}
               members={MEMBERS}
               reviewFeedback={reviewFeedback}
               team={team}
@@ -701,7 +848,12 @@ export default function MyTeam() {
         </div>
       </div>
 
-      <MyTeamModals modal={modal} setModal={setModal} teamName={displayTeam.name} />
+      <MyTeamModals
+        modal={modal}
+        setModal={setModal}
+        teamName={displayTeam.name}
+        discordConfirmationOpen={discordConfirmationOpen}
+      />
     </div>
   );
 }

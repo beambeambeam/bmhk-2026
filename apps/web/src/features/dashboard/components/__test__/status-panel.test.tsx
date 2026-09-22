@@ -9,7 +9,14 @@ describe("document correction contact", () => {
   afterEach(cleanup);
 
   it("offers an email draft and a visible address for document corrections without Gmail login", () => {
-    render(<StatusPanel status="issue" members={[]} team={{ code: "ABC123", name: "ทีม & One" }} />);
+    render(
+      <StatusPanel
+        status="issue"
+        discordConfirmationOpen={true}
+        members={[]}
+        team={{ code: "ABC123", name: "ทีม & One" }}
+      />,
+    );
 
     const link = screen.getByRole("link", { name: "ติดต่อทีมงานเพื่อแก้ไข" });
     const url = new URL(link.getAttribute("href") ?? "");
@@ -26,6 +33,7 @@ describe("document correction contact", () => {
       <StatusPanel
         status="qualified"
         showDiscord={true}
+        discordConfirmationOpen={true}
         members={[]}
         team={{ code: "ABC123", name: "ทีม & One" }}
         onOpenDiscordModal={() => {
@@ -37,5 +45,24 @@ describe("document correction contact", () => {
     const button = screen.getByRole("button", { name: "รับรหัสเข้าร่วม" });
     fireEvent.click(button);
     expect(handleOpenDiscord).toHaveBeenCalledOnce();
+  });
+
+  it("disables Discord verification after the confirmation window closes", () => {
+    const handleOpenDiscord = vi.fn<() => void>();
+    render(
+      <StatusPanel
+        status="qualified"
+        showDiscord={true}
+        discordConfirmationOpen={false}
+        members={[]}
+        onOpenDiscordModal={handleOpenDiscord}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "รับรหัสเข้าร่วม" });
+    expect(button).toHaveProperty("disabled", true);
+    expect(screen.getByText("ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว")).toBeDefined();
+    fireEvent.click(button);
+    expect(handleOpenDiscord).not.toHaveBeenCalled();
   });
 });

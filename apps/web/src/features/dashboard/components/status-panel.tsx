@@ -339,6 +339,7 @@ const PLATE = "rounded-[20px] bg-white p-4 shadow-soft";
 export default function StatusPanel({
   status,
   showDiscord = false,
+  discordConfirmationOpen,
   heading = true,
   card = true,
   members,
@@ -350,6 +351,8 @@ export default function StatusPanel({
   status: TeamStatus;
   /** The qualified dashboard also carries the Discord join card. */
   showDiscord?: boolean;
+  /** Discord verification is only available during the published confirmation window. */
+  discordConfirmationOpen: boolean;
   members: Person[];
   card?: boolean;
   heading?: boolean;
@@ -412,6 +415,11 @@ export default function StatusPanel({
               <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>
                 {DISCORD_CARD.subtitle}
               </p>
+              {!discordConfirmationOpen && (
+                <p className="fl-12 leading-normal text-brand-red">
+                  ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว
+                </p>
+              )}
             </div>
 
             <div className="flex w-full items-center gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]">
@@ -426,7 +434,14 @@ export default function StatusPanel({
               <button
                 type="button"
                 onClick={onOpenDiscordModal}
-                className="mm-press shrink-0 rounded-[10px] bg-[#f6f6f6] px-[20px] py-[8px] fl-14 leading-normal transition-colors hover:bg-[#ececec]"
+                disabled={!discordConfirmationOpen}
+                title={discordConfirmationOpen ? undefined : "ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว"}
+                className={[
+                  "mm-press shrink-0 rounded-[10px] px-[20px] py-[8px] fl-14 leading-normal transition-colors",
+                  discordConfirmationOpen
+                    ? "bg-[#f6f6f6] hover:bg-[#ececec]"
+                    : "cursor-not-allowed bg-[#f3f3f3] text-gray-2 opacity-70",
+                ].join(" ")}
               >
                 {DISCORD_CARD.action}
               </button>

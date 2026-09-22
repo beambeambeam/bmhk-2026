@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DiscordCodesModal from "../discord-codes-modal";
@@ -20,13 +20,18 @@ const mockParticipantsData = [
   },
 ];
 
+const queryFnMock = vi.fn<() => Promise<typeof mockParticipantsData>>();
+
 interface QueryOptionsResult {
   queryFn: () => Promise<typeof mockParticipantsData>;
   queryKey: string[];
 }
 
 const mockGetOrCreateQueryOptions = vi.fn<() => QueryOptionsResult>().mockReturnValue({
-  queryFn: async () => await Promise.resolve(mockParticipantsData),
+  queryFn: async () => {
+    const result = await queryFnMock();
+    return result;
+  },
   queryKey: ["discordCodes", "getOrCreate"],
 });
 
@@ -56,6 +61,7 @@ describe(DiscordCodesModal, () => {
   let writeTextMock: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
   beforeEach(() => {
+    queryFnMock.mockReset().mockResolvedValue(mockParticipantsData);
     writeTextMock = vi.fn<() => Promise<void>>().mockResolvedValue();
     Object.assign(navigator, {
       clipboard: {
@@ -64,12 +70,16 @@ describe(DiscordCodesModal, () => {
     });
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
 
   it("renders modal header and verification instructions", () => {
     renderWithClient(
       <DiscordCodesModal
         open={true}
+        confirmationOpen={true}
         onClose={() => {
           /* noop */
         }}
@@ -93,6 +103,7 @@ describe(DiscordCodesModal, () => {
     renderWithClient(
       <DiscordCodesModal
         open={true}
+        confirmationOpen={true}
         onClose={() => {
           /* noop */
         }}
@@ -114,6 +125,7 @@ describe(DiscordCodesModal, () => {
     renderWithClient(
       <DiscordCodesModal
         open={true}
+        confirmationOpen={true}
         onClose={() => {
           /* noop */
         }}
@@ -140,6 +152,7 @@ describe(DiscordCodesModal, () => {
     renderWithClient(
       <DiscordCodesModal
         open={true}
+        confirmationOpen={true}
         onClose={() => {
           /* noop */
         }}
@@ -169,11 +182,113 @@ describe(DiscordCodesModal, () => {
 
   it("calls onClose when close button is clicked", () => {
     const onCloseMock = vi.fn<() => void>();
-    renderWithClient(<DiscordCodesModal open={true} onClose={onCloseMock} />);
+    renderWithClient(
+      <DiscordCodesModal open={true} confirmationOpen={true} onClose={onCloseMock} />,
+    );
 
     const closeButton = screen.getByRole("button", { name: "ปิด" });
     fireEvent.click(closeButton);
 
     expect(onCloseMock).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes redemption status when the modal is reopened", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <DiscordCodesModal
+          open={true}
+          confirmationOpen={true}
+          onClose={() => {
+            /* noop */
+          }}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(queryFnMock).toHaveBeenCalledOnce();
+    });
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <DiscordCodesModal
+          open={false}
+          confirmationOpen={true}
+          onClose={() => {
+            /* noop */
+          }}
+        />
+      </QueryClientProvider>,
+    );
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <DiscordCodesModal
+          open={true}
+          confirmationOpen={true}
+          onClose={() => {
+            /* noop */
+          }}
+        />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(queryFnMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("polls redemption status while the modal is open", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    queryFnMock
+      .mockResolvedValueOnce(mockParticipantsData)
+      .mockResolvedValueOnce([
+        { ...mockParticipantsData[0], status: "REDEEMED_ONCE" },
+        mockParticipantsData[1],
+      ]);
+
+    renderWithClient(
+      <DiscordCodesModal
+        open={true}
+        confirmationOpen={true}
+        onClose={() => {
+          /* noop */
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("John Doe")).toBeDefined();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    await waitFor(() => {
+      expect(queryFnMock).toHaveBeenCalledTimes(2);
+      expect(screen.getAllByText("ยืนยันตัวตนแล้ว")).toHaveLength(2);
+    });
+  });
+
+  it("explains when the confirmation window is closed without fetching codes", async () => {
+    renderWithClient(
+      <DiscordCodesModal
+        open={true}
+        confirmationOpen={false}
+        onClose={() => {
+          /* noop */
+        }}
+      />,
+    );
+
+    expect(screen.getByText("ปิดรับการยืนยันตัวตนผ่าน Discord แล้ว")).toBeDefined();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(queryFnMock).not.toHaveBeenCalled();
   });
 });

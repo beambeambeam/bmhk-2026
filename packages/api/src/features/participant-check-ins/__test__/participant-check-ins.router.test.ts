@@ -310,4 +310,54 @@ describe("participant check-ins router", () => {
       target: { id: TARGET_PARTICIPANT_ID, type: "participant-check-in" },
     });
   });
+
+  it("checks a participant into round 3 independently of earlier check-ins", async () => {
+    const checkInsByRound = new Map([
+      ["ROUND_1", TARGET_PARTICIPANT_ID],
+      ["ROUND_2", TARGET_PARTICIPANT_ID],
+    ]);
+    const checkIn = vi.fn<ParticipantCheckInRepository["checkIn"]>(
+      async (participantId, _actor, round) => {
+        if (checkInsByRound.get(round) === participantId) {
+          return await Promise.resolve("ALREADY_CHECKED_IN");
+        }
+        checkInsByRound.set(round, participantId);
+        return await Promise.resolve("CREATED");
+      },
+    );
+    const router = createRouter(createRepository({ checkIn }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.checkIn,
+        { participantId: TARGET_PARTICIPANT_ID, round: "ROUND_3" },
+        { context, path: ["participantCheckIns", "checkIn"] },
+      ),
+    ).resolves.toStrictEqual({ participantId: TARGET_PARTICIPANT_ID, round: "ROUND_3" });
+    expect(checkIn).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, ACTOR_ID, "ROUND_3");
+  });
+
+  it("rejects a round 3 check-in for a team that did not qualify", async () => {
+    const checkIn = vi.fn<ParticipantCheckInRepository["checkIn"]>(
+      async () => await Promise.resolve("NOT_ELIGIBLE"),
+    );
+    const router = createRouter(createRepository({ checkIn }));
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.checkIn,
+        { participantId: TARGET_PARTICIPANT_ID, round: "ROUND_3" },
+        { context, path: ["participantCheckIns", "checkIn"] },
+      ),
+    ).rejects.toMatchObject({ code: "PARTICIPANT_NOT_ROUND_ELIGIBLE", status: 409 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "participant-check-in.created",
+      actor: { id: ACTOR_ID, type: "user" },
+      outcome: "failure",
+      reason: "PARTICIPANT_NOT_ROUND_ELIGIBLE",
+      target: { id: TARGET_PARTICIPANT_ID, type: "participant-check-in" },
+    });
+  });
 });

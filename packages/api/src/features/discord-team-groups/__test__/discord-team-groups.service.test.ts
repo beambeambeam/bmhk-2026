@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { DiscordTeamGroupsRepository } from "../discord-team-groups.repository";
 import {
-  chunkTeamIds,
   createDiscordTeamGroupsService,
   defaultGroupName,
+  distributeTeamIds,
 } from "../discord-team-groups.service";
 
 function createFakeRepository(
@@ -172,7 +172,7 @@ describe(createDiscordTeamGroupsService, () => {
     expect(clearedMemberId).toBe("member-1");
   });
 
-  it("chunks teams sequentially by index into named groups and replaces the assignment", async () => {
+  it("distributes teams by index evenly across one group per staff member and replaces the assignment", async () => {
     let replacedGroups: unknown = null;
     const repository = createFakeRepository({
       listTeamsWithGroup: async () =>
@@ -196,19 +196,46 @@ describe(createDiscordTeamGroupsService, () => {
       { name: "หมวดที่ 2", teamIds: ["team-3"] },
     ]);
   });
+
+  it("caps the group count at the team count when staff amount exceeds it", async () => {
+    let replacedGroups: unknown = null;
+    const repository = createFakeRepository({
+      listTeamsWithGroup: async () =>
+        await Promise.resolve([
+          { group: null, id: "team-1", index: 1, name: "A", school: "S" },
+          { group: null, id: "team-2", index: 2, name: "B", school: "S" },
+        ]),
+      replaceAssignment: async (groups) => {
+        replacedGroups = groups;
+        await Promise.resolve();
+      },
+    });
+    const service = createDiscordTeamGroupsService(repository);
+
+    const result = await service.assignGroups(5);
+
+    expect(result).toStrictEqual({ groupCount: 2 });
+    expect(replacedGroups).toStrictEqual([
+      { name: "หมวดที่ 1", teamIds: ["team-1"] },
+      { name: "หมวดที่ 2", teamIds: ["team-2"] },
+    ]);
+  });
 });
 
-describe(chunkTeamIds, () => {
-  it("splits ids into fixed-size chunks with the remainder in the last chunk", () => {
-    expect(chunkTeamIds(["a", "b", "c", "d", "e"], 2)).toStrictEqual([
-      ["a", "b"],
-      ["c", "d"],
-      ["e"],
+describe(distributeTeamIds, () => {
+  it("splits ids into staffAmount groups as evenly as possible, extra teams in the earliest groups", () => {
+    expect(distributeTeamIds(["a", "b", "c", "d", "e"], 2)).toStrictEqual([
+      ["a", "b", "c"],
+      ["d", "e"],
     ]);
   });
 
+  it("caps the group count at the team count instead of creating empty groups", () => {
+    expect(distributeTeamIds(["a", "b", "c"], 5)).toStrictEqual([["a"], ["b"], ["c"]]);
+  });
+
   it("returns an empty array for an empty input", () => {
-    expect(chunkTeamIds([], 3)).toStrictEqual([]);
+    expect(distributeTeamIds([], 3)).toStrictEqual([]);
   });
 });
 

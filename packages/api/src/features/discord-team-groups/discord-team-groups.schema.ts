@@ -40,7 +40,7 @@ export const discordTeamGroupsListResponseSchema = z.array(discordTeamGroupRespo
 // Admin-facing (oRPC, camelCase) contracts — distinct from the snake_case
 // bot-wire contracts above, which mirror apps/server's Elysia REST routes.
 export const teamGroupAssignmentInputSchema = z
-  .object({ teamsPerGroup: z.number().int().positive() })
+  .object({ staffAmount: z.number().int().positive() })
   .strict();
 
 export const teamGroupSummarySchema = z

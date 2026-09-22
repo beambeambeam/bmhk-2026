@@ -37,7 +37,7 @@ function getAssignGroupsErrorMessage(error: unknown): string {
 function AssignGroupsDialog() {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [teamsPerGroup, setTeamsPerGroup] = useState("");
+  const [staffAmount, setStaffAmount] = useState("");
   const assignMutation = useMutation(
     orpc.teamGroups.assignGroups.mutationOptions({
       onSuccess: async () => {
@@ -48,18 +48,18 @@ function AssignGroupsDialog() {
   const isAssigning = assignMutation.isPending;
 
   function resetForm(): void {
-    setTeamsPerGroup("");
+    setStaffAmount("");
   }
 
   async function assignGroups(): Promise<void> {
-    const parsedTeamsPerGroup = Number(teamsPerGroup);
-    if (!Number.isInteger(parsedTeamsPerGroup) || parsedTeamsPerGroup < 1) {
-      toast.error("Teams per group must be a positive whole number");
+    const parsedStaffAmount = Number(staffAmount);
+    if (!Number.isInteger(parsedStaffAmount) || parsedStaffAmount < 1) {
+      toast.error("Staff amount must be a positive whole number");
       return;
     }
 
     try {
-      const result = await assignMutation.mutateAsync({ teamsPerGroup: parsedTeamsPerGroup });
+      const result = await assignMutation.mutateAsync({ staffAmount: parsedStaffAmount });
       toast.success(`Assigned teams into ${result.groupCount} group(s)`);
       setIsOpen(false);
       resetForm();
@@ -90,20 +90,21 @@ function AssignGroupsDialog() {
           <DialogTitle>Assign team groups</DialogTitle>
           <DialogDescription>
             This overwrites every existing group and reassigns all teams that passed document
-            review, in team-index order, into new groups of the given size.
+            review, in team-index order, into one group per staff member, sized as evenly as
+            possible.
           </DialogDescription>
         </DialogHeader>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="teams-per-group">Teams per group</FieldLabel>
+            <FieldLabel htmlFor="staff-amount">Staff amount</FieldLabel>
             <Input
-              id="teams-per-group"
+              id="staff-amount"
               min={1}
               placeholder="e.g. 5"
               type="number"
-              value={teamsPerGroup}
+              value={staffAmount}
               onChange={(event) => {
-                setTeamsPerGroup(event.target.value);
+                setStaffAmount(event.target.value);
               }}
             />
           </Field>

@@ -24,7 +24,7 @@ export function createDiscordTeamGroupsAdminRouter(
               actor: { id: context.session.user.id, type: "user" },
               target: { id: "team-group-assignment" },
             }),
-            execute: async () => await service.assignGroups(input.teamsPerGroup),
+            execute: async () => await service.assignGroups(input.staffAmount),
             log: context.log,
             onSuccess: (result) => ({ changes: { after: result } }),
           }),

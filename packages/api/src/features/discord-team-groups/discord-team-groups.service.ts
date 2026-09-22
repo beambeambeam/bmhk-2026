@@ -15,7 +15,7 @@ import type {
 } from "./discord-team-groups.schema";
 
 export interface DiscordTeamGroupsService {
-  assignGroups: (teamsPerGroup: number) => Promise<TeamGroupAssignmentResult>;
+  assignGroups: (staffAmount: number) => Promise<TeamGroupAssignmentResult>;
   clearCategoryId: (groupId: string) => Promise<boolean>;
   clearChannelId: (memberId: string) => Promise<boolean>;
   list: () => Promise<DiscordTeamGroupsListResponse>;
@@ -30,10 +30,26 @@ export function defaultGroupName(index: number): string {
   return `${DEFAULT_GROUP_NAME_PREFIX}${index}`;
 }
 
-export function chunkTeamIds(teamIds: readonly string[], teamsPerGroup: number): string[][] {
+/**
+ * Splits team ids into `min(staffAmount, teamIds.length)` groups (one group per
+ * staff member, capped at the team count so no group is empty), sized as evenly
+ * as possible. Any remainder team goes to the earliest groups, in index order.
+ */
+export function distributeTeamIds(teamIds: readonly string[], staffAmount: number): string[][] {
+  const groupCount = Math.min(staffAmount, teamIds.length);
+  if (groupCount === 0) {
+    return [];
+  }
+
+  const baseGroupSize = Math.floor(teamIds.length / groupCount);
+  const groupsWithExtraTeam = teamIds.length % groupCount;
+
   const chunks: string[][] = [];
-  for (let start = 0; start < teamIds.length; start += teamsPerGroup) {
-    chunks.push(teamIds.slice(start, start + teamsPerGroup));
+  let start = 0;
+  for (const groupIndex of Array.from({ length: groupCount }, (_, i) => i)) {
+    const size = baseGroupSize + (groupIndex < groupsWithExtraTeam ? 1 : 0);
+    chunks.push(teamIds.slice(start, start + size));
+    start += size;
   }
   return chunks;
 }
@@ -71,10 +87,10 @@ export function createDiscordTeamGroupsService(
   repository: DiscordTeamGroupsRepository,
 ): DiscordTeamGroupsService {
   return {
-    assignGroups: async (teamsPerGroup) => {
+    assignGroups: async (staffAmount) => {
       const teamsWithGroup = await repository.listTeamsWithGroup();
       const teamIds = teamsWithGroup.map((team) => team.id);
-      const groups: TeamGroupAssignmentPlanGroup[] = chunkTeamIds(teamIds, teamsPerGroup).map(
+      const groups: TeamGroupAssignmentPlanGroup[] = distributeTeamIds(teamIds, staffAmount).map(
         (chunk, chunkIndex) => ({
           name: defaultGroupName(chunkIndex + 1),
           teamIds: chunk,

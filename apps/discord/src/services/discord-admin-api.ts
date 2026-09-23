@@ -51,6 +51,11 @@ export type StaffNicknameFact =
   | { discord_user_id: string; nickname: string; status: "OK" }
   | { discord_user_id: string; status: "GROUP_NOT_SET_UP" };
 
+export interface ParticipantNicknameFact {
+  discord_user_id: string;
+  nickname: string;
+}
+
 export type ParticipantLookup =
   | { status: "NOT_FOUND" }
   | {
@@ -106,6 +111,10 @@ export async function fetchRepairFacts(): Promise<RepairFacts> {
 
 export async function fetchStaffNicknames(): Promise<StaffNicknameFact[]> {
   return await getJson("/api/discord/admin/staff-nicknames");
+}
+
+export async function fetchParticipantNicknames(): Promise<ParticipantNicknameFact[]> {
+  return await getJson("/api/discord/admin/participant-nicknames");
 }
 
 export async function fetchLookupParticipant(discordUserId: string): Promise<ParticipantLookup> {

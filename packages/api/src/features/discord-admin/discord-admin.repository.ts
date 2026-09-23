@@ -50,6 +50,14 @@ export interface StaffNicknameFactsRow {
   userName: string;
 }
 
+export interface ParticipantNicknameFactsRow {
+  discordUserId: string;
+  firstNameTh: string;
+  teamIndex: number;
+  teamName: string;
+  wasAlt: boolean;
+}
+
 export interface ParticipantLookupFacts {
   altAccUserId: string | null;
   code: string;
@@ -68,6 +76,8 @@ export interface ParticipantLookupFacts {
 export interface DiscordAdminRepository {
   /** A verified participant by either their main or alt Discord account; null when neither matches. */
   findParticipantByDiscordUserId: (discordUserId: string) => Promise<ParticipantLookupFacts | null>;
+  /** Every linked participant account (main and alt), with what their nickname should be computed from. */
+  listParticipantNicknameFacts: () => Promise<ParticipantNicknameFactsRow[]>;
   /** Every linked staff member, with what their nickname should be computed from. */
   listStaffNicknameFacts: () => Promise<StaffNicknameFactsRow[]>;
   /** Every team, eligible or not; the service filters. Small table, admin-only callers. */
@@ -111,6 +121,31 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
           .limit(1);
 
         return row ?? null;
+      }),
+    listParticipantNicknameFacts: async () =>
+      await execute(async () => {
+        const rows = await database
+          .select({
+            altAccUserId: discord.altAccUserId,
+            firstNameTh: teamParticipants.firstNameTh,
+            mainAccUserId: discord.mainAccUserId,
+            teamIndex: teams.index,
+            teamName: teams.name,
+          })
+          .from(discord)
+          .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
+          .innerJoin(teams, eq(teams.id, teamParticipants.teamId));
+
+        return rows.flatMap(({ altAccUserId, firstNameTh, mainAccUserId, teamIndex, teamName }) =>
+          [
+            mainAccUserId === null ? null : { discordUserId: mainAccUserId, wasAlt: false },
+            altAccUserId === null ? null : { discordUserId: altAccUserId, wasAlt: true },
+          ]
+            .filter(
+              (account): account is { discordUserId: string; wasAlt: boolean } => account !== null,
+            )
+            .map((account) => ({ ...account, firstNameTh, teamIndex, teamName })),
+        );
       }),
     listStaffNicknameFacts: async () =>
       await execute(async () => {

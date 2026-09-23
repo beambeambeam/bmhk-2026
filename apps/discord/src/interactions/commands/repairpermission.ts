@@ -2,6 +2,7 @@ import { MessageFlags, OverwriteType, PermissionFlagsBits, SlashCommandBuilder }
 import type { Guild } from "discord.js";
 import { runBestEffort } from "../../lib/best-effort.js";
 import type { BestEffortStep } from "../../lib/best-effort.js";
+import { retryOnGatewayRateLimit } from "../../lib/gateway-retry.js";
 import { chunkLines } from "../../lib/chunk-lines.js";
 import { formatRepairReport, planRepair } from "../../lib/repair-plan.js";
 import type { RepairPlan } from "../../lib/repair-plan.js";
@@ -90,7 +91,7 @@ const repairpermission: Command = {
       fetchRepairFacts(),
       fetchTeamGroups(),
       getRoleSettings(),
-      guild.members.fetch(),
+      retryOnGatewayRateLimit(async () => await guild.members.fetch()),
     ]);
 
     const lockedChannelIds = groups.flatMap((group) => [

@@ -5,6 +5,7 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
+import { chunkLines } from "../../lib/chunk-lines.js";
 import {
   fetchTeamGroups,
   recordGroupCategory,
@@ -12,6 +13,8 @@ import {
 } from "../../services/team-groups-api.js";
 import type { TeamGroup } from "../../services/team-groups-api.js";
 import type { Command } from "../../types.js";
+
+const DISCORD_MESSAGE_LIMIT = 2000;
 
 export function groupCategoryName(index: number): string {
   return `หมวดที่ ${index}`;
@@ -140,7 +143,9 @@ const createTeamsChannel: Command = {
       createVoiceChannel: async (name, parentId) =>
         await guild.channels.create({ name, parent: parentId, type: ChannelType.GuildVoice }),
       onGroupComplete: async (progressText) => {
-        await interaction.editReply({ content: progressText });
+        // Only the latest page fits in one message once there are many groups.
+        const latest = chunkLines(progressText.split("\n"), DISCORD_MESSAGE_LIMIT).at(-1) ?? "";
+        await interaction.editReply({ content: latest });
       },
       recordGroupCategory,
       recordMemberChannel,
@@ -152,7 +157,12 @@ const createTeamsChannel: Command = {
     if (warnings.length > 0) {
       summaryLines.push("", "Warnings:", ...warnings);
     }
-    await interaction.editReply({ content: summaryLines.join("\n") });
+    const [first, ...rest] = chunkLines(summaryLines, DISCORD_MESSAGE_LIMIT);
+    await interaction.editReply({ content: first });
+    for (const content of rest) {
+      // eslint-disable-next-line no-await-in-loop
+      await interaction.followUp({ content });
+    }
   },
 };
 

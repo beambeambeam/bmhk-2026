@@ -1,6 +1,7 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { BestEffortStep } from "../../lib/best-effort.js";
 import { runBestEffort } from "../../lib/best-effort.js";
+import { retryOnGatewayRateLimit } from "../../lib/gateway-retry.js";
 import { chunkLines } from "../../lib/chunk-lines.js";
 import {
   formatParticipantNicknameReport,
@@ -30,7 +31,7 @@ const repairparticipantnickname: Command = {
     const { guild } = interaction;
     const [facts, members] = await Promise.all([
       fetchParticipantNicknames(),
-      guild.members.fetch(),
+      retryOnGatewayRateLimit(async () => await guild.members.fetch()),
     ]);
 
     const plan = planParticipantNicknameRepair({

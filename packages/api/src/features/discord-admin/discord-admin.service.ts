@@ -1,3 +1,4 @@
+import { participantNicknameOf } from "../discord/participant-nickname";
 import { staffNicknameOf } from "../staff-discord-link/staff-nickname";
 import type {
   AdminParticipantFacts,
@@ -56,6 +57,11 @@ export type StaffNicknameFact =
   | { discord_user_id: string; nickname: string; status: "OK" }
   | { discord_user_id: string; status: "GROUP_NOT_SET_UP" };
 
+export interface ParticipantNicknameFact {
+  discord_user_id: string;
+  nickname: string;
+}
+
 export type ParticipantLookupResult =
   | { status: "NOT_FOUND" }
   | {
@@ -73,6 +79,7 @@ export interface DiscordAdminService {
   absentTeams: () => Promise<AbsentTeam[]>;
   codeInfo: (code: string) => Promise<CodeInfoResult>;
   lookupParticipant: (discordUserId: string) => Promise<ParticipantLookupResult>;
+  participantNicknames: () => Promise<ParticipantNicknameFact[]>;
   repairFacts: () => Promise<RepairFactsResponse>;
   staffNicknames: () => Promise<StaffNicknameFact[]>;
   teamInfo: (query: TeamInfoQuery) => Promise<TeamInfo[]>;
@@ -182,6 +189,13 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
         status: "FOUND",
         team_name: facts.teamName,
       };
+    },
+    participantNicknames: async () => {
+      const rows = await repository.listParticipantNicknameFacts();
+      return rows.map(({ discordUserId, ...facts }) => ({
+        discord_user_id: discordUserId,
+        nickname: participantNicknameOf(facts),
+      }));
     },
     repairFacts: async () => {
       const facts = await repository.repairFacts();

@@ -152,6 +152,7 @@ function createTestDiscordAdminService(
     absentTeams: async () => await Promise.resolve([]),
     codeInfo: async () => await Promise.resolve({ status: "NOT_FOUND" }),
     lookupParticipant: async () => await Promise.resolve({ status: "NOT_FOUND" }),
+    participantNicknames: async () => await Promise.resolve([]),
     repairFacts: async () => await Promise.resolve({ participants: [], staff: [] }),
     staffNicknames: async () => await Promise.resolve([]),
     teamInfo: async () => await Promise.resolve([]),
@@ -750,6 +751,7 @@ describe("server app", () => {
       ["GET", "/absent-teams"],
       ["GET", "/repair-facts"],
       ["GET", "/staff-nicknames"],
+      ["GET", "/participant-nicknames"],
       ["GET", "/lookup-participant?discord_user_id=111"],
       ["POST", "/unlink"],
       ["POST", "/unlink-staff"],
@@ -814,6 +816,28 @@ describe("server app", () => {
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toStrictEqual([
         { discord_user_id: "111", nickname: "[Staff] Somchai", status: "OK" },
+      ]);
+    });
+
+    it("lists every linked participant account's computed nickname", async () => {
+      const participantNicknames = vi.fn<DiscordAdminService["participantNicknames"]>(
+        async () =>
+          await Promise.resolve([{ discord_user_id: "111", nickname: "001-Team Alpha-นรินทร์" }]),
+      );
+      const { app } = createTestApp(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        createTestDiscordAdminService({ participantNicknames }),
+      );
+
+      const response = await app.handle(adminRequest("/participant-nicknames"));
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toStrictEqual([
+        { discord_user_id: "111", nickname: "001-Team Alpha-นรินทร์" },
       ]);
     });
 

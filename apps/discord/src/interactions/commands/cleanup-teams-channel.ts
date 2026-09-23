@@ -1,4 +1,5 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { chunkLines } from "../../lib/chunk-lines.js";
 import {
   clearGroupCategory,
   clearMemberChannel,
@@ -7,6 +8,8 @@ import {
 import type { TeamGroup } from "../../services/team-groups-api.js";
 import type { Command } from "../../types.js";
 import { groupCategoryName, teamChannelName } from "./create-teams-channel.js";
+
+const DISCORD_MESSAGE_LIMIT = 2000;
 
 export function groupsWithCategory(groups: TeamGroup[]): TeamGroup[] {
   return groups.filter((group) => group.category_id !== null);
@@ -125,7 +128,12 @@ const cleanupTeamsChannel: Command = {
         ...result.failureLines,
       );
     }
-    await interaction.editReply({ content: summaryLines.join("\n") });
+    const [first, ...rest] = chunkLines(summaryLines, DISCORD_MESSAGE_LIMIT);
+    await interaction.editReply({ content: first });
+    for (const content of rest) {
+      // eslint-disable-next-line no-await-in-loop
+      await interaction.followUp({ content });
+    }
   },
 };
 

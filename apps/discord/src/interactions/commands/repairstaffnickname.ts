@@ -1,6 +1,7 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import type { BestEffortStep } from "../../lib/best-effort.js";
 import { runBestEffort } from "../../lib/best-effort.js";
+import { retryOnGatewayRateLimit } from "../../lib/gateway-retry.js";
 import { chunkLines } from "../../lib/chunk-lines.js";
 import {
   formatStaffNicknameReport,
@@ -28,7 +29,10 @@ const repairstaffnickname: Command = {
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const { guild } = interaction;
-    const [facts, members] = await Promise.all([fetchStaffNicknames(), guild.members.fetch()]);
+    const [facts, members] = await Promise.all([
+      fetchStaffNicknames(),
+      retryOnGatewayRateLimit(async () => await guild.members.fetch()),
+    ]);
 
     const plan = planStaffNicknameRepair({
       currentNicknames: new Map(members.map((member) => [member.id, member.nickname])),

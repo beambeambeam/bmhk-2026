@@ -182,6 +182,13 @@ export function createDiscordModule(
 
         return await adminService.staffNicknames();
       })
+      .get("/admin/participant-nicknames", async ({ headers, status }) => {
+        if (!(await isValidApiKey(headers, verifyApiKey))) {
+          return status(401);
+        }
+
+        return await adminService.participantNicknames();
+      })
       .get("/admin/lookup-participant", async ({ headers, query, status }) => {
         if (!(await isValidApiKey(headers, verifyApiKey))) {
           return status(401);

@@ -1,4 +1,5 @@
 import type { DiscordRepository } from "./discord.repository";
+import { participantNicknameOf } from "./participant-nickname";
 import type { DiscordQueryResponse, DiscordVerifyResponse } from "./discord.schema";
 import { discordStatus } from "./discord.schema";
 
@@ -7,26 +8,8 @@ export interface DiscordService {
   verify: (code: string, discordUserId: string) => Promise<DiscordVerifyResponse>;
 }
 
-const TEAM_NAME_MAX_LENGTH = 17;
-const TEAM_INDEX_PAD_LENGTH = 3;
-const NICKNAME_MAX_LENGTH = 32;
-const ALT_SUFFIX = " [A]";
-
 function toDisplayName(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`.trim();
-}
-
-function toNickname(params: {
-  firstNameTh: string;
-  teamIndex: number;
-  teamName: string;
-  wasAlt: boolean;
-}): string {
-  const cappedTeamName = params.teamName.slice(0, TEAM_NAME_MAX_LENGTH);
-  const prefix = `${String(params.teamIndex).padStart(TEAM_INDEX_PAD_LENGTH, "0")}-${cappedTeamName}-`;
-  const suffix = params.wasAlt ? ALT_SUFFIX : "";
-  const nameBudget = Math.max(0, NICKNAME_MAX_LENGTH - prefix.length - suffix.length);
-  return `${prefix}${params.firstNameTh.slice(0, nameBudget)}${suffix}`;
 }
 
 export function createDiscordService(repository: DiscordRepository): DiscordService {
@@ -67,7 +50,7 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
 
       return {
         channel_id: result.channelId,
-        nickname: toNickname({
+        nickname: participantNicknameOf({
           firstNameTh: result.firstNameTh,
           teamIndex: result.teamIndex,
           teamName: result.teamName,

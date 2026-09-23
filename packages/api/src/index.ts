@@ -194,6 +194,7 @@ export type {
   CodeInfoResult,
   DiscordAdminService,
   ParticipantLookupResult,
+  ParticipantNicknameFact,
   RepairFactsResponse,
   StaffNicknameFact,
   TeamInfo,

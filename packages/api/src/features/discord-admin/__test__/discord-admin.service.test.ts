@@ -45,6 +45,7 @@ function team(index: number, overrides: Partial<AdminTeamFacts> = {}): AdminTeam
 function createService(teams: AdminTeamFacts[], overrides: Partial<DiscordAdminRepository> = {}) {
   return createDiscordAdminService({
     findParticipantByDiscordUserId: async () => await Promise.resolve(null),
+    listParticipantNicknameFacts: async () => await Promise.resolve([]),
     listStaffNicknameFacts: async () => await Promise.resolve([]),
     listTeams: async () => await Promise.resolve(teams),
     repairFacts: async () => await Promise.resolve({ participants: [], staff: [] }),
@@ -293,6 +294,35 @@ describe(createDiscordAdminService, () => {
 
       await expect(service.staffNicknames()).resolves.toStrictEqual([
         { discord_user_id: "333", status: "GROUP_NOT_SET_UP" },
+      ]);
+    });
+  });
+
+  describe("participantNicknames", () => {
+    it("computes each linked account's nickname from the shared formula", async () => {
+      const service = createService([], {
+        listParticipantNicknameFacts: async () =>
+          await Promise.resolve([
+            {
+              discordUserId: "111",
+              firstNameTh: "นรินทร์",
+              teamIndex: 1,
+              teamName: "Team Alpha",
+              wasAlt: false,
+            },
+            {
+              discordUserId: "222",
+              firstNameTh: "สุดา",
+              teamIndex: 1,
+              teamName: "Team Alpha",
+              wasAlt: true,
+            },
+          ]),
+      });
+
+      await expect(service.participantNicknames()).resolves.toStrictEqual([
+        { discord_user_id: "111", nickname: "001-Team Alpha-นรินทร์" },
+        { discord_user_id: "222", nickname: "001-Team Alpha-สุดา [A]" },
       ]);
     });
   });

@@ -2,6 +2,7 @@ import type { GuildMember } from "discord.js";
 import { MessageFlags } from "discord.js";
 import type { BMHKDiscordVerifyResponse } from "../../services/verify-api.js";
 import { bmhkDiscordStatus, verifyDiscordCode } from "../../services/verify-api.js";
+import { getVerifyClosedMessage } from "../../lib/verify-deadline.js";
 import type { Button } from "../../types.js";
 
 /** Prefix the loader matches on; the rest of the customId is the verification code. */
@@ -175,6 +176,13 @@ const verifyConfirm: Button = {
     // Nickname and role edits can outlast the 3s interaction window, so ack
     // first and rewrite the confirmation message once they settle.
     await interaction.deferUpdate();
+
+    // Real gate: a confirm message shown before the deadline can still be clicked after it.
+    const closedMessage = await getVerifyClosedMessage();
+    if (closedMessage !== null) {
+      await interaction.editReply({ components: [], content: closedMessage, embeds: [] });
+      return;
+    }
 
     const response = await verifyDiscordCode(code, interaction.user.id);
     const outcome = resolveVerifyConfirm(response, await resolveParticipantRoleId());

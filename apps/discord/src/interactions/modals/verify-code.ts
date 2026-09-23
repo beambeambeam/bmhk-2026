@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
   MessageFlags,
 } from "discord.js";
+import { getVerifyClosedMessage } from "../../lib/verify-deadline.js";
 import type { Modal } from "../../types.js";
 import { bmhkDiscordStatus, queryDiscordCode } from "../../services/verify-api.js";
 
@@ -14,6 +15,12 @@ const verifyCode: Modal = {
   customId: "verify-code",
 
   async execute(interaction) {
+    const closedMessage = await getVerifyClosedMessage();
+    if (closedMessage !== null) {
+      await interaction.reply({ content: closedMessage, flags: MessageFlags.Ephemeral });
+      return;
+    }
+
     const code = interaction.fields.getTextInputValue("code");
 
     if (!CODE_PATTERN.test(code)) {
@@ -59,6 +66,9 @@ const verifyCode: Modal = {
         { name: "ทีม", value: data.team },
         { name: "โรงเรียน", value: data.school },
       )
+      .setFooter({
+        text: `การกดปุ่ม "ยืนยัน" ถือเป็นการยอมรับกฎกติกาการแข่งขันฉบับที่มีผลบังคับใช้อยู่ ณ ขณะนี้ รวมถึงข้อกําหนดการใช้งาน Codern แล้ว`,
+      })
       .setColor(0x58_65_f2);
 
     const confirmButton = new ButtonBuilder()

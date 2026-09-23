@@ -3,6 +3,8 @@ import type { RepairFacts } from "../services/discord-admin-api.js";
 export interface RepairInput {
   botUserId: string;
   facts: RepairFacts;
+  /** Team channel ids per group category, so an overseer's access extends to their group's team channels too. */
+  groupChannelsByCategory: Map<string, string[]>;
   guildMemberIds: Set<string>;
   /** Team voice channels and group categories the bot manages; only these get revoked from. */
   lockedChannelIds: string[];
@@ -35,13 +37,21 @@ function allowAccess(
   desired.set(channelId, users);
 }
 
-function desiredAccess(facts: RepairFacts): Map<string, Set<string>> {
+function desiredAccess(
+  facts: RepairFacts,
+  groupChannelsByCategory: Map<string, string[]>,
+): Map<string, Set<string>> {
   const desired = new Map<string, Set<string>>();
   for (const participant of facts.participants) {
     allowAccess(desired, participant.channel_id, participant.discord_user_id);
   }
   for (const staff of facts.staff) {
     allowAccess(desired, staff.category_id, staff.discord_user_id);
+    for (const channelId of staff.category_id === null
+      ? []
+      : (groupChannelsByCategory.get(staff.category_id) ?? [])) {
+      allowAccess(desired, channelId, staff.discord_user_id);
+    }
   }
   return desired;
 }
@@ -122,7 +132,7 @@ export function planRepair(input: RepairInput): RepairPlan {
     ...facts.participants.map((participant) => participant.discord_user_id),
     ...facts.staff.map((staff) => staff.discord_user_id),
   ];
-  const desired = desiredAccess(facts);
+  const desired = desiredAccess(facts, input.groupChannelsByCategory);
 
   return {
     grants: planGrants(input, desired),

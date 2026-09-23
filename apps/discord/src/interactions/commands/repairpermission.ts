@@ -97,6 +97,18 @@ const repairpermission: Command = {
       ...(group.category_id === null ? [] : [group.category_id]),
       ...group.members.flatMap((member) => (member.channel_id === null ? [] : [member.channel_id])),
     ]);
+    const groupChannelsByCategory = new Map<string, string[]>(
+      groups
+        .filter(
+          (group): group is typeof group & { category_id: string } => group.category_id !== null,
+        )
+        .map((group) => [
+          group.category_id,
+          group.members.flatMap((member) =>
+            member.channel_id === null ? [] : [member.channel_id],
+          ),
+        ]),
+    );
     const overwrites = new Map<string, Map<string, boolean>>();
     for (const channelId of lockedChannelIds) {
       // Sequential: one channel fetch at a time keeps this under Discord's rate limit.
@@ -107,6 +119,7 @@ const repairpermission: Command = {
     const plan = planRepair({
       botUserId: guild.client.user.id,
       facts,
+      groupChannelsByCategory,
       guildMemberIds: new Set(members.keys()),
       lockedChannelIds,
       memberRoles: new Map(

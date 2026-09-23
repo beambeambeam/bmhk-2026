@@ -10,6 +10,7 @@ function input(overrides: Partial<RepairInput> = {}): RepairInput {
   return {
     botUserId: BOT_ID,
     facts: { participants: [], staff: [] },
+    groupChannelsByCategory: new Map(),
     guildMemberIds: new Set(),
     lockedChannelIds: [],
     memberRoles: new Map(),
@@ -188,6 +189,28 @@ describe(planRepair, () => {
     );
 
     expect(plan.revokes).toStrictEqual([]);
+  });
+
+  it("grants and keeps an overseer's access to every team channel in their category, not just the category itself", () => {
+    const plan = planRepair(
+      input({
+        facts: {
+          participants: [],
+          staff: [{ category_id: "cat-1", discord_user_id: "s1", is_admin: false }],
+        },
+        groupChannelsByCategory: new Map([["cat-1", ["chan-70", "chan-72"]]]),
+        guildMemberIds: new Set(["s1"]),
+        lockedChannelIds: ["cat-1", "chan-70", "chan-72"],
+        memberRoles: new Map([["s1", new Set(["role-staff"])]]),
+        overwrites: new Map([
+          ["cat-1", new Map([["s1", true]])],
+          ["chan-70", new Map([["s1", true]])],
+        ]),
+      }),
+    );
+
+    expect(plan.revokes).toStrictEqual([]);
+    expect(plan.grants).toStrictEqual([{ channelId: "chan-72", userId: "s1" }]);
   });
 
   it("leaves roles alone that are not configured", () => {

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."check_in_round" ADD VALUE 'ROUND_3';

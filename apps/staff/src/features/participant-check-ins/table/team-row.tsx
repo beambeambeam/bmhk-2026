@@ -34,6 +34,27 @@ import { useState } from "react";
 import { formatCheckInDate } from "../../staff-check-ins/staff-check-in-utils";
 import { ParticipantCheckInCancel } from "../participant-check-in-cancel";
 
+const roundRegistration = {
+  ROUND_1: {
+    eligibleAward: "REGISTRATION_COMPLETE",
+    eligibleLabel: "สมัครสำเร็จ",
+    participatedAward: "ROUND_1_PARTICIPATED",
+    participatedLabel: "เข้าร่วมรอบออนไลน์",
+  },
+  ROUND_2: {
+    eligibleAward: "ADVANCED_TO_ROUND_2",
+    eligibleLabel: "ผ่านเข้าสู่รอบรองชนะเลิศ",
+    participatedAward: "ROUND_2_PARTICIPATED",
+    participatedLabel: "เข้าร่วมรอบรองชนะเลิศ",
+  },
+  ROUND_3: {
+    eligibleAward: "ADVANCED_TO_ROUND_3",
+    eligibleLabel: "ผ่านเข้าสู่รอบชิงชนะเลิศ",
+    participatedAward: "ROUND_3_PARTICIPATED",
+    participatedLabel: "เข้าร่วมรอบชิงชนะเลิศ",
+  },
+} as const;
+
 const noFlagValue = "none";
 export const participantCheckInFlagValues = ["feeling_unwell", "bad_behavior"] as const;
 const flagLabels: Record<ParticipantCheckInFlag, string> = {
@@ -214,11 +235,8 @@ export function ParticipantCheckInTeamRow({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCancelTeamRegistrationOpen, setIsCancelTeamRegistrationOpen] = useState(false);
-  const eligibleAward = meta.round === "ROUND_1" ? "REGISTRATION_COMPLETE" : "ADVANCED_TO_ROUND_2";
-  const participatedAward =
-    meta.round === "ROUND_1" ? "ROUND_1_PARTICIPATED" : "ROUND_2_PARTICIPATED";
-  const eligibleLabel = meta.round === "ROUND_1" ? "สมัครสำเร็จ" : "ผ่านเข้ารอบที่ 2";
-  const participatedLabel = meta.round === "ROUND_1" ? "เข้าร่วมรอบออนไลน์" : "เข้าร่วมรอบที่ 2";
+  const { eligibleAward, eligibleLabel, participatedAward, participatedLabel } =
+    roundRegistration[meta.round];
   const needsTeamCheckIn = team.teamCheckIn === null;
   const canRegisterTeam = needsTeamCheckIn && team.award === eligibleAward;
   const canCancelTeamRegistration = team.teamCheckIn !== null;

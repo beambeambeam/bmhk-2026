@@ -9,6 +9,7 @@ import type { ParticipantCheckInTableMeta } from "../table/team-row";
 function renderTeam(
   checkedIn: boolean,
   award?: ParticipantCheckInListResult["rows"][number]["award"],
+  round: ParticipantCheckInTableMeta["round"] = "ROUND_2",
 ) {
   const onUpdateTeamRegistration = vi
     .fn<ParticipantCheckInTableMeta["onUpdateTeamRegistration"]>()
@@ -20,7 +21,7 @@ function renderTeam(
     onSort: vi.fn<ParticipantCheckInTableMeta["onSort"]>(),
     onUpdateFlag: vi.fn<ParticipantCheckInTableMeta["onUpdateFlag"]>().mockResolvedValue(),
     onUpdateTeamRegistration,
-    round: "ROUND_2",
+    round,
     sortBy: "name",
     sortDesc: false,
     updatingFlagId: undefined,
@@ -63,12 +64,30 @@ describe("round two team check-in", () => {
     expect(onUpdateTeamRegistration).toHaveBeenCalledWith(team.id, team.name, false);
   });
 
+  it("registers a finalist for round three", () => {
+    const { onUpdateTeamRegistration, team } = renderTeam(false, "ADVANCED_TO_ROUND_3", "ROUND_3");
+    fireEvent.click(screen.getByRole("button", { name: "ลงทะเบียนทีมเข้าร่วมงาน" }));
+    expect(onUpdateTeamRegistration).toHaveBeenCalledWith(team.id, team.name, true);
+    expect(
+      screen.getByRole("button", { name: "ลงทะเบียนเข้างาน" }).closest("fieldset")?.disabled,
+    ).toBeTruthy();
+  });
+
+  it("cancels a round three registration with the finalist award label", async () => {
+    const { onUpdateTeamRegistration, team } = renderTeam(true, "ROUND_3_PARTICIPATED", "ROUND_3");
+    expect(screen.getByText("เข้าร่วมรอบชิงชนะเลิศ")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    expect(screen.getByText(/สถานะทีมจะกลับเป็น “ผ่านเข้าสู่รอบชิงชนะเลิศ”/u)).toBeDefined();
+    fireEvent.click(await screen.findByRole("button", { name: "ยืนยันการยกเลิก" }));
+    expect(onUpdateTeamRegistration).toHaveBeenCalledWith(team.id, team.name, false);
+  });
+
   it("enables member check-in and allows cancelling the round two registration", async () => {
     const { onUpdateTeamRegistration, team } = renderTeam(true);
     expect(
       screen.getByRole("button", { name: "ลงทะเบียนเข้างาน" }).closest("fieldset")?.disabled,
     ).toBeFalsy();
-    expect(screen.getByText("เข้าร่วมรอบที่ 2")).toBeDefined();
+    expect(screen.getByText("เข้าร่วมรอบรองชนะเลิศ")).toBeDefined();
     expect(screen.getByText("ยืนยันโดย Staff")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
     fireEvent.click(await screen.findByRole("button", { name: "ยืนยันการยกเลิก" }));

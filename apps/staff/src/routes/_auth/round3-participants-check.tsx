@@ -2,7 +2,7 @@ import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
 import { ParticipantCheckInTable } from "@/features/participant-check-ins/table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_auth/round2-participants-check")({
+export const Route = createFileRoute("/_auth/round3-participants-check")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role;
     if (!hasRegistrationAccess(role)) {
@@ -18,12 +18,12 @@ function ParticipantCheckInPage() {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานผู้เข้าร่วม (รอบที่ 2)</h1>
+        <h1 className="text-base leading-snug font-medium">ลงทะเบียนเข้างานผู้เข้าร่วม (รอบที่ 3)</h1>
         <p className="text-sm text-muted-foreground">
-          บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงานรอบรองชนะเลิศ เฉพาะทีมที่ผ่านรอบคัดเลือก
+          บันทึกการมาถึงและหมายเหตุของผู้เข้าร่วมงานรอบชิงชนะเลิศ เฉพาะทีมที่ผ่านเข้าสู่รอบชิงชนะเลิศ
         </p>
       </div>
-      <ParticipantCheckInTable actorId={session.data?.user.id} round="ROUND_2" />
+      <ParticipantCheckInTable actorId={session.data?.user.id} round="ROUND_3" />
     </section>
   );
 }

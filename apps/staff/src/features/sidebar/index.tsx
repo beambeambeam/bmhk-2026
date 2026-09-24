@@ -55,6 +55,7 @@ interface StaffNavItem {
     | "/round1-staff-check"
     | "/round2-participants-check"
     | "/round2-staff-check"
+    | "/round3-participants-check"
     | "/users";
   readonly icon: LucideIcon;
 }
@@ -95,6 +96,10 @@ const round2StaffNavItems: readonly StaffNavItem[] = [
 
 const round2ParticipantCheckInNavItems: readonly StaffNavItem[] = [
   { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 2)", to: "/round2-participants-check" },
+];
+
+const round3ParticipantCheckInNavItems: readonly StaffNavItem[] = [
+  { icon: UserCheck, label: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 3)", to: "/round3-participants-check" },
 ];
 
 interface StaffNavGroup {
@@ -166,6 +171,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
         items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems],
         label: "ลงทะเบียนเข้างาน รอบที่ 2",
       },
+      { items: round3ParticipantCheckInNavItems, label: "ลงทะเบียนเข้างาน รอบที่ 3" },
       { items: userManagementNavItems, label: "บัญชีและสิทธิ์" },
       { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
@@ -196,6 +202,13 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
           label: "ลงทะเบียนเข้างาน รอบที่ 2",
         },
       );
+    }
+
+    if (canAccessParticipations) {
+      accessNavGroups.push({
+        items: round3ParticipantCheckInNavItems,
+        label: "ลงทะเบียนเข้างาน รอบที่ 3",
+      });
     }
 
     if (canManageUsers) {

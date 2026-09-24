@@ -79,4 +79,5 @@ export type ParticipantCheckInTeam = z.infer<typeof participantCheckInTeamSchema
 export const teamCheckInAwards = {
   ROUND_1: { eligible: "REGISTRATION_COMPLETE", participated: "ROUND_1_PARTICIPATED" },
   ROUND_2: { eligible: "ADVANCED_TO_ROUND_2", participated: "ROUND_2_PARTICIPATED" },
+  ROUND_3: { eligible: "ADVANCED_TO_ROUND_3", participated: "ROUND_3_PARTICIPATED" },
 } as const;

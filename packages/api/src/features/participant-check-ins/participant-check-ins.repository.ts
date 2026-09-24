@@ -3,7 +3,11 @@ import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
 import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
-import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
+import {
+  roundThreeEligibleAwardValues,
+  roundTwoEligibleAwardValues,
+  teams,
+} from "@bmhk-2026/db/schema/teams";
 import { and, countDistinct, eq, ilike, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
@@ -201,6 +205,12 @@ export function createParticipantCheckInRepository(
             if (round === "ROUND_2" && !isRoundTwoEligible(participant.award)) {
               return "NOT_ELIGIBLE";
             }
+            if (
+              round === "ROUND_3" &&
+              !(roundThreeEligibleAwardValues as readonly string[]).includes(participant.award)
+            ) {
+              return "NOT_ELIGIBLE";
+            }
             const created = await transaction
               .insert(participantCheckIns)
               .values({ checkedInByUserId, participantId, round })
@@ -228,6 +238,8 @@ export function createParticipantCheckInRepository(
                 );
               } else if (round === "ROUND_2") {
                 roundGate = inArray(teams.award, roundTwoEligibleAwardValues);
+              } else if (round === "ROUND_3") {
+                roundGate = inArray(teams.award, roundThreeEligibleAwardValues);
               }
               const filters = and(columnFilterCondition, roundGate);
               const [totalResult] = await transaction

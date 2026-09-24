@@ -42,6 +42,15 @@ export const roundTwoEligibleAwardValues = [
   "FIRST_PLACE",
 ] as const satisfies readonly (typeof teamAwardValues)[number][];
 
+export const roundThreeEligibleAwardValues = [
+  "ADVANCED_TO_ROUND_3",
+  "ROUND_3_PARTICIPATED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+] as const satisfies readonly (typeof teamAwardValues)[number][];
+
 export const teams = pgTable(
   "teams",
   {

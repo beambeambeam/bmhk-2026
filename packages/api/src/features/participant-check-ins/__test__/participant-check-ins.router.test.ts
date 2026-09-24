@@ -40,36 +40,44 @@ function createRouter(
 }
 
 describe("participant check-ins router", () => {
-  it("registers and cancels a team in round two with round-specific audit changes", async () => {
-    const registerTeam = vi
-      .fn<ParticipantCheckInRepository["registerTeam"]>()
-      .mockResolvedValue("CREATED");
-    const cancelTeam = vi.fn<ParticipantCheckInRepository["cancelTeam"]>().mockResolvedValue(true);
-    const router = createRouter(createRepository({ cancelTeam, registerTeam }));
-    const { context, log } = createTestContext();
-    const input = { round: "ROUND_2" as const, teamId: TARGET_PARTICIPANT_ID };
-    await expect(call(router.registerTeam, input, { context })).resolves.toStrictEqual(input);
-    expect(registerTeam).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, ACTOR_ID, "ROUND_2");
-    expect(log.audit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "team-check-in.created",
-        changes: {
-          after: { award: "ROUND_2_PARTICIPATED", round: "ROUND_2", status: "checked-in" },
-        },
-      }),
-    );
-    await call(router.cancelTeam, input, { context });
-    expect(cancelTeam).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, "ROUND_2");
-    expect(log.audit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "team-check-in.cancelled",
-        changes: {
-          after: { round: "ROUND_2", status: "not-checked-in" },
-          before: { round: "ROUND_2", status: "checked-in" },
-        },
-      }),
-    );
-  });
+  it.each([
+    ["ROUND_2", "ROUND_2_PARTICIPATED"],
+    ["ROUND_3", "ROUND_3_PARTICIPATED"],
+  ] as const)(
+    "registers and cancels a team in %s with round-specific audit changes",
+    async (round, award) => {
+      const registerTeam = vi
+        .fn<ParticipantCheckInRepository["registerTeam"]>()
+        .mockResolvedValue("CREATED");
+      const cancelTeam = vi
+        .fn<ParticipantCheckInRepository["cancelTeam"]>()
+        .mockResolvedValue(true);
+      const router = createRouter(createRepository({ cancelTeam, registerTeam }));
+      const { context, log } = createTestContext();
+      const input = { round, teamId: TARGET_PARTICIPANT_ID };
+      await expect(call(router.registerTeam, input, { context })).resolves.toStrictEqual(input);
+      expect(registerTeam).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, ACTOR_ID, round);
+      expect(log.audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "team-check-in.created",
+          changes: {
+            after: { award, round, status: "checked-in" },
+          },
+        }),
+      );
+      await call(router.cancelTeam, input, { context });
+      expect(cancelTeam).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, round);
+      expect(log.audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "team-check-in.cancelled",
+          changes: {
+            after: { round, status: "not-checked-in" },
+            before: { round, status: "checked-in" },
+          },
+        }),
+      );
+    },
+  );
 
   it("requires a valid team identifier for round two check-in", async () => {
     const registerTeam = vi
@@ -126,6 +134,8 @@ describe("participant check-ins router", () => {
     ["ROUND_1", "unregistered"],
     ["ROUND_2", "registered"],
     ["ROUND_2", "unregistered"],
+    ["ROUND_3", "registered"],
+    ["ROUND_3", "unregistered"],
   ] as const)("combines team search with %s %s status", async (round, status) => {
     const list = vi
       .fn<ParticipantCheckInRepository["list"]>()

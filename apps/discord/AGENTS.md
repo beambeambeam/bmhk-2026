@@ -38,7 +38,7 @@
   `POST /api/discord/verify` as plain Elysia REST routes, not oRPC procedures
   — call them with `fetch` against the server's base URL, not through
   `packages/client`.
-- Response bodies use snake_case wire keys (e.g. `main_acc_id`) on purpose, to
+- Response bodies use snake_case wire keys (e.g. `channel_id`) on purpose, to
   match what this bot expects — don't remap them to camelCase.
 - A `200` response can still mean failure: check `status` against
   `discordStatus` (`SUCCESS` / `NOT_FOUND` / `ALREADY_REDEEMED` / `ALREADY_LINKED`, defined in

@@ -49,7 +49,6 @@ export const discordVerifyInputSchema = z
 export const discordQueryDataSchema = z
   .object({
     // wire keys mirror the discord bot's expected JSON payload, not repo camelCase convention
-    main_acc_id: z.string().nullable(),
     name: z.string(),
     school: z.string(),
     team: z.string(),

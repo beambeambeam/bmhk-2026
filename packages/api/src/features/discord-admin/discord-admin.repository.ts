@@ -8,14 +8,12 @@ import { staffDiscordLinks } from "@bmhk-2026/db/schema/staff-discord-links";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { asc, eq, or } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { createRepositoryExecutor } from "../../core/repository";
 import { discordAdminRepositoryError } from "./discord-admin.errors";
 
 export interface AdminParticipantFacts {
-  altAccUserId: string | null;
-  altRedeemedAt: Date | null;
   code: string | null;
   firstNameTh: string;
   index: number;
@@ -53,11 +51,9 @@ export interface ParticipantNicknameFactsRow {
   firstNameTh: string;
   teamIndex: number;
   teamName: string;
-  wasAlt: boolean;
 }
 
 export interface ParticipantLookupFacts {
-  altAccUserId: string | null;
   code: string;
   email: string;
   firstNameTh: string;
@@ -72,9 +68,9 @@ export interface ParticipantLookupFacts {
 }
 
 export interface DiscordAdminRepository {
-  /** A verified participant by either their main or alt Discord account; null when neither matches. */
+  /** A verified participant by their Discord account; null when none matches. */
   findParticipantByDiscordUserId: (discordUserId: string) => Promise<ParticipantLookupFacts | null>;
-  /** Every linked participant account (main and alt), with what their nickname should be computed from. */
+  /** Every linked participant account, with what their nickname should be computed from. */
   listParticipantNicknameFacts: () => Promise<ParticipantNicknameFactsRow[]>;
   /** Every linked staff member, with what their nickname should be computed from. */
   listStaffNicknameFacts: () => Promise<StaffNicknameFactsRow[]>;
@@ -97,7 +93,6 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
       await execute(async () => {
         const [row] = await database
           .select({
-            altAccUserId: discord.altAccUserId,
             code: discord.code,
             email: teamParticipants.email,
             firstNameTh: teamParticipants.firstNameTh,
@@ -113,9 +108,7 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
           .from(discord)
           .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
           .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-          .where(
-            or(eq(discord.mainAccUserId, discordUserId), eq(discord.altAccUserId, discordUserId)),
-          )
+          .where(eq(discord.mainAccUserId, discordUserId))
           .limit(1);
 
         return row ?? null;
@@ -124,9 +117,8 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
       await execute(async () => {
         const rows = await database
           .select({
-            altAccUserId: discord.altAccUserId,
+            discordUserId: discord.mainAccUserId,
             firstNameTh: teamParticipants.firstNameTh,
-            mainAccUserId: discord.mainAccUserId,
             teamIndex: teams.index,
             teamName: teams.name,
           })
@@ -134,15 +126,8 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
           .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
           .innerJoin(teams, eq(teams.id, teamParticipants.teamId));
 
-        return rows.flatMap(({ altAccUserId, firstNameTh, mainAccUserId, teamIndex, teamName }) =>
-          [
-            mainAccUserId === null ? null : { discordUserId: mainAccUserId, wasAlt: false },
-            altAccUserId === null ? null : { discordUserId: altAccUserId, wasAlt: true },
-          ]
-            .filter(
-              (account): account is { discordUserId: string; wasAlt: boolean } => account !== null,
-            )
-            .map((account) => ({ ...account, firstNameTh, teamIndex, teamName })),
+        return rows.flatMap(({ discordUserId, ...facts }) =>
+          discordUserId === null ? [] : [{ ...facts, discordUserId }],
         );
       }),
     listStaffNicknameFacts: async () =>
@@ -193,8 +178,6 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
 
         const participantRows = await database
           .select({
-            altAccUserId: discord.altAccUserId,
-            altRedeemedAt: discord.altRedeemedAt,
             code: discord.code,
             firstNameTh: teamParticipants.firstNameTh,
             index: teamParticipants.index,
@@ -221,9 +204,8 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
       await execute(async () => {
         const participantRows = await database
           .select({
-            altAccUserId: discord.altAccUserId,
             channelId: discordTeamGroupMembers.channelId,
-            mainAccUserId: discord.mainAccUserId,
+            discordUserId: discord.mainAccUserId,
           })
           .from(discord)
           .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
@@ -232,10 +214,8 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
             eq(discordTeamGroupMembers.teamId, teamParticipants.teamId),
           );
 
-        const participants = participantRows.flatMap(({ altAccUserId, channelId, mainAccUserId }) =>
-          [mainAccUserId, altAccUserId]
-            .filter((discordUserId): discordUserId is string => discordUserId !== null)
-            .map((discordUserId) => ({ channelId, discordUserId })),
+        const participants = participantRows.flatMap(({ channelId, discordUserId }) =>
+          discordUserId === null ? [] : [{ channelId, discordUserId }],
         );
 
         const staffRows = await database
@@ -265,7 +245,6 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
               .select({
                 channelId: discordTeamGroupMembers.channelId,
                 id: discord.id,
-                mainAccUserId: discord.mainAccUserId,
               })
               .from(discord)
               .innerJoin(teamParticipants, eq(teamParticipants.id, discord.participantId))
@@ -273,12 +252,7 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
                 discordTeamGroupMembers,
                 eq(discordTeamGroupMembers.teamId, teamParticipants.teamId),
               )
-              .where(
-                or(
-                  eq(discord.mainAccUserId, discordUserId),
-                  eq(discord.altAccUserId, discordUserId),
-                ),
-              )
+              .where(eq(discord.mainAccUserId, discordUserId))
               .for("update", { of: discord })
               .limit(1);
             if (!row) {
@@ -287,11 +261,7 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
 
             await tx
               .update(discord)
-              .set(
-                row.mainAccUserId === discordUserId
-                  ? { mainAccUserId: null, redeemedAt: null }
-                  : { altAccUserId: null, altRedeemedAt: null },
-              )
+              .set({ mainAccUserId: null, redeemedAt: null })
               .where(eq(discord.id, row.id));
             return { channelId: row.channelId };
           }),

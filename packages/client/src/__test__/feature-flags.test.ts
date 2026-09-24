@@ -21,6 +21,7 @@ const availableRegistration: FeatureFlags = {
   qualifyingRound: false,
   qualifyingRoundIdentityConfirmation: false,
   registration: true,
+  round2Confirmation: false,
 };
 
 const unavailableFeatureFlags: FeatureFlags = {
@@ -30,6 +31,7 @@ const unavailableFeatureFlags: FeatureFlags = {
   qualifyingRound: false,
   qualifyingRoundIdentityConfirmation: false,
   registration: false,
+  round2Confirmation: false,
 };
 
 // oxlint-disable-next-line vitest/prefer-import-in-mock -- This boundary fake intentionally supplies only the RPC query used by the hooks.
@@ -107,6 +109,7 @@ describe(useFeatureFlags, () => {
       qualifyingRound: false,
       qualifyingRoundIdentityConfirmation: false,
       registration: false,
+      round2Confirmation: false,
     });
   });
 

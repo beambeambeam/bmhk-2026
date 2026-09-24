@@ -12,6 +12,7 @@ const unavailableFeatureFlags: FeatureFlags = {
   qualifyingRound: false,
   qualifyingRoundIdentityConfirmation: false,
   registration: false,
+  round2Confirmation: false,
 };
 
 const CLOCK_SKEW_BUFFER_MS = 1000;

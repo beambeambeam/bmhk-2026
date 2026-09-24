@@ -174,3 +174,21 @@ export const staffDiscordLinkedAudit = defineAuditAction("staff-discord.linked",
   severity: "critical",
   target: "staff-discord-link",
 });
+
+export const round2ConfirmationSubmittedAudit = defineAuditAction("round2-confirmation.submitted", {
+  description: "A Team Owner confirmed participation in round 2",
+  requiresChanges: true,
+  severity: "critical",
+  target: "round2-confirmation",
+});
+export const round2DocumentReplacedAudit = defineAuditAction("round2-document.replaced", {
+  description: "A Team Owner uploaded a round 2 identity or student ID document",
+  requiresChanges: true,
+  severity: "critical",
+  target: "round2-document",
+});
+export const round2DocumentAccessedAudit = defineAuditAction("round2-document.accessed", {
+  description: "A Team Owner or Registration Operator accessed a round 2 document",
+  severity: "critical",
+  target: "round2-document",
+});

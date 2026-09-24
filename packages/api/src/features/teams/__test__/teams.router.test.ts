@@ -1,6 +1,7 @@
 import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
 import { Temporal } from "temporal-polyfill";
+import { createError } from "evlog";
 import { describe, expect, it, vi } from "vitest";
 
 import type {
@@ -70,6 +71,16 @@ const testTeam = {
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   userId: USER_ID,
 } satisfies Team;
+
+function createTeamRosterLockedError() {
+  return createError({
+    code: "TEAM_ROSTER_LOCKED",
+    fix: "Contact registration staff for help",
+    message: "Team roster is locked after round 2 confirmation",
+    status: 409,
+    why: "The team has confirmed round 2 participation",
+  });
+}
 
 // teams.list joins the team's review record, so its rows carry registration status.
 const testTeamListRow = {
@@ -939,6 +950,63 @@ describe("teams router", () => {
         { context, path: ["teams", "update"] },
       ),
     ).resolves.toMatchObject({ name: "Updated Team" });
+  });
+
+  it.each([
+    { auth: createAuthReader(), name: "owner" },
+    { auth: createRegistrationAuthReader(), name: "registration staff" },
+  ])("blocks $name from changing memberCount after round 2 confirmation", async ({ auth }) => {
+    const repository = createTeamRepository({
+      update: async () => await Promise.reject(createTeamRosterLockedError()),
+    });
+    const router = createRouter(repository, auth);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.update,
+        { data: { memberCount: 2 }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_ROSTER_LOCKED", status: 409 });
+  });
+
+  it.each([
+    { auth: createAuthReader(), name: "owner" },
+    { auth: createRegistrationAuthReader(), name: "registration staff" },
+  ])("blocks $name from deleting a confirmed team", async ({ auth }) => {
+    const repository = createTeamRepository({
+      delete: async () => await Promise.reject(createTeamRosterLockedError()),
+    });
+    const router = createRouter(repository, auth);
+    const { context, log } = createContext();
+
+    await expect(
+      call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
+    ).rejects.toMatchObject({ code: "TEAM_ROSTER_LOCKED", status: 409 });
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "team.deleted",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "denied",
+      reason: "TEAM_ROSTER_LOCKED",
+      target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
+    });
+  });
+
+  it("allows team details and unchanged memberCount after round 2 confirmation", async () => {
+    const repository = createTeamRepository({
+      update: async (_access, _id, data) => await Promise.resolve({ ...testTeam, ...data }),
+    });
+    const router = createRouter(repository);
+    const { context } = createContext();
+
+    await expect(
+      call(
+        router.teams.update,
+        { data: { memberCount: testTeam.memberCount, name: "Updated Team" }, id: TEAM_ID },
+        { context, path: ["teams", "update"] },
+      ),
+    ).resolves.toMatchObject({ memberCount: 0, name: "Updated Team" });
   });
 
   it.each([

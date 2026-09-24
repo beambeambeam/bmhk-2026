@@ -207,3 +207,13 @@ export {
   discordAdminTeamQuerySchema,
   discordAdminUserInputSchema,
 } from "./features/discord-admin/discord-admin.schema";
+
+export type {
+  Round2ConfirmationFacts,
+  Round2ConfirmationRepository,
+} from "./features/round2-confirmation/round2-confirmation.repository";
+export type {
+  Round2ConfirmationStatus,
+  Round2DocumentType,
+  Round2DocumentInput,
+} from "./features/round2-confirmation/round2-confirmation.schema";

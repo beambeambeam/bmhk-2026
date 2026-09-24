@@ -3,18 +3,22 @@ import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins"
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
+import { teamRound2 } from "@bmhk-2026/db/schema/team-round2";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, desc, eq, getTableColumns, ilike, inArray, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
+import { hasErrorCode } from "../../core/errors";
 
 import { escapeLikePattern } from "../../core/query-builder";
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import {
   createTeamAlreadyExistsError,
   createTeamRepositoryError,
+  createTeamRosterLockedError,
+  TEAM_ROSTER_LOCKED_ERROR_CODE,
   teamRepositoryError,
 } from "./teams.errors";
 import type {
@@ -120,15 +124,45 @@ export function createTeamRepository(database: Database = db): TeamRepository {
         return rethrowRepositoryError(error, teamRepositoryError);
       }
     },
-    delete: async (access, id) =>
-      await execute(async () => {
-        const [team] = await database
-          .delete(teams)
-          .where(createTeamAccessCondition(access, id))
-          .returning({ id: teams.id });
+    delete: async (access, id) => {
+      try {
+        return await database.transaction(async (transaction) => {
+          const [team] = await transaction
+            .select({ id: teams.id })
+            .from(teams)
+            .where(createTeamAccessCondition(access, id))
+            .for("update")
+            .limit(1);
 
-        return team !== undefined;
-      }),
+          if (!team) {
+            return false;
+          }
+
+          const [round2] = await transaction
+            .select({ confirmedAt: teamRound2.confirmedAt })
+            .from(teamRound2)
+            .where(eq(teamRound2.teamId, team.id))
+            .limit(1);
+
+          if (round2 && round2.confirmedAt !== null) {
+            throw createTeamRosterLockedError();
+          }
+
+          const [deletedTeam] = await transaction
+            .delete(teams)
+            .where(eq(teams.id, team.id))
+            .returning({ id: teams.id });
+
+          return deletedTeam !== undefined;
+        });
+      } catch (error) {
+        if (hasErrorCode(error, TEAM_ROSTER_LOCKED_ERROR_CODE)) {
+          throw error;
+        }
+
+        return rethrowRepositoryError(error, teamRepositoryError);
+      }
+    },
     findById: async (access, id) =>
       await execute(async () => {
         const [result] = await database
@@ -278,15 +312,50 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             return { previous, roundOneCheckInsReset, team };
           }),
       ),
-    update: async (access, id, data) =>
-      await execute(async () => {
-        const [team] = await database
-          .update(teams)
-          .set(data)
-          .where(createTeamAccessCondition(access, id))
-          .returning();
+    update: async (access, id, data) => {
+      try {
+        return await database.transaction(async (transaction) => {
+          const [previous] = await transaction
+            .select({ id: teams.id, memberCount: teams.memberCount })
+            .from(teams)
+            .where(createTeamAccessCondition(access, id))
+            .for("update")
+            .limit(1);
 
-        return team ?? null;
-      }),
+          if (!previous) {
+            return null;
+          }
+
+          const requestedMemberCount = "memberCount" in data ? data.memberCount : undefined;
+          const changesMemberCount =
+            requestedMemberCount !== undefined && requestedMemberCount !== previous.memberCount;
+          if (changesMemberCount) {
+            const [round2] = await transaction
+              .select({ confirmedAt: teamRound2.confirmedAt })
+              .from(teamRound2)
+              .where(eq(teamRound2.teamId, previous.id))
+              .limit(1);
+
+            if (round2 && round2.confirmedAt !== null) {
+              throw createTeamRosterLockedError();
+            }
+          }
+
+          const [team] = await transaction
+            .update(teams)
+            .set(data)
+            .where(eq(teams.id, id))
+            .returning();
+
+          return team ?? null;
+        });
+      } catch (error) {
+        if (hasErrorCode(error, TEAM_ROSTER_LOCKED_ERROR_CODE)) {
+          throw error;
+        }
+
+        return rethrowRepositoryError(error, teamRepositoryError);
+      }
+    },
   };
 }

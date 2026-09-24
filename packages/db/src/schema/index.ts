@@ -17,4 +17,5 @@ export * from "./team-check-ins";
 export * from "./team-consents";
 export * from "./team-participants";
 export * from "./team-registration-reviews";
+export * from "./team-round2";
 export * from "./teams";

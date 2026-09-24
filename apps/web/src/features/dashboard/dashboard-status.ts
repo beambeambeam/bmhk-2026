@@ -2,6 +2,7 @@ import type { TeamStatus } from "./team-data";
 
 const SEMIFINAL_AWARDS = new Set([
   "ADVANCED_TO_ROUND_3",
+  "ROUND_3_PARTICIPATED",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",

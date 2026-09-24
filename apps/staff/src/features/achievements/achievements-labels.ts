@@ -13,6 +13,7 @@ const achievementLabels = {
   REGISTRATION_FAILED: "สมัครไม่สำเร็จ",
   ROUND_1_PARTICIPATED: "เข้าร่วมรอบออนไลน์",
   ROUND_2_PARTICIPATED: "เข้าร่วมรอบรองชนะเลิศ",
+  ROUND_3_PARTICIPATED: "เข้าร่วมรอบชิงชนะเลิศ",
   SECOND_PLACE: "รางวัลอันดับที่ 2",
   THIRD_PLACE: "รางวัลอันดับที่ 3",
 } satisfies Record<TeamAward, string>;
@@ -29,6 +30,7 @@ const achievementOptions = [
   "ADVANCED_TO_ROUND_2",
   "ROUND_2_PARTICIPATED",
   "ADVANCED_TO_ROUND_3",
+  "ROUND_3_PARTICIPATED",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",
@@ -64,6 +66,7 @@ const awardFilters = [
   { label: achievementLabels.ADVANCED_TO_ROUND_2, value: "ADVANCED_TO_ROUND_2" },
   { label: achievementLabels.ROUND_2_PARTICIPATED, value: "ROUND_2_PARTICIPATED" },
   { label: achievementLabels.ADVANCED_TO_ROUND_3, value: "ADVANCED_TO_ROUND_3" },
+  { label: achievementLabels.ROUND_3_PARTICIPATED, value: "ROUND_3_PARTICIPATED" },
   { label: achievementLabels.HONORABLE_MENTION, value: "HONORABLE_MENTION" },
   { label: achievementLabels.THIRD_PLACE, value: "THIRD_PLACE" },
   { label: achievementLabels.SECOND_PLACE, value: "SECOND_PLACE" },

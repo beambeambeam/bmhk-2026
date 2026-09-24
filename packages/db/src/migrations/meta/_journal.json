@@ -260,6 +260,13 @@
       "when": 1790237993209,
       "tag": "0036_robust_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790240495718,
+      "tag": "0037_damp_lady_deathstrike",
+      "breakpoints": true
     }
   ]
 }

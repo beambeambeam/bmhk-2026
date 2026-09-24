@@ -49,8 +49,8 @@ describe("feature flags", () => {
   it("includes the start and excludes the end of qualifying round identity confirmation", async () => {
     const beforeStart = createRouter("2026-09-22T15:59:59.999+07:00");
     const atStart = createRouter("2026-09-22T16:00:00+07:00");
-    const beforeEnd = createRouter("2026-09-25T17:59:59.999+07:00");
-    const atEnd = createRouter("2026-09-25T18:00:00+07:00");
+    const beforeEnd = createRouter("2026-09-27T12:59:59.999+07:00");
+    const atEnd = createRouter("2026-09-27T13:00:00+07:00");
 
     await expect(getAll(beforeStart)).resolves.toMatchObject({
       qualifyingRoundIdentityConfirmation: false,

@@ -13,25 +13,29 @@ import type { TeamAward } from "@bmhk-2026/api";
 import { CheckCircle2, CircleAlert, Clock3 } from "lucide-react";
 import { useState } from "react";
 
-export type EligibilityAward = "REGISTRATION_COMPLETED" | "NOT_QUALIFIED";
+export type EligibilityAward = "REGISTRATION_COMPLETE" | "REGISTRATION_FAILED";
 
 export function getEligibilityLabel(award: TeamAward): string {
   if (award === "NO_ACHIEVEMENT") {
     return "ยังไม่ได้พิจารณา";
   }
-  return award === "NOT_QUALIFIED" ? "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก" : "มีสิทธิ์เข้าแข่งขันในรอบแรก";
+  if (award === "REGISTRATION_FAILED") {
+    return "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก";
+  }
+
+  return "มีสิทธิ์เข้าแข่งขันในรอบแรก";
 }
 
 export function EligibilityChip({ award }: { readonly award: TeamAward }) {
-  const isEligible = award !== "NO_ACHIEVEMENT" && award !== "NOT_QUALIFIED";
-  const isNotQualified = award === "NOT_QUALIFIED";
+  const isEligible = award !== "NO_ACHIEVEMENT" && award !== "REGISTRATION_FAILED";
+  const isRegistrationFailed = award === "REGISTRATION_FAILED";
   let Icon = Clock3;
   let className = "bg-muted text-muted-foreground";
 
   if (isEligible) {
     Icon = CheckCircle2;
     className = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
-  } else if (isNotQualified) {
+  } else if (isRegistrationFailed) {
     Icon = CircleAlert;
     className = "bg-destructive/15 text-destructive";
   }
@@ -67,9 +71,9 @@ export function ParticipationEligibility({
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           className="h-auto min-h-24 whitespace-normal px-4 py-6 text-base leading-snug"
-          disabled={!canEdit || pending || award === "REGISTRATION_COMPLETED"}
+          disabled={!canEdit || pending || award === "REGISTRATION_COMPLETE"}
           onClick={() => {
-            setSelection("REGISTRATION_COMPLETED");
+            setSelection("REGISTRATION_COMPLETE");
           }}
         >
           มีสิทธิ์เข้าแข่งขันในรอบแรก
@@ -77,9 +81,9 @@ export function ParticipationEligibility({
         <Button
           className="h-auto min-h-24 whitespace-normal px-4 py-6 text-base leading-snug"
           variant="destructive"
-          disabled={!canEdit || pending || award === "NOT_QUALIFIED"}
+          disabled={!canEdit || pending || award === "REGISTRATION_FAILED"}
           onClick={() => {
-            setSelection("NOT_QUALIFIED");
+            setSelection("REGISTRATION_FAILED");
           }}
         >
           ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก

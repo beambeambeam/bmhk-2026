@@ -38,7 +38,7 @@ function participant(index: number, overrides: Partial<FactsParticipant> = {}): 
 
 function teamFacts(overrides: Partial<Facts> = {}): Facts {
   return {
-    award: "REGISTRATION_COMPLETED",
+    award: "REGISTRATION_COMPLETE",
     participants: [participant(1), participant(2)],
     reviewStatus: "APPROVED",
     teamId: TEAM_ID,
@@ -191,7 +191,7 @@ describe("discord codes router", () => {
 
   it.each([
     ["unjudged award", teamFacts({ award: "NO_ACHIEVEMENT" })],
-    ["not qualified award", teamFacts({ award: "NOT_QUALIFIED" })],
+    ["registration failed award", teamFacts({ award: "REGISTRATION_FAILED" })],
     ["registration review pending", teamFacts({ reviewStatus: "PENDING_REVIEW" })],
     ["registration review changes requested", teamFacts({ reviewStatus: "CHANGES_REQUESTED" })],
     ["no registration review", teamFacts({ reviewStatus: null })],
@@ -209,7 +209,7 @@ describe("discord codes router", () => {
   });
 
   it("keeps codes available to teams that advanced past round 1", async () => {
-    const router = createRouter(createFakeRepository(teamFacts({ award: "ROUND_1_COMPLETED" })));
+    const router = createRouter(createFakeRepository(teamFacts({ award: "ADVANCED_TO_ROUND_2" })));
     const { context } = createTestContext();
 
     await expect(call(router.getOrCreate, {}, { context })).resolves.toHaveLength(2);
@@ -254,7 +254,7 @@ describe("discord codes router", () => {
 
     it("applies the same eligibility gate", async () => {
       const router = createRouter(
-        createFakeRepository(teamFacts({ award: "NOT_QUALIFIED" })),
+        createFakeRepository(teamFacts({ award: "REGISTRATION_FAILED" })),
         staffAuth(),
       );
       const { context } = createTestContext();

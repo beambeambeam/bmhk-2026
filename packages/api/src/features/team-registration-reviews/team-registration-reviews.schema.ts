@@ -72,7 +72,7 @@ export const teamRegistrationReviewListFilterSchema = z.enum(
 export const teamRegistrationEligibilityFilterSchema = z.enum([
   "ALL",
   "ELIGIBLE",
-  "NOT_QUALIFIED",
+  "REGISTRATION_FAILED",
   "NOT_REVIEWED",
 ]);
 export type TeamRegistrationEligibilityFilter = z.output<

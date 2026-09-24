@@ -18,7 +18,7 @@ const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 8;
 // Retries cover a code colliding with another participant's, or a concurrent first call.
 const MAX_GENERATION_ATTEMPTS = 3;
-const INELIGIBLE_AWARDS = new Set(["NO_ACHIEVEMENT", "NOT_QUALIFIED"]);
+const INELIGIBLE_AWARDS = new Set(["NO_ACHIEVEMENT", "REGISTRATION_FAILED"]);
 
 function generateCode(): string {
   let code = "";

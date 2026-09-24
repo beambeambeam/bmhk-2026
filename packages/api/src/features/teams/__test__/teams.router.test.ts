@@ -44,10 +44,13 @@ const USER_ID = "user-1";
 
 const expectedAwards = [
   "NO_ACHIEVEMENT",
-  "REGISTRATION_COMPLETED",
-  "NOT_QUALIFIED",
-  "ROUND_1_COMPLETED",
-  "ROUND_2_COMPLETED",
+  "REGISTRATION_COMPLETE",
+  "REGISTRATION_FAILED",
+  "ROUND_1_PARTICIPATED",
+  "ADVANCED_TO_ROUND_2",
+  "ROUND_2_PARTICIPATED",
+  "ADVANCED_TO_ROUND_3",
+  "ROUND_3_PARTICIPATED",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",
@@ -539,7 +542,7 @@ describe("teams router", () => {
     const router = createRouter(createTeamRepository({ list }), createRegistrationAuthReader());
     const { context } = createContext();
     const input = {
-      award: "ROUND_1_COMPLETED" as const,
+      award: "ADVANCED_TO_ROUND_2" as const,
       limit: 10,
       offset: 10,
       search: "  Bangmod  ",

@@ -238,7 +238,7 @@ describe("team registration reviews router", () => {
     });
   });
 
-  it.each(["ALL", "ELIGIBLE", "NOT_QUALIFIED", "NOT_REVIEWED"] as const)(
+  it.each(["ALL", "ELIGIBLE", "REGISTRATION_FAILED", "NOT_REVIEWED"] as const)(
     "filters the review queue by decision and eligibility %s",
     async (eligibility) => {
       const router = createRouter(
@@ -277,7 +277,7 @@ describe("team registration reviews router", () => {
 
   it("returns the team's award with each review queue row", async () => {
     const team = {
-      award: "REGISTRATION_COMPLETED",
+      award: "REGISTRATION_COMPLETE",
       createdAt: REVIEWED_AT,
       id: TEAM_ID,
       image: null,
@@ -315,7 +315,7 @@ describe("team registration reviews router", () => {
       rows: [
         {
           advisor: "APPROVED",
-          award: "REGISTRATION_COMPLETED",
+          award: "REGISTRATION_COMPLETE",
           id: TEAM_ID,
           index: 1,
           lastUpdatedAt: REVIEWED_AT,

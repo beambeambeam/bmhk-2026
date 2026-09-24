@@ -15,7 +15,7 @@ function getAuthRoleLabel(role: string | null | undefined): string {
       return "ทีมงานฝ่ายวิชาการ";
     }
     case "registrationStaff": {
-      return "ทีมงานลงทะเบียน";
+      return "ทีมงานฝ่ายทะเบียน";
     }
     case "staff": {
       return "ทีมงาน";

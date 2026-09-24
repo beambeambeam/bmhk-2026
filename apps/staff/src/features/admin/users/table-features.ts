@@ -1,5 +1,6 @@
 import {
   columnFilteringFeature,
+  columnSizingFeature,
   metaHelper,
   rowPaginationFeature,
   rowSortingFeature,
@@ -22,6 +23,7 @@ interface AdminUsersColumnMeta {
 const adminUsersTableFeatures = tableFeatures({
   columnFilteringFeature,
   columnMeta: metaHelper<AdminUsersColumnMeta>(),
+  columnSizingFeature,
   rowPaginationFeature,
   rowSortingFeature,
   tableMeta: metaHelper<AdminUsersTableMeta>(),

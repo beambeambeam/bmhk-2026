@@ -32,6 +32,7 @@ const adminUsersColumns = columnHelper.columns([
     meta: {
       cellClassName: "font-medium",
     },
+    size: 360,
   }),
   columnHelper.accessor("name", {
     cell: ({ getValue }) => getValue() || "ไม่ระบุชื่อ",
@@ -41,6 +42,7 @@ const adminUsersColumns = columnHelper.columns([
         {getSortIcon(column.getIsSorted())}
       </Button>
     ),
+    size: 260,
   }),
   columnHelper.accessor("role", {
     cell: ({ row, table }) => {
@@ -66,6 +68,7 @@ const adminUsersColumns = columnHelper.columns([
         {getSortIcon(column.getIsSorted())}
       </Button>
     ),
+    size: 260,
   }),
 ]);
 

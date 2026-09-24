@@ -1,10 +1,13 @@
 import { Button } from "@/components/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
+import { DataTable } from "@/components/table/index";
+import type { DataTableColumn } from "@/components/table/index";
+import { DataTablePagination } from "@/components/table/pagination";
+import { DataTableSortHeader } from "@/components/table/sort-header";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -12,6 +15,7 @@ import type {
   StaffCheckInColumnFilter,
   StaffCheckInListQuery,
   StaffCheckInSort,
+  StaffCheckInStaff,
 } from "@bmhk-2026/api";
 
 import { StaffCheckInCancel } from "./staff-check-in-cancel";
@@ -44,6 +48,119 @@ const sortableColumns: readonly SortableColumn[] = [
   { id: "email", label: "อีเมล" },
   { id: "checkedInAt", label: "สถานะการเข้างาน" },
 ];
+
+interface StaffCheckInTableMeta {
+  readonly sortBy: StaffCheckInSort["id"];
+  readonly sortDesc: boolean;
+  readonly onSort: (id: StaffCheckInSort["id"]) => void;
+  readonly checkingInId: string | undefined;
+  readonly round: CheckInRound;
+  readonly onCheckIn: (id: string, name: string) => Promise<void>;
+  readonly handleCancelled: () => void;
+}
+const columnDefinitions: DataTableColumn<StaffCheckInStaff, StaffCheckInTableMeta>[] = [
+  {
+    cell: ({ row }) => {
+      const staffMember = row.original;
+      return staffMember.name || "ไม่ระบุชื่อ";
+    },
+    header: "ชื่อ",
+    id: "name",
+    meta: { cellClassName: "font-medium" },
+    size: 240,
+  },
+  {
+    cell: ({ row }) => {
+      const staffMember = row.original;
+      return staffMember.email;
+    },
+    header: "อีเมล",
+    id: "email",
+    size: 320,
+  },
+  {
+    cell: ({ row }) => {
+      const staffMember = row.original;
+      return staffMember.checkIn ? (
+        <span className="flex flex-col gap-0.5">
+          <span>{formatCheckInDate(staffMember.checkIn.checkedInAt)}</span>
+          <span className="text-muted-foreground text-xs">
+            ยืนยันโดย {staffMember.checkIn.checkedInByName}
+          </span>
+        </span>
+      ) : (
+        <span className="text-muted-foreground">ยังไม่เข้างาน</span>
+      );
+    },
+    header: "สถานะการเข้างาน",
+    id: "checkedInAt",
+    size: 260,
+  },
+  {
+    cell: ({ row, table }) => {
+      const staffMember = row.original;
+      const { meta } = table.options;
+      if (!meta) {
+        return null;
+      }
+      const isCheckingIn = meta.checkingInId === staffMember.id;
+      return staffMember.checkIn ? (
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+            <Check aria-hidden="true" className="size-4 text-emerald-600" />
+            เข้างานแล้ว
+          </span>
+          <StaffCheckInCancel
+            onCancelled={meta.handleCancelled}
+            round={meta.round}
+            staffName={staffMember.name || staffMember.email}
+            staffUserId={staffMember.id}
+          />
+        </span>
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          disabled={isCheckingIn}
+          onClick={() => {
+            void meta.onCheckIn(staffMember.id, staffMember.name || staffMember.email);
+          }}
+        >
+          {isCheckingIn ? <Loader2 aria-hidden="true" className="animate-spin" /> : null}
+          ลงทะเบียนเข้างาน
+        </Button>
+      );
+    },
+    header: "การดำเนินการ",
+    id: "actions",
+    meta: { cellClassName: "text-right", headerClassName: "text-right" },
+    size: 240,
+  },
+];
+const columns = columnDefinitions.map(
+  (column): DataTableColumn<StaffCheckInStaff, StaffCheckInTableMeta> => {
+    const sortableColumn = sortableColumns.find((item) => item.id === column.id);
+    if (!sortableColumn) {
+      return column;
+    }
+    return {
+      ...column,
+      header: ({ table }) => {
+        const { meta } = table.options;
+        const direction = meta?.sortDesc === true ? "desc" : "asc";
+        return (
+          <DataTableSortHeader
+            label={sortableColumn.label}
+            direction={meta?.sortBy === column.id ? direction : false}
+            onClick={() => meta?.onSort(sortableColumn.id)}
+          />
+        );
+      },
+      id: sortableColumn.id,
+      meta: { ...column.meta, sortable: true },
+    };
+  },
+);
 
 function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
   const queryClient = useQueryClient();
@@ -160,135 +277,35 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
         </Field>
       </FieldGroup>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {sortableColumns.map((column) => (
-              <TableHead key={column.id}>
-                <Button
-                  className="-ml-3"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    toggleSorting(column.id);
-                  }}
-                >
-                  {column.label}
-                  <ArrowUpDown
-                    aria-hidden="true"
-                    className={
-                      sorting.id === column.id ? "text-foreground" : "text-muted-foreground"
-                    }
-                  />
-                </Button>
-              </TableHead>
-            ))}
-            <TableHead className="text-right">การดำเนินการ</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading || errorMessage !== undefined || staffMembers.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className={
-                  errorMessage === undefined
-                    ? "h-24 text-center text-muted-foreground"
-                    : "h-24 text-center text-destructive"
-                }
-              >
-                {errorMessage ?? (isLoading ? "กำลังโหลดรายชื่อทีมงาน..." : "ไม่พบรายชื่อทีมงาน")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            staffMembers.map((staffMember) => {
-              const isCheckingIn =
-                checkInMutation.isPending &&
-                checkInMutation.variables?.staffUserId === staffMember.id;
-
-              return (
-                <TableRow key={staffMember.id}>
-                  <TableCell className="font-medium">{staffMember.name || "ไม่ระบุชื่อ"}</TableCell>
-                  <TableCell>{staffMember.email}</TableCell>
-                  <TableCell>
-                    {staffMember.checkIn ? (
-                      <span className="flex flex-col gap-0.5">
-                        <span>{formatCheckInDate(staffMember.checkIn.checkedInAt)}</span>
-                        <span className="text-muted-foreground text-xs">
-                          ยืนยันโดย {staffMember.checkIn.checkedInByName}
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">ยังไม่เข้างาน</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {staffMember.checkIn ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                          <Check aria-hidden="true" className="size-4 text-emerald-600" />
-                          เข้างานแล้ว
-                        </span>
-                        <StaffCheckInCancel
-                          onCancelled={handleCheckInCancelled}
-                          round={round}
-                          staffName={staffMember.name || staffMember.email}
-                          staffUserId={staffMember.id}
-                        />
-                      </span>
-                    ) : (
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={isCheckingIn}
-                        onClick={() => {
-                          void checkIn(staffMember.id, staffMember.name || staffMember.email);
-                        }}
-                      >
-                        {isCheckingIn ? (
-                          <Loader2 aria-hidden="true" className="animate-spin" />
-                        ) : null}
-                        ลงทะเบียนเข้างาน
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={staffMembers}
+        getRowId={(staffMember) => staffMember.id}
+        meta={{
+          checkingInId: checkInMutation.isPending
+            ? checkInMutation.variables?.staffUserId
+            : undefined,
+          handleCancelled: handleCheckInCancelled,
+          onCheckIn: checkIn,
+          onSort: toggleSorting,
+          round,
+          sortBy: sorting.id,
+          sortDesc: sorting.desc,
+        }}
+        sorting={sorting}
+        isError={staffQuery.isError}
+        emptyMessage="ไม่พบรายชื่อทีมงาน"
+        statusMessage={errorMessage ?? (isLoading ? "กำลังโหลดรายชื่อทีมงาน..." : undefined)}
+      />
 
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">ทั้งหมด {rowCount} คน</p>
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={pageIndex === 0}
-            onClick={() => {
-              setPageIndex((page) => page - 1);
-            }}
-          >
-            <ChevronLeft aria-hidden="true" data-icon="inline-start" /> ก่อนหน้า
-          </Button>
-          <span className="min-w-20 text-center text-muted-foreground">
-            หน้า {pageIndex + 1} จาก {pageCount}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={pageIndex + 1 >= pageCount}
-            onClick={() => {
-              setPageIndex((page) => page + 1);
-            }}
-          >
-            ถัดไป <ChevronRight aria-hidden="true" data-icon="inline-end" />
-          </Button>
-        </div>
+        <DataTablePagination
+          disabled={staffQuery.isFetching}
+          pageIndex={pageIndex}
+          pageCount={pageCount}
+          onPageChange={setPageIndex}
+        />
       </div>
     </div>
   );

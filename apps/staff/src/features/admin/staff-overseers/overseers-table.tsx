@@ -1,9 +1,21 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
+import { DataTable } from "@/components/table/index";
+import type { DataTableColumn } from "@/components/table/index";
 import type { StaffOverseer } from "@bmhk-2026/api";
 
 interface StaffOverseersTableProps {
   readonly overseers: readonly StaffOverseer[];
 }
+
+const columns: DataTableColumn<StaffOverseer>[] = [
+  { accessorKey: "userName", header: "Name", size: 240 },
+  { accessorKey: "email", header: "Email", size: 320 },
+  {
+    cell: ({ row }) => `[${row.original.groupIndex}] ${row.original.groupName}`,
+    header: "Group",
+    id: "group",
+    size: 240,
+  },
+];
 
 function StaffOverseersTable({ overseers }: StaffOverseersTableProps) {
   if (overseers.length === 0) {
@@ -11,24 +23,12 @@ function StaffOverseersTable({ overseers }: StaffOverseersTableProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Group</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {overseers.map((overseer) => (
-          <TableRow key={overseer.userId}>
-            <TableCell>{overseer.userName}</TableCell>
-            <TableCell>{overseer.email}</TableCell>
-            <TableCell>{`[${overseer.groupIndex}] ${overseer.groupName}`}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable
+      columns={columns}
+      data={overseers}
+      getRowId={(overseer) => overseer.userId}
+      emptyMessage="No overseers assigned yet."
+    />
   );
 }
 

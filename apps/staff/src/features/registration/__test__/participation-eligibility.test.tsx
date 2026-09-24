@@ -8,10 +8,10 @@ describe("first-round eligibility", () => {
   afterEach(cleanup);
 
   it.each([
-    ["มีสิทธิ์เข้าแข่งขันในรอบแรก", "REGISTRATION_COMPLETED"],
+    ["มีสิทธิ์เข้าแข่งขันในรอบแรก", "REGISTRATION_COMPLETE"],
     ["ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก", "REGISTRATION_FAILED"],
   ] as const)("confirms before saving %s", async (label, award) => {
-    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETED" | "REGISTRATION_FAILED") => void>();
+    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETE" | "REGISTRATION_FAILED") => void>();
     render(
       <ParticipationEligibility
         award="NO_ACHIEVEMENT"
@@ -33,7 +33,7 @@ describe("first-round eligibility", () => {
     expect(onConfirm).toHaveBeenCalledExactlyOnceWith(award);
   });
   it("blocks further actions while confirmation is saving", () => {
-    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETED" | "REGISTRATION_FAILED") => void>();
+    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETE" | "REGISTRATION_FAILED") => void>();
     const { rerender } = render(
       <ParticipationEligibility
         award="NO_ACHIEVEMENT"
@@ -54,7 +54,7 @@ describe("first-round eligibility", () => {
   });
 
   it("disables eligibility changes without permission", () => {
-    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETED" | "REGISTRATION_FAILED") => void>();
+    const onConfirm = vi.fn<(award: "REGISTRATION_COMPLETE" | "REGISTRATION_FAILED") => void>();
     render(
       <ParticipationEligibility
         award="NO_ACHIEVEMENT"

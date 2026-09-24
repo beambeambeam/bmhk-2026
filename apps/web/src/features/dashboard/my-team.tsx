@@ -619,6 +619,8 @@ export default function MyTeam() {
   const displayTeam = getDisplayTeam(team);
   const showDiscord =
     status === "qualified" ||
+    status === "round1-failed" ||
+    status === "round1-pending" ||
     status === "semifinal-pending" ||
     status === "semifinal-qualified" ||
     status === "semifinal-failed";

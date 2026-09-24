@@ -253,6 +253,13 @@
       "when": 1790236311995,
       "tag": "0035_petite_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790237993209,
+      "tag": "0036_robust_silver_fox",
+      "breakpoints": true
     }
   ]
 }

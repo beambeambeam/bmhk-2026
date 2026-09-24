@@ -31,7 +31,7 @@ function participant(
 
 function team(index: number, overrides: Partial<AdminTeamFacts> = {}): AdminTeamFacts {
   return {
-    award: "REGISTRATION_COMPLETED",
+    award: "REGISTRATION_COMPLETE",
     id: `${String(index).padStart(8, "0")}-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,
     index,
     name: `Team ${index}`,

@@ -13,7 +13,7 @@ import type { TeamAward } from "@bmhk-2026/api";
 import { CheckCircle2, CircleAlert, Clock3 } from "lucide-react";
 import { useState } from "react";
 
-export type EligibilityAward = "REGISTRATION_COMPLETED" | "REGISTRATION_FAILED";
+export type EligibilityAward = "REGISTRATION_COMPLETE" | "REGISTRATION_FAILED";
 
 export function getEligibilityLabel(award: TeamAward): string {
   if (award === "NO_ACHIEVEMENT") {
@@ -71,9 +71,9 @@ export function ParticipationEligibility({
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           className="h-auto min-h-24 whitespace-normal px-4 py-6 text-base leading-snug"
-          disabled={!canEdit || pending || award === "REGISTRATION_COMPLETED"}
+          disabled={!canEdit || pending || award === "REGISTRATION_COMPLETE"}
           onClick={() => {
-            setSelection("REGISTRATION_COMPLETED");
+            setSelection("REGISTRATION_COMPLETE");
           }}
         >
           มีสิทธิ์เข้าแข่งขันในรอบแรก

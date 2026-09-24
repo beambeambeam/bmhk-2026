@@ -208,6 +208,8 @@ export const STATUS_VARIANTS = [
   "qualified",
   "selection-pending",
   "selection-failed",
+  "round1-failed",
+  "round1-pending",
   "semifinal-qualified",
   "semifinal-pending",
   "semifinal-failed",
@@ -309,7 +311,7 @@ export function getStatusSteps(
     qualified: [
       REGISTERED,
       DOCS_OK,
-      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
+      { label: "มีสิทธิ์เข้าแข่งขัน", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
     ],
     rejected: [
       REGISTERED,
@@ -334,6 +336,18 @@ export function getStatusSteps(
         tone: "pending",
       },
     ],
+    "round1-failed": [
+      REGISTERED,
+      DOCS_OK,
+      { label: "เข้าร่วมการแข่งขัน", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
+      { label: "ไม่ได้ผ่านเข้าสู่รอบรองชนะเลิศ", title: "ผลการแข่งขัน", tone: "failed" },
+    ],
+    "round1-pending": [
+      REGISTERED,
+      DOCS_OK,
+      { label: "เข้าร่วมการแข่งขัน", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
+      { label: "กำลังสรุปผล", title: "ผลการแข่งขัน", tone: "pending" },
+    ],
     "selection-failed": [
       REGISTERED,
       DOCS_OK,
@@ -352,20 +366,22 @@ export function getStatusSteps(
     "semifinal-failed": [
       REGISTERED,
       DOCS_OK,
-      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
-      { label: "ไม่ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "failed" },
+      { label: "ผ่านเข้าสู่รอบรองชนะเลิศ", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
+      { label: "เข้าร่วมการแข่งขัน", title: "การแข่งขันรอบรองชนะเลิศ", tone: "ok" },
+      { label: "ไม่ได้ผ่านเข้าสู่รอบชิงชนะเลิศ", title: "ผลการแข่งขัน", tone: "failed" },
     ],
     "semifinal-pending": [
       REGISTERED,
       DOCS_OK,
-      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
+      { label: "ผ่านเข้าสู่รอบรองชนะเลิศ", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
       { label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
     ],
     "semifinal-qualified": [
       REGISTERED,
       DOCS_OK,
-      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบคัดเลือก", tone: "ok" },
-      { label: "ผ่านการคัดเลือก", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "ok" },
+      { label: "ผ่านเข้าสู่รอบรองชนะเลิศ", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
+      { label: "เข้าร่วมการแข่งขัน", title: "การแข่งขันรอบรองชนะเลิศ", tone: "ok" },
+      { label: "ผ่านเข้าสู่รอบชิงชนะเลิศ", title: "ผลการแข่งขัน", tone: "ok" },
     ],
   };
 }

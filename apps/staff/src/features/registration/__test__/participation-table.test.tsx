@@ -74,7 +74,7 @@ describe("participations table", () => {
 
   it.each([
     ["NO_ACHIEVEMENT", "ยังไม่ได้พิจารณา"],
-    ["REGISTRATION_COMPLETED", "มีสิทธิ์เข้าแข่งขันในรอบแรก"],
+    ["REGISTRATION_COMPLETE", "มีสิทธิ์เข้าแข่งขันในรอบแรก"],
     ["REGISTRATION_FAILED", "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก"],
   ] as const)("shows first-round eligibility for %s", (award, label) => {
     renderTable(award);
@@ -82,7 +82,7 @@ describe("participations table", () => {
     expect(screen.getByRole("cell", { name: label })).toBeDefined();
   });
 
-  it.each(["ROUND_1_COMPLETED", "FIRST_PLACE"] as const)(
+  it.each(["ADVANCED_TO_ROUND_2", "FIRST_PLACE"] as const)(
     "shows higher award %s as first-round eligibility",
     (award) => {
       renderTable(award);

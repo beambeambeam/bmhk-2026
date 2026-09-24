@@ -1,7 +1,7 @@
 import type { TeamStatus } from "./team-data";
 
 const SEMIFINAL_AWARDS = new Set([
-  "ROUND_2_COMPLETED",
+  "ADVANCED_TO_ROUND_3",
   "HONORABLE_MENTION",
   "THIRD_PLACE",
   "SECOND_PLACE",
@@ -16,37 +16,54 @@ export interface FeatureFlagsInput {
   registration?: boolean;
 }
 
+function getCompetitionStatus(
+  award: string | undefined,
+  featureFlags?: FeatureFlagsInput | null,
+): TeamStatus | null {
+  const isOnlineRoundStarted = featureFlags?.qualifyingRound === true;
+  const isOnlineResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
+
+  if (award === "ROUND_1_PARTICIPATED") {
+    if (isOnlineResultsAnnounced) {
+      return "round1-failed";
+    }
+    if (isOnlineRoundStarted) {
+      return "round1-pending";
+    }
+  }
+
+  if (award === "ADVANCED_TO_ROUND_2" && isOnlineResultsAnnounced) {
+    return "semifinal-pending";
+  }
+
+  if (award === "ROUND_2_PARTICIPATED") {
+    return "semifinal-failed";
+  }
+
+  if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
+    return "semifinal-qualified";
+  }
+
+  return null;
+}
+
 function getApprovedStatus(
   award: string | undefined,
   featureFlags?: FeatureFlagsInput | null,
 ): TeamStatus {
-  const isEligibleTeamsAnnounced = featureFlags?.eligibleTeamsAnnouncement === true;
-  const isQualifyingRoundStarted = featureFlags?.qualifyingRound === true;
-  const isQualifyingResultsAnnounced = featureFlags?.qualifyingResultsAnnouncement === true;
-
-  if (!isEligibleTeamsAnnounced) {
+  if (featureFlags?.eligibleTeamsAnnouncement !== true) {
     return "selection-pending";
   }
 
-  if (isQualifyingResultsAnnounced) {
-    if (award !== undefined && SEMIFINAL_AWARDS.has(award)) {
-      return "semifinal-qualified";
-    }
-    if (award === "ROUND_1_COMPLETED") {
-      return "semifinal-failed";
-    }
+  const competitionStatus = getCompetitionStatus(award, featureFlags);
+  if (competitionStatus !== null) {
+    return competitionStatus;
   }
 
   if (
-    isQualifyingRoundStarted &&
-    (award === "ROUND_1_COMPLETED" || (award !== undefined && SEMIFINAL_AWARDS.has(award)))
-  ) {
-    return "semifinal-pending";
-  }
-
-  if (
-    award === "REGISTRATION_COMPLETED" ||
-    award === "ROUND_1_COMPLETED" ||
+    award === "REGISTRATION_COMPLETE" ||
+    award === "ADVANCED_TO_ROUND_2" ||
+    award === "ROUND_2_PARTICIPATED" ||
     (award !== undefined && SEMIFINAL_AWARDS.has(award))
   ) {
     return "qualified";

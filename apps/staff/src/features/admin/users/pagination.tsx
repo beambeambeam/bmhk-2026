@@ -1,6 +1,5 @@
-import { Button } from "@/components/button";
+import { DataTablePagination } from "@/components/table/pagination";
 import type { ReactTable } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { AdminUsersTableFeatures } from "./table-features";
 import type { AdminUser } from "./types";
@@ -13,7 +12,6 @@ interface AdminUsersPaginationProps {
 function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationProps) {
   const { pageIndex, pageSize } = table.state.pagination;
   const pageCount = Math.max(1, table.getPageCount());
-  const page = Math.min(pageIndex + 1, pageCount);
   const totalUsers = table.getRowCount();
   const firstVisibleUserNumber = totalUsers === 0 ? 0 : pageIndex * pageSize + 1;
   const lastVisibleUserNumber = Math.min(pageIndex * pageSize + visibleRowCount, totalUsers);
@@ -23,35 +21,13 @@ function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationPr
       <p className="text-muted-foreground">
         แสดง {firstVisibleUserNumber}-{lastVisibleUserNumber} จากทั้งหมด {totalUsers} คน
       </p>
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!table.getCanPreviousPage()}
-          onClick={() => {
-            table.previousPage();
-          }}
-        >
-          <ChevronLeft aria-hidden="true" data-icon="inline-start" />
-          ก่อนหน้า
-        </Button>
-        <span className="min-w-20 text-center text-muted-foreground">
-          หน้า {page} จาก {pageCount}
-        </span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!table.getCanNextPage()}
-          onClick={() => {
-            table.nextPage();
-          }}
-        >
-          ถัดไป
-          <ChevronRight aria-hidden="true" data-icon="inline-end" />
-        </Button>
-      </div>
+      <DataTablePagination
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        onPageChange={(page) => {
+          table.setPageIndex(page);
+        }}
+      />
     </div>
   );
 }

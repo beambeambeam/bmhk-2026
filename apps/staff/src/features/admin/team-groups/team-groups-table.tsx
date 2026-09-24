@@ -1,8 +1,7 @@
-import { Button } from "@/components/button";
 import { DataTable } from "@/components/table/index";
 import type { DataTableColumn } from "@/components/table/index";
+import { DataTablePagination } from "@/components/table/pagination";
 import type { TeamWithGroup } from "@bmhk-2026/api";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 import { AssignGroupsDialog } from "./assign-groups-dialog";
@@ -51,35 +50,7 @@ function TeamGroupsTable({ teams }: TeamGroupsTableProps) {
           <p className="text-muted-foreground">
             Showing {start + 1}-{start + visibleTeams.length} of {teams.length} teams
           </p>
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page === 0}
-              onClick={() => {
-                setPageIndex(page - 1);
-              }}
-            >
-              <ChevronLeft aria-hidden="true" data-icon="inline-start" />
-              Previous
-            </Button>
-            <span className="min-w-20 text-center text-muted-foreground">
-              Page {page + 1} of {pageCount}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= pageCount - 1}
-              onClick={() => {
-                setPageIndex(page + 1);
-              }}
-            >
-              Next
-              <ChevronRight aria-hidden="true" data-icon="inline-end" />
-            </Button>
-          </div>
+          <DataTablePagination pageIndex={page} pageCount={pageCount} onPageChange={setPageIndex} />
         </div>
       )}
     </div>

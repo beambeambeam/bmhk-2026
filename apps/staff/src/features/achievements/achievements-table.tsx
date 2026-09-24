@@ -1,4 +1,3 @@
-import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import {
   Select,
@@ -10,11 +9,11 @@ import {
 } from "@/components/select";
 import { DataTable } from "@/components/table/index";
 import type { DataTableColumn } from "@/components/table/index";
+import { DataTablePagination } from "@/components/table/pagination";
 import { DataTableSortHeader } from "@/components/table/sort-header";
 import type { TeamListRow, TeamAwardFilter, TeamListSort } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AchievementsAward } from "./achievements-award";
@@ -154,11 +153,6 @@ function AchievementsTable() {
   });
   const teams = teamsQuery.data?.data ?? [];
   const pagination = teamsQuery.data?.pagination;
-  // The API sends null for "no adjacent page"; normalise both that and a not-yet-loaded
-  // page to undefined so the buttons have a single disabled condition.
-  const previousOffset = pagination?.previousOffset ?? undefined;
-  const nextOffset = pagination?.nextOffset ?? undefined;
-
   function toggleSorting(id: TeamListSort): void {
     if (id === sortBy) {
       setSortDesc((current) => !current);
@@ -228,37 +222,14 @@ function AchievementsTable() {
 
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">ทั้งหมด {pagination?.total ?? 0} ทีม</p>
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={previousOffset === undefined}
-            onClick={() => {
-              if (previousOffset !== undefined) {
-                setOffset(previousOffset);
-              }
-            }}
-          >
-            <ChevronLeft aria-hidden="true" data-icon="inline-start" /> ก่อนหน้า
-          </Button>
-          <span className="min-w-20 text-center text-muted-foreground">
-            หน้า {pagination?.currentPage ?? 1} จาก {pagination?.totalPages ?? 1}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={nextOffset === undefined}
-            onClick={() => {
-              if (nextOffset !== undefined) {
-                setOffset(nextOffset);
-              }
-            }}
-          >
-            ถัดไป <ChevronRight aria-hidden="true" data-icon="inline-end" />
-          </Button>
-        </div>
+        <DataTablePagination
+          disabled={teamsQuery.isFetching}
+          pageIndex={Math.floor(offset / PAGE_SIZE)}
+          pageCount={pagination?.totalPages ?? 1}
+          onPageChange={(page) => {
+            setOffset(page * PAGE_SIZE);
+          }}
+        />
       </div>
     </div>
   );

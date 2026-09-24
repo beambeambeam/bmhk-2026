@@ -1,6 +1,5 @@
-import { Button } from "@/components/button";
+import { DataTablePagination } from "@/components/table/pagination";
 import type { TeamRegistrationReviewListResult } from "@bmhk-2026/api";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ParticipationPaginationProps {
   readonly isFetching: boolean;
@@ -25,34 +24,14 @@ function ParticipationPagination({
       <p className="text-muted-foreground">
         แสดง {firstVisible}-{lastVisible} จากทั้งหมด {pagination.total} รายการ
       </p>
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          disabled={pagination.offset === 0 || isFetching}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => {
-            onOffsetChange(Math.max(0, pagination.offset - pageSize));
-          }}
-        >
-          <ChevronLeft aria-hidden="true" data-icon="inline-start" />
-          ก่อนหน้า
-        </Button>
-        <Button
-          disabled={pagination.nextOffset === null || isFetching}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => {
-            if (pagination.nextOffset !== null) {
-              onOffsetChange(pagination.nextOffset);
-            }
-          }}
-        >
-          ถัดไป
-          <ChevronRight aria-hidden="true" data-icon="inline-end" />
-        </Button>
-      </div>
+      <DataTablePagination
+        disabled={isFetching}
+        pageIndex={Math.floor(pagination.offset / pageSize)}
+        pageCount={Math.ceil(pagination.total / pageSize)}
+        onPageChange={(page) => {
+          onOffsetChange(page * pageSize);
+        }}
+      />
     </div>
   );
 }

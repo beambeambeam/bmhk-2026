@@ -3,10 +3,11 @@ import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
 import { DataTable } from "@/components/table/index";
 import type { DataTableColumn } from "@/components/table/index";
+import { DataTablePagination } from "@/components/table/pagination";
 import { DataTableSortHeader } from "@/components/table/sort-header";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -299,33 +300,12 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
 
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">ทั้งหมด {rowCount} คน</p>
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={pageIndex === 0}
-            onClick={() => {
-              setPageIndex((page) => page - 1);
-            }}
-          >
-            <ChevronLeft aria-hidden="true" data-icon="inline-start" /> ก่อนหน้า
-          </Button>
-          <span className="min-w-20 text-center text-muted-foreground">
-            หน้า {pageIndex + 1} จาก {pageCount}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={pageIndex + 1 >= pageCount}
-            onClick={() => {
-              setPageIndex((page) => page + 1);
-            }}
-          >
-            ถัดไป <ChevronRight aria-hidden="true" data-icon="inline-end" />
-          </Button>
-        </div>
+        <DataTablePagination
+          disabled={staffQuery.isFetching}
+          pageIndex={pageIndex}
+          pageCount={pageCount}
+          onPageChange={setPageIndex}
+        />
       </div>
     </div>
   );

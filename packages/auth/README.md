@@ -1,14 +1,15 @@
 # Authentication roles
 
-Better Auth's admin plugin and the browser client share the access-control definitions in `src/permission.ts`. New signups receive `user`; role values remain in the existing text column, so adding `superAdmin` requires no database migration.
+Better Auth's admin plugin and the browser client share the access-control definitions in `src/permission.ts`. New signups receive `user`; role values remain in the existing text column, so adding roles requires no database migration.
 
-| Role                | Application access                        | Role management                                                                          |
-| ------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `superAdmin`        | All administrator and staff features      | Any supported role on another account                                                    |
-| `admin`             | Existing administrator and staff features | Only `registrationStaff`, `staff`, and `user` accounts; only those roles may be assigned |
-| `registrationStaff` | Registration and staff check-in features  | None                                                                                     |
-| `staff`             | Registration and participant features     | None                                                                                     |
-| `user`              | Participant account features              | None                                                                                     |
+| Role                | Application access                                          | Role management                                                              |
+| ------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `superAdmin`        | All administrator, staff, and academic access               | Any supported role on another account                                       |
+| `admin`             | Existing administrator and staff features; academic access  | Assign and manage `academicStaff`, `registrationStaff`, `staff`, and `user` |
+| `academicStaff`     | `academic_access.admin` only                                | None                                                                         |
+| `registrationStaff` | Registration and staff check-in features                    | None                                                                         |
+| `staff`             | Registration and participant features                      | None                                                                         |
+| `user`              | Participant account features                                | None                                                                         |
 
 Users cannot change their own roles. Unknown or combined role strings fail closed at application authorization boundaries. This application uses one role per account.
 

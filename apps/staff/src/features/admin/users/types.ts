@@ -11,6 +11,9 @@ function getAuthRoleLabel(role: string | null | undefined): string {
     case "admin": {
       return "ผู้ดูแลระบบ";
     }
+    case "academicStaff": {
+      return "ทีมงานฝ่ายวิชาการ";
+    }
     case "registrationStaff": {
       return "ทีมงานลงทะเบียน";
     }

@@ -3,7 +3,7 @@ import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
-import { and, count, eq, ilike, inArray } from "drizzle-orm";
+import { and, countDistinct, eq, ilike, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -48,11 +48,17 @@ const participantCheckInSortColumns = {
   email: teamParticipants.email,
   flag: participantCheckIns.flag,
   name: teamParticipants.firstNameTh,
+  teamCode: teams.index,
+  teamName: teams.name,
+} as const;
+const teamSortColumns = {
+  teamCode: teams.index,
   teamName: teams.name,
 } as const;
 const defaultParticipantCheckInSorting = [
   { desc: false, id: "name" },
 ] as const satisfies readonly ParticipantCheckInSort[];
+const defaultTeamSorting = [{ desc: false, id: "teamCode" }] as const;
 
 interface ParticipantNameFields {
   readonly firstNameTh: string;
@@ -154,10 +160,46 @@ export function createParticipantCheckInRepository(
                 ? and(columnFilterCondition, roundGate)
                 : columnFilterCondition;
               const [totalResult] = await transaction
-                .select({ value: count() })
+                .select({ value: countDistinct(teams.id) })
                 .from(teamParticipants)
                 .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
                 .where(filters);
+              const teamSorting: { desc: boolean; id: "teamCode" | "teamName" }[] = [];
+              for (const sort of sorting) {
+                if (sort.id === "teamCode") {
+                  teamSorting.push({ desc: sort.desc, id: "teamCode" });
+                } else if (sort.id === "teamName") {
+                  teamSorting.push({ desc: sort.desc, id: "teamName" });
+                }
+              }
+              const teamPage = await transaction
+                .select({
+                  id: teams.id,
+                  index: teams.index,
+                  name: teams.name,
+                })
+                .from(teams)
+                .innerJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
+                .where(filters)
+                .groupBy(teams.id, teams.index, teams.name)
+                .orderBy(
+                  ...createTableOrderBy({
+                    columns: teamSortColumns,
+                    fallbackSorting: defaultTeamSorting,
+                    sorting: teamSorting,
+                    stableColumn: teams.id,
+                  }),
+                )
+                .limit(pagination.pageSize)
+                .offset(getTableOffset(pagination));
+              const teamRows: ParticipantCheckInListResult["rows"] = teamPage.map((team) => ({
+                ...team,
+                members: [],
+              }));
+              if (teamRows.length === 0) {
+                return { rowCount: totalResult?.value ?? 0, rows: teamRows };
+              }
+              const teamById = new Map(teamRows.map((team) => [team.id, team]));
               const records = await transaction
                 .select({
                   checkedInAt: participantCheckIns.checkedInAt,
@@ -168,7 +210,7 @@ export function createParticipantCheckInRepository(
                   id: teamParticipants.id,
                   lastNameTh: teamParticipants.lastNameTh,
                   middleNameTh: teamParticipants.middleNameTh,
-                  teamName: teams.name,
+                  teamId: teams.id,
                   titleTh: teamParticipants.titleTh,
                 })
                 .from(teamParticipants)
@@ -184,7 +226,12 @@ export function createParticipantCheckInRepository(
                   checkedInByUser,
                   eq(checkedInByUser.id, participantCheckIns.checkedInByUserId),
                 )
-                .where(filters)
+                .where(
+                  inArray(
+                    teams.id,
+                    teamRows.map((team) => team.id),
+                  ),
+                )
                 .orderBy(
                   ...createTableOrderBy({
                     columns: participantCheckInSortColumns,
@@ -192,12 +239,13 @@ export function createParticipantCheckInRepository(
                     sorting,
                     stableColumn: teamParticipants.id,
                   }),
-                )
-                .limit(pagination.pageSize)
-                .offset(getTableOffset(pagination));
-              return {
-                rowCount: totalResult?.value ?? 0,
-                rows: records.map((record) => ({
+                );
+              for (const record of records) {
+                const team = teamById.get(record.teamId);
+                if (!team) {
+                  continue;
+                }
+                team.members.push({
                   checkIn:
                     record.checkedInAt !== null && record.checkedInByName !== null
                       ? {
@@ -209,8 +257,11 @@ export function createParticipantCheckInRepository(
                   email: record.email,
                   id: record.id,
                   name: participantName(record),
-                  teamName: record.teamName,
-                })),
+                });
+              }
+              return {
+                rowCount: totalResult?.value ?? 0,
+                rows: teamRows,
               };
             },
             { accessMode: "read only", isolationLevel: "repeatable read" },

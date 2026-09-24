@@ -1,5 +1,5 @@
 import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
-import { ParticipantCheckInTable } from "@/features/participant-check-ins/participant-check-in-table";
+import { ParticipantCheckInTable } from "@/features/participant-check-ins/table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/round2-participants-check")({

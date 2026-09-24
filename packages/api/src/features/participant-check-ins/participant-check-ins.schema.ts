@@ -21,7 +21,14 @@ export const participantCheckInParticipantSchema = z
     email: z.email(),
     id: z.uuid(),
     name: z.string(),
-    teamName: z.string(),
+  })
+  .strict();
+export const participantCheckInTeamSchema = z
+  .object({
+    id: z.uuid(),
+    index: z.int().positive(),
+    members: z.array(participantCheckInParticipantSchema),
+    name: z.string(),
   })
   .strict();
 export const participantCheckInColumnFilterSchema = z.discriminatedUnion("id", [
@@ -34,10 +41,10 @@ export const listParticipantCheckInsSchema = createTableQuerySchema({
   defaultPageSize: 10,
   defaultSorting: [{ desc: false, id: "name" }],
   maxColumnFilters: 3,
-  sortableColumnIds: ["email", "name", "teamName", "checkedInAt", "flag"],
+  sortableColumnIds: ["teamCode", "teamName", "email", "name", "checkedInAt", "flag"],
 }).extend({ round: checkInRoundSchema });
 export const participantCheckInListResultSchema = createTableListResultSchema(
-  participantCheckInParticipantSchema,
+  participantCheckInTeamSchema,
 );
 export const createParticipantCheckInSchema = z
   .object({ participantId: z.uuid(), round: checkInRoundSchema })
@@ -56,3 +63,4 @@ export type ParticipantCheckInFlag = z.infer<typeof participantCheckInFlagSchema
 export type ParticipantCheckInListQuery = z.output<typeof listParticipantCheckInsSchema>;
 export type ParticipantCheckInListResult = z.output<typeof participantCheckInListResultSchema>;
 export type ParticipantCheckInSort = ParticipantCheckInListQuery["sorting"][number];
+export type ParticipantCheckInTeam = z.infer<typeof participantCheckInTeamSchema>;

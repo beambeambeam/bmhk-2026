@@ -4,6 +4,7 @@ import type { TeamRegistrationReviewListResult } from "@bmhk-2026/api";
 interface ParticipationPaginationProps {
   readonly isFetching: boolean;
   readonly onOffsetChange: (offset: number) => void;
+  readonly onPageSizeChange: (pageSize: number) => void;
   readonly pageSize: number;
   readonly pagination: TeamRegistrationReviewListResult["pagination"];
   readonly visibleRowCount: number;
@@ -12,6 +13,7 @@ interface ParticipationPaginationProps {
 function ParticipationPagination({
   isFetching,
   onOffsetChange,
+  onPageSizeChange,
   pageSize,
   pagination,
   visibleRowCount,
@@ -28,9 +30,11 @@ function ParticipationPagination({
         disabled={isFetching}
         pageIndex={Math.floor(pagination.offset / pageSize)}
         pageCount={Math.ceil(pagination.total / pageSize)}
+        pageSize={pageSize}
         onPageChange={(page) => {
           onOffsetChange(page * pageSize);
         }}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   );

@@ -1,9 +1,12 @@
 import { db } from "@bmhk-2026/db";
+import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
+import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
+import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
-import { and, asc, count, desc, eq, getTableColumns, ilike, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, ilike, inArray, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
 
@@ -53,6 +56,7 @@ export interface TeamRepository {
 
 export interface TeamAwardChange {
   previous: Team;
+  roundOneCheckInsReset?: number;
   team: Team;
 }
 
@@ -237,6 +241,31 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               return null;
             }
 
+            let roundOneCheckInsReset = 0;
+            if (previous.award === "ROUND_1_PARTICIPATED" && award === "REGISTRATION_COMPLETE") {
+              await transaction
+                .delete(teamCheckIns)
+                .where(
+                  and(eq(teamCheckIns.teamId, previous.id), eq(teamCheckIns.round, "ROUND_1")),
+                );
+              const cancelledCheckIns = await transaction
+                .delete(participantCheckIns)
+                .where(
+                  and(
+                    eq(participantCheckIns.round, "ROUND_1"),
+                    inArray(
+                      participantCheckIns.participantId,
+                      transaction
+                        .select({ participantId: teamParticipants.id })
+                        .from(teamParticipants)
+                        .where(eq(teamParticipants.teamId, previous.id)),
+                    ),
+                  ),
+                )
+                .returning({ participantId: participantCheckIns.participantId });
+              roundOneCheckInsReset = cancelledCheckIns.length;
+            }
+
             const [team] = await transaction
               .update(teams)
               .set({ award })
@@ -246,7 +275,7 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               throw createTeamRepositoryError(new Error("Team award update returned no row"));
             }
 
-            return { previous, team };
+            return { previous, roundOneCheckInsReset, team };
           }),
       ),
     update: async (access, id, data) =>

@@ -12,7 +12,7 @@ import { AdminUsersDataTable } from "./data-table";
 import { AdminUsersFilter } from "./filter";
 import type { AuthRole, RoleFilter } from "./types";
 
-const TABLE_USER_PAGE_SIZE = 10;
+const DEFAULT_TABLE_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 const DEFAULT_ADMIN_USER_EMAIL_SUFFIX = "@kmutt.ac.th";
 const SORTABLE_COLUMN_IDS = ["email", "name", "role"] as const;
@@ -54,7 +54,7 @@ function AdminUserTable({ actorId, actorRole }: AdminUserTableProps) {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: TABLE_USER_PAGE_SIZE,
+    pageSize: DEFAULT_TABLE_PAGE_SIZE,
   });
   const [sorting, setSorting] = useState<SortingState>([{ desc: false, id: "email" }]);
 

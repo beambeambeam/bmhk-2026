@@ -27,6 +27,7 @@ export type {
   ParticipantCheckInListQuery,
   ParticipantCheckInListResult,
   ParticipantCheckInSort,
+  ParticipantCheckInTeam,
 } from "./features/participant-check-ins/participant-check-ins.schema";
 export type {
   AdminUser,

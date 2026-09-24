@@ -13,16 +13,16 @@ describe("data table pagination", () => {
       <DataTablePagination
         pageIndex={4}
         pageCount={10}
+        pageSize={10}
         onPageChange={(page) => {
           pages.push(page);
         }}
+        onPageSizeChange={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: "Page 5" }).getAttribute("aria-current")).toBe(
-      "page",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Page 10" }));
-    expect(pages).toStrictEqual([9]);
+    expect(screen.getByRole("button", { name: "หน้า 5" }).getAttribute("aria-current")).toBe("page");
+    fireEvent.click(screen.getByRole("button", { name: "หน้า 6" }));
+    expect(pages).toStrictEqual([5]);
   });
 
   it("disables previous on the first page and next on the last page", () => {
@@ -31,25 +31,29 @@ describe("data table pagination", () => {
       <DataTablePagination
         pageIndex={0}
         pageCount={3}
+        pageSize={10}
         onPageChange={(page) => {
           pages.push(page);
         }}
+        onPageSizeChange={() => {}}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Go to previous page" }));
-    fireEvent.click(screen.getByRole("button", { name: "Go to next page" }));
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าก่อนหน้า" }));
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าถัดไป" }));
     expect(pages).toStrictEqual([1]);
     rerender(
       <DataTablePagination
         pageIndex={2}
         pageCount={3}
+        pageSize={10}
         onPageChange={(page) => {
           pages.push(page);
         }}
+        onPageSizeChange={() => {}}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Go to next page" }));
-    fireEvent.click(screen.getByRole("button", { name: "Go to previous page" }));
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าถัดไป" }));
+    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าก่อนหน้า" }));
     expect(pages).toStrictEqual([1, 1]);
   });
 
@@ -60,9 +64,11 @@ describe("data table pagination", () => {
         disabled
         pageIndex={1}
         pageCount={3}
+        pageSize={10}
         onPageChange={(page) => {
           pages.push(page);
         }}
+        onPageSizeChange={() => {}}
       />,
     );
     for (const button of screen.getAllByRole("button")) {
@@ -72,15 +78,21 @@ describe("data table pagination", () => {
   });
 
   it("keeps one disabled page for an empty result", () => {
-    render(<DataTablePagination pageIndex={0} pageCount={0} onPageChange={() => {}} />);
-    expect(screen.getByRole("button", { name: "Page 1" }).getAttribute("aria-current")).toBe(
-      "page",
+    render(
+      <DataTablePagination
+        pageIndex={0}
+        pageCount={0}
+        pageSize={10}
+        onPageChange={() => {}}
+        onPageSizeChange={() => {}}
+      />,
     );
+    expect(screen.getByRole("button", { name: "หน้า 1" }).getAttribute("aria-current")).toBe("page");
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "Go to previous page" }).disabled,
+      screen.getByRole<HTMLButtonElement>("button", { name: "ไปหน้าก่อนหน้า" }).disabled,
     ).toBeTruthy();
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "Go to next page" }).disabled,
+      screen.getByRole<HTMLButtonElement>("button", { name: "ไปหน้าถัดไป" }).disabled,
     ).toBeTruthy();
   });
 });

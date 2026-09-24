@@ -10,13 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
+import { DataTable } from "@/components/table/index";
+import type { DataTableColumn } from "@/components/table/index";
+import { DataTableSortHeader } from "@/components/table/sort-header";
 import type {
   TeamRegistrationEligibilityFilter,
   TeamRegistrationReviewListFilter,
+  TeamRegistrationReviewListResult,
 } from "@bmhk-2026/api";
 import { getTeamRegistrationReviewListQueryOptions } from "@bmhk-2026/client/query-options";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -52,18 +55,152 @@ interface ParticipationTableProps {
   readonly canReview: boolean;
 }
 
-const tableColumns = [
-  "รหัสทีม",
-  "ทีม",
-  "โรงเรียน",
-  "สมาชิก",
-  "การส่งสมัคร",
-  "วันที่ส่ง",
-  "ตรวจสอบ",
-  "สิทธิ์เข้าแข่งขันในรอบแรก",
-  "อัปเดตโดย",
-  "อัปเดตล่าสุด",
-] as const;
+type Participation = TeamRegistrationReviewListResult["rows"][number];
+interface ParticipationTableMeta {
+  readonly sortBy: ParticipationSort;
+  readonly sortDesc: boolean;
+  readonly onSort: (id: ParticipationSort) => void;
+  readonly canReview: boolean;
+  readonly canRemove: boolean;
+}
+const columnDefinitions: DataTableColumn<Participation, ParticipationTableMeta>[] = [
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return `BH${String(team.index).padStart(3, "0")}/26`;
+    },
+    header: "รหัสทีม",
+    id: "index",
+    size: 112,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return <p className="font-medium">{team.name}</p>;
+    },
+    header: "ทีม",
+    id: "name",
+    size: 200,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return team.school;
+    },
+    header: "โรงเรียน",
+    id: "school",
+    size: 240,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return team.memberCount;
+    },
+    header: "สมาชิก",
+    id: "memberCount",
+    size: 90,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />;
+    },
+    header: "การส่งสมัคร",
+    id: "submission",
+    size: 140,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return formatStaffDate(team.registrationSubmittedAt);
+    },
+    header: "วันที่ส่ง",
+    id: "registrationSubmittedAt",
+    size: 140,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return <StatusChip value={team.reviewStatus} />;
+    },
+    header: "ตรวจสอบ",
+    id: "reviewStatus",
+    size: 150,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return <EligibilityChip award={team.award} />;
+    },
+    header: "สิทธิ์เข้าแข่งขันในรอบแรก",
+    id: "eligibility",
+    size: 240,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return team.reviewedByName ?? "—";
+    },
+    header: "อัปเดตโดย",
+    id: "reviewedByName",
+    size: 180,
+  },
+  {
+    cell: ({ row }) => {
+      const team = row.original;
+      return formatStaffDateTime(team.lastUpdatedAt);
+    },
+    header: "อัปเดตล่าสุด",
+    id: "lastUpdatedAt",
+    size: 180,
+  },
+  {
+    cell: ({ row, table }) => {
+      const team = row.original;
+      const { meta } = table.options;
+      if (!meta) {
+        return null;
+      }
+      return (
+        <ParticipationReviewDialog
+          canRemove={meta.canRemove}
+          canReview={meta.canReview}
+          lastUpdatedAt={team.lastUpdatedAt}
+          reviewedByName={team.reviewedByName}
+          teamName={team.name}
+          teamId={team.id}
+        />
+      );
+    },
+    header: () => <span className="sr-only">จัดการ</span>,
+    id: "actions",
+    size: 72,
+  },
+];
+const columns = columnDefinitions.map(
+  (column): DataTableColumn<Participation, ParticipationTableMeta> => {
+    const sortableColumn = sortableColumns.find((item) => item.id === column.id);
+    if (!sortableColumn) {
+      return column;
+    }
+    return {
+      ...column,
+      header: ({ table }) => {
+        const { meta } = table.options;
+        const direction = meta?.sortDesc === true ? "desc" : "asc";
+        return (
+          <DataTableSortHeader
+            label={sortableColumn.label}
+            direction={meta?.sortBy === column.id ? direction : false}
+            onClick={() => meta?.onSort(sortableColumn.id)}
+          />
+        );
+      },
+      id: sortableColumn.id,
+      meta: { ...column.meta, sortable: true },
+    };
+  },
+);
 
 function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
   const queryClient = useQueryClient();
@@ -124,6 +261,13 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
     } finally {
       setIsExporting(false);
     }
+  }
+
+  let statusMessage: string | undefined;
+  if (query.isLoading) {
+    statusMessage = "กำลังโหลดข้อมูลการสมัคร...";
+  } else if (query.isError) {
+    statusMessage = "ไม่สามารถโหลดข้อมูลการสมัครได้";
   }
 
   return (
@@ -210,113 +354,16 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
           {isExporting ? "กำลังส่งออก..." : "ส่งออก CSV"}
         </Button>
       </div>
-      <Table className="table-fixed min-w-[84rem]">
-        <TableHeader>
-          <TableRow>
-            {tableColumns.map((label, index) => {
-              const column = sortableColumns.find((item) => item.label === label);
-              const direction = sortDesc ? "descending" : "ascending";
-              const isSorted = column?.id === sortBy;
-              const ariaSort = isSorted ? direction : "none";
-              const DirectionIcon = sortDesc ? ArrowDown : ArrowUp;
-              const SortIcon = isSorted ? DirectionIcon : ArrowUpDown;
-              return (
-                <TableHead
-                  aria-sort={column ? ariaSort : undefined}
-                  className={`${
-                    [
-                      "w-[8%]",
-                      "w-[11%]",
-                      "w-[11%]",
-                      "w-[6%]",
-                      "w-[8%]",
-                      "w-[9%]",
-                      "w-[9%]",
-                      "w-[14%]",
-                      "w-[10%]",
-                      "w-[10%]",
-                    ][index]
-                  } whitespace-normal`}
-                  key={label}
-                >
-                  {column ? (
-                    <Button
-                      className="-ml-3"
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        toggleSorting(column.id);
-                      }}
-                    >
-                      {label}
-                      <SortIcon aria-hidden="true" data-icon="inline-end" />
-                    </Button>
-                  ) : (
-                    label
-                  )}
-                </TableHead>
-              );
-            })}
-            <TableHead className="w-[6%] whitespace-normal">
-              <span className="sr-only">จัดการ</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {query.isLoading ? (
-            <TableRow>
-              <TableCell colSpan={tableColumns.length + 1}>กำลังโหลดข้อมูลการสมัคร...</TableCell>
-            </TableRow>
-          ) : null}
-          {query.isError ? (
-            <TableRow>
-              <TableCell className="text-destructive" colSpan={tableColumns.length + 1}>
-                ไม่สามารถโหลดข้อมูลการสมัครได้
-              </TableCell>
-            </TableRow>
-          ) : null}
-          {!query.isLoading && !query.isError && teams.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={tableColumns.length + 1}>ไม่พบข้อมูลการสมัคร</TableCell>
-            </TableRow>
-          ) : null}
-          {teams.map((team) => (
-            <TableRow key={team.id}>
-              <TableCell>{`BH${String(team.index).padStart(3, "0")}/26`}</TableCell>
-              <TableCell className="whitespace-normal">
-                <p className="font-medium">{team.name}</p>
-              </TableCell>
-              <TableCell className="whitespace-normal">{team.school}</TableCell>
-              <TableCell>{team.memberCount}</TableCell>
-              <TableCell>
-                <StatusChip value={team.registrationSubmittedAt ? "SUBMITTED" : "DRAFT"} />
-              </TableCell>
-              <TableCell>{formatStaffDate(team.registrationSubmittedAt)}</TableCell>
-              <TableCell>
-                <StatusChip value={team.reviewStatus} />
-              </TableCell>
-              <TableCell className="whitespace-normal">
-                <EligibilityChip award={team.award} />
-              </TableCell>
-              <TableCell className="whitespace-normal">{team.reviewedByName ?? "—"}</TableCell>
-              <TableCell className="whitespace-normal">
-                {formatStaffDateTime(team.lastUpdatedAt)}
-              </TableCell>
-              <TableCell>
-                <ParticipationReviewDialog
-                  canRemove={canRemove}
-                  canReview={canReview}
-                  lastUpdatedAt={team.lastUpdatedAt}
-                  reviewedByName={team.reviewedByName}
-                  teamName={team.name}
-                  teamId={team.id}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={teams}
+        getRowId={(team) => team.id}
+        meta={{ canRemove, canReview, onSort: toggleSorting, sortBy, sortDesc }}
+        sorting={{ desc: sortDesc, id: sortBy }}
+        isError={query.isError}
+        emptyMessage="ไม่พบข้อมูลการสมัคร"
+        statusMessage={statusMessage}
+      />
       {pagination ? (
         <ParticipationPagination
           isFetching={query.isFetching}

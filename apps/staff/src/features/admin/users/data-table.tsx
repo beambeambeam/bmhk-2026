@@ -88,7 +88,12 @@ function AdminUsersDataTable({
 
   return (
     <div className="flex flex-col gap-5">
-      <Table>
+      <Table className="table-fixed" style={{ minWidth: table.getTotalSize() }}>
+        <colgroup>
+          {table.getAllLeafColumns().map((column) => (
+            <col key={column.id} style={{ width: column.getSize() }} />
+          ))}
+        </colgroup>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -109,7 +114,13 @@ function AdminUsersDataTable({
             rows.map((row) => (
               <TableRow key={row.id}>
                 {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id} className={cell.column.columnDef.meta?.cellClassName}>
+                  <TableCell
+                    key={cell.id}
+                    className={cn(
+                      "whitespace-normal wrap-anywhere",
+                      cell.column.columnDef.meta?.cellClassName,
+                    )}
+                  >
                     <table.FlexRender cell={cell} />
                   </TableCell>
                 ))}

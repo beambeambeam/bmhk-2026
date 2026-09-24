@@ -1,5 +1,6 @@
 import { Button } from "@/components/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
+import { DataTable } from "@/components/table/index";
+import type { DataTableColumn } from "@/components/table/index";
 import type { StaffOverseerBacklogEntry } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +9,45 @@ import { toast } from "sonner";
 interface StaffOverseersBacklogTableProps {
   readonly entries: readonly StaffOverseerBacklogEntry[];
 }
+
+interface BacklogTableMeta {
+  readonly isRetrying: boolean;
+  readonly handleRetry: (id: string) => void;
+}
+
+const columns: DataTableColumn<StaffOverseerBacklogEntry, BacklogTableMeta>[] = [
+  { accessorKey: "email", header: "Email", size: 320 },
+  {
+    cell: ({ row }) => `[${row.original.groupIndex}] ${row.original.groupName}`,
+    header: "Group",
+    id: "group",
+    size: 240,
+  },
+  {
+    cell: ({ row, table }) => {
+      const { meta } = table.options;
+      if (!meta) {
+        return null;
+      }
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={meta.isRetrying}
+          onClick={() => {
+            meta.handleRetry(row.original.id);
+          }}
+        >
+          Retry
+        </Button>
+      );
+    },
+    header: () => <span className="sr-only">Actions</span>,
+    id: "actions",
+    size: 120,
+  },
+];
 
 function StaffOverseersBacklogTable({ entries }: StaffOverseersBacklogTableProps) {
   const queryClient = useQueryClient();
@@ -54,36 +94,18 @@ function StaffOverseersBacklogTable({ entries }: StaffOverseersBacklogTableProps
           Retry all
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Email</TableHead>
-            <TableHead>Group</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.map((entry) => (
-            <TableRow key={entry.id}>
-              <TableCell>{entry.email}</TableCell>
-              <TableCell>{`[${entry.groupIndex}] ${entry.groupName}`}</TableCell>
-              <TableCell>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={retryOneMutation.isPending}
-                  onClick={() => {
-                    retryOneMutation.mutate({ id: entry.id });
-                  }}
-                >
-                  Retry
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={entries}
+        getRowId={(entry) => entry.id}
+        emptyMessage="Backlog is empty."
+        meta={{
+          handleRetry: (id) => {
+            retryOneMutation.mutate({ id });
+          },
+          isRetrying: retryOneMutation.isPending,
+        }}
+      />
     </div>
   );
 }

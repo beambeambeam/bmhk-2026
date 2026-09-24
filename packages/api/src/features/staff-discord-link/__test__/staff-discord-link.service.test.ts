@@ -115,7 +115,7 @@ describe(createStaffDiscordLinkService, () => {
 
     expect(result).toStrictEqual({ status: "SUCCESS" });
     expect(applied).toStrictEqual([
-      { categoryId: null, discordUserId: "discord-1", isAdmin: false, nickname: "[Staff] Somchai" },
+      { categoryId: null, discordUserId: "discord-1", nickname: "[Staff] Somchai", role: "staff" },
     ]);
   });
 
@@ -131,7 +131,7 @@ describe(createStaffDiscordLinkService, () => {
       userRole: "registrationStaff",
     });
 
-    expect(applied[0]).toMatchObject({ isAdmin: false, nickname: "[Staff] Somchai" });
+    expect(applied[0]).toMatchObject({ nickname: "[Staff] Somchai", role: "registrationStaff" });
   });
 
   it("links an admin with the [Admin] nickname and no category grant", async () => {
@@ -147,7 +147,7 @@ describe(createStaffDiscordLinkService, () => {
     });
 
     expect(applied).toStrictEqual([
-      { categoryId: null, discordUserId: "discord-1", isAdmin: true, nickname: "[Admin] Somchai" },
+      { categoryId: null, discordUserId: "discord-1", nickname: "[Admin] Somchai", role: "admin" },
     ]);
   });
 
@@ -171,8 +171,8 @@ describe(createStaffDiscordLinkService, () => {
       {
         categoryId: "category-9",
         discordUserId: "discord-1",
-        isAdmin: false,
         nickname: "[3] Somchai",
+        role: "staff",
       },
     ]);
   });

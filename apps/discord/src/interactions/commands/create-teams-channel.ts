@@ -6,6 +6,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { chunkLines } from "../../lib/chunk-lines.js";
+import { getRoleSettings } from "../../lib/role-settings.js";
 import {
   fetchTeamGroups,
   recordGroupCategory,
@@ -119,7 +120,22 @@ const createTeamsChannel: Command = {
     await interaction.deferReply();
     const { guild } = interaction;
 
-    const groups = await fetchTeamGroups();
+    const [groups, { registrationStaff }] = await Promise.all([
+      fetchTeamGroups(),
+      getRoleSettings(),
+    ]);
+    // Registration staff check attendance, so they see every group; team
+    // voice channels inherit this from the category on creation.
+    const registrationStaffAccess =
+      registrationStaff === null
+        ? []
+        : [
+            {
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect],
+              id: registrationStaff,
+              type: OverwriteType.Role,
+            },
+          ];
     const warnings = groupsMissingOverseer(groups).map(overseerWarning);
 
     const { createdCategories, createdChannels } = await createMissingChannels(groups, {
@@ -137,6 +153,7 @@ const createTeamsChannel: Command = {
               id: guild.members.me?.id ?? guild.client.user.id,
               type: OverwriteType.Member,
             },
+            ...registrationStaffAccess,
           ],
           type: ChannelType.GuildCategory,
         }),

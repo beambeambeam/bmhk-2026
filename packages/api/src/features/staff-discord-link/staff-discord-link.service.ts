@@ -70,8 +70,8 @@ export function createStaffDiscordLinkService(
       const applied = await gateway.applyStaffVerification({
         categoryId,
         discordUserId,
-        isAdmin,
         nickname,
+        role,
       });
 
       return applied.ok ? { status: "SUCCESS" } : { status: "BOT_APPLY_FAILED" };

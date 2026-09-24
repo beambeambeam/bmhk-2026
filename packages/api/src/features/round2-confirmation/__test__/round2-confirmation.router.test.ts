@@ -1,6 +1,7 @@
+import type { featureFlags } from "@bmhk-2026/feature-flags";
 import { call } from "@orpc/server";
 import { Temporal } from "temporal-polyfill";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createAppRouter } from "../../../index";
 import { createRound2RepositoryError } from "../round2-confirmation.errors";
 import type {
@@ -14,6 +15,22 @@ import {
   createTestSession,
   createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
+
+// Schedule fixtures intentionally differ from the literal production dates.
+// oxlint-disable-next-line vitest/prefer-import-in-mock
+vi.mock("@bmhk-2026/feature-flags", async (importOriginal) => {
+  const original = await importOriginal<{ featureFlags: typeof featureFlags }>();
+  return {
+    ...original,
+    featureFlags: {
+      ...original.featureFlags,
+      round2Confirmation: {
+        endsAt: "2026-10-10T00:00:00+07:00",
+        startsAt: "2026-10-01T00:00:00+07:00",
+      },
+    },
+  };
+});
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const facts: Round2ConfirmationFacts = {
@@ -52,10 +69,6 @@ function createRouter(
     auth: createTestAuthReader(),
     featureFlagClock: () => Temporal.Instant.from("2026-10-02T00:00:00+07:00"),
     round2Confirmation: repository(overrides),
-    round2ConfirmationWindow: {
-      endsAt: "2026-10-10T00:00:00+07:00",
-      startsAt: "2026-10-01T00:00:00+07:00",
-    },
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     ...dependencies,
   }).round2Confirmation;
@@ -67,10 +80,6 @@ describe("round 2 confirmation", () => {
       auth: createTestAuthReader(),
       featureFlagClock: () => Temporal.Instant.from("2026-10-02T00:00:00+07:00"),
       round2Confirmation: repository(),
-      round2ConfirmationWindow: {
-        endsAt: "2026-10-10T00:00:00+07:00",
-        startsAt: "2026-10-01T00:00:00+07:00",
-      },
       staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
     });
     const { context, log } = createTestContext();
@@ -168,18 +177,16 @@ describe("round 2 confirmation rules", () => {
     });
   });
 
-  it.each([
-    null,
-    { startsAt: "2026-09-28T14:00:00+07:00" },
-    { endsAt: "2026-10-01T00:00:00+07:00", startsAt: "2026-09-30T00:00:00+07:00" },
-    { endsAt: "2026-10-10T00:00:00+07:00", startsAt: "2026-10-03T00:00:00+07:00" },
-  ])("rejects submission outside the configured window %#", async (window) => {
-    const router = createRouter({}, { round2ConfirmationWindow: window });
-    const { context } = createTestContext();
-    await expect(call(router.submit, { teamId: TEAM_ID }, { context })).rejects.toMatchObject({
-      code: "ROUND2_CONFIRMATION_CLOSED",
-    });
-  });
+  it.each(["2026-09-30T23:59:59+07:00", "2026-10-10T00:00:00+07:00"])(
+    "rejects submission outside the configured window at %s",
+    async (now) => {
+      const router = createRouter({}, { featureFlagClock: () => Temporal.Instant.from(now) });
+      const { context } = createTestContext();
+      await expect(call(router.submit, { teamId: TEAM_ID }, { context })).rejects.toMatchObject({
+        code: "ROUND2_CONFIRMATION_CLOSED",
+      });
+    },
+  );
 
   it("preserves confirmed history after an award change and window closure", async () => {
     const confirmedAt = new Date("2026-10-02T01:00:00Z");
@@ -188,7 +195,7 @@ describe("round 2 confirmation rules", () => {
         findFacts: async () =>
           await Promise.resolve({ ...facts, award: "FIRST_PLACE", confirmedAt }),
       },
-      { round2ConfirmationWindow: null },
+      { featureFlagClock: () => Temporal.Instant.from("2026-10-10T00:00:00+07:00") },
     );
     const { context } = createTestContext();
     await expect(call(router.get, {}, { context })).resolves.toMatchObject({

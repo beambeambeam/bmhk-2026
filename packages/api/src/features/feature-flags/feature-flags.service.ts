@@ -4,11 +4,6 @@ import { Temporal } from "temporal-polyfill";
 
 import type { FeatureFlags } from "./feature-flags.schema";
 
-export interface Round2ConfirmationWindow {
-  endsAt?: string;
-  startsAt: string;
-}
-
 export interface FeatureFlagService {
   getAll: () => FeatureFlags;
 }
@@ -55,7 +50,6 @@ function parseDefinition(
 
 export function createFeatureFlagService(
   now: () => Temporal.Instant = () => Temporal.Now.instant(),
-  round2ConfirmationWindow: Round2ConfirmationWindow | null = featureFlags.round2Confirmation,
 ): FeatureFlagService {
   const schedule = {
     eligibleTeamsAnnouncement: parseDefinition(
@@ -73,11 +67,8 @@ export function createFeatureFlagService(
       featureFlags.qualifyingRoundIdentityConfirmation,
     ),
     registration: parseDefinition("registration", featureFlags.registration),
-  } satisfies Record<Exclude<FeatureFlagKey, "round2Confirmation">, ParsedFeatureFlagDefinition>;
-  const round2ConfirmationSchedule =
-    round2ConfirmationWindow === null
-      ? null
-      : parseDefinition("round2Confirmation", round2ConfirmationWindow);
+    round2Confirmation: parseDefinition("round2Confirmation", featureFlags.round2Confirmation),
+  } satisfies Record<FeatureFlagKey, ParsedFeatureFlagDefinition>;
 
   return {
     getAll: () => {
@@ -107,10 +98,9 @@ export function createFeatureFlagService(
           (schedule.registration.endsAt === undefined ||
             Temporal.Instant.compare(currentTime, schedule.registration.endsAt) < 0),
         round2Confirmation:
-          round2ConfirmationSchedule !== null &&
-          round2ConfirmationSchedule.endsAt !== undefined &&
-          Temporal.Instant.compare(currentTime, round2ConfirmationSchedule.startsAt) >= 0 &&
-          Temporal.Instant.compare(currentTime, round2ConfirmationSchedule.endsAt) < 0,
+          schedule.round2Confirmation.endsAt !== undefined &&
+          Temporal.Instant.compare(currentTime, schedule.round2Confirmation.startsAt) >= 0 &&
+          Temporal.Instant.compare(currentTime, schedule.round2Confirmation.endsAt) < 0,
       };
     },
   };

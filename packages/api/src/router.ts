@@ -1,4 +1,3 @@
-import type { Round2ConfirmationWindow } from "./features/feature-flags/feature-flags.service";
 import type { RouterClient } from "@orpc/server";
 import type { Temporal } from "temporal-polyfill";
 
@@ -84,7 +83,6 @@ export interface ApiDependencies {
   /** Optional overrides keep feature tests isolated; production uses API-owned repositories. */
   files?: FileRepository;
   round2Confirmation?: Round2ConfirmationRepository;
-  round2ConfirmationWindow?: Round2ConfirmationWindow | null;
   teams?: TeamRepository;
   teamAdvisors?: TeamAdvisorRepository;
   teamConsents?: TeamConsentRepository;
@@ -123,10 +121,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     dependencies.teamRegistrationStatus ?? createTeamRegistrationStatusRepository();
   const teamRegistrationReviewRepository =
     dependencies.teamRegistrationReviews ?? createTeamRegistrationReviewRepository();
-  const featureFlagService = createFeatureFlagService(
-    dependencies.featureFlagClock,
-    dependencies.round2ConfirmationWindow,
-  );
+  const featureFlagService = createFeatureFlagService(dependencies.featureFlagClock);
   const fileRepository = dependencies.files ?? createFileRepository();
   const fileStorage = dependencies.fileStorage ?? createS3FileStorage();
   const staffCheckInRepository = dependencies.staffCheckIns ?? createStaffCheckInRepository();

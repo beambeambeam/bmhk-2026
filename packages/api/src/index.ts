@@ -217,5 +217,3 @@ export type {
   Round2DocumentType,
   Round2DocumentInput,
 } from "./features/round2-confirmation/round2-confirmation.schema";
-
-export type { Round2ConfirmationWindow } from "./features/feature-flags/feature-flags.service";

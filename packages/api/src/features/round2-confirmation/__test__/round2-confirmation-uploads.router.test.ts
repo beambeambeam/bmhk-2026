@@ -1,3 +1,4 @@
+import type { featureFlags } from "@bmhk-2026/feature-flags";
 import { call } from "@orpc/server";
 import { createRound2RepositoryError } from "../round2-confirmation.errors";
 import type {
@@ -9,11 +10,10 @@ import type {
   Round2DocumentInput,
   Round2DocumentType,
   StoredFile,
-  Round2ConfirmationWindow,
 } from "../../../index";
 import { MAX_FILE_SIZE_BYTES, createAppRouter } from "../../../index";
 import { Temporal } from "temporal-polyfill";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   createTestAuthReader,
@@ -21,6 +21,22 @@ import {
   createTestSession,
   createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
+
+// Schedule fixtures intentionally differ from the literal production dates.
+// oxlint-disable-next-line vitest/prefer-import-in-mock
+vi.mock("@bmhk-2026/feature-flags", async (importOriginal) => {
+  const original = await importOriginal<{ featureFlags: typeof featureFlags }>();
+  return {
+    ...original,
+    featureFlags: {
+      ...original.featureFlags,
+      round2Confirmation: {
+        endsAt: "2026-10-03T00:00:00+07:00",
+        startsAt: "2026-10-01T00:00:00+07:00",
+      },
+    },
+  };
+});
 
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_TEAM_ID = "11111111-1111-4111-8111-111111111112";
@@ -38,7 +54,7 @@ const OTHER_OWNER_ID = "user-2";
 const ROUND2_WINDOW = {
   endsAt: "2026-10-03T00:00:00+07:00",
   startsAt: "2026-10-01T00:00:00+07:00",
-} satisfies Round2ConfirmationWindow;
+};
 const OPEN_TIME = "2026-10-02T00:00:00+07:00";
 const IDENTITY_FILE_ID = "33333333-3333-4333-8333-333333333333";
 
@@ -274,7 +290,6 @@ function createRouter(
     fileStorage: rig.storage,
     files: rig.fileRepository,
     round2Confirmation: rig.repository,
-    round2ConfirmationWindow: ROUND2_WINDOW,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
   });
 }

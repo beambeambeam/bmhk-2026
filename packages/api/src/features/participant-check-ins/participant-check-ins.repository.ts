@@ -55,10 +55,13 @@ const teamSortColumns = {
   teamCode: teams.index,
   teamName: teams.name,
 } as const;
-const roundOneParticipantAwardValues = [
-  "REGISTRATION_COMPLETE",
+const roundOneCheckInEligibleAwardValues = [
   "ROUND_1_PARTICIPATED",
   ...roundTwoEligibleAwardValues,
+] as const;
+const roundOneParticipantAwardValues = [
+  "REGISTRATION_COMPLETE",
+  ...roundOneCheckInEligibleAwardValues,
 ] as const;
 const teamCodeSearchColumn = sql<string>`'BH' || lpad(
   ${teams.index}::text,
@@ -90,6 +93,10 @@ function participantName(participant: ParticipantNameFields): string {
 
 function isRoundTwoEligible(award: string): boolean {
   return (roundTwoEligibleAwardValues as readonly string[]).includes(award);
+}
+
+function isRoundOneCheckInEligible(award: string): boolean {
+  return (roundOneCheckInEligibleAwardValues as readonly string[]).includes(award);
 }
 
 function createParticipantCheckInFilterCondition(
@@ -129,10 +136,13 @@ export function createParticipantCheckInRepository(
               .from(teamParticipants)
               .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
               .where(eq(teamParticipants.id, participantId))
-              .for("update", { of: [teamParticipants] })
+              .for("update", { of: [teams, teamParticipants] })
               .limit(1);
             if (!participant) {
               return "TARGET_NOT_FOUND";
+            }
+            if (round === "ROUND_1" && !isRoundOneCheckInEligible(participant.award)) {
+              return "NOT_ELIGIBLE";
             }
             // Mirrors the round-2 gate in list(): the roster hides unqualified teams, so
             // writes must refuse them too rather than relying on the UI to filter.

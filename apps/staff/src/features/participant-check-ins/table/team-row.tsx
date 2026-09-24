@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/alert-dialog";
 import { Button } from "@/components/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/collapsible";
 import {
@@ -36,6 +47,10 @@ const flagOptions = [
 
 type Team = ParticipantCheckInListResult["rows"][number];
 type Participant = Team["members"][number];
+export type ParticipantCheckInTeamAward = Extract<
+  Team["award"],
+  "REGISTRATION_COMPLETE" | "ROUND_1_PARTICIPATED"
+>;
 
 export interface ParticipantCheckInTableMeta {
   readonly sortBy: ParticipantCheckInSort["id"];
@@ -48,7 +63,11 @@ export interface ParticipantCheckInTableMeta {
   readonly round: CheckInRound;
   readonly onCheckIn: (id: string, name: string) => Promise<void>;
   readonly onUpdateFlag: (id: string, value: string | null) => Promise<void>;
-  readonly onRegisterTeam: (id: string, name: string) => Promise<void>;
+  readonly onUpdateTeamAward: (
+    id: string,
+    name: string,
+    award: ParticipantCheckInTeamAward,
+  ) => Promise<boolean>;
 }
 
 interface SortableTableHeadProps {
@@ -199,9 +218,19 @@ export function ParticipantCheckInTeamRow({
   readonly meta: ParticipantCheckInTableMeta;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCancelTeamRegistrationOpen, setIsCancelTeamRegistrationOpen] = useState(false);
   const isRegistrationComplete = team.award === "REGISTRATION_COMPLETE";
   const canRegisterTeam = isRegistrationComplete && meta.round === "ROUND_1";
-  const isRegisteringTeam = meta.updatingTeamAwardId === team.id;
+  const canCancelTeamRegistration =
+    team.award === "ROUND_1_PARTICIPATED" && meta.round === "ROUND_1";
+  const isUpdatingTeamAward = meta.updatingTeamAwardId === team.id;
+
+  async function cancelTeamRegistration(): Promise<void> {
+    const wasUpdated = await meta.onUpdateTeamAward(team.id, team.name, "REGISTRATION_COMPLETE");
+    if (wasUpdated) {
+      setIsCancelTeamRegistrationOpen(false);
+    }
+  }
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} render={<TableBody />}>
@@ -231,14 +260,68 @@ export function ParticipantCheckInTeamRow({
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <p className="text-sm font-medium text-muted-foreground">สมาชิกทีม {team.name}</p>
+              {canCancelTeamRegistration ? (
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                    <Check aria-hidden="true" className="size-4 text-emerald-600" />
+                    เข้าร่วมรอบออนไลน์
+                  </span>
+                  <AlertDialog
+                    open={isCancelTeamRegistrationOpen}
+                    onOpenChange={(open) => {
+                      if (!meta.isSettingTeamAward) {
+                        setIsCancelTeamRegistrationOpen(open);
+                      }
+                    }}
+                  >
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          disabled={meta.isSettingTeamAward}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          ยกเลิก
+                        </Button>
+                      }
+                    />
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>ยกเลิกการลงทะเบียนทีมเข้าร่วมงาน</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          คุณต้องการเปลี่ยนสถานะทีม {team.name} กลับเป็น “สมัครสำเร็จ” ใช่หรือไม่
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={meta.isSettingTeamAward}>
+                          กลับ
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          disabled={meta.isSettingTeamAward}
+                          variant="destructive"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            void cancelTeamRegistration();
+                          }}
+                        >
+                          {isUpdatingTeamAward ? "กำลังยกเลิก..." : "ยืนยันการยกเลิก"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : null}
               {canRegisterTeam ? (
                 <Button
                   disabled={meta.isSettingTeamAward}
                   size="sm"
                   type="button"
-                  onClick={() => void meta.onRegisterTeam(team.id, team.name)}
+                  onClick={() =>
+                    void meta.onUpdateTeamAward(team.id, team.name, "ROUND_1_PARTICIPATED")
+                  }
                 >
-                  {isRegisteringTeam ? (
+                  {isUpdatingTeamAward ? (
                     <Loader2 aria-hidden="true" className="animate-spin" data-icon="inline-start" />
                   ) : null}
                   ลงทะเบียนทีมเข้าร่วมงาน

@@ -19,7 +19,7 @@ import {
   SortableTableHead,
   participantCheckInFlagValues,
 } from "./team-row";
-import type { ParticipantCheckInTableMeta } from "./team-row";
+import type { ParticipantCheckInTableMeta, ParticipantCheckInTeamAward } from "./team-row";
 
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -141,12 +141,22 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     }
   }
 
-  async function registerTeam(teamId: string, teamName: string): Promise<void> {
+  async function updateTeamAward(
+    teamId: string,
+    teamName: string,
+    award: ParticipantCheckInTeamAward,
+  ): Promise<boolean> {
     try {
-      await setTeamAwardMutation.mutateAsync({ award: "ROUND_1_PARTICIPATED", id: teamId });
-      toast.success(`ลงทะเบียนทีม ${teamName} เข้าร่วมงานแล้ว`);
+      await setTeamAwardMutation.mutateAsync({ award, id: teamId });
+      if (award === "ROUND_1_PARTICIPATED") {
+        toast.success(`ลงทะเบียนทีม ${teamName} เข้าร่วมงานแล้ว`);
+      } else {
+        toast.success(`ยกเลิกการลงทะเบียนทีม ${teamName} แล้ว`);
+      }
+      return true;
     } catch {
-      toast.error("ไม่สามารถลงทะเบียนทีมเข้าร่วมงานได้ กรุณาลองใหม่อีกครั้ง");
+      toast.error("ไม่สามารถอัปเดตการลงทะเบียนทีมได้ กรุณาลองใหม่อีกครั้ง");
+      return false;
     }
   }
 
@@ -159,9 +169,9 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     checkingInId: checkInMutation.isPending ? checkInMutation.variables?.participantId : undefined,
     isSettingTeamAward: setTeamAwardMutation.isPending,
     onCheckIn: checkIn,
-    onRegisterTeam: registerTeam,
     onSort: toggleSorting,
     onUpdateFlag: updateFlag,
+    onUpdateTeamAward: updateTeamAward,
     round,
     sortBy: sorting.id,
     sortDesc: sorting.desc,

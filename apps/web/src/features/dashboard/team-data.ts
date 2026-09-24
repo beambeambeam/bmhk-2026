@@ -264,9 +264,48 @@ function getFeedbackStatusLabel(statusStr: string | undefined): string {
   return "กำลังตรวจสอบ";
 }
 
+function getFinalAwardLabel(award: string | undefined): string | undefined {
+  if (award === "FIRST_PLACE") {
+    return "รางวัลชนะเลิศ";
+  }
+  if (award === "HONORABLE_MENTION") {
+    return "รางวัลชมเชย";
+  }
+  if (award === "SECOND_PLACE") {
+    return "รางวัลอันดับที่ 2";
+  }
+  if (award === "THIRD_PLACE") {
+    return "รางวัลอันดับที่ 3";
+  }
+
+  return undefined;
+}
+
+function getFinalRoundSteps(award: string | undefined): StatusStep[] {
+  const finalAwardLabel = getFinalAwardLabel(award);
+  if (award !== "ROUND_3_PARTICIPATED" && finalAwardLabel === undefined) {
+    return [];
+  }
+
+  const steps: StatusStep[] = [
+    { label: "เข้าร่วมการแข่งขัน", title: "การแข่งขันรอบชิงชนะเลิศ", tone: "ok" },
+  ];
+
+  if (finalAwardLabel !== undefined) {
+    steps.push({
+      label: finalAwardLabel,
+      title: "ผลการแข่งขันรอบชิงชนะเลิศ",
+      tone: "ok",
+    });
+  }
+
+  return steps;
+}
+
 export function getStatusSteps(
   members: Person[],
   reviewFeedback?: ReviewFeedbackInput | null,
+  award?: string,
 ): Record<TeamStatus, StatusStep[]> {
   const participantCount = members.length - 1;
 
@@ -381,7 +420,8 @@ export function getStatusSteps(
       DOCS_OK,
       { label: "ผ่านเข้าสู่รอบรองชนะเลิศ", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
       { label: "เข้าร่วมการแข่งขัน", title: "การแข่งขันรอบรองชนะเลิศ", tone: "ok" },
-      { label: "ผ่านเข้าสู่รอบชิงชนะเลิศ", title: "ผลการแข่งขัน", tone: "ok" },
+      { label: "ผ่านเข้าสู่รอบชิงชนะเลิศ", title: "ผลการแข่งขันรอบรองชนะเลิศ", tone: "ok" },
+      ...getFinalRoundSteps(award),
     ],
   };
 }

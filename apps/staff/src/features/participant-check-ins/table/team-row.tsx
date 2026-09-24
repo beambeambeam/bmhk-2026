@@ -43,9 +43,12 @@ export interface ParticipantCheckInTableMeta {
   readonly onSort: (id: ParticipantCheckInSort["id"]) => void;
   readonly checkingInId: string | undefined;
   readonly updatingFlagId: string | undefined;
+  readonly updatingTeamAwardId: string | undefined;
+  readonly isSettingTeamAward: boolean;
   readonly round: CheckInRound;
   readonly onCheckIn: (id: string, name: string) => Promise<void>;
   readonly onUpdateFlag: (id: string, value: string | null) => Promise<void>;
+  readonly onRegisterTeam: (id: string, name: string) => Promise<void>;
 }
 
 interface SortableTableHeadProps {
@@ -196,6 +199,12 @@ export function ParticipantCheckInTeamRow({
   readonly meta: ParticipantCheckInTableMeta;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const hasRegistrationCompleteAward = team.award === "REGISTRATION_COMPLETE";
+  const isApprovedWithoutRoundAward =
+    team.award === "NO_ACHIEVEMENT" && team.registrationStatus === "APPROVED";
+  const isRegistrationComplete = hasRegistrationCompleteAward || isApprovedWithoutRoundAward;
+  const canRegisterTeam = isRegistrationComplete && meta.round === "ROUND_1";
+  const isRegisteringTeam = meta.updatingTeamAwardId === team.id;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} render={<TableBody />}>
@@ -223,10 +232,32 @@ export function ParticipantCheckInTeamRow({
       <CollapsibleContent render={<TableRow />}>
         <TableCell className="p-3 sm:p-4" colSpan={3}>
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
-            <p className="mb-3 px-1 text-sm font-medium text-muted-foreground">
-              สมาชิกทีม {team.name}
-            </p>
-            <ParticipantCheckInMembersTable members={team.members} meta={meta} />
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <p className="text-sm font-medium text-muted-foreground">สมาชิกทีม {team.name}</p>
+              {canRegisterTeam ? (
+                <Button
+                  disabled={meta.isSettingTeamAward}
+                  size="sm"
+                  type="button"
+                  onClick={() => void meta.onRegisterTeam(team.id, team.name)}
+                >
+                  {isRegisteringTeam ? (
+                    <Loader2 aria-hidden="true" className="animate-spin" data-icon="inline-start" />
+                  ) : null}
+                  ลงทะเบียนทีมเข้าร่วมงาน
+                </Button>
+              ) : null}
+            </div>
+            <fieldset
+              aria-disabled={isRegistrationComplete}
+              className={cn(
+                "min-w-0 border-0 p-0",
+                isRegistrationComplete && "pointer-events-none opacity-50",
+              )}
+              disabled={isRegistrationComplete}
+            >
+              <ParticipantCheckInMembersTable members={team.members} meta={meta} />
+            </fieldset>
           </div>
         </TableCell>
       </CollapsibleContent>

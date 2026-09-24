@@ -1,6 +1,7 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
+import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
 import { and, countDistinct, eq, ilike, inArray, or, sql } from "drizzle-orm";
@@ -173,14 +174,23 @@ export function createParticipantCheckInRepository(
               }
               const teamPage = await transaction
                 .select({
+                  award: teams.award,
                   id: teams.id,
                   index: teams.index,
                   name: teams.name,
+                  registrationStatus: teamRegistrationReviews.status,
                 })
                 .from(teams)
                 .innerJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
+                .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
                 .where(filters)
-                .groupBy(teams.id, teams.index, teams.name)
+                .groupBy(
+                  teams.id,
+                  teams.index,
+                  teams.name,
+                  teams.award,
+                  teamRegistrationReviews.status,
+                )
                 .orderBy(
                   ...createTableOrderBy({
                     columns: teamSortColumns,

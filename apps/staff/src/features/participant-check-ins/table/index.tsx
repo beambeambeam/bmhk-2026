@@ -106,6 +106,16 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
       },
     }),
   );
+  const setTeamAwardMutation = useMutation(
+    orpc.teams.setAward.mutationOptions({
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.participantCheckIns.list.key() }),
+          queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() }),
+        ]);
+      },
+    }),
+  );
   const teams = participantQuery.data?.rows ?? [];
   const rowCount = participantQuery.data?.rowCount ?? 0;
   const pageCount = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
@@ -131,6 +141,15 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     }
   }
 
+  async function registerTeam(teamId: string, teamName: string): Promise<void> {
+    try {
+      await setTeamAwardMutation.mutateAsync({ award: "ROUND_1_PARTICIPATED", id: teamId });
+      toast.success(`ลงทะเบียนทีม ${teamName} เข้าร่วมงานแล้ว`);
+    } catch {
+      toast.error("ไม่สามารถลงทะเบียนทีมเข้าร่วมงานได้ กรุณาลองใหม่อีกครั้ง");
+    }
+  }
+
   function toggleSorting(id: ParticipantCheckInSort["id"]): void {
     setSorting((current) => ({ desc: current.id === id ? !current.desc : false, id }));
     setPageIndex(0);
@@ -138,13 +157,18 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
 
   const meta: ParticipantCheckInTableMeta = {
     checkingInId: checkInMutation.isPending ? checkInMutation.variables?.participantId : undefined,
+    isSettingTeamAward: setTeamAwardMutation.isPending,
     onCheckIn: checkIn,
+    onRegisterTeam: registerTeam,
     onSort: toggleSorting,
     onUpdateFlag: updateFlag,
     round,
     sortBy: sorting.id,
     sortDesc: sorting.desc,
     updatingFlagId: flagMutation.isPending ? flagMutation.variables?.participantId : undefined,
+    updatingTeamAwardId: setTeamAwardMutation.isPending
+      ? setTeamAwardMutation.variables?.id
+      : undefined,
   };
   let tableMessage: string | undefined;
   if (participantQuery.isLoading || participantQuery.isError) {

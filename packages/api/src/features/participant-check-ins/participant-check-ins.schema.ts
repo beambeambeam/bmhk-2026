@@ -1,5 +1,7 @@
 import { checkInRoundValues } from "@bmhk-2026/db/schema/check-in-round";
 import { participantCheckInFlagValues } from "@bmhk-2026/db/schema/participant-check-ins";
+import { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";
+import { teamAwardValues } from "@bmhk-2026/db/schema/teams";
 import { z } from "zod";
 
 import { createTableListResultSchema, createTableQuerySchema } from "../../core/table-query";
@@ -8,6 +10,10 @@ export { participantCheckInFlagValues } from "@bmhk-2026/db/schema/participant-c
 
 export const checkInRoundSchema = z.enum(checkInRoundValues);
 export const participantCheckInFlagSchema = z.enum(participantCheckInFlagValues);
+export const participantCheckInRegistrationStatusSchema = z
+  .enum(teamRegistrationReviewStatusValues)
+  .nullable();
+export const participantCheckInTeamAwardSchema = z.enum(teamAwardValues);
 export const participantCheckInSchema = z
   .object({
     checkedInAt: z.date(),
@@ -25,10 +31,12 @@ export const participantCheckInParticipantSchema = z
   .strict();
 export const participantCheckInTeamSchema = z
   .object({
+    award: participantCheckInTeamAwardSchema,
     id: z.uuid(),
     index: z.int().positive(),
     members: z.array(participantCheckInParticipantSchema),
     name: z.string(),
+    registrationStatus: participantCheckInRegistrationStatusSchema,
   })
   .strict();
 export const participantCheckInColumnFilterSchema = z

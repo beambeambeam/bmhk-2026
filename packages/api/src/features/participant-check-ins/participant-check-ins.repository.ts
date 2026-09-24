@@ -1,7 +1,6 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
-import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
 import { and, countDistinct, eq, ilike, inArray, or, sql } from "drizzle-orm";
@@ -56,6 +55,11 @@ const teamSortColumns = {
   teamCode: teams.index,
   teamName: teams.name,
 } as const;
+const roundOneParticipantAwardValues = [
+  "REGISTRATION_COMPLETE",
+  "ROUND_1_PARTICIPATED",
+  ...roundTwoEligibleAwardValues,
+] as const;
 const teamCodeSearchColumn = sql<string>`'BH' || lpad(
   ${teams.index}::text,
   greatest(3, length(${teams.index}::text)),
@@ -154,11 +158,13 @@ export function createParticipantCheckInRepository(
                 columnFilters,
                 createParticipantCheckInFilterCondition,
               );
-              const roundGate =
-                round === "ROUND_2" ? inArray(teams.award, roundTwoEligibleAwardValues) : undefined;
-              const filters = roundGate
-                ? and(columnFilterCondition, roundGate)
-                : columnFilterCondition;
+              let roundGate: SQL | undefined;
+              if (round === "ROUND_1") {
+                roundGate = inArray(teams.award, roundOneParticipantAwardValues);
+              } else if (round === "ROUND_2") {
+                roundGate = inArray(teams.award, roundTwoEligibleAwardValues);
+              }
+              const filters = and(columnFilterCondition, roundGate);
               const [totalResult] = await transaction
                 .select({ value: countDistinct(teams.id) })
                 .from(teamParticipants)
@@ -178,19 +184,11 @@ export function createParticipantCheckInRepository(
                   id: teams.id,
                   index: teams.index,
                   name: teams.name,
-                  registrationStatus: teamRegistrationReviews.status,
                 })
                 .from(teams)
                 .innerJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
-                .leftJoin(teamRegistrationReviews, eq(teamRegistrationReviews.teamId, teams.id))
                 .where(filters)
-                .groupBy(
-                  teams.id,
-                  teams.index,
-                  teams.name,
-                  teams.award,
-                  teamRegistrationReviews.status,
-                )
+                .groupBy(teams.id, teams.index, teams.name, teams.award)
                 .orderBy(
                   ...createTableOrderBy({
                     columns: teamSortColumns,

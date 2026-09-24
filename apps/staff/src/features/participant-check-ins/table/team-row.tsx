@@ -199,10 +199,7 @@ export function ParticipantCheckInTeamRow({
   readonly meta: ParticipantCheckInTableMeta;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const hasRegistrationCompleteAward = team.award === "REGISTRATION_COMPLETE";
-  const isApprovedWithoutRoundAward =
-    team.award === "NO_ACHIEVEMENT" && team.registrationStatus === "APPROVED";
-  const isRegistrationComplete = hasRegistrationCompleteAward || isApprovedWithoutRoundAward;
+  const isRegistrationComplete = team.award === "REGISTRATION_COMPLETE";
   const canRegisterTeam = isRegistrationComplete && meta.round === "ROUND_1";
   const isRegisteringTeam = meta.updatingTeamAwardId === team.id;
 

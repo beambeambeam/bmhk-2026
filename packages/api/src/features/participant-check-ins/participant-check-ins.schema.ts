@@ -1,6 +1,5 @@
 import { checkInRoundValues } from "@bmhk-2026/db/schema/check-in-round";
 import { participantCheckInFlagValues } from "@bmhk-2026/db/schema/participant-check-ins";
-import { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teamAwardValues } from "@bmhk-2026/db/schema/teams";
 import { z } from "zod";
 
@@ -10,9 +9,6 @@ export { participantCheckInFlagValues } from "@bmhk-2026/db/schema/participant-c
 
 export const checkInRoundSchema = z.enum(checkInRoundValues);
 export const participantCheckInFlagSchema = z.enum(participantCheckInFlagValues);
-export const participantCheckInRegistrationStatusSchema = z
-  .enum(teamRegistrationReviewStatusValues)
-  .nullable();
 export const participantCheckInTeamAwardSchema = z.enum(teamAwardValues);
 export const participantCheckInSchema = z
   .object({
@@ -36,7 +32,6 @@ export const participantCheckInTeamSchema = z
     index: z.int().positive(),
     members: z.array(participantCheckInParticipantSchema),
     name: z.string(),
-    registrationStatus: participantCheckInRegistrationStatusSchema,
   })
   .strict();
 export const participantCheckInColumnFilterSchema = z

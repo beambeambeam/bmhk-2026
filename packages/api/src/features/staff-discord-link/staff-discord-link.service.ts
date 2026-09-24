@@ -1,3 +1,5 @@
+import { hasStaffAccess } from "@bmhk-2026/auth/permission";
+
 import type { DiscordBotGateway } from "./discord-bot-gateway";
 import { staffNicknameOf } from "./staff-nickname";
 import type { StaffDiscordLinkRepository } from "./staff-discord-link.repository";
@@ -35,7 +37,7 @@ export function createStaffDiscordLinkService(
       await repository.createToken(discordUserId, discordUsername, discordAvatarUrl),
     link: async ({ token, userId, userName, userRole }) => {
       const role = userRole ?? INELIGIBLE_ROLE;
-      if (role === INELIGIBLE_ROLE) {
+      if (!hasStaffAccess(role)) {
         return { status: "INELIGIBLE_ROLE" };
       }
 

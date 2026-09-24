@@ -29,12 +29,12 @@ const superAdmin = ac.newRole({
 });
 
 const academicStaff = ac.newRole({
-  staff: ["academic_access"],
+  staff: ["access", "academic_access"],
   ...userAc.statements,
 });
 
 const staff = ac.newRole({
-  staff: ["registration_access"],
+  staff: ["access"],
   ...userAc.statements,
 });
 

@@ -167,22 +167,42 @@ describe("staff check-ins router", () => {
     });
   });
 
-  it("rejects staff without staff check-in access", async () => {
-    const checkIn = vi.fn<StaffCheckInRepository["checkIn"]>();
+  it.each(["staff", "registrationStaff", "academicStaff"] as const)(
+    "allows %s to list staff check-ins",
+    async (role) => {
+      const list = vi.fn<StaffCheckInRepository["list"]>(
+        async () => await Promise.resolve({ rowCount: 0, rows: [] }),
+      );
+      const router = createRouter(
+        createRepository({ list }),
+        createTestAuthReader(createTestSession({ user: { id: ACTOR_ID, role } })),
+      );
+      const { context } = createTestContext();
+
+      await expect(
+        call(router.list, { round: "ROUND_1" }, { context, path: ["staffCheckIns", "list"] }),
+      ).resolves.toStrictEqual({ rowCount: 0, rows: [] });
+      expect(list).toHaveBeenCalledWith({
+        columnFilters: [],
+        pagination: { pageIndex: 0, pageSize: 10 },
+        round: "ROUND_1",
+        sorting: [{ desc: false, id: "name" }],
+      });
+    },
+  );
+
+  it("denies participant accounts access to staff check-ins", async () => {
+    const list = vi.fn<StaffCheckInRepository["list"]>();
     const router = createRouter(
-      createRepository({ checkIn }),
-      createTestAuthReader(createTestSession({ user: { id: "staff-1", role: "staff" } })),
+      createRepository({ list }),
+      createTestAuthReader(createTestSession({ user: { id: "participant-1", role: "user" } })),
     );
     const { context } = createTestContext();
 
     await expect(
-      call(
-        router.checkIn,
-        { round: "ROUND_1", staffUserId: TARGET_STAFF_ID },
-        { context, path: ["staffCheckIns", "checkIn"] },
-      ),
+      call(router.list, { round: "ROUND_1" }, { context, path: ["staffCheckIns", "list"] }),
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
-    expect(checkIn).not.toHaveBeenCalled();
+    expect(list).not.toHaveBeenCalled();
   });
 
   it("checks a staff member into round 2 independently of an existing round 1 check-in", async () => {

@@ -180,10 +180,12 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       { items: userManagementNavItems, label: "บัญชีและสิทธิ์" },
       { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
-  } else if (canAccessAcademic) {
-    navGroups = [{ items: baseNavItems, label: "เมนูหลัก" }];
   } else {
     const accessNavGroups: StaffNavGroup[] = [];
+
+    if (canAccessAcademic) {
+      accessNavGroups.push({ items: baseNavItems, label: "เมนูหลัก" });
+    }
 
     if (canAccessParticipations) {
       accessNavGroups.push(

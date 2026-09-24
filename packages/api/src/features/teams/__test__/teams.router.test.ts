@@ -134,7 +134,7 @@ function createRouter(
 }
 
 function createRegistrationAuthReader(): AuthReader {
-  return createAuthReader(createTestSession({ user: { role: "staff" } }));
+  return createAuthReader(createTestSession({ user: { role: "registrationStaff" } }));
 }
 
 describe("teams router", () => {
@@ -589,6 +589,25 @@ describe("teams router", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
   });
 
+  it.each(["staff", "academicStaff"] as const)(
+    "rejects %s from registration-only team listing",
+    async (role) => {
+      const list = vi.fn<TeamRepository["list"]>(
+        async () => await Promise.resolve({ data: [], total: 0 }),
+      );
+      const router = createRouter(
+        createTeamRepository({ list }),
+        createAuthReader(createTestSession({ user: { role } })),
+      );
+      const { context } = createContext();
+
+      await expect(
+        call(router.teams.list, {}, { context, path: ["teams", "list"] }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+      expect(list).not.toHaveBeenCalled();
+    },
+  );
+
   it("gets an owned team", async () => {
     const repository = createTeamRepository();
     const router = createRouter(repository);
@@ -610,7 +629,27 @@ describe("teams router", () => {
     });
     const router = createRouter(
       repository,
-      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
+    );
+    const { context } = createContext();
+
+    await expect(
+      call(router.teams.get, { id: TEAM_ID }, { context, path: ["teams", "get"] }),
+    ).resolves.toMatchObject({ id: TEAM_ID });
+  });
+
+  it.each(["staff", "academicStaff"] as const)("limits %s to owned team reads", async (role) => {
+    const repository = createTeamRepository({
+      findById: async (access) => {
+        expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
+        return await Promise.resolve(testTeam);
+      },
+    });
+    const router = createRouter(
+      repository,
+      createAuthReader(createTestSession({ user: { id: "staff-user", role } })),
     );
     const { context } = createContext();
 
@@ -748,7 +787,9 @@ describe("teams router", () => {
     const fileRepository = { ...createUnusedFileRepository(), deleteById: deleteMetadata };
     const router = createRouter(
       repository,
-      createAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
+      createAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
       fileRepository,
     );
     const { context } = createContext();
@@ -1104,6 +1145,30 @@ describe("teams router", () => {
       target: { id: TEAM_ID, teamId: TEAM_ID, type: "team" },
     });
   });
+
+  it.each(["staff", "academicStaff"] as const)(
+    "does not let %s delete another user's team",
+    async (role) => {
+      const repository = createTeamRepository({
+        delete: async (access) => {
+          expect(access).toStrictEqual({ actorId: "staff-user", scope: "OWN_TEAM" });
+          return await Promise.resolve(false);
+        },
+      });
+      const router = createRouter(
+        repository,
+        createAuthReader(createTestSession({ user: { id: "staff-user", role } })),
+      );
+      const { context, log } = createContext();
+
+      await expect(
+        call(router.teams.delete, { id: TEAM_ID }, { context, path: ["teams", "delete"] }),
+      ).rejects.toMatchObject({ code: "TEAM_NOT_FOUND", status: 404 });
+      expect(log.audit).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "denied", reason: "TEAM_NOT_FOUND" }),
+      );
+    },
+  );
 
   it.each(["registrationStaff", "admin", "superAdmin"] as const)(
     "lets %s delete another user's team",

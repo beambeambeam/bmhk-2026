@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { hasStaffAccess } from "@bmhk-2026/auth/permission";
 
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/sidebar";
 import { authClient } from "@bmhk-2026/client/auth-client";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/_auth")({
     }
 
     const role = session.data?.user.role ?? "user";
-    if (role === "user" && location.pathname !== "/wait-access") {
+    if (!hasStaffAccess(role) && location.pathname !== "/wait-access") {
       // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
       throw redirect({
         to: "/wait-access",

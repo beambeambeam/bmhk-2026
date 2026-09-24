@@ -29,7 +29,7 @@ function createRepository(
 function createRouter(
   repository: ParticipantCheckInRepository,
   auth: AuthReader = createTestAuthReader(
-    createTestSession({ user: { id: ACTOR_ID, role: "staff" } }),
+    createTestSession({ user: { id: ACTOR_ID, role: "registrationStaff" } }),
   ),
 ) {
   return createAppRouter({

@@ -3,26 +3,38 @@ import { defaultStatements, adminAc, userAc } from "better-auth/plugins/admin/ac
 
 const permissionStatement = {
   ...defaultStatements,
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "academic_access"],
 } as const;
 
 const ac = createAccessControl(permissionStatement);
 
-const authRoleValues = ["superAdmin", "admin", "registrationStaff", "staff", "user"] as const;
+const authRoleValues = [
+  "superAdmin",
+  "admin",
+  "academicStaff",
+  "registrationStaff",
+  "staff",
+  "user",
+] as const;
 export type AuthRole = (typeof authRoleValues)[number];
 
 const admin = ac.newRole({
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "academic_access"],
   ...adminAc.statements,
 });
 
 const superAdmin = ac.newRole({
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "academic_access"],
   ...adminAc.statements,
 });
 
+const academicStaff = ac.newRole({
+  staff: ["access", "academic_access"],
+  ...userAc.statements,
+});
+
 const staff = ac.newRole({
-  staff: ["registration_access"],
+  staff: ["access"],
   ...userAc.statements,
 });
 
@@ -36,6 +48,7 @@ const user = ac.newRole({
 });
 
 const roles = {
+  academicStaff,
   admin,
   registrationStaff,
   staff,
@@ -47,6 +60,14 @@ function hasAdminAccess(role: string | null | undefined): boolean {
   return role === "admin" || role === "superAdmin";
 }
 
+function hasAcademicAccess(role: string | null | undefined): boolean {
+  if (role === null || role === undefined || role.length === 0 || !isAuthRole(role)) {
+    return false;
+  }
+
+  return roles[role].authorize({ staff: ["academic_access"] }).success;
+}
+
 function getManageableRoles(role: string | null | undefined): readonly AuthRole[] {
   if (role === "superAdmin") {
     return authRoleValues;
@@ -54,7 +75,7 @@ function getManageableRoles(role: string | null | undefined): readonly AuthRole[
   if (role === "registrationStaff") {
     return ["staff", "user"];
   }
-  return role === "admin" ? ["registrationStaff", "staff", "user"] : [];
+  return role === "admin" ? ["academicStaff", "registrationStaff", "staff", "user"] : [];
 }
 
 function isAuthRole(role: string): role is AuthRole {
@@ -88,9 +109,11 @@ function hasStaffAccess(role: string | null | undefined): boolean {
 export {
   ac,
   admin,
+  academicStaff,
   authRoleValues,
   isAuthRole,
   hasAdminAccess,
+  hasAcademicAccess,
   getManageableRoles,
   hasRegistrationAccess,
   hasStaffAccess,

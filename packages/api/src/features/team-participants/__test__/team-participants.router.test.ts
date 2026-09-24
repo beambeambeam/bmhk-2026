@@ -155,7 +155,9 @@ describe("team participants router", () => {
     });
     const router = createRouter(
       repository,
-      createTestAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
     );
     const { context } = createTestContext();
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hasAcademicAccess,
   getManageableRoles,
   hasTeamRemovalAccess,
   hasRegistrationAccess,
@@ -10,12 +11,45 @@ import {
   roles,
 } from "../permission";
 
-describe("super administrator permissions", () => {
+describe("role permissions", () => {
+  it.each(["staff", "registrationStaff", "academicStaff"] as const)(
+    "does not grant Better Auth administrator operations to %s",
+    (role) => {
+      expect(roles[role].authorize({ user: ["set-role"] }).success).toBeFalsy();
+      expect(roles[role].authorize({ session: ["revoke"] }).success).toBeFalsy();
+    },
+  );
+
+  it.each([
+    ["staff", true, false, false],
+    ["registrationStaff", true, true, false],
+    ["academicStaff", true, false, true],
+    ["admin", true, true, true],
+    ["superAdmin", true, true, true],
+    ["user", false, false, false],
+    ["unknown", false, false, false],
+    ["staff,admin", false, false, false],
+    [null, false, false, false],
+  ] as const)(
+    "enforces the staff permission matrix for %s",
+    (role, access, registration, academic) => {
+      expect(hasStaffAccess(role)).toBe(access);
+      expect(hasRegistrationAccess(role)).toBe(registration);
+      expect(hasAcademicAccess(role)).toBe(academic);
+    },
+  );
+
   it("limits admins to lower roles and gives superAdmins the complete role set", () => {
-    expect(getManageableRoles("admin")).toStrictEqual(["registrationStaff", "staff", "user"]);
+    expect(getManageableRoles("admin")).toStrictEqual([
+      "academicStaff",
+      "registrationStaff",
+      "staff",
+      "user",
+    ]);
     expect(getManageableRoles("superAdmin")).toStrictEqual([
       "superAdmin",
       "admin",
+      "academicStaff",
       "registrationStaff",
       "staff",
       "user",

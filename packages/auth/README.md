@@ -1,14 +1,17 @@
 # Authentication roles
 
-Better Auth's admin plugin and the browser client share the access-control definitions in `src/permission.ts`. New signups receive `user`; role values remain in the existing text column, so adding `superAdmin` requires no database migration.
+Better Auth's admin plugin and the browser client share the access-control definitions in `src/permission.ts`. New signups receive `user`; role values remain in the existing text column, so adding roles requires no database migration.
 
-| Role                | Application access                        | Role management                                                                          |
-| ------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `superAdmin`        | All administrator and staff features      | Any supported role on another account                                                    |
-| `admin`             | Existing administrator and staff features | Only `registrationStaff`, `staff`, and `user` accounts; only those roles may be assigned |
-| `registrationStaff` | Registration and staff check-in features  | None                                                                                     |
-| `staff`             | Registration and participant features     | None                                                                                     |
-| `user`              | Participant account features              | None                                                                                     |
+| Role                | Staff permissions                                  | Role management                                                             |
+| ------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
+| `superAdmin`        | `access`, `registration_access`, `academic_access` | Any supported role on another account                                       |
+| `admin`             | `access`, `registration_access`, `academic_access` | Assign and manage `academicStaff`, `registrationStaff`, `staff`, and `user` |
+| `registrationStaff` | `access`, `registration_access`                    | Assign and manage `staff` and `user`                                        |
+| `academicStaff`     | `access`, `academic_access`                        | None                                                                        |
+| `staff`             | `access`                                           | None                                                                        |
+| `user`              | None                                               | None                                                                        |
+
+All three staff roles include Better Auth's `userAc.statements`; administrators include `adminAc.statements`. Base staff access currently gates staff check-in tools. Registration access gates registration reviews, participant check-ins, awards, and cross-team data. Academic staff can open the dashboard and staff check-in tools; no academic feature endpoint exists yet.
 
 Users cannot change their own roles. Unknown or combined role strings fail closed at application authorization boundaries. This application uses one role per account.
 

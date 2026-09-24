@@ -1,4 +1,5 @@
 import {
+  hasAcademicAccess,
   hasAdminAccess,
   hasRegistrationAccess,
   hasStaffAccess,
@@ -112,8 +113,11 @@ interface StaffNavGroupProps {
   readonly pathname: string;
 }
 
-function getHomeRoute(isAdmin: boolean, canAccessParticipations: boolean): StaffNavItem["to"] {
-  if (isAdmin) {
+function getHomeRoute(
+  canAccessDashboard: boolean,
+  canAccessParticipations: boolean,
+): StaffNavItem["to"] {
+  if (canAccessDashboard) {
     return "/dashboard";
   }
 
@@ -153,10 +157,11 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = hasAdminAccess(role);
+  const canAccessAcademic = hasAcademicAccess(role);
   const canAccessParticipations = hasRegistrationAccess(role);
   const canAccessStaffCheckIn = hasStaffAccess(role);
   const canManageUsers = hasUserManagementAccess(role);
-  const homeRoute = getHomeRoute(isAdmin, canAccessParticipations);
+  const homeRoute = getHomeRoute(isAdmin || canAccessAcademic, canAccessParticipations);
   let navGroups: readonly StaffNavGroup[] = [];
   if (isAdmin) {
     navGroups = [
@@ -177,6 +182,10 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     ];
   } else {
     const accessNavGroups: StaffNavGroup[] = [];
+
+    if (canAccessAcademic) {
+      accessNavGroups.push({ items: baseNavItems, label: "เมนูหลัก" });
+    }
 
     if (canAccessParticipations) {
       accessNavGroups.push(

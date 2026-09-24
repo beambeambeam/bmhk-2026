@@ -306,7 +306,9 @@ describe("team registration status router", () => {
     });
     const router = createRouter(
       { findByTeamId },
-      createTestAuthReader(createTestSession({ user: { id: "operator-1", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "operator-1", role: "registrationStaff" } }),
+      ),
     );
     const { context, log } = createTestContext();
 
@@ -358,7 +360,9 @@ describe("team registration status router", () => {
     });
     const router = createRouter(
       { findByTeamId },
-      createTestAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
     );
     const { context } = createTestContext();
 
@@ -394,7 +398,9 @@ describe("team registration status router", () => {
     );
     const router = createRouter(
       { findByTeamId },
-      createTestAuthReader(createTestSession({ user: { id: "staff-user", role: "staff" } })),
+      createTestAuthReader(
+        createTestSession({ user: { id: "staff-user", role: "registrationStaff" } }),
+      ),
     );
     const { context } = createTestContext();
 

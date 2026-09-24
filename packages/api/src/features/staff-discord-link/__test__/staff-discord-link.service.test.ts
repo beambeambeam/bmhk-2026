@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { DiscordBotGateway } from "../discord-bot-gateway";
 import { createStaffDiscordLinkService } from "../staff-discord-link.service";
@@ -71,20 +71,28 @@ function createFakeGateway(): { applied: unknown[]; gateway: DiscordBotGateway }
 }
 
 describe(createStaffDiscordLinkService, () => {
-  it("rejects a participant (role user) before touching the token", async () => {
-    const { repository } = createFakeRepository();
-    const { gateway } = createFakeGateway();
-    const service = createStaffDiscordLinkService(repository, gateway);
+  it.each(["user", "unknown", "staff,admin", null, undefined] as const)(
+    "rejects ineligible role %s before touching the token",
+    async (userRole) => {
+      const consumeToken = vi.fn<StaffDiscordLinkRepository["consumeToken"]>(
+        async () => await Promise.resolve(null),
+      );
+      const { repository } = createFakeRepository({ consumeToken });
+      const { applied, gateway } = createFakeGateway();
+      const service = createStaffDiscordLinkService(repository, gateway);
 
-    const result = await service.link({
-      token: "good-token",
-      userId: "user-1",
-      userName: "Somchai Test",
-      userRole: "user",
-    });
+      const result = await service.link({
+        token: "good-token",
+        userId: "user-1",
+        userName: "Somchai Test",
+        userRole,
+      });
 
-    expect(result).toStrictEqual({ status: "INELIGIBLE_ROLE" });
-  });
+      expect(result).toStrictEqual({ status: "INELIGIBLE_ROLE" });
+      expect(consumeToken).not.toHaveBeenCalled();
+      expect(applied).toStrictEqual([]);
+    },
+  );
 
   it("rejects an unknown or expired token", async () => {
     const { repository } = createFakeRepository();

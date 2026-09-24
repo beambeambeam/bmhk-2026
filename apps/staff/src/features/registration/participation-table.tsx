@@ -39,7 +39,7 @@ type ParticipationSort = (typeof sortableColumns)[number]["id"];
 const eligibilityFilters = [
   { label: "สิทธิ์เข้าแข่งขันทั้งหมด", value: "ALL" },
   { label: "มีสิทธิ์เข้าแข่งขันในรอบแรก", value: "ELIGIBLE" },
-  { label: "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก", value: "NOT_QUALIFIED" },
+  { label: "ไม่มีสิทธิ์เข้าแข่งขันในรอบแรก", value: "REGISTRATION_FAILED" },
   { label: "ยังไม่ได้พิจารณา", value: "NOT_REVIEWED" },
 ] as const satisfies readonly { label: string; value: TeamRegistrationEligibilityFilter }[];
 

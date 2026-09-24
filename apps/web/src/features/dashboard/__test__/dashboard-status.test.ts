@@ -36,7 +36,7 @@ describe("dashboard selection results", () => {
   it("distinguishes selection rejection from document rejection", () => {
     const status = getDashboardStatus(
       { status: "APPROVED" },
-      { award: "NOT_QUALIFIED" },
+      { award: "REGISTRATION_FAILED" },
       announced,
     );
 
@@ -45,7 +45,7 @@ describe("dashboard selection results", () => {
     expect(getAutoOpenedModal("rejected", announced)).toBe("rejected");
   });
 
-  it.each(["NOT_QUALIFIED", "REGISTRATION_COMPLETED"])(
+  it.each(["REGISTRATION_FAILED", "REGISTRATION_COMPLETE"])(
     "withholds the %s selection result before announcement",
     (award) => {
       const flags = { eligibleTeamsAnnouncement: false };
@@ -59,36 +59,54 @@ describe("dashboard selection results", () => {
   it("announces registration completion as qualified for the first round", () => {
     const status = getDashboardStatus(
       { status: "APPROVED" },
-      { award: "REGISTRATION_COMPLETED" },
+      { award: "REGISTRATION_COMPLETE" },
       announced,
     );
 
-    expect(status).toBe("qualified");
-    expect(getAutoOpenedModal(status, announced)).toBe("qualified");
+    expect([status, getAutoOpenedModal(status, announced)]).toStrictEqual([
+      "qualified",
+      "qualified",
+    ]);
   });
 
   it("announces a qualified team and preserves later round results", () => {
-    const team = { award: "ROUND_1_COMPLETED" };
+    const team = { award: "ADVANCED_TO_ROUND_2" };
     const review = { status: "APPROVED" };
     const status = getDashboardStatus(review, team, announced);
 
-    expect(status).toBe("qualified");
-    expect(getAutoOpenedModal(status, announced)).toBe("qualified");
+    expect([status, getAutoOpenedModal(status, announced)]).toStrictEqual([
+      "qualified",
+      "qualified",
+    ]);
     expect(getDashboardStatus(review, team, { ...announced, qualifyingRound: true })).toBe(
-      "semifinal-pending",
+      "qualified",
     );
     expect(
       getDashboardStatus(review, team, { ...announced, qualifyingResultsAnnouncement: true }),
-    ).toBe("semifinal-failed");
-    expect(
+    ).toBe("semifinal-pending");
+    expect([
       getDashboardStatus(
         review,
-        { award: "ROUND_2_COMPLETED" },
-        {
-          ...announced,
-          qualifyingResultsAnnouncement: true,
-        },
+        { award: "ROUND_1_PARTICIPATED" },
+        { ...announced, qualifyingRound: true },
       ),
-    ).toBe("semifinal-qualified");
+      getDashboardStatus(
+        review,
+        { award: "ROUND_1_PARTICIPATED" },
+        { ...announced, qualifyingResultsAnnouncement: true },
+      ),
+    ]).toStrictEqual(["round1-pending", "round1-failed"]);
+    expect([
+      getDashboardStatus(
+        review,
+        { award: "ROUND_2_PARTICIPATED" },
+        { ...announced, qualifyingResultsAnnouncement: true },
+      ),
+      getDashboardStatus(
+        review,
+        { award: "ADVANCED_TO_ROUND_3" },
+        { ...announced, qualifyingResultsAnnouncement: true },
+      ),
+    ]).toStrictEqual(["semifinal-failed", "semifinal-qualified"]);
   });
 });

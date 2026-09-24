@@ -355,6 +355,7 @@ export default function StatusPanel({
   heading?: boolean;
   reviewFeedback?: ReviewFeedbackInput | null;
   team?: {
+    award?: string;
     code?: string;
     index?: number;
     name?: string;
@@ -364,7 +365,7 @@ export default function StatusPanel({
   submittedAt?: Date | string | null;
   onOpenDiscordModal?: () => void;
 }) {
-  const steps = getStatusSteps(members, reviewFeedback)[status];
+  const steps = getStatusSteps(members, reviewFeedback, team?.award)[status];
   const overallLatestDate = getLatestDate(
     submittedAt,
     reviewFeedback?.statusUpdatedAt,

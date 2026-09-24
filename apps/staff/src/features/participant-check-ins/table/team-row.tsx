@@ -244,6 +244,18 @@ export function ParticipantCheckInTeamRow({
       >
         <TableCell className="font-medium">{formatTeamCode(team.index)}</TableCell>
         <TableCell className="whitespace-normal wrap-anywhere">{team.name}</TableCell>
+        <TableCell className="whitespace-normal wrap-anywhere">
+          {team.teamCheckIn ? (
+            <span className="flex flex-col gap-0.5">
+              <span>{formatCheckInDate(team.teamCheckIn.checkedInAt)}</span>
+              <span className="text-muted-foreground text-xs">
+                ยืนยันโดย {team.teamCheckIn.checkedInByName}
+              </span>
+            </span>
+          ) : (
+            <span className="text-muted-foreground">ยังไม่ลงทะเบียนทีม</span>
+          )}
+        </TableCell>
         <TableCell className="font-medium">
           <span className="inline-flex items-center gap-2">
             <span>{team.members.length} คน</span>
@@ -255,7 +267,7 @@ export function ParticipantCheckInTeamRow({
         </TableCell>
       </CollapsibleTrigger>
       <CollapsibleContent render={<TableRow />}>
-        <TableCell className="p-3 sm:p-4" colSpan={3}>
+        <TableCell className="p-3 sm:p-4" colSpan={4}>
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <p className="text-sm font-medium text-muted-foreground">สมาชิกทีม {team.name}</p>

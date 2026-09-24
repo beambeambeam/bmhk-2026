@@ -48,6 +48,7 @@ describe("round two team check-in", () => {
 
   it("shows the team check-in action and disables member check-in until the team registers", () => {
     const { onUpdateTeamRegistration, team } = renderTeam(false);
+    expect(screen.getByText("ยังไม่ลงทะเบียนทีม")).toBeDefined();
     expect(
       screen.getByRole("button", { name: "ลงทะเบียนเข้างาน" }).closest("fieldset")?.disabled,
     ).toBeTruthy();
@@ -68,6 +69,7 @@ describe("round two team check-in", () => {
       screen.getByRole("button", { name: "ลงทะเบียนเข้างาน" }).closest("fieldset")?.disabled,
     ).toBeFalsy();
     expect(screen.getByText("เข้าร่วมรอบที่ 2")).toBeDefined();
+    expect(screen.getByText("ยืนยันโดย Staff")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
     fireEvent.click(await screen.findByRole("button", { name: "ยืนยันการยกเลิก" }));
     expect(onUpdateTeamRegistration).toHaveBeenCalledWith(team.id, team.name, false);

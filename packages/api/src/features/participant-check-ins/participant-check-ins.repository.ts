@@ -4,7 +4,7 @@ import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins"
 import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
-import { and, countDistinct, eq, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { and, countDistinct, eq, ilike, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -99,6 +99,11 @@ function isRoundTwoEligible(award: string): boolean {
 function createParticipantCheckInFilterCondition(
   filter: ParticipantCheckInColumnFilter,
 ): SQL | undefined {
+  if (filter.id === "teamCheckIn") {
+    return filter.value === "registered"
+      ? isNotNull(teamCheckIns.teamId)
+      : isNull(teamCheckIns.teamId);
+  }
   if (filter.value.length === 0) {
     return undefined;
   }

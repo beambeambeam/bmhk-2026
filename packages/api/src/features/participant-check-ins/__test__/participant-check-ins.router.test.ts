@@ -121,6 +121,25 @@ describe("participant check-ins router", () => {
     );
   });
 
+  it.each([
+    ["ROUND_1", "registered"],
+    ["ROUND_1", "unregistered"],
+    ["ROUND_2", "registered"],
+    ["ROUND_2", "unregistered"],
+  ] as const)("combines team search with %s %s status", async (round, status) => {
+    const list = vi
+      .fn<ParticipantCheckInRepository["list"]>()
+      .mockResolvedValue({ rowCount: 0, rows: [] });
+    const router = createRouter(createRepository({ list }));
+    const { context } = createTestContext();
+    const columnFilters = [
+      { id: "team" as const, value: "Alpha" },
+      { id: "teamCheckIn" as const, value: status },
+    ];
+    await call(router.list, { columnFilters, round }, { context });
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ columnFilters, round }));
+  });
+
   it("lists matching teams with controlled table pagination and team search", async () => {
     const input = {
       columnFilters: [{ id: "team" as const, value: "BangMod" }],

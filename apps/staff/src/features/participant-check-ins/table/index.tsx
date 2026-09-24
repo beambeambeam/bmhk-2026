@@ -1,4 +1,12 @@
 import { Field, FieldGroup } from "@/components/field";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/select";
 import { Input } from "@/components/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { DataTablePagination } from "@/components/table/pagination";
@@ -21,6 +29,11 @@ import {
 } from "./team-row";
 import type { ParticipantCheckInTableMeta } from "./team-row";
 
+const teamRegistrationOptions = [
+  { label: "สถานะการลงทะเบียนทีม: ทั้งหมด", value: "all" },
+  { label: "ลงทะเบียนทีมแล้ว", value: "registered" },
+  { label: "ยังไม่ลงทะเบียนทีม", value: "unregistered" },
+] as const;
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -52,6 +65,9 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
   const [searches, setSearches] = useState<SearchValues>({ team: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
   const [pageIndex, setPageIndex] = useState(0);
+  const [registrationStatus, setRegistrationStatus] = useState<
+    "all" | "registered" | "unregistered"
+  >("all");
   const [sorting, setSorting] = useState<ParticipantCheckInSort>({ desc: false, id: "name" });
   const hasInitializedSearch = useRef(false);
   useEffect(() => {
@@ -70,11 +86,15 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     };
   }, [searches]);
   const columnFilters = useMemo<ParticipantCheckInColumnFilter[]>(() => {
-    if (debouncedSearches.team.length === 0) {
-      return [];
+    const filters: ParticipantCheckInColumnFilter[] = [];
+    if (debouncedSearches.team.length > 0) {
+      filters.push({ id: "team", value: debouncedSearches.team });
     }
-    return [{ id: "team", value: debouncedSearches.team }];
-  }, [debouncedSearches]);
+    if (registrationStatus !== "all") {
+      filters.push({ id: "teamCheckIn", value: registrationStatus });
+    }
+    return filters;
+  }, [debouncedSearches, registrationStatus]);
   const input = useMemo<ParticipantCheckInListQuery>(
     () => ({
       columnFilters,
@@ -201,7 +221,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
 
   return (
     <div className="flex flex-col gap-5">
-      <FieldGroup className="grid w-full grid-cols-1 gap-3 sm:max-w-2xl">
+      <FieldGroup className="grid w-full grid-cols-1 gap-3 sm:max-w-4xl sm:grid-cols-[minmax(0,1fr)_18rem]">
         <Field>
           <Input
             id="participant-check-in-team"
@@ -213,17 +233,44 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
             }}
           />
         </Field>
+        <Field>
+          <Select
+            items={teamRegistrationOptions}
+            value={registrationStatus}
+            onValueChange={(value) => {
+              if (value === "all" || value === "registered" || value === "unregistered") {
+                setRegistrationStatus(value);
+                setPageIndex(0);
+              }
+            }}
+          >
+            <SelectTrigger aria-label="สถานะการลงทะเบียนทีม" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {teamRegistrationOptions.map(({ label, value }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
       </FieldGroup>
       <Table className="min-w-[74rem] table-fixed">
         <colgroup>
           <col className="w-36" />
           <col className="w-72" />
+          <col className="w-80" />
           <col />
         </colgroup>
         <TableHeader>
           <TableRow>
             <SortableTableHead id="teamCode" label="รหัสทีม" meta={meta} />
             <SortableTableHead id="teamName" label="ทีม" meta={meta} />
+            <TableHead className="whitespace-normal">สถานะการลงทะเบียนทีม</TableHead>
             <TableHead className="whitespace-normal">สมาชิก</TableHead>
           </TableRow>
         </TableHeader>
@@ -235,7 +282,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
                   "h-24 text-center whitespace-normal wrap-anywhere",
                   participantQuery.isError ? "text-destructive" : "text-muted-foreground",
                 )}
-                colSpan={3}
+                colSpan={4}
               >
                 {tableMessage}
               </TableCell>

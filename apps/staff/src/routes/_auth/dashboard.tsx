@@ -1,11 +1,15 @@
-import { hasAdminAccess, hasRegistrationAccess } from "@bmhk-2026/auth/permission";
+import {
+  hasAcademicAccess,
+  hasAdminAccess,
+  hasRegistrationAccess,
+} from "@bmhk-2026/auth/permission";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/dashboard")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role ?? "user";
 
-    if (hasAdminAccess(role)) {
+    if (hasAdminAccess(role) || hasAcademicAccess(role)) {
       return;
     }
 

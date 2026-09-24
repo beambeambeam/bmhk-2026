@@ -55,7 +55,7 @@ describe("admin users router", () => {
       call(router.filter, undefined, { context, path: ["adminUsers", "filter"] }),
     ).resolves.toStrictEqual({
       emailSuffix: "@kmutt.ac.th",
-      roles: ["superAdmin", "admin", "registrationStaff", "staff", "user"],
+      roles: ["superAdmin", "admin", "academicStaff", "registrationStaff", "staff", "user"],
     });
   });
 
@@ -226,6 +226,7 @@ describe("admin users router", () => {
       ),
     ).resolves.toStrictEqual({ role: "registrationStaff", userId: TARGET_USER_ID });
     expect(setRole).toHaveBeenCalledWith(TARGET_USER_ID, "registrationStaff", [
+      "academicStaff",
       "registrationStaff",
       "staff",
       "user",

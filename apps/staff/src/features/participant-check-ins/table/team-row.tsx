@@ -221,7 +221,7 @@ export function ParticipantCheckInTeamRow({
   const participatedLabel = meta.round === "ROUND_1" ? "เข้าร่วมรอบออนไลน์" : "เข้าร่วมรอบที่ 2";
   const needsTeamCheckIn = team.teamCheckIn === null;
   const canRegisterTeam = needsTeamCheckIn && team.award === eligibleAward;
-  const canCancelTeamRegistration = team.teamCheckIn !== null && team.award === participatedAward;
+  const canCancelTeamRegistration = team.teamCheckIn !== null;
   const isUpdatingTeamAward = meta.updatingTeamAwardId === team.id;
 
   async function cancelTeamRegistration(): Promise<void> {
@@ -289,8 +289,11 @@ export function ParticipantCheckInTeamRow({
                       <AlertDialogHeader>
                         <AlertDialogTitle>ยกเลิกการลงทะเบียนทีมเข้าร่วมงาน</AlertDialogTitle>
                         <AlertDialogDescription>
-                          คุณต้องการเปลี่ยนสถานะทีม {team.name} กลับเป็น “{eligibleLabel}”
+                          คุณต้องการยกเลิกการลงทะเบียนทีม {team.name}
                           และล้างการลงทะเบียนรายบุคคลในรอบนี้ ใช่หรือไม่
+                          {team.award === participatedAward
+                            ? ` สถานะทีมจะกลับเป็น “${eligibleLabel}”`
+                            : " สถานะรางวัลของทีมจะคงเดิม"}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

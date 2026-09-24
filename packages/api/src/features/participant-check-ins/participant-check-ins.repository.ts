@@ -134,7 +134,7 @@ export function createParticipantCheckInRepository(
               .where(eq(teams.id, teamId))
               .for("update")
               .limit(1);
-            if (!team || team.award !== teamCheckInAwards[round].participated) {
+            if (!team) {
               return false;
             }
             const deleted = await transaction
@@ -158,10 +158,12 @@ export function createParticipantCheckInRepository(
                   ),
                 ),
               );
-            await transaction
-              .update(teams)
-              .set({ award: teamCheckInAwards[round].eligible })
-              .where(eq(teams.id, teamId));
+            if (team.award === teamCheckInAwards[round].participated) {
+              await transaction
+                .update(teams)
+                .set({ award: teamCheckInAwards[round].eligible })
+                .where(eq(teams.id, teamId));
+            }
             return true;
           }),
       ),

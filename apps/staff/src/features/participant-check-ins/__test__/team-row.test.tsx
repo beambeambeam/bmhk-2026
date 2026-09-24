@@ -6,7 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ParticipantCheckInTeamRow } from "../table/team-row";
 import type { ParticipantCheckInTableMeta } from "../table/team-row";
 
-function renderTeam(checkedIn: boolean) {
+function renderTeam(
+  checkedIn: boolean,
+  award?: ParticipantCheckInListResult["rows"][number]["award"],
+) {
   const onUpdateTeamRegistration = vi
     .fn<ParticipantCheckInTableMeta["onUpdateTeamRegistration"]>()
     .mockResolvedValue(true);
@@ -24,7 +27,7 @@ function renderTeam(checkedIn: boolean) {
     updatingTeamAwardId: undefined,
   };
   const team: ParticipantCheckInListResult["rows"][number] = {
-    award: checkedIn ? "ROUND_2_PARTICIPATED" : "ADVANCED_TO_ROUND_2",
+    award: award ?? (checkedIn ? "ROUND_2_PARTICIPATED" : "ADVANCED_TO_ROUND_2"),
     id: "11111111-1111-4111-8111-111111111111",
     index: 1,
     members: [{ checkIn: null, email: "member@example.com", id: "member-1", name: "Member One" }],
@@ -50,6 +53,13 @@ describe("round two team check-in", () => {
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "ลงทะเบียนทีมเข้าร่วมงาน" }));
     expect(onUpdateTeamRegistration).toHaveBeenCalledWith(team.id, team.name, true);
+  });
+
+  it("keeps cancellation visible when a checked-in team has the semifinal award", async () => {
+    const { onUpdateTeamRegistration, team } = renderTeam(true, "ADVANCED_TO_ROUND_2");
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    fireEvent.click(await screen.findByRole("button", { name: "ยืนยันการยกเลิก" }));
+    expect(onUpdateTeamRegistration).toHaveBeenCalledWith(team.id, team.name, false);
   });
 
   it("enables member check-in and allows cancelling the round two registration", async () => {

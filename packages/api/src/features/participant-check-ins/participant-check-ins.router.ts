@@ -60,12 +60,8 @@ export function createParticipantCheckInsRouter(
           log: context.log,
           onSuccess: () => ({
             changes: {
-              after: { award: teamCheckInAwards[input.round].eligible },
-              before: {
-                award: teamCheckInAwards[input.round].participated,
-                round: input.round,
-                status: "checked-in",
-              },
+              after: { round: input.round, status: "not-checked-in" },
+              before: { round: input.round, status: "checked-in" },
             },
           }),
         });

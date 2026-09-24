@@ -64,8 +64,8 @@ describe("participant check-ins router", () => {
       expect.objectContaining({
         action: "team-check-in.cancelled",
         changes: {
-          after: { award: "ADVANCED_TO_ROUND_2" },
-          before: { award: "ROUND_2_PARTICIPATED", round: "ROUND_2", status: "checked-in" },
+          after: { round: "ROUND_2", status: "not-checked-in" },
+          before: { round: "ROUND_2", status: "checked-in" },
         },
       }),
     );

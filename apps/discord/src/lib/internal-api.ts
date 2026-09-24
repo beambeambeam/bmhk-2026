@@ -3,13 +3,14 @@ import type { Client, Guild, GuildMember } from "discord.js";
 import { Elysia } from "elysia";
 
 import { planStaffVerify } from "./resolve-staff-verify.js";
+import { getRoleSettings } from "./role-settings.js";
 import type { StaffVerifyPlan } from "./resolve-staff-verify.js";
 
 interface StaffVerifyBody {
   category_id: string | null;
   discord_user_id: string;
-  is_admin: boolean;
   nickname: string;
+  role: string;
 }
 
 function isStaffVerifyBody(body: unknown): body is StaffVerifyBody {
@@ -18,7 +19,8 @@ function isStaffVerifyBody(body: unknown): body is StaffVerifyBody {
     body !== null &&
     "discord_user_id" in body &&
     "nickname" in body &&
-    "is_admin" in body
+    "role" in body &&
+    typeof body.role === "string"
   );
 }
 
@@ -29,8 +31,8 @@ async function applyStaffVerifyPlan(
 ): Promise<void> {
   await member.setNickname(plan.nickname);
 
-  if (plan.roleId !== null) {
-    await member.roles.add(plan.roleId);
+  if (plan.roleIds.length > 0) {
+    await member.roles.add(plan.roleIds);
   }
 
   if (plan.categoryId !== null) {
@@ -69,19 +71,14 @@ export function createInternalApi(client: Client) {
         return status(404);
       }
 
-      const { getSettingsStore } = await import("./settings-store.js");
-      const settingsStore = getSettingsStore();
       const plan = planStaffVerify(
         {
           categoryId: body.category_id,
           discordUserId: body.discord_user_id,
-          isAdmin: body.is_admin,
           nickname: body.nickname,
+          role: body.role,
         },
-        {
-          adminRoleId: settingsStore.get("adminRole"),
-          staffRoleId: settingsStore.get("staffRole"),
-        },
+        await getRoleSettings(),
       );
 
       try {

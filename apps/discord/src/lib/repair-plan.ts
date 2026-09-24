@@ -1,4 +1,6 @@
 import type { RepairFacts } from "../services/discord-admin-api.js";
+import type { RoleSettings } from "./role-settings.js";
+import { staffDiscordRoleIds } from "./resolve-staff-verify.js";
 
 export interface RepairInput {
   botUserId: string;
@@ -13,13 +15,17 @@ export interface RepairInput {
   /** Member-type overwrites per channel: user id → currently allowed View + Connect. */
   overwrites: Map<string, Map<string, boolean>>;
   participantRoleHolders: Set<string>;
-  roles: { admin: string | null; participant: string | null; staff: string | null };
+  /** Role-type overwrites per channel: role id → currently allowed View + Connect. */
+  roleOverwrites: Map<string, Map<string, boolean>>;
+  roles: RoleSettings;
 }
 
 export interface RepairPlan {
   grants: { channelId: string; userId: string }[];
   revokes: { channelId: string; userId: string }[];
   roleAdds: { roleId: string; userId: string }[];
+  /** Registration staff check attendance, so their role sees every managed channel. */
+  roleGrants: { channelId: string; roleId: string }[];
   roleRemoves: { roleId: string; userId: string }[];
   skippedUserIds: string[];
 }
@@ -73,10 +79,11 @@ function planRoleAdds(input: RepairInput): RepairPlan["roleAdds"] {
       adds.push({ roleId, userId });
     }
   }
-  for (const { discord_user_id: userId, is_admin: isAdmin } of facts.staff) {
-    const roleId = isAdmin ? roles.admin : roles.staff;
-    if (needsRole(input, userId, roleId)) {
-      adds.push({ roleId, userId });
+  for (const { discord_user_id: userId, role } of facts.staff) {
+    for (const roleId of staffDiscordRoleIds(role, roles)) {
+      if (needsRole(input, userId, roleId)) {
+        adds.push({ roleId, userId });
+      }
     }
   }
   return adds;
@@ -109,6 +116,16 @@ function planRevokes(input: RepairInput, desired: Map<string, Set<string>>): Rep
   return revokes;
 }
 
+function planRoleGrants(input: RepairInput): RepairPlan["roleGrants"] {
+  const { registrationStaff: roleId } = input.roles;
+  if (roleId === null) {
+    return [];
+  }
+  return input.lockedChannelIds
+    .filter((channelId) => input.roleOverwrites.get(channelId)?.get(roleId) !== true)
+    .map((channelId) => ({ channelId, roleId }));
+}
+
 function planRoleRemoves(input: RepairInput): RepairPlan["roleRemoves"] {
   const { participant: roleId } = input.roles;
   if (roleId === null) {
@@ -122,9 +139,10 @@ function planRoleRemoves(input: RepairInput): RepairPlan["roleRemoves"] {
 
 /**
  * Pure diff between what the DB says and what Discord has. Adds roles/access
- * for linked members; revokes only the participant role and member overwrites
- * on managed channels — staff/admin roles are never removed, since some are
- * handed out by hand and have no link.
+ * for linked members and the registration staff role; revokes only the
+ * participant role and member overwrites on managed channels — staff-side
+ * roles and role overwrites are never removed, since some are handed out by
+ * hand and have no link.
  */
 export function planRepair(input: RepairInput): RepairPlan {
   const { facts, guildMemberIds } = input;
@@ -138,6 +156,7 @@ export function planRepair(input: RepairInput): RepairPlan {
     grants: planGrants(input, desired),
     revokes: planRevokes(input, desired),
     roleAdds: planRoleAdds(input),
+    roleGrants: planRoleGrants(input),
     roleRemoves: planRoleRemoves(input),
     skippedUserIds: [...new Set(linkedUserIds.filter((userId) => !guildMemberIds.has(userId)))],
   };
@@ -147,6 +166,7 @@ export interface RepairReportOptions {
   dryRun: boolean;
   /** Labels of applied steps that failed; empty for a dry run. */
   failed: string[];
+  registrationStaffRoleConfigured: boolean;
 }
 
 export function formatRepairReport(plan: RepairPlan, options: RepairReportOptions): string {
@@ -156,12 +176,21 @@ export function formatRepairReport(plan: RepairPlan, options: RepairReportOption
     `Remove participant role: ${plan.roleRemoves.length}`,
     `Grant access: ${plan.grants.length}`,
     `Revoke access: ${plan.revokes.length}`,
+    `Grant role access: ${plan.roleGrants.length}`,
     "",
     ...plan.roleAdds.map(({ roleId, userId }) => `<@${userId}> +<@&${roleId}>`),
     ...plan.roleRemoves.map(({ roleId, userId }) => `<@${userId}> -<@&${roleId}>`),
     ...plan.grants.map(({ channelId, userId }) => `<@${userId}> +access <#${channelId}>`),
     ...plan.revokes.map(({ channelId, userId }) => `<@${userId}> -access <#${channelId}>`),
+    ...plan.roleGrants.map(({ channelId, roleId }) => `<@&${roleId}> +access <#${channelId}>`),
   ];
+
+  if (!options.registrationStaffRoleConfigured) {
+    lines.push(
+      "",
+      "⚠️ registrationStaffRole is not configured — run `/setup registrationstaffrole` to give registration staff their role and channel access.",
+    );
+  }
 
   if (plan.skippedUserIds.length > 0) {
     lines.push(

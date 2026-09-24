@@ -1,6 +1,7 @@
 export interface RoleSettings {
   admin: string | null;
   participant: string | null;
+  registrationStaff: string | null;
   staff: string | null;
 }
 
@@ -16,6 +17,7 @@ export async function getRoleSettings(): Promise<RoleSettings> {
     admin: configured(store.get("adminRole")),
     // Same env fallback verify-confirm uses, so a participant verified before /setup is still repairable.
     participant: configured(store.get("participantRole") ?? Bun.env.DISCORD_PARTICIPANT_ROLE_ID),
+    registrationStaff: configured(store.get("registrationStaffRole")),
     staff: configured(store.get("staffRole")),
   };
 }

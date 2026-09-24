@@ -34,10 +34,10 @@ const unlinkstaff: Command = {
       return;
     }
 
-    const { admin, staff } = await getRoleSettings();
+    const { admin, registrationStaff, staff } = await getRoleSettings();
     const steps = await buildCleanupSteps(interaction.guild, user.id, {
       channelId: result.category_id,
-      roleIds: [staff, admin],
+      roleIds: [staff, admin, registrationStaff],
       roleLabel: "staff/admin roles",
     });
     const failed = await runBestEffort(steps);

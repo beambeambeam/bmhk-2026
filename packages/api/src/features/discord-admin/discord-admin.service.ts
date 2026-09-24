@@ -50,7 +50,7 @@ export type UnlinkStaffResult =
 
 export interface RepairFactsResponse {
   participants: { channel_id: string | null; discord_user_id: string }[];
-  staff: { category_id: string | null; discord_user_id: string; is_admin: boolean }[];
+  staff: { category_id: string | null; discord_user_id: string; role: string | null }[];
 }
 
 export type StaffNicknameFact =
@@ -204,10 +204,10 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
           channel_id: channelId,
           discord_user_id: discordUserId,
         })),
-        staff: facts.staff.map(({ categoryId, discordUserId, isAdmin }) => ({
+        staff: facts.staff.map(({ categoryId, discordUserId, role }) => ({
           category_id: categoryId,
           discord_user_id: discordUserId,
-          is_admin: isAdmin,
+          role,
         })),
       };
     },

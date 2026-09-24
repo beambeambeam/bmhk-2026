@@ -14,18 +14,23 @@ import type { Command } from "../../types.js";
 const DISCORD_MESSAGE_LIMIT = 2000;
 const ACCESS_BITS = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect];
 
-/** Member-type overwrites on a channel/category: user id → currently allows View + Connect. */
-async function readOverwrites(guild: Guild, channelId: string): Promise<Map<string, boolean>> {
+interface ChannelOverwrites {
+  /** Member-type overwrites: user id → currently allows View + Connect. */
+  members: Map<string, boolean>;
+  /** Role-type overwrites: role id → currently allows View + Connect. */
+  roles: Map<string, boolean>;
+}
+
+async function readOverwrites(guild: Guild, channelId: string): Promise<ChannelOverwrites> {
   const channel = await guild.channels.fetch(channelId).catch(() => null);
-  const result = new Map<string, boolean>();
+  const result: ChannelOverwrites = { members: new Map(), roles: new Map() };
   if (!channel || !("permissionOverwrites" in channel)) {
     return result;
   }
 
   for (const overwrite of channel.permissionOverwrites.cache.values()) {
-    if (overwrite.type === OverwriteType.Member) {
-      result.set(overwrite.id, overwrite.allow.has(ACCESS_BITS));
-    }
+    const target = overwrite.type === OverwriteType.Member ? result.members : result.roles;
+    target.set(overwrite.id, overwrite.allow.has(ACCESS_BITS));
   }
   return result;
 }
@@ -50,6 +55,15 @@ function buildApplySteps(guild: Guild, plan: RepairPlan): BestEffortStep[] {
         const channel = await guild.channels.fetch(channelId);
         if (channel && "permissionOverwrites" in channel) {
           await channel.permissionOverwrites.edit(userId, { Connect: true, ViewChannel: true });
+        }
+      },
+    })),
+    ...plan.roleGrants.map(({ channelId, roleId }) => ({
+      label: `grant <@&${roleId}> <#${channelId}>`,
+      run: async () => {
+        const channel = await guild.channels.fetch(channelId);
+        if (channel && "permissionOverwrites" in channel) {
+          await channel.permissionOverwrites.edit(roleId, { Connect: true, ViewChannel: true });
         }
       },
     })),
@@ -111,10 +125,13 @@ const repairpermission: Command = {
         ]),
     );
     const overwrites = new Map<string, Map<string, boolean>>();
+    const roleOverwrites = new Map<string, Map<string, boolean>>();
     for (const channelId of lockedChannelIds) {
       // Sequential: one channel fetch at a time keeps this under Discord's rate limit.
       // eslint-disable-next-line no-await-in-loop
-      overwrites.set(channelId, await readOverwrites(guild, channelId));
+      const channelOverwrites = await readOverwrites(guild, channelId);
+      overwrites.set(channelId, channelOverwrites.members);
+      roleOverwrites.set(channelId, channelOverwrites.roles);
     }
 
     const plan = planRepair({
@@ -132,11 +149,16 @@ const repairpermission: Command = {
           ? []
           : members.filter((member) => member.roles.cache.has(roles.participant ?? "")).keys(),
       ),
+      roleOverwrites,
       roles,
     });
 
     const failed = dryRun ? [] : await runBestEffort(buildApplySteps(guild, plan));
-    const report = formatRepairReport(plan, { dryRun, failed });
+    const report = formatRepairReport(plan, {
+      dryRun,
+      failed,
+      registrationStaffRoleConfigured: roles.registrationStaff !== null,
+    });
 
     const [first, ...rest] = chunkLines(report.split("\n"), DISCORD_MESSAGE_LIMIT);
     await interaction.editReply({ allowedMentions: { parse: [] }, content: first });

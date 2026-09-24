@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { formatRepairReport, planRepair } from "../lib/repair-plan";
 import type { RepairInput } from "../lib/repair-plan";
 
-const ROLES = { admin: "role-admin", participant: "role-part", staff: "role-staff" };
+const ROLES = {
+  admin: "role-admin",
+  participant: "role-part",
+  registrationStaff: "role-reg",
+  staff: "role-staff",
+};
 const BOT_ID = "bot";
 
 function input(overrides: Partial<RepairInput> = {}): RepairInput {
@@ -16,6 +21,7 @@ function input(overrides: Partial<RepairInput> = {}): RepairInput {
     memberRoles: new Map(),
     overwrites: new Map(),
     participantRoleHolders: new Set(),
+    roleOverwrites: new Map(),
     roles: ROLES,
     ...overrides,
   };
@@ -46,6 +52,7 @@ describe(planRepair, () => {
         memberRoles: new Map([["u1", new Set(["role-part"])]]),
         overwrites: new Map([["chan-1", new Map([["u1", true]])]]),
         participantRoleHolders: new Set(["u1"]),
+        roleOverwrites: new Map([["chan-1", new Map([["role-reg", true]])]]),
       }),
     );
 
@@ -53,6 +60,7 @@ describe(planRepair, () => {
       grants: [],
       revokes: [],
       roleAdds: [],
+      roleGrants: [],
       roleRemoves: [],
       skippedUserIds: [],
     });
@@ -77,7 +85,7 @@ describe(planRepair, () => {
       input({
         facts: {
           participants: [{ channel_id: "chan-1", discord_user_id: "gone" }],
-          staff: [{ category_id: "cat-1", discord_user_id: "gone-staff", is_admin: false }],
+          staff: [{ category_id: "cat-1", discord_user_id: "gone-staff", role: "staff" }],
         },
         lockedChannelIds: ["chan-1", "cat-1"],
       }),
@@ -94,8 +102,8 @@ describe(planRepair, () => {
         facts: {
           participants: [],
           staff: [
-            { category_id: "cat-1", discord_user_id: "s1", is_admin: false },
-            { category_id: null, discord_user_id: "a1", is_admin: true },
+            { category_id: "cat-1", discord_user_id: "s1", role: "staff" },
+            { category_id: null, discord_user_id: "a1", role: "admin" },
           ],
         },
         guildMemberIds: new Set(["s1", "a1"]),
@@ -159,7 +167,7 @@ describe(planRepair, () => {
       input({
         facts: {
           participants: [],
-          staff: [{ category_id: null, discord_user_id: "s1", is_admin: false }],
+          staff: [{ category_id: null, discord_user_id: "s1", role: "staff" }],
         },
         guildMemberIds: new Set(["s1", "stray"]),
         memberRoles: new Map([["s1", new Set(["role-staff"])]]),
@@ -179,7 +187,7 @@ describe(planRepair, () => {
       input({
         facts: {
           participants: [],
-          staff: [{ category_id: "cat-1", discord_user_id: "s1", is_admin: false }],
+          staff: [{ category_id: "cat-1", discord_user_id: "s1", role: "staff" }],
         },
         guildMemberIds: new Set(["s1"]),
         lockedChannelIds: ["cat-1"],
@@ -196,7 +204,7 @@ describe(planRepair, () => {
       input({
         facts: {
           participants: [],
-          staff: [{ category_id: "cat-1", discord_user_id: "s1", is_admin: false }],
+          staff: [{ category_id: "cat-1", discord_user_id: "s1", role: "staff" }],
         },
         groupChannelsByCategory: new Map([["cat-1", ["chan-70", "chan-72"]]]),
         guildMemberIds: new Set(["s1"]),
@@ -213,13 +221,56 @@ describe(planRepair, () => {
     expect(plan.grants).toStrictEqual([{ channelId: "chan-72", userId: "s1" }]);
   });
 
+  it("grants registration staff both the staff and registration staff roles", () => {
+    const plan = planRepair(
+      input({
+        facts: {
+          participants: [],
+          staff: [{ category_id: null, discord_user_id: "r1", role: "registrationStaff" }],
+        },
+        guildMemberIds: new Set(["r1"]),
+        memberRoles: new Map([["r1", new Set(["role-staff"])]]),
+      }),
+    );
+
+    expect(plan.roleAdds).toStrictEqual([{ roleId: "role-reg", userId: "r1" }]);
+  });
+
+  it("grants the registration staff role access to every locked channel that lacks it", () => {
+    const plan = planRepair(
+      input({
+        lockedChannelIds: ["cat-1", "chan-1", "chan-2"],
+        roleOverwrites: new Map([
+          ["cat-1", new Map([["role-reg", true]])],
+          ["chan-1", new Map([["role-reg", false]])],
+        ]),
+      }),
+    );
+
+    expect(plan.roleGrants).toStrictEqual([
+      { channelId: "chan-1", roleId: "role-reg" },
+      { channelId: "chan-2", roleId: "role-reg" },
+    ]);
+  });
+
+  it("plans no registration staff channel access when that role is not configured", () => {
+    const plan = planRepair(
+      input({
+        lockedChannelIds: ["cat-1"],
+        roles: { ...ROLES, registrationStaff: null },
+      }),
+    );
+
+    expect(plan.roleGrants).toStrictEqual([]);
+  });
+
   it("leaves roles alone that are not configured", () => {
     const plan = planRepair(
       input({
         facts: { participants: [{ channel_id: null, discord_user_id: "u1" }], staff: [] },
         guildMemberIds: new Set(["u1"]),
         memberRoles: new Map([["u1", new Set()]]),
-        roles: { admin: null, participant: null, staff: null },
+        roles: { admin: null, participant: null, registrationStaff: null, staff: null },
       }),
     );
 
@@ -232,12 +283,17 @@ describe(formatRepairReport, () => {
     grants: [{ channelId: "chan-1", userId: "u1" }],
     revokes: [{ channelId: "chan-2", userId: "u2" }],
     roleAdds: [{ roleId: "role-part", userId: "u1" }],
+    roleGrants: [{ channelId: "cat-1", roleId: "role-reg" }],
     roleRemoves: [],
     skippedUserIds: ["gone"],
   };
 
   it("labels a dry run as planned and lists each change and the skipped users", () => {
-    const report = formatRepairReport(plan, { dryRun: true, failed: [] });
+    const report = formatRepairReport(plan, {
+      dryRun: true,
+      failed: [],
+      registrationStaffRoleConfigured: true,
+    });
 
     expect(report).toContain("DRY RUN");
     expect(report).toContain("<@u1> +<@&role-part>");
@@ -246,8 +302,32 @@ describe(formatRepairReport, () => {
     expect(report).toContain("<@gone>");
   });
 
+  it("lists registration staff role channel grants", () => {
+    const report = formatRepairReport(plan, {
+      dryRun: true,
+      failed: [],
+      registrationStaffRoleConfigured: true,
+    });
+
+    expect(report).toContain("<@&role-reg> +access <#cat-1>");
+  });
+
+  it("warns when the registration staff role is not configured", () => {
+    const report = formatRepairReport(plan, {
+      dryRun: true,
+      failed: [],
+      registrationStaffRoleConfigured: false,
+    });
+
+    expect(report).toContain("registrationStaffRole is not configured");
+  });
+
   it("lists what failed after a real run", () => {
-    const report = formatRepairReport(plan, { dryRun: false, failed: ["grant <@u1> <#chan-1>"] });
+    const report = formatRepairReport(plan, {
+      dryRun: false,
+      failed: ["grant <@u1> <#chan-1>"],
+      registrationStaffRoleConfigured: true,
+    });
 
     expect(report).not.toContain("DRY RUN");
     expect(report).toContain("Failed (1)");

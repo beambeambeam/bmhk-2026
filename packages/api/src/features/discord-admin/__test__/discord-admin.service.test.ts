@@ -245,13 +245,13 @@ describe(createDiscordAdminService, () => {
         repairFacts: async () =>
           await Promise.resolve({
             participants: [{ channelId: "chan-1", discordUserId: "111" }],
-            staff: [{ categoryId: null, discordUserId: "222", isAdmin: true }],
+            staff: [{ categoryId: null, discordUserId: "222", role: "admin" }],
           }),
       });
 
       await expect(service.repairFacts()).resolves.toStrictEqual({
         participants: [{ channel_id: "chan-1", discord_user_id: "111" }],
-        staff: [{ category_id: null, discord_user_id: "222", is_admin: true }],
+        staff: [{ category_id: null, discord_user_id: "222", role: "admin" }],
       });
     });
   });

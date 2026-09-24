@@ -18,8 +18,10 @@ function createRepository(
 ): ParticipantCheckInRepository {
   return {
     cancel: overrides.cancel ?? (async () => await Promise.resolve(true)),
+    cancelTeam: overrides.cancelTeam ?? (async () => await Promise.resolve(true)),
     checkIn: overrides.checkIn ?? (async () => await Promise.resolve("CREATED")),
     list: overrides.list ?? (async () => await Promise.resolve({ rowCount: 0, rows: [] })),
+    registerTeam: overrides.registerTeam ?? (async () => await Promise.resolve("CREATED")),
     updateFlag: overrides.updateFlag ?? (async () => await Promise.resolve(true)),
   };
 }

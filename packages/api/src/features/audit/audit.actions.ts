@@ -38,6 +38,19 @@ export const staffCheckInCancelledAudit = defineAuditAction("staff-check-in.canc
   target: "staff-check-in",
 });
 
+export const teamCheckInCreatedAudit = defineAuditAction("team-check-in.created", {
+  description: "A staff member registered a team for round one",
+  requiresChanges: true,
+  severity: "critical",
+  target: "team-check-in",
+});
+export const teamCheckInCancelledAudit = defineAuditAction("team-check-in.cancelled", {
+  description: "A staff member cancelled a team registration and its member check-ins",
+  requiresChanges: true,
+  severity: "critical",
+  target: "team-check-in",
+});
+
 export const participantCheckInCreatedAudit = defineAuditAction("participant-check-in.created", {
   description: "A staff member recorded a participant's on-site arrival",
   requiresChanges: true,

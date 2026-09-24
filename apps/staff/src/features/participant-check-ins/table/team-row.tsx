@@ -47,11 +47,6 @@ const flagOptions = [
 
 type Team = ParticipantCheckInListResult["rows"][number];
 type Participant = Team["members"][number];
-export type ParticipantCheckInTeamAward = Extract<
-  Team["award"],
-  "REGISTRATION_COMPLETE" | "ROUND_1_PARTICIPATED"
->;
-
 export interface ParticipantCheckInTableMeta {
   readonly sortBy: ParticipantCheckInSort["id"];
   readonly sortDesc: boolean;
@@ -63,10 +58,10 @@ export interface ParticipantCheckInTableMeta {
   readonly round: CheckInRound;
   readonly onCheckIn: (id: string, name: string) => Promise<void>;
   readonly onUpdateFlag: (id: string, value: string | null) => Promise<void>;
-  readonly onUpdateTeamAward: (
+  readonly onUpdateTeamRegistration: (
     id: string,
     name: string,
-    award: ParticipantCheckInTeamAward,
+    register: boolean,
   ) => Promise<boolean>;
 }
 
@@ -219,14 +214,14 @@ export function ParticipantCheckInTeamRow({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCancelTeamRegistrationOpen, setIsCancelTeamRegistrationOpen] = useState(false);
-  const isRegistrationComplete = team.award === "REGISTRATION_COMPLETE";
-  const canRegisterTeam = isRegistrationComplete && meta.round === "ROUND_1";
+  const isRegistrationComplete = meta.round === "ROUND_1" && team.teamCheckIn === null;
+  const canRegisterTeam = isRegistrationComplete && team.award === "REGISTRATION_COMPLETE";
   const canCancelTeamRegistration =
-    team.award === "ROUND_1_PARTICIPATED" && meta.round === "ROUND_1";
+    team.teamCheckIn !== null && team.award === "ROUND_1_PARTICIPATED" && meta.round === "ROUND_1";
   const isUpdatingTeamAward = meta.updatingTeamAwardId === team.id;
 
   async function cancelTeamRegistration(): Promise<void> {
-    const wasUpdated = await meta.onUpdateTeamAward(team.id, team.name, "REGISTRATION_COMPLETE");
+    const wasUpdated = await meta.onUpdateTeamRegistration(team.id, team.name, false);
     if (wasUpdated) {
       setIsCancelTeamRegistrationOpen(false);
     }
@@ -317,9 +312,7 @@ export function ParticipantCheckInTeamRow({
                   disabled={meta.isSettingTeamAward}
                   size="sm"
                   type="button"
-                  onClick={() =>
-                    void meta.onUpdateTeamAward(team.id, team.name, "ROUND_1_PARTICIPATED")
-                  }
+                  onClick={() => void meta.onUpdateTeamRegistration(team.id, team.name, true)}
                 >
                   {isUpdatingTeamAward ? (
                     <Loader2 aria-hidden="true" className="animate-spin" data-icon="inline-start" />

@@ -15,6 +15,8 @@ import type {
 export interface ParticipantCheckInService {
   cancel: (participantId: string, round: CheckInRound) => Promise<void>;
   checkIn: (participantId: string, checkedInByUserId: string, round: CheckInRound) => Promise<void>;
+  registerTeam: (teamId: string, userId: string) => Promise<void>;
+  cancelTeam: (teamId: string) => Promise<void>;
   list: (query: ParticipantCheckInListQuery) => Promise<ParticipantCheckInListResult>;
   updateFlag: (
     participantId: string,
@@ -31,6 +33,11 @@ export function createParticipantCheckInService(
         throw createParticipantCheckInNotFoundError();
       }
     },
+    cancelTeam: async (teamId) => {
+      if (!(await repository.cancelTeam(teamId))) {
+        throw createParticipantCheckInNotFoundError();
+      }
+    },
     checkIn: async (participantId, checkedInByUserId, round) => {
       const attempt = await repository.checkIn(participantId, checkedInByUserId, round);
       if (attempt === "TARGET_NOT_FOUND") {
@@ -44,6 +51,18 @@ export function createParticipantCheckInService(
       }
     },
     list: async (query) => await repository.list(query),
+    registerTeam: async (teamId, userId) => {
+      const result = await repository.registerTeam(teamId, userId);
+      if (result === "TARGET_NOT_FOUND") {
+        throw createParticipantCheckInTargetNotFoundError();
+      }
+      if (result === "NOT_ELIGIBLE") {
+        throw createParticipantNotRoundEligibleError();
+      }
+      if (result === "ALREADY_CHECKED_IN") {
+        throw createParticipantAlreadyCheckedInError();
+      }
+    },
     updateFlag: async (participantId, flag, round) => {
       if (!(await repository.updateFlag(participantId, flag, round))) {
         throw createParticipantCheckInNotFoundError();

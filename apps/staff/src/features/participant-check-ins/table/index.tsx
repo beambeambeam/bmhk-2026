@@ -19,7 +19,7 @@ import {
   SortableTableHead,
   participantCheckInFlagValues,
 } from "./team-row";
-import type { ParticipantCheckInTableMeta, ParticipantCheckInTeamAward } from "./team-row";
+import type { ParticipantCheckInTableMeta } from "./team-row";
 
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -106,8 +106,18 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
       },
     }),
   );
-  const setTeamAwardMutation = useMutation(
-    orpc.teams.setAward.mutationOptions({
+  const registerTeamMutation = useMutation(
+    orpc.participantCheckIns.registerTeam.mutationOptions({
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.participantCheckIns.list.key() }),
+          queryClient.invalidateQueries({ queryKey: orpc.teams.list.key() }),
+        ]);
+      },
+    }),
+  );
+  const cancelTeamMutation = useMutation(
+    orpc.participantCheckIns.cancelTeam.mutationOptions({
       onSuccess: async () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: orpc.participantCheckIns.list.key() }),
@@ -141,16 +151,17 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     }
   }
 
-  async function updateTeamAward(
+  async function updateTeamRegistration(
     teamId: string,
     teamName: string,
-    award: ParticipantCheckInTeamAward,
+    register: boolean,
   ): Promise<boolean> {
     try {
-      await setTeamAwardMutation.mutateAsync({ award, id: teamId });
-      if (award === "ROUND_1_PARTICIPATED") {
+      if (register) {
+        await registerTeamMutation.mutateAsync({ teamId });
         toast.success(`ลงทะเบียนทีม ${teamName} เข้าร่วมงานแล้ว`);
       } else {
+        await cancelTeamMutation.mutateAsync({ teamId });
         toast.success(`ยกเลิกการลงทะเบียนทีม ${teamName} แล้ว`);
       }
       return true;
@@ -167,18 +178,18 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
 
   const meta: ParticipantCheckInTableMeta = {
     checkingInId: checkInMutation.isPending ? checkInMutation.variables?.participantId : undefined,
-    isSettingTeamAward: setTeamAwardMutation.isPending,
+    isSettingTeamAward: registerTeamMutation.isPending || cancelTeamMutation.isPending,
     onCheckIn: checkIn,
     onSort: toggleSorting,
     onUpdateFlag: updateFlag,
-    onUpdateTeamAward: updateTeamAward,
+    onUpdateTeamRegistration: updateTeamRegistration,
     round,
     sortBy: sorting.id,
     sortDesc: sorting.desc,
     updatingFlagId: flagMutation.isPending ? flagMutation.variables?.participantId : undefined,
-    updatingTeamAwardId: setTeamAwardMutation.isPending
-      ? setTeamAwardMutation.variables?.id
-      : undefined,
+    updatingTeamAwardId:
+      (registerTeamMutation.isPending ? registerTeamMutation.variables?.teamId : undefined) ??
+      (cancelTeamMutation.isPending ? cancelTeamMutation.variables?.teamId : undefined),
   };
   let tableMessage: string | undefined;
   if (participantQuery.isLoading || participantQuery.isError) {

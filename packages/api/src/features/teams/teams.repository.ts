@@ -2,6 +2,7 @@ import { db } from "@bmhk-2026/db";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
 import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-reviews";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
+import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
@@ -242,6 +243,11 @@ export function createTeamRepository(database: Database = db): TeamRepository {
 
             let roundOneCheckInsReset = 0;
             if (previous.award === "ROUND_1_PARTICIPATED" && award === "REGISTRATION_COMPLETE") {
+              await transaction
+                .delete(teamCheckIns)
+                .where(
+                  and(eq(teamCheckIns.teamId, previous.id), eq(teamCheckIns.round, "ROUND_1")),
+                );
               const cancelledCheckIns = await transaction
                 .delete(participantCheckIns)
                 .where(

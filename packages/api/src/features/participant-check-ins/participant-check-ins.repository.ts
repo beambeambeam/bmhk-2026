@@ -1,9 +1,10 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
+import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
-import { and, countDistinct, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, countDistinct, eq, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -33,6 +34,11 @@ export interface ParticipantCheckInRepository {
     checkedInByUserId: string,
     round: CheckInRound,
   ) => Promise<ParticipantCheckInAttempt>;
+  registerTeam: (
+    teamId: string,
+    userId: string,
+  ) => Promise<"CREATED" | "ALREADY_CHECKED_IN" | "NOT_ELIGIBLE" | "TARGET_NOT_FOUND">;
+  cancelTeam: (teamId: string) => Promise<boolean>;
   list: (query: ParticipantCheckInListQuery) => Promise<ParticipantCheckInListResult>;
   updateFlag: (
     participantId: string,
@@ -42,6 +48,7 @@ export interface ParticipantCheckInRepository {
 }
 
 type Database = typeof db;
+const teamCheckedInByUser = alias(user, "team_checked_in_by_user");
 const checkedInByUser = alias(user, "participant_checked_in_by_user");
 const participantCheckInSortColumns = {
   checkedInAt: participantCheckIns.checkedInAt,
@@ -55,14 +62,6 @@ const teamSortColumns = {
   teamCode: teams.index,
   teamName: teams.name,
 } as const;
-const roundOneCheckInEligibleAwardValues = [
-  "ROUND_1_PARTICIPATED",
-  ...roundTwoEligibleAwardValues,
-] as const;
-const roundOneParticipantAwardValues = [
-  "REGISTRATION_COMPLETE",
-  ...roundOneCheckInEligibleAwardValues,
-] as const;
 const teamCodeSearchColumn = sql<string>`'BH' || lpad(
   ${teams.index}::text,
   greatest(3, length(${teams.index}::text)),
@@ -95,10 +94,6 @@ function isRoundTwoEligible(award: string): boolean {
   return (roundTwoEligibleAwardValues as readonly string[]).includes(award);
 }
 
-function isRoundOneCheckInEligible(award: string): boolean {
-  return (roundOneCheckInEligibleAwardValues as readonly string[]).includes(award);
-}
-
 function createParticipantCheckInFilterCondition(
   filter: ParticipantCheckInColumnFilter,
 ): SQL | undefined {
@@ -127,12 +122,53 @@ export function createParticipantCheckInRepository(
           .returning({ participantId: participantCheckIns.participantId });
         return cancelled.length > 0;
       }),
+    cancelTeam: async (teamId) =>
+      await execute(
+        async () =>
+          await database.transaction(async (transaction) => {
+            const [team] = await transaction
+              .select({ award: teams.award })
+              .from(teams)
+              .where(eq(teams.id, teamId))
+              .for("update")
+              .limit(1);
+            if (!team || team.award !== "ROUND_1_PARTICIPATED") {
+              return false;
+            }
+            const deleted = await transaction
+              .delete(teamCheckIns)
+              .where(and(eq(teamCheckIns.teamId, teamId), eq(teamCheckIns.round, "ROUND_1")))
+              .returning({ teamId: teamCheckIns.teamId });
+            if (deleted.length === 0) {
+              return false;
+            }
+            await transaction
+              .delete(participantCheckIns)
+              .where(
+                and(
+                  eq(participantCheckIns.round, "ROUND_1"),
+                  inArray(
+                    participantCheckIns.participantId,
+                    transaction
+                      .select({ id: teamParticipants.id })
+                      .from(teamParticipants)
+                      .where(eq(teamParticipants.teamId, teamId)),
+                  ),
+                ),
+              );
+            await transaction
+              .update(teams)
+              .set({ award: "REGISTRATION_COMPLETE" })
+              .where(eq(teams.id, teamId));
+            return true;
+          }),
+      ),
     checkIn: async (participantId, checkedInByUserId, round) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
             const [participant] = await transaction
-              .select({ award: teams.award, id: teamParticipants.id })
+              .select({ award: teams.award, id: teamParticipants.id, teamId: teams.id })
               .from(teamParticipants)
               .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
               .where(eq(teamParticipants.id, participantId))
@@ -141,8 +177,20 @@ export function createParticipantCheckInRepository(
             if (!participant) {
               return "TARGET_NOT_FOUND";
             }
-            if (round === "ROUND_1" && !isRoundOneCheckInEligible(participant.award)) {
-              return "NOT_ELIGIBLE";
+            if (round === "ROUND_1") {
+              const [teamCheckIn] = await transaction
+                .select({ teamId: teamCheckIns.teamId })
+                .from(teamCheckIns)
+                .where(
+                  and(
+                    eq(teamCheckIns.teamId, participant.teamId),
+                    eq(teamCheckIns.round, "ROUND_1"),
+                  ),
+                )
+                .limit(1);
+              if (!teamCheckIn) {
+                return "NOT_ELIGIBLE";
+              }
             }
             // Mirrors the round-2 gate in list(): the roster hides unqualified teams, so
             // writes must refuse them too rather than relying on the UI to filter.
@@ -170,7 +218,10 @@ export function createParticipantCheckInRepository(
               );
               let roundGate: SQL | undefined;
               if (round === "ROUND_1") {
-                roundGate = inArray(teams.award, roundOneParticipantAwardValues);
+                roundGate = or(
+                  eq(teams.award, "REGISTRATION_COMPLETE"),
+                  isNotNull(teamCheckIns.teamId),
+                );
               } else if (round === "ROUND_2") {
                 roundGate = inArray(teams.award, roundTwoEligibleAwardValues);
               }
@@ -179,6 +230,10 @@ export function createParticipantCheckInRepository(
                 .select({ value: countDistinct(teams.id) })
                 .from(teamParticipants)
                 .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+                .leftJoin(
+                  teamCheckIns,
+                  and(eq(teamCheckIns.teamId, teams.id), eq(teamCheckIns.round, "ROUND_1")),
+                )
                 .where(filters);
               const teamSorting: { desc: boolean; id: "teamCode" | "teamName" }[] = [];
               for (const sort of sorting) {
@@ -194,11 +249,28 @@ export function createParticipantCheckInRepository(
                   id: teams.id,
                   index: teams.index,
                   name: teams.name,
+                  teamCheckedInAt: teamCheckIns.checkedInAt,
+                  teamCheckedInByName: teamCheckedInByUser.name,
                 })
                 .from(teams)
                 .innerJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
+                .leftJoin(
+                  teamCheckIns,
+                  and(eq(teamCheckIns.teamId, teams.id), eq(teamCheckIns.round, "ROUND_1")),
+                )
+                .leftJoin(
+                  teamCheckedInByUser,
+                  eq(teamCheckedInByUser.id, teamCheckIns.checkedInByUserId),
+                )
                 .where(filters)
-                .groupBy(teams.id, teams.index, teams.name, teams.award)
+                .groupBy(
+                  teams.id,
+                  teams.index,
+                  teams.name,
+                  teams.award,
+                  teamCheckIns.checkedInAt,
+                  teamCheckedInByUser.name,
+                )
                 .orderBy(
                   ...createTableOrderBy({
                     columns: teamSortColumns,
@@ -209,10 +281,16 @@ export function createParticipantCheckInRepository(
                 )
                 .limit(pagination.pageSize)
                 .offset(getTableOffset(pagination));
-              const teamRows: ParticipantCheckInListResult["rows"] = teamPage.map((team) => ({
-                ...team,
-                members: [],
-              }));
+              const teamRows: ParticipantCheckInListResult["rows"] = teamPage.map(
+                ({ teamCheckedInAt, teamCheckedInByName, ...team }) => ({
+                  ...team,
+                  members: [],
+                  teamCheckIn:
+                    teamCheckedInAt !== null && teamCheckedInByName !== null
+                      ? { checkedInAt: teamCheckedInAt, checkedInByName: teamCheckedInByName }
+                      : null,
+                }),
+              );
               if (teamRows.length === 0) {
                 return { rowCount: totalResult?.value ?? 0, rows: teamRows };
               }
@@ -283,6 +361,40 @@ export function createParticipantCheckInRepository(
             },
             { accessMode: "read only", isolationLevel: "repeatable read" },
           ),
+      ),
+    registerTeam: async (teamId, userId) =>
+      await execute(
+        async () =>
+          await database.transaction(async (transaction) => {
+            const [team] = await transaction
+              .select({ award: teams.award })
+              .from(teams)
+              .where(eq(teams.id, teamId))
+              .for("update")
+              .limit(1);
+            if (!team) {
+              return "TARGET_NOT_FOUND";
+            }
+            const [existing] = await transaction
+              .select({ teamId: teamCheckIns.teamId })
+              .from(teamCheckIns)
+              .where(and(eq(teamCheckIns.teamId, teamId), eq(teamCheckIns.round, "ROUND_1")))
+              .limit(1);
+            if (existing) {
+              return "ALREADY_CHECKED_IN";
+            }
+            if (team.award !== "REGISTRATION_COMPLETE") {
+              return "NOT_ELIGIBLE";
+            }
+            await transaction
+              .insert(teamCheckIns)
+              .values({ checkedInByUserId: userId, round: "ROUND_1", teamId });
+            await transaction
+              .update(teams)
+              .set({ award: "ROUND_1_PARTICIPATED" })
+              .where(eq(teams.id, teamId));
+            return "CREATED";
+          }),
       ),
     updateFlag: async (participantId, flag, round) =>
       await execute(async () => {

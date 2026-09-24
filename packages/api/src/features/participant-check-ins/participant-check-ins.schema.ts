@@ -32,8 +32,13 @@ export const participantCheckInTeamSchema = z
     index: z.int().positive(),
     members: z.array(participantCheckInParticipantSchema),
     name: z.string(),
+    teamCheckIn: z
+      .object({ checkedInAt: z.date(), checkedInByName: z.string() })
+      .strict()
+      .nullable(),
   })
   .strict();
+export const teamCheckInInputSchema = z.object({ teamId: z.uuid() }).strict();
 export const participantCheckInColumnFilterSchema = z
   .object({ id: z.literal("team"), value: z.string().trim().max(255) })
   .strict();

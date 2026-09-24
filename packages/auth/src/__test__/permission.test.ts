@@ -12,10 +12,16 @@ import {
 
 describe("super administrator permissions", () => {
   it("limits admins to lower roles and gives superAdmins the complete role set", () => {
-    expect(getManageableRoles("admin")).toStrictEqual(["registrationStaff", "staff", "user"]);
+    expect(getManageableRoles("admin")).toStrictEqual([
+      "academicStaff",
+      "registrationStaff",
+      "staff",
+      "user",
+    ]);
     expect(getManageableRoles("superAdmin")).toStrictEqual([
       "superAdmin",
       "admin",
+      "academicStaff",
       "registrationStaff",
       "staff",
       "user",

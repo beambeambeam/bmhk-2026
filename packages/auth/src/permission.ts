@@ -30,6 +30,7 @@ const superAdmin = ac.newRole({
 
 const academicStaff = ac.newRole({
   staff: ["academic_access"],
+  ...userAc.statements,
 });
 
 const staff = ac.newRole({

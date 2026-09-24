@@ -234,6 +234,25 @@ describe("files RPC router", () => {
     });
   });
 
+  it("hides round 2 confirmation documents from generic file access", async () => {
+    const repository = createRepository({
+      findById: async () =>
+        await Promise.resolve({
+          ...testFile,
+          objectKey:
+            "round2-confirmation/team-1/participant-1/identityDocument/11111111-1111-4111-8111-111111111111",
+        }),
+    });
+    const router = createRouter(repository);
+    const { context } = createTestContext();
+    getPresigned.mockClear();
+
+    await expect(
+      call(router.get, { id: FILE_ID }, { context, path: ["files", "get"] }),
+    ).rejects.toMatchObject({ code: "FILE_NOT_FOUND", status: 404 });
+    expect(getPresigned).not.toHaveBeenCalled();
+  });
+
   it("returns storage unavailable when file URL signing fails", async () => {
     const router = createRouter(createRepository());
     const { context } = createTestContext();

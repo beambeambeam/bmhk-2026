@@ -1,6 +1,7 @@
 /* oxlint-disable require-await, no-nested-ternary, typescript/no-unsafe-assignment */
 import { call } from "@orpc/server";
 import type { DeleteObjectInput, GetPresignedInput, PutObjectInput } from "@bmhk-2026/s3";
+import { createError } from "evlog";
 import { describe, expect, it, vi } from "vitest";
 import type {
   AuthReader,
@@ -145,6 +146,16 @@ function input() {
   };
 }
 
+function createTeamRosterLockedError() {
+  return createError({
+    code: "TEAM_ROSTER_LOCKED",
+    fix: "Contact registration staff for help",
+    message: "Team roster is locked after round 2 confirmation",
+    status: 409,
+    why: "The team has confirmed round 2 participation",
+  });
+}
+
 describe("team participants router", () => {
   it("gives registration staff cross-team participant access", async () => {
     const repository = createRepository({
@@ -186,6 +197,22 @@ describe("team participants router", () => {
       phone: "080-000-0000",
       titleEn: "Mr.",
       titleTh: "นาย",
+    });
+  });
+
+  it("reports a locked roster when adding a participant after round 2 confirmation", async () => {
+    const create = vi.fn<TeamParticipantRepository["create"]>(async () => {
+      throw createTeamRosterLockedError();
+    });
+    const router = createRouter(createRepository({ create }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.create, input(), { context, path: ["teamParticipants", "create"] }),
+    ).rejects.toMatchObject({
+      code: "TEAM_ROSTER_LOCKED",
+      message: "Team roster is locked after round 2 confirmation",
+      status: 409,
     });
   });
 
@@ -253,6 +280,49 @@ describe("team participants router", () => {
         { context, path: ["teamParticipants", "update"] },
       ),
     ).rejects.toBeInstanceOf(Error);
+  });
+
+  it("reports a locked roster when changing participant identity after confirmation", async () => {
+    const update = vi.fn<TeamParticipantRepository["update"]>(async () => {
+      throw createTeamRosterLockedError();
+    });
+    const router = createRouter(createRepository({ update }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.update,
+        { data: { dateOfBirth: "2011-01-01" }, index: 1, teamId: TEAM_ID },
+        { context, path: ["teamParticipants", "update"] },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_ROSTER_LOCKED", status: 409 });
+  });
+
+  it("allows contact and medical updates after round 2 confirmation", async () => {
+    const update = vi.fn<TeamParticipantRepository["update"]>(
+      async (_access, _teamId, _index, data) => ({
+        ...participant,
+        ...data,
+      }),
+    );
+    const router = createRouter(createRepository({ update }));
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        router.update,
+        {
+          data: { chronicConditionsAndFirstAidNotes: "None", email: "new@example.com" },
+          index: 1,
+          teamId: TEAM_ID,
+        },
+        { context, path: ["teamParticipants", "update"] },
+      ),
+    ).resolves.toMatchObject({
+      chronicConditionsAndFirstAidNotes: "None",
+      email: "new@example.com",
+    });
+    expect(update).toHaveBeenCalledOnce();
   });
 
   it("accepts portrait image and rejects image for identity document", async () => {

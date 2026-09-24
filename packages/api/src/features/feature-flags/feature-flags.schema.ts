@@ -8,6 +8,7 @@ const featureFlagsShape = {
   qualifyingRound: z.boolean(),
   qualifyingRoundIdentityConfirmation: z.boolean(),
   registration: z.boolean(),
+  round2Confirmation: z.boolean(),
 } satisfies Record<FeatureFlagKey, z.ZodBoolean>;
 
 export const featureFlagsSchema = z.object(featureFlagsShape);

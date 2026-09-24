@@ -3,6 +3,17 @@ import { createError } from "evlog";
 import { toError } from "../../core/errors";
 
 const TEAM_REPOSITORY_ERROR_CODE = "TEAM_REPOSITORY_ERROR";
+export const TEAM_ROSTER_LOCKED_ERROR_CODE = "TEAM_ROSTER_LOCKED";
+
+export function createTeamRosterLockedError() {
+  return createError({
+    code: TEAM_ROSTER_LOCKED_ERROR_CODE,
+    fix: "Contact registration staff for help",
+    message: "Team roster is locked after round 2 confirmation",
+    status: 409,
+    why: "The team has confirmed round 2 participation",
+  });
+}
 
 export function createTeamAlreadyExistsError() {
   return createError({

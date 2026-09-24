@@ -3,8 +3,7 @@ import { defaultStatements, adminAc, userAc } from "better-auth/plugins/admin/ac
 
 const permissionStatement = {
   ...defaultStatements,
-  academic_access: ["admin"],
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "academic_access"],
 } as const;
 
 const ac = createAccessControl(permissionStatement);
@@ -20,19 +19,17 @@ const authRoleValues = [
 export type AuthRole = (typeof authRoleValues)[number];
 
 const admin = ac.newRole({
-  academic_access: ["admin"],
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "academic_access"],
   ...adminAc.statements,
 });
 
 const superAdmin = ac.newRole({
-  academic_access: ["admin"],
-  staff: ["access", "registration_access"],
+  staff: ["access", "registration_access", "academic_access"],
   ...adminAc.statements,
 });
 
 const academicStaff = ac.newRole({
-  academic_access: ["admin"],
+  staff: ["academic_access"],
 });
 
 const staff = ac.newRole({
@@ -67,7 +64,7 @@ function hasAcademicAccess(role: string | null | undefined): boolean {
     return false;
   }
 
-  return roles[role].authorize({ academic_access: ["admin"] }).success;
+  return roles[role].authorize({ staff: ["academic_access"] }).success;
 }
 
 function getManageableRoles(role: string | null | undefined): readonly AuthRole[] {

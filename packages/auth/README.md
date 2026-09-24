@@ -6,7 +6,7 @@ Better Auth's admin plugin and the browser client share the access-control defin
 | ------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `superAdmin`        | All administrator, staff, and academic access               | Any supported role on another account                                       |
 | `admin`             | Existing administrator and staff features; academic access  | Assign and manage `academicStaff`, `registrationStaff`, `staff`, and `user` |
-| `academicStaff`     | `academic_access.admin` only                                | None                                                                         |
+| `academicStaff`     | `staff.academic_access` only                                 | None                                                                         |
 | `registrationStaff` | Registration and staff check-in features                    | None                                                                         |
 | `staff`             | Registration and participant features                      | None                                                                         |
 | `user`              | Participant account features                                | None                                                                         |

@@ -238,7 +238,7 @@ describe("team registration reviews router", () => {
     });
   });
 
-  it.each(["ALL", "ELIGIBLE", "NOT_QUALIFIED", "NOT_REVIEWED"] as const)(
+  it.each(["ALL", "ELIGIBLE", "REGISTRATION_FAILED", "NOT_REVIEWED"] as const)(
     "filters the review queue by decision and eligibility %s",
     async (eligibility) => {
       const router = createRouter(

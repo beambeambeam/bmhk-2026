@@ -191,7 +191,7 @@ describe("discord codes router", () => {
 
   it.each([
     ["unjudged award", teamFacts({ award: "NO_ACHIEVEMENT" })],
-    ["not qualified award", teamFacts({ award: "NOT_QUALIFIED" })],
+    ["registration failed award", teamFacts({ award: "REGISTRATION_FAILED" })],
     ["registration review pending", teamFacts({ reviewStatus: "PENDING_REVIEW" })],
     ["registration review changes requested", teamFacts({ reviewStatus: "CHANGES_REQUESTED" })],
     ["no registration review", teamFacts({ reviewStatus: null })],
@@ -254,7 +254,7 @@ describe("discord codes router", () => {
 
     it("applies the same eligibility gate", async () => {
       const router = createRouter(
-        createFakeRepository(teamFacts({ award: "NOT_QUALIFIED" })),
+        createFakeRepository(teamFacts({ award: "REGISTRATION_FAILED" })),
         staffAuth(),
       );
       const { context } = createTestContext();

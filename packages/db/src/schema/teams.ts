@@ -15,9 +15,9 @@ import { files } from "./files";
 export const teamAwardValues = [
   "NO_ACHIEVEMENT",
   "REGISTRATION_COMPLETED",
-  // Judged and did not advance to the qualifying round. Distinct from NO_ACHIEVEMENT,
-  // which means the team has not been judged yet.
-  "NOT_QUALIFIED",
+  // Registration review failed. Distinct from NO_ACHIEVEMENT, which means the team
+  // has not been judged yet.
+  "REGISTRATION_FAILED",
   "ROUND_1_COMPLETED",
   "ROUND_2_COMPLETED",
   "HONORABLE_MENTION",

@@ -90,9 +90,9 @@ function eligibilityListCondition(eligibility: TeamRegistrationEligibilityFilter
     return sql`true`;
   }
   if (eligibility === "ELIGIBLE") {
-    return notInArray(teams.award, ["NO_ACHIEVEMENT", "NOT_QUALIFIED"]);
+    return notInArray(teams.award, ["NO_ACHIEVEMENT", "REGISTRATION_FAILED"]);
   }
-  return eq(teams.award, eligibility === "NOT_REVIEWED" ? "NO_ACHIEVEMENT" : "NOT_QUALIFIED");
+  return eq(teams.award, eligibility === "NOT_REVIEWED" ? "NO_ACHIEVEMENT" : "REGISTRATION_FAILED");
 }
 
 function reviewListCondition(reviewStatus: TeamRegistrationReviewListFilter) {

@@ -39,7 +39,7 @@ export const staffCheckInCancelledAudit = defineAuditAction("staff-check-in.canc
 });
 
 export const teamCheckInCreatedAudit = defineAuditAction("team-check-in.created", {
-  description: "A staff member registered a team for round one",
+  description: "A staff member registered a team for a competition round",
   requiresChanges: true,
   severity: "critical",
   target: "team-check-in",

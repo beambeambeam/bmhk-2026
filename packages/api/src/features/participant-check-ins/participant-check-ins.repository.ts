@@ -12,6 +12,7 @@ import { createTableOrderBy, createTableWhere, escapeLikePattern } from "../../c
 import { createRepositoryExecutor } from "../../core/repository";
 import { getTableOffset } from "../../core/table-query";
 import { participantCheckInRepositoryError } from "./participant-check-ins.errors";
+import { teamCheckInAwards } from "./participant-check-ins.schema";
 import type {
   CheckInRound,
   ParticipantCheckInColumnFilter,
@@ -37,8 +38,9 @@ export interface ParticipantCheckInRepository {
   registerTeam: (
     teamId: string,
     userId: string,
+    round: CheckInRound,
   ) => Promise<"CREATED" | "ALREADY_CHECKED_IN" | "NOT_ELIGIBLE" | "TARGET_NOT_FOUND">;
-  cancelTeam: (teamId: string) => Promise<boolean>;
+  cancelTeam: (teamId: string, round: CheckInRound) => Promise<boolean>;
   list: (query: ParticipantCheckInListQuery) => Promise<ParticipantCheckInListResult>;
   updateFlag: (
     participantId: string,
@@ -122,7 +124,7 @@ export function createParticipantCheckInRepository(
           .returning({ participantId: participantCheckIns.participantId });
         return cancelled.length > 0;
       }),
-    cancelTeam: async (teamId) =>
+    cancelTeam: async (teamId, round) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -132,12 +134,12 @@ export function createParticipantCheckInRepository(
               .where(eq(teams.id, teamId))
               .for("update")
               .limit(1);
-            if (!team || team.award !== "ROUND_1_PARTICIPATED") {
+            if (!team || team.award !== teamCheckInAwards[round].participated) {
               return false;
             }
             const deleted = await transaction
               .delete(teamCheckIns)
-              .where(and(eq(teamCheckIns.teamId, teamId), eq(teamCheckIns.round, "ROUND_1")))
+              .where(and(eq(teamCheckIns.teamId, teamId), eq(teamCheckIns.round, round)))
               .returning({ teamId: teamCheckIns.teamId });
             if (deleted.length === 0) {
               return false;
@@ -146,7 +148,7 @@ export function createParticipantCheckInRepository(
               .delete(participantCheckIns)
               .where(
                 and(
-                  eq(participantCheckIns.round, "ROUND_1"),
+                  eq(participantCheckIns.round, round),
                   inArray(
                     participantCheckIns.participantId,
                     transaction
@@ -158,7 +160,7 @@ export function createParticipantCheckInRepository(
               );
             await transaction
               .update(teams)
-              .set({ award: "REGISTRATION_COMPLETE" })
+              .set({ award: teamCheckInAwards[round].eligible })
               .where(eq(teams.id, teamId));
             return true;
           }),
@@ -177,20 +179,15 @@ export function createParticipantCheckInRepository(
             if (!participant) {
               return "TARGET_NOT_FOUND";
             }
-            if (round === "ROUND_1") {
-              const [teamCheckIn] = await transaction
-                .select({ teamId: teamCheckIns.teamId })
-                .from(teamCheckIns)
-                .where(
-                  and(
-                    eq(teamCheckIns.teamId, participant.teamId),
-                    eq(teamCheckIns.round, "ROUND_1"),
-                  ),
-                )
-                .limit(1);
-              if (!teamCheckIn) {
-                return "NOT_ELIGIBLE";
-              }
+            const [teamCheckIn] = await transaction
+              .select({ teamId: teamCheckIns.teamId })
+              .from(teamCheckIns)
+              .where(
+                and(eq(teamCheckIns.teamId, participant.teamId), eq(teamCheckIns.round, round)),
+              )
+              .limit(1);
+            if (!teamCheckIn) {
+              return "NOT_ELIGIBLE";
             }
             // Mirrors the round-2 gate in list(): the roster hides unqualified teams, so
             // writes must refuse them too rather than relying on the UI to filter.
@@ -232,7 +229,7 @@ export function createParticipantCheckInRepository(
                 .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
                 .leftJoin(
                   teamCheckIns,
-                  and(eq(teamCheckIns.teamId, teams.id), eq(teamCheckIns.round, "ROUND_1")),
+                  and(eq(teamCheckIns.teamId, teams.id), eq(teamCheckIns.round, round)),
                 )
                 .where(filters);
               const teamSorting: { desc: boolean; id: "teamCode" | "teamName" }[] = [];
@@ -256,7 +253,7 @@ export function createParticipantCheckInRepository(
                 .innerJoin(teamParticipants, eq(teamParticipants.teamId, teams.id))
                 .leftJoin(
                   teamCheckIns,
-                  and(eq(teamCheckIns.teamId, teams.id), eq(teamCheckIns.round, "ROUND_1")),
+                  and(eq(teamCheckIns.teamId, teams.id), eq(teamCheckIns.round, round)),
                 )
                 .leftJoin(
                   teamCheckedInByUser,
@@ -362,7 +359,7 @@ export function createParticipantCheckInRepository(
             { accessMode: "read only", isolationLevel: "repeatable read" },
           ),
       ),
-    registerTeam: async (teamId, userId) =>
+    registerTeam: async (teamId, userId, round) =>
       await execute(
         async () =>
           await database.transaction(async (transaction) => {
@@ -378,20 +375,20 @@ export function createParticipantCheckInRepository(
             const [existing] = await transaction
               .select({ teamId: teamCheckIns.teamId })
               .from(teamCheckIns)
-              .where(and(eq(teamCheckIns.teamId, teamId), eq(teamCheckIns.round, "ROUND_1")))
+              .where(and(eq(teamCheckIns.teamId, teamId), eq(teamCheckIns.round, round)))
               .limit(1);
             if (existing) {
               return "ALREADY_CHECKED_IN";
             }
-            if (team.award !== "REGISTRATION_COMPLETE") {
+            if (team.award !== teamCheckInAwards[round].eligible) {
               return "NOT_ELIGIBLE";
             }
             await transaction
               .insert(teamCheckIns)
-              .values({ checkedInByUserId: userId, round: "ROUND_1", teamId });
+              .values({ checkedInByUserId: userId, round, teamId });
             await transaction
               .update(teams)
-              .set({ award: "ROUND_1_PARTICIPATED" })
+              .set({ award: teamCheckInAwards[round].participated })
               .where(eq(teams.id, teamId));
             return "CREATED";
           }),

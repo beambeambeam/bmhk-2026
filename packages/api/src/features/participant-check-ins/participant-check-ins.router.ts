@@ -13,6 +13,7 @@ import {
   participantCheckInListResultSchema,
   updateParticipantCheckInFlagSchema,
   teamCheckInInputSchema,
+  teamCheckInAwards,
 } from "./participant-check-ins.schema";
 import type { ParticipantCheckInService } from "./participant-check-ins.service";
 
@@ -54,13 +55,17 @@ export function createParticipantCheckInsRouter(
           }),
           deniedErrorCodes: ["PARTICIPANT_CHECK_IN_NOT_FOUND"],
           execute: async () => {
-            await service.cancelTeam(input.teamId);
+            await service.cancelTeam(input.teamId, input.round);
           },
           log: context.log,
           onSuccess: () => ({
             changes: {
-              after: { award: "REGISTRATION_COMPLETE" },
-              before: { award: "ROUND_1_PARTICIPATED", round: "ROUND_1", status: "checked-in" },
+              after: { award: teamCheckInAwards[input.round].eligible },
+              before: {
+                award: teamCheckInAwards[input.round].participated,
+                round: input.round,
+                status: "checked-in",
+              },
             },
           }),
         });
@@ -106,12 +111,16 @@ export function createParticipantCheckInsRouter(
             "PARTICIPANT_ALREADY_CHECKED_IN",
           ],
           execute: async () => {
-            await service.registerTeam(input.teamId, context.session.user.id);
+            await service.registerTeam(input.teamId, context.session.user.id, input.round);
           },
           log: context.log,
           onSuccess: () => ({
             changes: {
-              after: { award: "ROUND_1_PARTICIPATED", round: "ROUND_1", status: "checked-in" },
+              after: {
+                award: teamCheckInAwards[input.round].participated,
+                round: input.round,
+                status: "checked-in",
+              },
             },
           }),
         });

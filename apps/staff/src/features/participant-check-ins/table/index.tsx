@@ -158,10 +158,10 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
   ): Promise<boolean> {
     try {
       if (register) {
-        await registerTeamMutation.mutateAsync({ teamId });
+        await registerTeamMutation.mutateAsync({ round, teamId });
         toast.success(`ลงทะเบียนทีม ${teamName} เข้าร่วมงานแล้ว`);
       } else {
-        await cancelTeamMutation.mutateAsync({ teamId });
+        await cancelTeamMutation.mutateAsync({ round, teamId });
         toast.success(`ยกเลิกการลงทะเบียนทีม ${teamName} แล้ว`);
       }
       return true;

@@ -15,8 +15,8 @@ import type {
 export interface ParticipantCheckInService {
   cancel: (participantId: string, round: CheckInRound) => Promise<void>;
   checkIn: (participantId: string, checkedInByUserId: string, round: CheckInRound) => Promise<void>;
-  registerTeam: (teamId: string, userId: string) => Promise<void>;
-  cancelTeam: (teamId: string) => Promise<void>;
+  registerTeam: (teamId: string, userId: string, round: CheckInRound) => Promise<void>;
+  cancelTeam: (teamId: string, round: CheckInRound) => Promise<void>;
   list: (query: ParticipantCheckInListQuery) => Promise<ParticipantCheckInListResult>;
   updateFlag: (
     participantId: string,
@@ -33,8 +33,8 @@ export function createParticipantCheckInService(
         throw createParticipantCheckInNotFoundError();
       }
     },
-    cancelTeam: async (teamId) => {
-      if (!(await repository.cancelTeam(teamId))) {
+    cancelTeam: async (teamId, round) => {
+      if (!(await repository.cancelTeam(teamId, round))) {
         throw createParticipantCheckInNotFoundError();
       }
     },
@@ -51,8 +51,8 @@ export function createParticipantCheckInService(
       }
     },
     list: async (query) => await repository.list(query),
-    registerTeam: async (teamId, userId) => {
-      const result = await repository.registerTeam(teamId, userId);
+    registerTeam: async (teamId, userId, round) => {
+      const result = await repository.registerTeam(teamId, userId, round);
       if (result === "TARGET_NOT_FOUND") {
         throw createParticipantCheckInTargetNotFoundError();
       }

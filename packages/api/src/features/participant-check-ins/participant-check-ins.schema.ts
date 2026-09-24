@@ -38,7 +38,9 @@ export const participantCheckInTeamSchema = z
       .nullable(),
   })
   .strict();
-export const teamCheckInInputSchema = z.object({ teamId: z.uuid() }).strict();
+export const teamCheckInInputSchema = z
+  .object({ round: checkInRoundSchema, teamId: z.uuid() })
+  .strict();
 export const participantCheckInColumnFilterSchema = z
   .object({ id: z.literal("team"), value: z.string().trim().max(255) })
   .strict();
@@ -70,3 +72,8 @@ export type ParticipantCheckInListQuery = z.output<typeof listParticipantCheckIn
 export type ParticipantCheckInListResult = z.output<typeof participantCheckInListResultSchema>;
 export type ParticipantCheckInSort = ParticipantCheckInListQuery["sorting"][number];
 export type ParticipantCheckInTeam = z.infer<typeof participantCheckInTeamSchema>;
+
+export const teamCheckInAwards = {
+  ROUND_1: { eligible: "REGISTRATION_COMPLETE", participated: "ROUND_1_PARTICIPATED" },
+  ROUND_2: { eligible: "ADVANCED_TO_ROUND_2", participated: "ROUND_2_PARTICIPATED" },
+} as const;

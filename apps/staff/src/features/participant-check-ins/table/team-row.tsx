@@ -214,10 +214,14 @@ export function ParticipantCheckInTeamRow({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCancelTeamRegistrationOpen, setIsCancelTeamRegistrationOpen] = useState(false);
-  const isRegistrationComplete = meta.round === "ROUND_1" && team.teamCheckIn === null;
-  const canRegisterTeam = isRegistrationComplete && team.award === "REGISTRATION_COMPLETE";
-  const canCancelTeamRegistration =
-    team.teamCheckIn !== null && team.award === "ROUND_1_PARTICIPATED" && meta.round === "ROUND_1";
+  const eligibleAward = meta.round === "ROUND_1" ? "REGISTRATION_COMPLETE" : "ADVANCED_TO_ROUND_2";
+  const participatedAward =
+    meta.round === "ROUND_1" ? "ROUND_1_PARTICIPATED" : "ROUND_2_PARTICIPATED";
+  const eligibleLabel = meta.round === "ROUND_1" ? "สมัครสำเร็จ" : "ผ่านเข้ารอบที่ 2";
+  const participatedLabel = meta.round === "ROUND_1" ? "เข้าร่วมรอบออนไลน์" : "เข้าร่วมรอบที่ 2";
+  const needsTeamCheckIn = team.teamCheckIn === null;
+  const canRegisterTeam = needsTeamCheckIn && team.award === eligibleAward;
+  const canCancelTeamRegistration = team.teamCheckIn !== null && team.award === participatedAward;
   const isUpdatingTeamAward = meta.updatingTeamAwardId === team.id;
 
   async function cancelTeamRegistration(): Promise<void> {
@@ -259,7 +263,7 @@ export function ParticipantCheckInTeamRow({
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                     <Check aria-hidden="true" className="size-4 text-emerald-600" />
-                    เข้าร่วมรอบออนไลน์
+                    {participatedLabel}
                   </span>
                   <AlertDialog
                     open={isCancelTeamRegistrationOpen}
@@ -285,7 +289,8 @@ export function ParticipantCheckInTeamRow({
                       <AlertDialogHeader>
                         <AlertDialogTitle>ยกเลิกการลงทะเบียนทีมเข้าร่วมงาน</AlertDialogTitle>
                         <AlertDialogDescription>
-                          คุณต้องการเปลี่ยนสถานะทีม {team.name} กลับเป็น “สมัครสำเร็จ” ใช่หรือไม่
+                          คุณต้องการเปลี่ยนสถานะทีม {team.name} กลับเป็น “{eligibleLabel}”
+                          และล้างการลงทะเบียนรายบุคคลในรอบนี้ ใช่หรือไม่
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -322,12 +327,12 @@ export function ParticipantCheckInTeamRow({
               ) : null}
             </div>
             <fieldset
-              aria-disabled={isRegistrationComplete}
+              aria-disabled={needsTeamCheckIn}
               className={cn(
                 "min-w-0 border-0 p-0",
-                isRegistrationComplete && "pointer-events-none opacity-50",
+                needsTeamCheckIn && "pointer-events-none opacity-50",
               )}
-              disabled={isRegistrationComplete}
+              disabled={needsTeamCheckIn}
             >
               <ParticipantCheckInMembersTable members={team.members} meta={meta} />
             </fieldset>

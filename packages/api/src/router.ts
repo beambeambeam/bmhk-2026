@@ -26,6 +26,10 @@ import { createFileService } from "./features/files/files.service";
 import type { FileStorage } from "./features/files/files.storage";
 import { createS3FileStorage } from "./features/files/files.storage";
 import { createPrivateDataRouter } from "./features/private-data/private-data.router";
+import { createRound2ConfirmationRepository } from "./features/round2-confirmation/round2-confirmation.repository";
+import type { Round2ConfirmationRepository } from "./features/round2-confirmation/round2-confirmation.repository";
+import { createRound2ConfirmationService } from "./features/round2-confirmation/round2-confirmation.service";
+import { createRound2ConfirmationRouter } from "./features/round2-confirmation/round2-confirmation.router";
 import { createFeatureFlagsRouter } from "./features/feature-flags/feature-flags.router";
 import { createFeatureFlagService } from "./features/feature-flags/feature-flags.service";
 import type { FileRepository } from "./features/files/files.repository";
@@ -78,6 +82,7 @@ export interface ApiDependencies {
   fileStorage?: FileStorage;
   /** Optional overrides keep feature tests isolated; production uses API-owned repositories. */
   files?: FileRepository;
+  round2Confirmation?: Round2ConfirmationRepository;
   teams?: TeamRepository;
   teamAdvisors?: TeamAdvisorRepository;
   teamConsents?: TeamConsentRepository;
@@ -146,6 +151,17 @@ export function createAppRouter(dependencies: ApiDependencies) {
       createParticipantCheckInService(participantCheckInRepository),
     ),
     privateData: createPrivateDataRouter(protectedProcedure),
+    round2Confirmation: createRound2ConfirmationRouter(
+      teamOwnerProcedure,
+      registrationProcedure,
+      teamAccessProcedure,
+      createRound2ConfirmationService(
+        dependencies.round2Confirmation ?? createRound2ConfirmationRepository(),
+        fileStorage,
+        fileRepository,
+        featureFlagService,
+      ),
+    ),
     staffCheckIns: createStaffCheckInsRouter(
       staffProcedure,
       createStaffCheckInService(staffCheckInRepository),

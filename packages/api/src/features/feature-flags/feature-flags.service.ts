@@ -67,6 +67,7 @@ export function createFeatureFlagService(
       featureFlags.qualifyingRoundIdentityConfirmation,
     ),
     registration: parseDefinition("registration", featureFlags.registration),
+    round2Confirmation: parseDefinition("round2Confirmation", featureFlags.round2Confirmation),
   } satisfies Record<FeatureFlagKey, ParsedFeatureFlagDefinition>;
 
   return {
@@ -96,6 +97,10 @@ export function createFeatureFlagService(
           Temporal.Instant.compare(currentTime, schedule.registration.startsAt) >= 0 &&
           (schedule.registration.endsAt === undefined ||
             Temporal.Instant.compare(currentTime, schedule.registration.endsAt) < 0),
+        round2Confirmation:
+          schedule.round2Confirmation.endsAt !== undefined &&
+          Temporal.Instant.compare(currentTime, schedule.round2Confirmation.startsAt) >= 0 &&
+          Temporal.Instant.compare(currentTime, schedule.round2Confirmation.endsAt) < 0,
       };
     },
   };

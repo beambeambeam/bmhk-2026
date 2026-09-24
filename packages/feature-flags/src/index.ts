@@ -12,12 +12,15 @@ export const featureFlags = {
     startsAt: "2026-09-27T13:00:00+07:00",
   },
   qualifyingRoundIdentityConfirmation: {
-    endsAt: "2026-09-25T18:00:00+07:00",
+    endsAt: "2026-09-27T13:00:00+07:00",
     startsAt: "2026-09-22T16:00:00+07:00",
   },
   registration: {
     endsAt: "2026-09-21T00:00:00+07:00",
     startsAt: "2026-08-19T00:00:00+07:00",
+  },
+  round2Confirmation: {
+    startsAt: "2026-09-28T14:00:00+07:00",
   },
 } as const;
 

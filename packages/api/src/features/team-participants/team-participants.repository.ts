@@ -1,15 +1,18 @@
 import { db } from "@bmhk-2026/db";
 import { files } from "@bmhk-2026/db/schema/files";
+import { teamRound2 } from "@bmhk-2026/db/schema/team-round2";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, eq } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
+import { hasErrorCode } from "../../core/errors";
 import { createRepositoryExecutor, rethrowRepositoryError } from "../../core/repository";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 import { createTeamAccessCondition } from "../teams/teams.repository";
+import { createTeamRosterLockedError, TEAM_ROSTER_LOCKED_ERROR_CODE } from "../teams/teams.errors";
 import {
   createTeamParticipantAlreadyExistsError,
   createTeamParticipantRepositoryError,
@@ -63,6 +66,27 @@ export interface TeamParticipantRepository {
 }
 
 type Database = typeof db;
+
+const participantIdentityFields = [
+  "dateOfBirth",
+  "firstNameEn",
+  "firstNameTh",
+  "lastNameEn",
+  "lastNameTh",
+  "middleNameEn",
+  "middleNameTh",
+  "titleEn",
+  "titleTh",
+] as const satisfies readonly (keyof UpdateTeamParticipantData)[];
+
+function changesParticipantIdentity(
+  current: typeof teamParticipants.$inferSelect,
+  data: UpdateTeamParticipantData,
+): boolean {
+  return participantIdentityFields.some(
+    (field) => data[field] !== undefined && data[field] !== current[field],
+  );
+}
 
 function toStoredFileOrNull(
   file: typeof files.$inferSelect | null,
@@ -133,6 +157,16 @@ export function createTeamParticipantRepository(
             return null;
           }
 
+          const [round2] = await tx
+            .select({ confirmedAt: teamRound2.confirmedAt })
+            .from(teamRound2)
+            .where(eq(teamRound2.teamId, team.id))
+            .limit(1);
+
+          if (round2 && round2.confirmedAt !== null) {
+            throw createTeamRosterLockedError();
+          }
+
           const [row] = await tx.insert(teamParticipants).values(data).returning();
 
           return row ?? null;
@@ -140,6 +174,10 @@ export function createTeamParticipantRepository(
       } catch (error) {
         if (isPostgresUniqueViolation(error, "team_participants_team_id_index_unique")) {
           throw createTeamParticipantAlreadyExistsError();
+        }
+
+        if (hasErrorCode(error, TEAM_ROSTER_LOCKED_ERROR_CODE)) {
+          throw error;
         }
 
         return rethrowRepositoryError(error, teamParticipantRepositoryError);
@@ -170,6 +208,17 @@ export function createTeamParticipantRepository(
       await execute(
         async () =>
           await database.transaction(async (tx) => {
+            const [team] = await tx
+              .select({ id: teams.id })
+              .from(teams)
+              .where(createTeamAccessCondition(access, teamId))
+              .for("update")
+              .limit(1);
+
+            if (!team) {
+              return null;
+            }
+
             const [current] = await tx
               .select({
                 academicRecordDocumentFileId: teamParticipants.academicRecordDocumentFileId,
@@ -178,14 +227,7 @@ export function createTeamParticipantRepository(
                 portraitPhotoFileId: teamParticipants.portraitPhotoFileId,
               })
               .from(teamParticipants)
-              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-              .where(
-                and(
-                  eq(teamParticipants.teamId, teamId),
-                  eq(teamParticipants.index, index),
-                  createTeamAccessCondition(access, teamId),
-                ),
-              )
+              .where(and(eq(teamParticipants.teamId, teamId), eq(teamParticipants.index, index)))
               .for("update")
               .limit(1);
 
@@ -244,36 +286,58 @@ export function createTeamParticipantRepository(
             return { participant: row, previous };
           }),
       ),
-    update: async (access, teamId, index, data) =>
-      await execute(
-        async () =>
-          await database.transaction(async (tx) => {
-            const [current] = await tx
-              .select({ id: teamParticipants.id })
-              .from(teamParticipants)
-              .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
-              .where(
-                and(
-                  eq(teamParticipants.teamId, teamId),
-                  eq(teamParticipants.index, index),
-                  createTeamAccessCondition(access, teamId),
-                ),
-              )
-              .for("update")
+    update: async (access, teamId, index, data) => {
+      try {
+        return await database.transaction(async (tx) => {
+          const [team] = await tx
+            .select({ id: teams.id })
+            .from(teams)
+            .where(createTeamAccessCondition(access, teamId))
+            .for("update")
+            .limit(1);
+
+          if (!team) {
+            return null;
+          }
+
+          const [current] = await tx
+            .select()
+            .from(teamParticipants)
+            .where(and(eq(teamParticipants.teamId, teamId), eq(teamParticipants.index, index)))
+            .for("update")
+            .limit(1);
+
+          if (!current) {
+            return null;
+          }
+
+          if (changesParticipantIdentity(current, data)) {
+            const [round2] = await tx
+              .select({ confirmedAt: teamRound2.confirmedAt })
+              .from(teamRound2)
+              .where(eq(teamRound2.teamId, team.id))
               .limit(1);
 
-            if (!current) {
-              return null;
+            if (round2 && round2.confirmedAt !== null) {
+              throw createTeamRosterLockedError();
             }
+          }
 
-            const [row] = await tx
-              .update(teamParticipants)
-              .set(data)
-              .where(eq(teamParticipants.id, current.id))
-              .returning();
+          const [row] = await tx
+            .update(teamParticipants)
+            .set(data)
+            .where(eq(teamParticipants.id, current.id))
+            .returning();
 
-            return row ?? null;
-          }),
-      ),
+          return row ?? null;
+        });
+      } catch (error) {
+        if (hasErrorCode(error, TEAM_ROSTER_LOCKED_ERROR_CODE)) {
+          throw error;
+        }
+
+        return rethrowRepositoryError(error, teamParticipantRepositoryError);
+      }
+    },
   };
 }

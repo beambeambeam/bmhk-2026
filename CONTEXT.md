@@ -40,6 +40,10 @@ _Avoid_: Membership
 The Team, participant, advisor, and supporting-document information submitted for competition entry.
 _Avoid_: Team data, form data
 
+**Round 2 Confirmation**:
+The Team Owner's explicit declaration that every participant in an advanced Team's declared roster will participate in the second competition round, supported by fresh national ID card and student ID card documents for each participant; advisors are excluded. Complete submission confirms participation without organizer approval and fixes the participant roster and confirmation documents, within the period from the onsite-team announcement through the final confirmation day.
+_Avoid_: Round 1 verification, registration review
+
 **Competition Category**:
 The division in which a Team competes. Master's and doctoral participants share the Graduate Competition Category.
 _Avoid_: Participant degree level

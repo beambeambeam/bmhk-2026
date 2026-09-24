@@ -35,7 +35,7 @@ function renderTable(award: TeamAward, canRemove = true): QueryClient {
   queryClient.setQueryData(
     getTeamRegistrationReviewListQueryOptions({
       eligibility: "ALL",
-      limit: 20,
+      limit: 10,
       offset: 0,
       reviewStatus: "ALL",
       search: "",
@@ -95,7 +95,7 @@ describe("participations table", () => {
     queryClient.setQueryData(
       getTeamRegistrationReviewListQueryOptions({
         eligibility: "ELIGIBLE",
-        limit: 20,
+        limit: 10,
         offset: 0,
         reviewStatus: "ALL",
         search: "",

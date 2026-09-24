@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { AssignGroupsDialog } from "./assign-groups-dialog";
 
-const PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 10;
 
 const columns: DataTableColumn<TeamWithGroup>[] = [
   { accessorKey: "index", header: "#", size: 80 },
@@ -29,10 +29,11 @@ interface TeamGroupsTableProps {
 
 function TeamGroupsTable({ teams }: TeamGroupsTableProps) {
   const [pageIndex, setPageIndex] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(teams.length / PAGE_SIZE));
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(teams.length / pageSize));
   const page = Math.min(pageIndex, pageCount - 1);
-  const start = page * PAGE_SIZE;
-  const visibleTeams = teams.slice(start, start + PAGE_SIZE);
+  const start = page * pageSize;
+  const visibleTeams = teams.slice(start, start + pageSize);
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,9 +49,18 @@ function TeamGroupsTable({ teams }: TeamGroupsTableProps) {
       {teams.length > 0 && (
         <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground">
-            Showing {start + 1}-{start + visibleTeams.length} of {teams.length} teams
+            แสดง {start + 1}-{start + visibleTeams.length} จากทั้งหมด {teams.length} ทีม
           </p>
-          <DataTablePagination pageIndex={page} pageCount={pageCount} onPageChange={setPageIndex} />
+          <DataTablePagination
+            pageIndex={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            onPageChange={setPageIndex}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize);
+              setPageIndex(0);
+            }}
+          />
         </div>
       )}
     </div>

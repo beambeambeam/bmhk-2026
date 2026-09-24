@@ -7,7 +7,7 @@ import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-re
 function Pagination({ className, ...props }: ComponentProps<"nav">) {
   return (
     <nav
-      aria-label="pagination"
+      aria-label="การแบ่งหน้า"
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -55,12 +55,12 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Previous",
+  text = "ก่อนหน้า",
   ...props
 }: ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
-      aria-label="Go to previous page"
+      aria-label="ไปหน้าก่อนหน้า"
       size="default"
       className={cn("pl-1.5!", className)}
       {...props}
@@ -73,12 +73,12 @@ function PaginationPrevious({
 
 function PaginationNext({
   className,
-  text = "Next",
+  text = "ถัดไป",
   ...props
 }: ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
-      aria-label="Go to next page"
+      aria-label="ไปหน้าถัดไป"
       size="default"
       className={cn("pr-1.5!", className)}
       {...props}
@@ -101,7 +101,7 @@ function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
       {...props}
     >
       <MoreHorizontalIcon />
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">หน้าเพิ่มเติม</span>
     </span>
   );
 }

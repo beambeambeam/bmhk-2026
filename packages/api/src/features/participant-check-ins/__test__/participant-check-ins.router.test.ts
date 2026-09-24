@@ -18,8 +18,10 @@ function createRepository(
 ): ParticipantCheckInRepository {
   return {
     cancel: overrides.cancel ?? (async () => await Promise.resolve(true)),
+    cancelTeam: overrides.cancelTeam ?? (async () => await Promise.resolve(true)),
     checkIn: overrides.checkIn ?? (async () => await Promise.resolve("CREATED")),
     list: overrides.list ?? (async () => await Promise.resolve({ rowCount: 0, rows: [] })),
+    registerTeam: overrides.registerTeam ?? (async () => await Promise.resolve("CREATED")),
     updateFlag: overrides.updateFlag ?? (async () => await Promise.resolve(true)),
   };
 }
@@ -38,12 +40,119 @@ function createRouter(
 }
 
 describe("participant check-ins router", () => {
-  it("lists participants with controlled table pagination and email/name/team filters", async () => {
+  it.each([
+    ["ROUND_2", "ROUND_2_PARTICIPATED"],
+    ["ROUND_3", "ROUND_3_PARTICIPATED"],
+  ] as const)(
+    "registers and cancels a team in %s with round-specific audit changes",
+    async (round, award) => {
+      const registerTeam = vi
+        .fn<ParticipantCheckInRepository["registerTeam"]>()
+        .mockResolvedValue("CREATED");
+      const cancelTeam = vi
+        .fn<ParticipantCheckInRepository["cancelTeam"]>()
+        .mockResolvedValue(true);
+      const router = createRouter(createRepository({ cancelTeam, registerTeam }));
+      const { context, log } = createTestContext();
+      const input = { round, teamId: TARGET_PARTICIPANT_ID };
+      await expect(call(router.registerTeam, input, { context })).resolves.toStrictEqual(input);
+      expect(registerTeam).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, ACTOR_ID, round);
+      expect(log.audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "team-check-in.created",
+          changes: {
+            after: { award, round, status: "checked-in" },
+          },
+        }),
+      );
+      await call(router.cancelTeam, input, { context });
+      expect(cancelTeam).toHaveBeenCalledWith(TARGET_PARTICIPANT_ID, round);
+      expect(log.audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "team-check-in.cancelled",
+          changes: {
+            after: { round, status: "not-checked-in" },
+            before: { round, status: "checked-in" },
+          },
+        }),
+      );
+    },
+  );
+
+  it("requires a valid team identifier for round two check-in", async () => {
+    const registerTeam = vi
+      .fn<ParticipantCheckInRepository["registerTeam"]>()
+      .mockResolvedValue("CREATED");
+    const router = createRouter(createRepository({ registerTeam }));
+    const { context } = createTestContext();
+    await expect(
+      call(
+        router.registerTeam,
+        { round: "ROUND_2", teamId: "invalid-team" },
+        {
+          context,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(registerTeam).not.toHaveBeenCalled();
+  });
+
+  it("denies round two team check-in without registration access", async () => {
+    const registerTeam = vi
+      .fn<ParticipantCheckInRepository["registerTeam"]>()
+      .mockResolvedValue("CREATED");
+    const router = createRouter(
+      createRepository({ registerTeam }),
+      createTestAuthReader(createTestSession({ user: { id: ACTOR_ID, role: "user" } })),
+    );
+    const { context } = createTestContext();
+    await expect(
+      call(router.registerTeam, { round: "ROUND_2", teamId: TARGET_PARTICIPANT_ID }, { context }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(registerTeam).not.toHaveBeenCalled();
+  });
+
+  it("audits a failed round two team registration", async () => {
+    const router = createRouter(
+      createRepository({
+        registerTeam: vi
+          .fn<ParticipantCheckInRepository["registerTeam"]>()
+          .mockRejectedValue(new Error("Repository unavailable")),
+      }),
+    );
+    const { context, log } = createTestContext();
+    await expect(
+      call(router.registerTeam, { round: "ROUND_2", teamId: TARGET_PARTICIPANT_ID }, { context }),
+    ).rejects.toThrow("Repository unavailable");
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "team-check-in.created", outcome: "failure" }),
+    );
+  });
+
+  it.each([
+    ["ROUND_1", "registered"],
+    ["ROUND_1", "unregistered"],
+    ["ROUND_2", "registered"],
+    ["ROUND_2", "unregistered"],
+    ["ROUND_3", "registered"],
+    ["ROUND_3", "unregistered"],
+  ] as const)("combines team search with %s %s status", async (round, status) => {
+    const list = vi
+      .fn<ParticipantCheckInRepository["list"]>()
+      .mockResolvedValue({ rowCount: 0, rows: [] });
+    const router = createRouter(createRepository({ list }));
+    const { context } = createTestContext();
+    const columnFilters = [
+      { id: "team" as const, value: "Alpha" },
+      { id: "teamCheckIn" as const, value: status },
+    ];
+    await call(router.list, { columnFilters, round }, { context });
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ columnFilters, round }));
+  });
+
+  it("lists matching teams with controlled table pagination and team search", async () => {
     const input = {
-      columnFilters: [
-        { id: "email" as const, value: "@example.com" },
-        { id: "teamName" as const, value: "BangMod" },
-      ],
+      columnFilters: [{ id: "team" as const, value: "BangMod" }],
       pagination: { pageIndex: 1, pageSize: 25 },
       round: "ROUND_1" as const,
       sorting: [{ desc: true, id: "checkedInAt" as const }],

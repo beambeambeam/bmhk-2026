@@ -13,6 +13,7 @@ export * from "./staff-discord-links";
 export * from "./staff-overseer-import-backlog";
 export * from "./staff-verify-tokens";
 export * from "./team-advisors";
+export * from "./team-check-ins";
 export * from "./team-consents";
 export * from "./team-participants";
 export * from "./team-registration-reviews";

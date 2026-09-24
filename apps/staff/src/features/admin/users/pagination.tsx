@@ -24,8 +24,16 @@ function AdminUsersPagination({ table, visibleRowCount }: AdminUsersPaginationPr
       <DataTablePagination
         pageIndex={pageIndex}
         pageCount={pageCount}
+        pageSize={pageSize}
         onPageChange={(page) => {
           table.setPageIndex(page);
+        }}
+        onPageSizeChange={(nextPageSize) => {
+          table.setPagination((currentPagination) => ({
+            ...currentPagination,
+            pageIndex: 0,
+            pageSize: nextPageSize,
+          }));
         }}
       />
     </div>

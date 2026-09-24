@@ -34,7 +34,7 @@ const teamRegistrationOptions = [
   { label: "ลงทะเบียนทีมแล้ว", value: "registered" },
   { label: "ยังไม่ลงทะเบียนทีม", value: "unregistered" },
 ] as const;
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
 function noop(): undefined {
@@ -65,6 +65,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
   const [searches, setSearches] = useState<SearchValues>({ team: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
   const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [registrationStatus, setRegistrationStatus] = useState<
     "all" | "registered" | "unregistered"
   >("all");
@@ -98,11 +99,11 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
   const input = useMemo<ParticipantCheckInListQuery>(
     () => ({
       columnFilters,
-      pagination: { pageIndex, pageSize: PAGE_SIZE },
+      pagination: { pageIndex, pageSize },
       round,
       sorting: [sorting],
     }),
-    [columnFilters, pageIndex, round, sorting],
+    [columnFilters, pageIndex, pageSize, round, sorting],
   );
   const participantQuery = useQuery({
     ...orpc.participantCheckIns.list.queryOptions({
@@ -148,7 +149,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
   );
   const teams = participantQuery.data?.rows ?? [];
   const rowCount = participantQuery.data?.rowCount ?? 0;
-  const pageCount = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rowCount / pageSize));
 
   async function checkIn(participantId: string, name: string): Promise<void> {
     try {
@@ -298,7 +299,12 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
           disabled={participantQuery.isFetching}
           pageIndex={pageIndex}
           pageCount={pageCount}
+          pageSize={pageSize}
           onPageChange={setPageIndex}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPageIndex(0);
+          }}
         />
       </div>
     </div>

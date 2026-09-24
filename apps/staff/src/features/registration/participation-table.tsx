@@ -30,7 +30,7 @@ import { StatusChip } from "./participation-review-status";
 import { formatStaffDate, formatStaffDateTime } from "./review-utils";
 
 const SEARCH_DEBOUNCE_MS = 300;
-const PARTICIPATIONS_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 const sortableColumns = [
   { id: "index", label: "รหัสทีม" },
   { id: "registrationSubmittedAt", label: "วันที่ส่ง" },
@@ -209,13 +209,14 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [sortBy, setSortBy] = useState<ParticipationSort>("registrationSubmittedAt");
   const [sortDesc, setSortDesc] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<TeamRegistrationReviewListFilter>("ALL");
   const query = useQuery({
     ...getTeamRegistrationReviewListQueryOptions({
       eligibility,
-      limit: PARTICIPATIONS_PAGE_SIZE,
+      limit: pageSize,
       offset,
       reviewStatus,
       search: debouncedSearch,
@@ -367,10 +368,14 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
       {pagination ? (
         <ParticipationPagination
           isFetching={query.isFetching}
-          pageSize={PARTICIPATIONS_PAGE_SIZE}
+          pageSize={pageSize}
           pagination={pagination}
           visibleRowCount={teams.length}
           onOffsetChange={setOffset}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setOffset(0);
+          }}
         />
       ) : null}
     </div>

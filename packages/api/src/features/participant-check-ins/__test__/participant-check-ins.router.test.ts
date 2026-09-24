@@ -38,12 +38,9 @@ function createRouter(
 }
 
 describe("participant check-ins router", () => {
-  it("lists participants with controlled table pagination and email/name/team filters", async () => {
+  it("lists matching teams with controlled table pagination and team search", async () => {
     const input = {
-      columnFilters: [
-        { id: "email" as const, value: "@example.com" },
-        { id: "teamName" as const, value: "BangMod" },
-      ],
+      columnFilters: [{ id: "team" as const, value: "BangMod" }],
       pagination: { pageIndex: 1, pageSize: 25 },
       round: "ROUND_1" as const,
       sorting: [{ desc: true, id: "checkedInAt" as const }],

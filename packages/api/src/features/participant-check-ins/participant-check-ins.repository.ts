@@ -3,7 +3,7 @@ import { user } from "@bmhk-2026/db/schema/auth";
 import { participantCheckIns } from "@bmhk-2026/db/schema/participant-check-ins";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
-import { and, countDistinct, eq, ilike, inArray } from "drizzle-orm";
+import { and, countDistinct, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -55,6 +55,11 @@ const teamSortColumns = {
   teamCode: teams.index,
   teamName: teams.name,
 } as const;
+const teamCodeSearchColumn = sql<string>`'BH' || lpad(
+  ${teams.index}::text,
+  greatest(3, length(${teams.index}::text)),
+  '0'
+) || '/26'`;
 const defaultParticipantCheckInSorting = [
   { desc: false, id: "name" },
 ] as const satisfies readonly ParticipantCheckInSort[];
@@ -89,13 +94,7 @@ function createParticipantCheckInFilterCondition(
     return undefined;
   }
   const pattern = `%${escapeLikePattern(filter.value)}%`;
-  if (filter.id === "email") {
-    return ilike(teamParticipants.email, pattern);
-  }
-  if (filter.id === "teamName") {
-    return ilike(teams.name, pattern);
-  }
-  return ilike(teamParticipants.firstNameTh, pattern);
+  return or(ilike(teams.name, pattern), ilike(teamCodeSearchColumn, pattern));
 }
 
 export function createParticipantCheckInRepository(

@@ -31,16 +31,14 @@ export const participantCheckInTeamSchema = z
     name: z.string(),
   })
   .strict();
-export const participantCheckInColumnFilterSchema = z.discriminatedUnion("id", [
-  z.object({ id: z.literal("email"), value: z.string().trim().max(254) }).strict(),
-  z.object({ id: z.literal("name"), value: z.string().trim().max(255) }).strict(),
-  z.object({ id: z.literal("teamName"), value: z.string().trim().max(255) }).strict(),
-]);
+export const participantCheckInColumnFilterSchema = z
+  .object({ id: z.literal("team"), value: z.string().trim().max(255) })
+  .strict();
 export const listParticipantCheckInsSchema = createTableQuerySchema({
   columnFilterSchema: participantCheckInColumnFilterSchema,
   defaultPageSize: 10,
   defaultSorting: [{ desc: false, id: "name" }],
-  maxColumnFilters: 3,
+  maxColumnFilters: 1,
   sortableColumnIds: ["teamCode", "teamName", "email", "name", "checkedInAt", "flag"],
 }).extend({ round: checkInRoundSchema });
 export const participantCheckInListResultSchema = createTableListResultSchema(

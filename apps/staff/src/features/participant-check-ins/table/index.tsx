@@ -1,4 +1,4 @@
-import { Field, FieldGroup, FieldLabel } from "@/components/field";
+import { Field, FieldGroup } from "@/components/field";
 import { Input } from "@/components/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 import { DataTablePagination } from "@/components/table/pagination";
@@ -44,14 +44,12 @@ interface ParticipantCheckInTableProps {
 }
 
 interface SearchValues {
-  readonly email: string;
-  readonly name: string;
-  readonly teamName: string;
+  readonly team: string;
 }
 
 function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProps) {
   const queryClient = useQueryClient();
-  const [searches, setSearches] = useState<SearchValues>({ email: "", name: "", teamName: "" });
+  const [searches, setSearches] = useState<SearchValues>({ team: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
   const [pageIndex, setPageIndex] = useState(0);
   const [sorting, setSorting] = useState<ParticipantCheckInSort>({ desc: false, id: "name" });
@@ -63,9 +61,7 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     }
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearches({
-        email: searches.email.trim(),
-        name: searches.name.trim(),
-        teamName: searches.teamName.trim(),
+        team: searches.team.trim(),
       });
       setPageIndex(0);
     }, SEARCH_DEBOUNCE_MS);
@@ -74,17 +70,10 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
     };
   }, [searches]);
   const columnFilters = useMemo<ParticipantCheckInColumnFilter[]>(() => {
-    const filters: ParticipantCheckInColumnFilter[] = [];
-    if (debouncedSearches.email) {
-      filters.push({ id: "email", value: debouncedSearches.email });
+    if (debouncedSearches.team.length === 0) {
+      return [];
     }
-    if (debouncedSearches.name) {
-      filters.push({ id: "name", value: debouncedSearches.name });
-    }
-    if (debouncedSearches.teamName) {
-      filters.push({ id: "teamName", value: debouncedSearches.teamName });
-    }
-    return filters;
+    return [{ id: "team", value: debouncedSearches.team }];
   }, [debouncedSearches]);
   const input = useMemo<ParticipantCheckInListQuery>(
     () => ({
@@ -167,27 +156,18 @@ function ParticipantCheckInTable({ actorId, round }: ParticipantCheckInTableProp
 
   return (
     <div className="flex flex-col gap-5">
-      <FieldGroup className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
-        {(
-          [
-            ["email", "อีเมล", "ค้นหาอีเมล"],
-            ["name", "ชื่อ", "ค้นหาชื่อ"],
-            ["teamName", "ทีม", "ค้นหาชื่อทีม"],
-          ] as const
-        ).map(([key, label, placeholder]) => (
-          <Field key={key}>
-            <FieldLabel htmlFor={`participant-check-in-${key}`}>{label}</FieldLabel>
-            <Input
-              id={`participant-check-in-${key}`}
-              placeholder={placeholder}
-              type="search"
-              value={searches[key]}
-              onChange={(event) => {
-                setSearches((current) => ({ ...current, [key]: event.target.value }));
-              }}
-            />
-          </Field>
-        ))}
+      <FieldGroup className="grid w-full grid-cols-1 gap-3 sm:max-w-2xl">
+        <Field>
+          <Input
+            id="participant-check-in-team"
+            placeholder="ค้นหาชื่อทีมหรือรหัสทีม"
+            type="search"
+            value={searches.team}
+            onChange={(event) => {
+              setSearches((current) => ({ ...current, team: event.target.value }));
+            }}
+          />
+        </Field>
       </FieldGroup>
       <Table className="min-w-[74rem] table-fixed">
         <colgroup>

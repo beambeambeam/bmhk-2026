@@ -4,6 +4,11 @@ import { Temporal } from "temporal-polyfill";
 
 import type { FeatureFlags } from "./feature-flags.schema";
 
+export interface Round2ConfirmationWindow {
+  endsAt?: string;
+  startsAt: string;
+}
+
 export interface FeatureFlagService {
   getAll: () => FeatureFlags;
 }
@@ -50,6 +55,7 @@ function parseDefinition(
 
 export function createFeatureFlagService(
   now: () => Temporal.Instant = () => Temporal.Now.instant(),
+  round2ConfirmationWindow: Round2ConfirmationWindow | null = featureFlags.round2Confirmation,
 ): FeatureFlagService {
   const schedule = {
     eligibleTeamsAnnouncement: parseDefinition(
@@ -67,7 +73,11 @@ export function createFeatureFlagService(
       featureFlags.qualifyingRoundIdentityConfirmation,
     ),
     registration: parseDefinition("registration", featureFlags.registration),
-  } satisfies Record<FeatureFlagKey, ParsedFeatureFlagDefinition>;
+  } satisfies Record<Exclude<FeatureFlagKey, "round2Confirmation">, ParsedFeatureFlagDefinition>;
+  const round2ConfirmationSchedule =
+    round2ConfirmationWindow === null
+      ? null
+      : parseDefinition("round2Confirmation", round2ConfirmationWindow);
 
   return {
     getAll: () => {
@@ -96,6 +106,11 @@ export function createFeatureFlagService(
           Temporal.Instant.compare(currentTime, schedule.registration.startsAt) >= 0 &&
           (schedule.registration.endsAt === undefined ||
             Temporal.Instant.compare(currentTime, schedule.registration.endsAt) < 0),
+        round2Confirmation:
+          round2ConfirmationSchedule !== null &&
+          round2ConfirmationSchedule.endsAt !== undefined &&
+          Temporal.Instant.compare(currentTime, round2ConfirmationSchedule.startsAt) >= 0 &&
+          Temporal.Instant.compare(currentTime, round2ConfirmationSchedule.endsAt) < 0,
       };
     },
   };

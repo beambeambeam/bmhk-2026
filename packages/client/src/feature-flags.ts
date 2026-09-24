@@ -12,6 +12,7 @@ const unavailableFeatureFlags: FeatureFlags = {
   qualifyingRound: false,
   qualifyingRoundIdentityConfirmation: false,
   registration: false,
+  round2Confirmation: false,
 };
 
 const CLOCK_SKEW_BUFFER_MS = 1000;
@@ -25,6 +26,7 @@ const MAX_TIMER_DELAY_MS = 2_147_483_647;
 // the whole span, which is indistinguishable in practice.
 const MAX_STALE_TIME_MS = 14 * 24 * 60 * 60 * 1000;
 const featureFlagTransitions = Object.values(featureFlags)
+  .filter((featureFlag) => featureFlag !== null)
   .flatMap((featureFlag) => [
     Date.parse(featureFlag.startsAt),
     ...("endsAt" in featureFlag ? [Date.parse(featureFlag.endsAt)] : []),

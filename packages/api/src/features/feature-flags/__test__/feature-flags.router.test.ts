@@ -1,4 +1,5 @@
 import { call } from "@orpc/server";
+import type { Round2ConfirmationWindow } from "../../../index";
 import { Temporal } from "temporal-polyfill";
 import { describe, expect, it } from "vitest";
 
@@ -9,10 +10,15 @@ import {
   createUnusedStaffDiscordLinkService,
 } from "../../../__test__/test-support";
 
-function createRouter(now: string, authenticated = true) {
+function createRouter(
+  now: string,
+  authenticated = true,
+  round2ConfirmationWindow?: Round2ConfirmationWindow | null,
+) {
   return createAppRouter({
     auth: createTestAuthReader(authenticated ? undefined : null),
     featureFlagClock: () => Temporal.Instant.from(now),
+    ...(round2ConfirmationWindow === undefined ? {} : { round2ConfirmationWindow }),
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
   });
 }
@@ -35,7 +41,55 @@ describe("feature flags", () => {
       qualifyingRound: false,
       qualifyingRoundIdentityConfirmation: true,
       registration: false,
+      round2Confirmation: false,
     });
+  });
+
+  it("keeps round 2 confirmation closed until its schedule is configured", async () => {
+    const router = createRouter("2036-09-24T00:00:00.000Z");
+
+    await expect(getAll(router)).resolves.toMatchObject({ round2Confirmation: false });
+  });
+
+  it("keeps round 2 closed when only the announcement date is configured", async () => {
+    const router = createRouter("2036-10-01T00:00:00Z", true, {
+      startsAt: "2026-09-28T14:00:00+07:00",
+    });
+    await expect(getAll(router)).resolves.toMatchObject({ round2Confirmation: false });
+  });
+
+  it("includes the start and excludes the end of round 2 confirmation", async () => {
+    const window = {
+      endsAt: "2026-10-02T18:00:00+07:00",
+      startsAt: "2026-10-01T09:00:00+07:00",
+    };
+    const beforeStart = createRouter("2026-10-01T08:59:59.999+07:00", true, window);
+    const atStart = createRouter("2026-10-01T09:00:00+07:00", true, window);
+    const beforeEnd = createRouter("2026-10-02T17:59:59.999+07:00", true, window);
+    const atEnd = createRouter("2026-10-02T18:00:00+07:00", true, window);
+
+    await expect(getAll(beforeStart)).resolves.toMatchObject({ round2Confirmation: false });
+    await expect(getAll(atStart)).resolves.toMatchObject({ round2Confirmation: true });
+    await expect(getAll(beforeEnd)).resolves.toMatchObject({ round2Confirmation: true });
+    await expect(getAll(atEnd)).resolves.toMatchObject({ round2Confirmation: false });
+  });
+
+  it("rejects round 2 confirmation schedules without explicit offsets", () => {
+    expect(() =>
+      createRouter("2026-10-01T00:00:00Z", true, {
+        endsAt: "2026-10-02T18:00:00+07:00",
+        startsAt: "2026-10-01T09:00:00",
+      }),
+    ).toThrow('Invalid startsAt for feature flag "round2Confirmation"');
+  });
+
+  it("rejects round 2 confirmation schedules that end before they start", () => {
+    expect(() =>
+      createRouter("2026-10-01T00:00:00Z", true, {
+        endsAt: "2026-10-01T09:00:00+07:00",
+        startsAt: "2026-10-01T10:00:00+07:00",
+      }),
+    ).toThrow('Invalid window for feature flag "round2Confirmation"');
   });
 
   it("includes the start and excludes the end of registration", async () => {

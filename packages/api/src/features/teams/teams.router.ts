@@ -62,7 +62,7 @@ export function createTeamsRouter(
             actor: { id: context.teamAccess.actorId, type: "user" },
             target: { id: input.id, teamId: input.id },
           }),
-          deniedErrorCodes: ["TEAM_NOT_FOUND"],
+          deniedErrorCodes: ["TEAM_NOT_FOUND", "TEAM_ROSTER_LOCKED"],
           execute: async () => await service.delete(context.teamAccess, input.id),
           log: context.log,
         });

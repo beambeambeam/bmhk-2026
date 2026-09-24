@@ -19,6 +19,9 @@ export const featureFlags = {
     endsAt: "2026-09-21T00:00:00+07:00",
     startsAt: "2026-08-19T00:00:00+07:00",
   },
+  round2Confirmation: {
+    startsAt: "2026-09-28T14:00:00+07:00",
+  },
 } as const;
 
 export type FeatureFlagKey = keyof typeof featureFlags;

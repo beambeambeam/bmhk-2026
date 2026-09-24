@@ -68,7 +68,7 @@ export function createPdfFileTypeNotAllowedError() {
     fix: "Upload a PDF file",
     message: "File type is not allowed",
     status: 415,
-    why: "Team advisor documents must be PDF files",
+    why: "Uploaded documents must be PDF files",
   });
 }
 
@@ -88,7 +88,7 @@ export function createFileNotFoundError() {
     fix: "Check the file ID and try again",
     message: "File not found",
     status: 404,
-    why: "No file owned by the current user matches this ID",
+    why: "No file accessible to the current user matches this request",
   });
 }
 
@@ -141,6 +141,7 @@ export function assertAllowedOrigin(headers: Headers): void {
 
 const PDF_SIGNATURE = new TextEncoder().encode("%PDF-");
 const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const ROUND_2_CONFIRMATION_OBJECT_KEY_PREFIX = "round2-confirmation/";
 
 export interface ValidatedUpload {
   body: Uint8Array;
@@ -443,7 +444,7 @@ export function createFileService(repository: FileRepository, storage: FileStora
   return {
     get: async (userId, id) => {
       const file = await repository.findById(userId, id);
-      if (!file) {
+      if (!file || file.objectKey.startsWith(ROUND_2_CONFIRMATION_OBJECT_KEY_PREFIX)) {
         throw createFileNotFoundError();
       }
 

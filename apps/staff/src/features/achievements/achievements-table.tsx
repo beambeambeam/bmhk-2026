@@ -17,16 +17,15 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { AchievementsAward } from "./achievements-award";
-import { awardFilters, registrationStatusLabels } from "./achievements-labels";
+import { awardFilters } from "./achievements-labels";
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
 const sortableColumns = [
   { id: "name", label: "ชื่อทีม" },
   { id: "school", label: "โรงเรียน" },
   { id: "memberCount", label: "จำนวนสมาชิก" },
-  { id: "registrationStatus", label: "สถานะการสมัคร" },
   { id: "award", label: "ผลงาน" },
 ] as const satisfies readonly { id: TeamListSort; label: string }[];
 
@@ -63,23 +62,6 @@ const columnDefinitions: DataTableColumn<TeamListRow, AchievementsTableMeta>[] =
     header: "จำนวนสมาชิก",
     id: "memberCount",
     size: 150,
-  },
-  {
-    cell: ({ row }) => {
-      const team = row.original;
-      return (
-        <span
-          className={
-            team.registrationStatus === "APPROVED" ? "text-emerald-600" : "text-muted-foreground"
-          }
-        >
-          {registrationStatusLabels[team.registrationStatus]}
-        </span>
-      );
-    },
-    header: "สถานะการสมัคร",
-    id: "registrationStatus",
-    size: 180,
   },
   {
     cell: ({ row }) => {
@@ -133,6 +115,7 @@ function AchievementsTable() {
   const [sortBy, setSortBy] = useState<TeamListSort>("name");
   const [sortDesc, setSortDesc] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -147,7 +130,7 @@ function AchievementsTable() {
 
   const teamsQuery = useQuery({
     ...orpc.teams.list.queryOptions({
-      input: { award, limit: PAGE_SIZE, offset, search: debouncedSearch, sortBy, sortDesc },
+      input: { award, limit: pageSize, offset, search: debouncedSearch, sortBy, sortDesc },
     }),
     placeholderData: keepPreviousData,
   });
@@ -224,10 +207,15 @@ function AchievementsTable() {
         <p className="text-muted-foreground">ทั้งหมด {pagination?.total ?? 0} ทีม</p>
         <DataTablePagination
           disabled={teamsQuery.isFetching}
-          pageIndex={Math.floor(offset / PAGE_SIZE)}
+          pageIndex={Math.floor(offset / pageSize)}
           pageCount={pagination?.totalPages ?? 1}
+          pageSize={pageSize}
           onPageChange={(page) => {
-            setOffset(page * PAGE_SIZE);
+            setOffset(page * pageSize);
+          }}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setOffset(0);
           }}
         />
       </div>

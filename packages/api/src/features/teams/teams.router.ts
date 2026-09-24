@@ -123,12 +123,21 @@ export function createTeamsRouter(
           }),
           execute: async () => await service.setAward(context.teamAccess, input.id, input.award),
           log: context.log,
-          onSuccess: ({ previous, team: changedTeam }) => ({
-            changes: {
-              after: { award: changedTeam.award },
-              before: { award: previous.award },
-            },
-          }),
+          onSuccess: ({ previous, roundOneCheckInsReset = 0, team: changedTeam }) => {
+            const hasResetRoundOneCheckIns = roundOneCheckInsReset > 0;
+            return {
+              changes: {
+                after: {
+                  award: changedTeam.award,
+                  ...(hasResetRoundOneCheckIns ? { roundOneCheckIns: 0 } : {}),
+                },
+                before: {
+                  award: previous.award,
+                  ...(hasResetRoundOneCheckIns ? { roundOneCheckIns: roundOneCheckInsReset } : {}),
+                },
+              },
+            };
+          },
         });
         context.log.set({ team: { id: team.id } });
         return team;

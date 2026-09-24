@@ -21,7 +21,7 @@ import type {
 import { StaffCheckInCancel } from "./staff-check-in-cancel";
 import { formatCheckInDate, getStaffCheckInErrorMessage } from "./staff-check-in-utils";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
 function noop(): undefined {
@@ -167,6 +167,7 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
   const [searches, setSearches] = useState<SearchValues>({ email: "", name: "" });
   const [debouncedSearches, setDebouncedSearches] = useState<SearchValues>(searches);
   const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [sorting, setSorting] = useState<StaffCheckInSort>({ desc: false, id: "name" });
   const hasInitializedSearch = useRef(false);
 
@@ -199,11 +200,11 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
   const input = useMemo<StaffCheckInListQuery>(
     () => ({
       columnFilters,
-      pagination: { pageIndex, pageSize: PAGE_SIZE },
+      pagination: { pageIndex, pageSize },
       round,
       sorting: [sorting],
     }),
-    [columnFilters, pageIndex, round, sorting],
+    [columnFilters, pageIndex, pageSize, round, sorting],
   );
   const staffQuery = useQuery({
     ...orpc.staffCheckIns.list.queryOptions({
@@ -222,7 +223,7 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
   );
   const staffMembers = staffQuery.data?.rows ?? [];
   const rowCount = staffQuery.data?.rowCount ?? 0;
-  const pageCount = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rowCount / pageSize));
   const { isLoading } = staffQuery;
   const errorMessage = staffQuery.isError
     ? getStaffCheckInErrorMessage(staffQuery.error, "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง")
@@ -304,7 +305,12 @@ function StaffCheckInTable({ actorId, round }: StaffCheckInTableProps) {
           disabled={staffQuery.isFetching}
           pageIndex={pageIndex}
           pageCount={pageCount}
+          pageSize={pageSize}
           onPageChange={setPageIndex}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPageIndex(0);
+          }}
         />
       </div>
     </div>

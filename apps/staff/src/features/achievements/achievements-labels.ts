@@ -8,7 +8,7 @@ const achievementLabels = {
   HONORABLE_MENTION: "รางวัลชมเชย",
   NO_ACHIEVEMENT: "ยังไม่มีผลงาน",
   REGISTRATION_COMPLETED: "สมัครสำเร็จ",
-  REGISTRATION_FAILED: "ไม่ผ่านการคัดเลือก",
+  REGISTRATION_FAILED: "สมัครไม่สำเร็จ",
   ROUND_1_COMPLETED: "ผ่านรอบคัดเลือก",
   ROUND_2_COMPLETED: "ผ่านรอบชิงชนะเลิศ",
   SECOND_PLACE: "รางวัลอันดับที่ 2",

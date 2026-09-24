@@ -339,7 +339,7 @@ export function getStatusSteps(
       DOCS_OK,
       {
         compact: true,
-        label: "ไม่ผ่านการคัดเลือก",
+        label: "สมัครไม่สำเร็จ",
         title: "การเข้าแข่งขันรอบคัดเลือก",
         tone: "failed",
       },
@@ -390,6 +390,6 @@ export const REJECTED_MODAL = {
 
 export const SELECTION_FAILED_MODAL = {
   image: "/assets/figma/88a60428462d844f1f3ed64f3d0783097c2d33ac.png",
-  lines: ["ขออภัย ทีมของคุณไม่ผ่านการคัดเลือก", "แล้วพบกันใหม่ในการแข่งขันครั้งหน้า"],
+  lines: ["ขออภัย ทีมของคุณสมัครไม่สำเร็จ", "แล้วพบกันใหม่ในการแข่งขันครั้งหน้า"],
   title: "ทีมของคุณไม่มีสิทธิ์เข้าแข่งขันรอบคัดเลือก",
 };

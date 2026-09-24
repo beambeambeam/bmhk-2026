@@ -44,7 +44,7 @@ export type UnlinkStaffResult =
 
 export interface RepairFacts {
   participants: { channel_id: string | null; discord_user_id: string }[];
-  staff: { category_id: string | null; discord_user_id: string; is_admin: boolean }[];
+  staff: { category_id: string | null; discord_user_id: string; role: string | null }[];
 }
 
 export type StaffNicknameFact =

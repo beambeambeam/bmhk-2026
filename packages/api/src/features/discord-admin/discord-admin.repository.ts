@@ -13,8 +13,6 @@ import { asc, eq, or } from "drizzle-orm";
 import { createRepositoryExecutor } from "../../core/repository";
 import { discordAdminRepositoryError } from "./discord-admin.errors";
 
-const ADMIN_ROLES = new Set(["admin", "superAdmin"]);
-
 export interface AdminParticipantFacts {
   altAccUserId: string | null;
   altRedeemedAt: Date | null;
@@ -40,7 +38,7 @@ export interface AdminTeamFacts {
 
 export interface RepairFacts {
   participants: { channelId: string | null; discordUserId: string }[];
-  staff: { categoryId: string | null; discordUserId: string; isAdmin: boolean }[];
+  staff: { categoryId: string | null; discordUserId: string; role: string | null }[];
 }
 
 export interface StaffNicknameFactsRow {
@@ -256,11 +254,7 @@ export function createDiscordAdminRepository(database: Database = db): DiscordAd
 
         return {
           participants,
-          staff: staffRows.map(({ categoryId, discordUserId, role }) => ({
-            categoryId,
-            discordUserId,
-            isAdmin: role !== null && ADMIN_ROLES.has(role),
-          })),
+          staff: staffRows,
         };
       }),
     unlinkParticipant: async (discordUserId) =>

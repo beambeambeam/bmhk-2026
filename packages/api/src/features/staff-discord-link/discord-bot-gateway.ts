@@ -1,8 +1,8 @@
 export interface ApplyStaffVerificationParams {
   categoryId: string | null;
   discordUserId: string;
-  isAdmin: boolean;
   nickname: string;
+  role: string;
 }
 
 export interface DiscordBotGateway {
@@ -16,13 +16,13 @@ export interface DiscordBotGatewayConfig {
 
 export function createFetchDiscordBotGateway(config: DiscordBotGatewayConfig): DiscordBotGateway {
   return {
-    applyStaffVerification: async ({ categoryId, discordUserId, isAdmin, nickname }) => {
+    applyStaffVerification: async ({ categoryId, discordUserId, nickname, role }) => {
       const response = await fetch(new URL("/internal/staff-verify", config.baseUrl), {
         body: JSON.stringify({
           category_id: categoryId,
           discord_user_id: discordUserId,
-          is_admin: isAdmin,
           nickname,
+          role,
         }),
         headers: { "content-type": "application/json", "x-internal-secret": config.secret },
         method: "POST",

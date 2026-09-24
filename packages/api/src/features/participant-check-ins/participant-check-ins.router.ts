@@ -4,12 +4,16 @@ import {
   participantCheckInCancelledAudit,
   participantCheckInCreatedAudit,
   participantCheckInFlagChangedAudit,
+  teamCheckInCreatedAudit,
+  teamCheckInCancelledAudit,
 } from "../audit/audit.actions";
 import {
   createParticipantCheckInSchema,
   listParticipantCheckInsSchema,
   participantCheckInListResultSchema,
   updateParticipantCheckInFlagSchema,
+  teamCheckInInputSchema,
+  teamCheckInAwards,
 } from "./participant-check-ins.schema";
 import type { ParticipantCheckInService } from "./participant-check-ins.service";
 
@@ -39,6 +43,30 @@ export function createParticipantCheckInsRouter(
         });
         return input;
       }),
+    cancelTeam: registrationProcedure
+      .route({ method: "DELETE", tags: ["Participant Check-in"] })
+      .input(teamCheckInInputSchema)
+      .output(teamCheckInInputSchema)
+      .handler(async ({ context, input }) => {
+        await executeAudited({
+          audit: teamCheckInCancelledAudit({
+            actor: { id: context.session.user.id, type: "user" },
+            target: { id: input.teamId },
+          }),
+          deniedErrorCodes: ["PARTICIPANT_CHECK_IN_NOT_FOUND"],
+          execute: async () => {
+            await service.cancelTeam(input.teamId, input.round);
+          },
+          log: context.log,
+          onSuccess: () => ({
+            changes: {
+              after: { round: input.round, status: "not-checked-in" },
+              before: { round: input.round, status: "checked-in" },
+            },
+          }),
+        });
+        return input;
+      }),
     checkIn: registrationProcedure
       .route({ method: "POST", tags: ["Participant Check-in"] })
       .input(createParticipantCheckInSchema)
@@ -63,6 +91,37 @@ export function createParticipantCheckInsRouter(
       .input(listParticipantCheckInsSchema)
       .output(participantCheckInListResultSchema)
       .handler(async ({ input }) => await service.list(input)),
+    registerTeam: registrationProcedure
+      .route({ method: "POST", tags: ["Participant Check-in"] })
+      .input(teamCheckInInputSchema)
+      .output(teamCheckInInputSchema)
+      .handler(async ({ context, input }) => {
+        await executeAudited({
+          audit: teamCheckInCreatedAudit({
+            actor: { id: context.session.user.id, type: "user" },
+            target: { id: input.teamId },
+          }),
+          deniedErrorCodes: [
+            "PARTICIPANT_CHECK_IN_TARGET_NOT_FOUND",
+            "PARTICIPANT_NOT_ROUND_ELIGIBLE",
+            "PARTICIPANT_ALREADY_CHECKED_IN",
+          ],
+          execute: async () => {
+            await service.registerTeam(input.teamId, context.session.user.id, input.round);
+          },
+          log: context.log,
+          onSuccess: () => ({
+            changes: {
+              after: {
+                award: teamCheckInAwards[input.round].participated,
+                round: input.round,
+                status: "checked-in",
+              },
+            },
+          }),
+        });
+        return input;
+      }),
     updateFlag: registrationProcedure
       .route({ method: "PATCH", tags: ["Participant Check-in"] })
       .input(updateParticipantCheckInFlagSchema)

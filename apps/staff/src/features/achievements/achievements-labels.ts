@@ -1,4 +1,4 @@
-import type { TeamAward, TeamAwardFilter, TeamListRegistrationStatus } from "@bmhk-2026/api";
+import type { TeamAward, TeamAwardFilter } from "@bmhk-2026/api";
 
 // Declared locally rather than imported from @bmhk-2026/api: that package is a
 // server barrel, so a runtime (non-type) import pulls drizzle/pg/node:async_hooks
@@ -18,13 +18,25 @@ const achievementLabels = {
   THIRD_PLACE: "รางวัลอันดับที่ 3",
 } satisfies Record<TeamAward, string>;
 
-// Selectable awards, ordered by competition progression. REGISTRATION_COMPLETE is
-// deliberately absent: registration status is owned by the review flow on
-// /participations, not by competition results. It stays in achievementLabels so a team
-// that already holds it still renders, and getAwardOptions keeps it selectable for that
-// team until it is moved onto a real competition result.
+const achievementChipClasses = {
+  ADVANCED_TO_ROUND_2: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  ADVANCED_TO_ROUND_3: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
+  FIRST_PLACE: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  HONORABLE_MENTION: "bg-pink-500/15 text-pink-700 dark:text-pink-400",
+  NO_ACHIEVEMENT: "bg-muted text-muted-foreground",
+  REGISTRATION_COMPLETE: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  REGISTRATION_FAILED: "bg-destructive/15 text-destructive",
+  ROUND_1_PARTICIPATED: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400",
+  ROUND_2_PARTICIPATED: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400",
+  ROUND_3_PARTICIPATED: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
+  SECOND_PLACE: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
+  THIRD_PLACE: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+} satisfies Record<TeamAward, string>;
+
+// Selectable awards, ordered by registration and competition progression.
 const achievementOptions = [
   "NO_ACHIEVEMENT",
+  "REGISTRATION_COMPLETE",
   "REGISTRATION_FAILED",
   "ROUND_1_PARTICIPATED",
   "ADVANCED_TO_ROUND_2",
@@ -37,26 +49,11 @@ const achievementOptions = [
   "FIRST_PLACE",
 ] as const satisfies readonly TeamAward[];
 
-function getAwardOptions(currentAward: TeamAward): readonly TeamAward[] {
-  return achievementOptions.some((award) => award === currentAward)
-    ? achievementOptions
-    : [currentAward, ...achievementOptions];
-}
-
 function isTeamAward(value: string): value is TeamAward {
   return Object.hasOwn(achievementLabels, value);
 }
 
-// Read-only here: registration status is owned by the review flow on /participations.
-const registrationStatusLabels = {
-  APPROVED: "สมัครสำเร็จ",
-  CHANGES_REQUESTED: "ขอให้แก้ไข",
-  PENDING_REVIEW: "รอตรวจสอบ",
-} satisfies Record<TeamListRegistrationStatus, string>;
-
-// Filter options for the list. Unlike achievementOptions this keeps every award —
-// filtering by a value a team already holds must stay possible even when setting it does
-// not — and prepends "ALL" to clear the filter.
+// Filter options mirror the editable awards and prepend "ALL" to clear the filter.
 const awardFilters = [
   { label: "ทุกผลงาน", value: "ALL" },
   { label: achievementLabels.NO_ACHIEVEMENT, value: "NO_ACHIEVEMENT" },
@@ -73,4 +70,4 @@ const awardFilters = [
   { label: achievementLabels.FIRST_PLACE, value: "FIRST_PLACE" },
 ] as const satisfies readonly { label: string; value: TeamAwardFilter }[];
 
-export { achievementLabels, awardFilters, getAwardOptions, isTeamAward, registrationStatusLabels };
+export { achievementChipClasses, achievementLabels, achievementOptions, awardFilters, isTeamAward };

@@ -36,7 +36,12 @@ import { Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { achievementLabels, getAwardOptions, isTeamAward } from "./achievements-labels";
+import {
+  achievementChipClasses,
+  achievementLabels,
+  achievementOptions,
+  isTeamAward,
+} from "./achievements-labels";
 
 interface AchievementsAwardProps {
   readonly team: Team;
@@ -66,7 +71,7 @@ function AchievementsAward({ team }: AchievementsAwardProps) {
   );
   const isUpdating = setAwardMutation.isPending && setAwardMutation.variables?.id === team.id;
   const isBusy = isUpdating || isConfirming;
-  const awardItems = getAwardOptions(team.award).map((award) => ({
+  const awardItems = achievementOptions.map((award) => ({
     label: achievementLabels[award],
     value: award,
   }));
@@ -123,7 +128,11 @@ function AchievementsAward({ team }: AchievementsAwardProps) {
   return (
     <>
       <div className="flex items-center gap-1.5">
-        <span>{achievementLabels[team.award]}</span>
+        <span
+          className={`inline-flex w-fit items-center rounded-full px-2 py-1 font-medium text-xs ${achievementChipClasses[team.award]}`}
+        >
+          {achievementLabels[team.award]}
+        </span>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger
             render={

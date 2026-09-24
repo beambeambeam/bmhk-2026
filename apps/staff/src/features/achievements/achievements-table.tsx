@@ -17,7 +17,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { AchievementsAward } from "./achievements-award";
-import { awardFilters, registrationStatusLabels } from "./achievements-labels";
+import { awardFilters } from "./achievements-labels";
 
 const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -26,7 +26,6 @@ const sortableColumns = [
   { id: "name", label: "ชื่อทีม" },
   { id: "school", label: "โรงเรียน" },
   { id: "memberCount", label: "จำนวนสมาชิก" },
-  { id: "registrationStatus", label: "สถานะการสมัคร" },
   { id: "award", label: "ผลงาน" },
 ] as const satisfies readonly { id: TeamListSort; label: string }[];
 
@@ -63,23 +62,6 @@ const columnDefinitions: DataTableColumn<TeamListRow, AchievementsTableMeta>[] =
     header: "จำนวนสมาชิก",
     id: "memberCount",
     size: 150,
-  },
-  {
-    cell: ({ row }) => {
-      const team = row.original;
-      return (
-        <span
-          className={
-            team.registrationStatus === "APPROVED" ? "text-emerald-600" : "text-muted-foreground"
-          }
-        >
-          {registrationStatusLabels[team.registrationStatus]}
-        </span>
-      );
-    },
-    header: "สถานะการสมัคร",
-    id: "registrationStatus",
-    size: 180,
   },
   {
     cell: ({ row }) => {

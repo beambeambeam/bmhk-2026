@@ -11,7 +11,7 @@ Better Auth's admin plugin and the browser client share the access-control defin
 | `staff`             | `access`                                           | None                                                                        |
 | `user`              | None                                               | None                                                                        |
 
-All three staff roles include Better Auth's `userAc.statements`; administrators include `adminAc.statements`. Base staff access currently gates staff check-in tools. Registration access gates registration reviews, participant check-ins, awards, and cross-team data. Academic staff can open the dashboard and staff check-in tools; no academic feature endpoint exists yet.
+All three staff roles include Better Auth's `userAc.statements`; administrators include `adminAc.statements`. Base staff access currently gates staff check-in tools. Registration access gates registration reviews, participant check-ins, awards, and cross-team data. Academic access gates all Team Round Result reads and writes, including the team list; academic staff also retain dashboard and staff check-in access.
 
 Users cannot change their own roles. Unknown or combined role strings fail closed at application authorization boundaries. This application uses one role per account.
 

@@ -1,4 +1,15 @@
 export { createAppRouter } from "./router";
+export type { TeamRoundResultRepository } from "./features/team-round-results/team-round-results.repository";
+export type {
+  SaveTeamRoundResultInput,
+  TeamRoundResult,
+  TeamRoundResultColumnFilter,
+  TeamRoundResultList,
+  TeamRoundResultListInput,
+  TeamRoundResultListQuery,
+  TeamRoundResultTeam,
+  TeamRoundResultsDetail,
+} from "./features/team-round-results/team-round-results.schema";
 export { createTeamAlreadyExistsError } from "./features/teams/teams.errors";
 export type { ApiDependencies, ApiRouter, AppRouter, AppRouterClient } from "./router";
 export type { AdminUserRepository } from "./features/admin-users/admin-users.repository";

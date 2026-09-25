@@ -20,6 +20,14 @@ _Avoid_: Team member, creator
 A staff user permitted to inspect and maintain registration information across Teams.
 _Avoid_: Registration staff role, admin
 
+**Academic Operator**:
+A person with academic access, required to view or maintain Team scores and submission summaries for competition rounds 1, 2, and 3.
+_Avoid_: Any staff user, Team Owner
+
+**Team Round Result**:
+A Team's score and submission summary for one competition round, entered directly by an Academic Operator. Its score, total submissions, completed assignments, and last submission time are supplied by the operator rather than calculated from individual submissions.
+_Avoid_: Submission history, calculated score
+
 **Team Registration Review**:
 A Registration Operator's pre-competition assessment of a Team's Registration Information. Review findings are private to Registration Operators, and a completed review remains authoritative when Registration Information later changes.
 _Avoid_: Round 1 verification, staff verification

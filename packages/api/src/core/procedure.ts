@@ -1,5 +1,6 @@
 import { os } from "@orpc/server";
 import {
+  hasAcademicAccess,
   hasAdminAccess,
   hasRegistrationAccess,
   hasStaffAccess,
@@ -83,6 +84,18 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
 
   const protectedProcedure = base.use(evlog()).use(requireAuth);
+  const academicProcedure = protectedProcedure.use(async ({ context, next }) => {
+    if (!hasAcademicAccess(context.session.user.role)) {
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for academic access",
+        message: "Academic access required",
+        status: 403,
+        why: "The authenticated user lacks academic access permission",
+      });
+    }
+    return await next();
+  });
   const adminProcedure = protectedProcedure.use(async ({ context, next, path }) => {
     if (!hasAdminAccess(context.session.user.role)) {
       context.log.audit(
@@ -238,6 +251,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   const apiKeyProcedure = base.use(evlog()).use(requireApiKeyAuth);
 
   return {
+    academicProcedure,
     adminProcedure,
     apiKeyProcedure,
     protectedProcedure,
@@ -252,6 +266,7 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
+export type AcademicProcedure = ReturnType<typeof createProcedures>["academicProcedure"];
 export type ApiKeyProcedure = ReturnType<typeof createProcedures>["apiKeyProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];

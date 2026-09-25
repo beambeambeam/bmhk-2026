@@ -12,7 +12,6 @@ import { discordCodesRepositoryError } from "./discord-codes.errors";
 export interface DiscordCodeTeamFacts {
   award: string;
   participants: {
-    altRedeemedAt: Date | null;
     code: string | null;
     firstNameTh: string;
     id: string;
@@ -56,7 +55,6 @@ export function createDiscordCodeRepository(database: Database = db): DiscordCod
 
       const participants = await database
         .select({
-          altRedeemedAt: discord.altRedeemedAt,
           code: discord.code,
           firstNameTh: teamParticipants.firstNameTh,
           id: teamParticipants.id,

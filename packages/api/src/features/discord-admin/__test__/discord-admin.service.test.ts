@@ -8,15 +8,12 @@ import type {
 } from "../discord-admin.repository";
 
 const REDEEMED_AT = new Date("2026-09-01T03:00:00.000Z");
-const ALT_REDEEMED_AT = new Date("2026-09-02T04:30:00.000Z");
 
 function participant(
   index: number,
   overrides: Partial<AdminParticipantFacts> = {},
 ): AdminParticipantFacts {
   return {
-    altAccUserId: null,
-    altRedeemedAt: null,
     code: `CODE000${index}`,
     firstNameTh: `ชื่อ${index}`,
     index,
@@ -67,7 +64,6 @@ describe(createDiscordAdminService, () => {
       const service = createService([team(7)]);
 
       await expect(service.codeInfo("CODE0002")).resolves.toStrictEqual({
-        alt: null,
         main: null,
         participant: { index: 2, name: "นาย ชื่อ2 สกุล2" },
         status: "NOT_REDEEMED",
@@ -75,7 +71,7 @@ describe(createDiscordAdminService, () => {
       });
     });
 
-    it("reports who redeemed a code once", async () => {
+    it("reports who redeemed a code", async () => {
       const service = createService([
         team(7, {
           participants: [participant(1, { mainAccUserId: "111", redeemedAt: REDEEMED_AT })],
@@ -85,32 +81,8 @@ describe(createDiscordAdminService, () => {
       const result = await service.codeInfo("CODE0001");
 
       expect(result).toMatchObject({
-        alt: null,
         main: { id: "111", redeemed_at: "2026-09-01T03:00:00.000Z" },
-        status: "REDEEMED_ONCE",
-      });
-    });
-
-    it("reports both accounts of a fully redeemed code", async () => {
-      const service = createService([
-        team(7, {
-          participants: [
-            participant(1, {
-              altAccUserId: "222",
-              altRedeemedAt: ALT_REDEEMED_AT,
-              mainAccUserId: "111",
-              redeemedAt: REDEEMED_AT,
-            }),
-          ],
-        }),
-      ]);
-
-      const result = await service.codeInfo("CODE0001");
-
-      expect(result).toMatchObject({
-        alt: { id: "222", redeemed_at: "2026-09-02T04:30:00.000Z" },
-        main: { id: "111", redeemed_at: "2026-09-01T03:00:00.000Z" },
-        status: "REDEEMED_TWICE",
+        status: "REDEEMED",
       });
     });
   });
@@ -153,12 +125,7 @@ describe(createDiscordAdminService, () => {
       const service = createService([
         team(1, {
           participants: [
-            participant(1, {
-              altAccUserId: "222",
-              altRedeemedAt: ALT_REDEEMED_AT,
-              mainAccUserId: "111",
-              redeemedAt: REDEEMED_AT,
-            }),
+            participant(1, { mainAccUserId: "111", redeemedAt: REDEEMED_AT }),
             participant(2, { code: null }),
           ],
         }),
@@ -172,7 +139,7 @@ describe(createDiscordAdminService, () => {
         name: "Team 1",
         participants: [
           {
-            accounts: ["111", "222"],
+            accounts: ["111"],
             code: "CODE0001",
             index: 1,
             name: "นาย ชื่อ1 สกุล1",
@@ -308,28 +275,18 @@ describe(createDiscordAdminService, () => {
               firstNameTh: "นรินทร์",
               teamIndex: 1,
               teamName: "Team Alpha",
-              wasAlt: false,
-            },
-            {
-              discordUserId: "222",
-              firstNameTh: "สุดา",
-              teamIndex: 1,
-              teamName: "Team Alpha",
-              wasAlt: true,
             },
           ]),
       });
 
       await expect(service.participantNicknames()).resolves.toStrictEqual([
         { discord_user_id: "111", nickname: "001-Team Alpha-นรินทร์" },
-        { discord_user_id: "222", nickname: "001-Team Alpha-สุดา [A]" },
       ]);
     });
   });
 
   describe("lookupParticipant", () => {
     const facts = {
-      altAccUserId: "222",
       code: "CODE0001",
       email: "somchai@example.com",
       firstNameTh: "สมชาย",
@@ -353,7 +310,7 @@ describe(createDiscordAdminService, () => {
       });
     });
 
-    it("looks up a participant by their main account and points at their alt", async () => {
+    it("looks up a participant by their Discord account", async () => {
       const service = createService([], {
         findParticipantByDiscordUserId: async () => await Promise.resolve(facts),
       });
@@ -361,23 +318,11 @@ describe(createDiscordAdminService, () => {
       await expect(service.lookupParticipant("111")).resolves.toStrictEqual({
         code: "CODE0001",
         contact: { email: "somchai@example.com", line_id: "somchai.line", phone: "0800000000" },
-        matched_account: "main",
         name_th: "นาย สมชาย ใจดี",
-        other_discord_user_id: "222",
         school: "โรงเรียนบางมด",
         status: "FOUND",
         team_name: "Team 7",
       });
-    });
-
-    it("looks up a participant by their alt account and points at their main", async () => {
-      const service = createService([], {
-        findParticipantByDiscordUserId: async () => await Promise.resolve(facts),
-      });
-
-      const result = await service.lookupParticipant("222");
-
-      expect(result).toMatchObject({ matched_account: "alt", other_discord_user_id: "111" });
     });
   });
 });

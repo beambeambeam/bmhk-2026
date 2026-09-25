@@ -14,7 +14,6 @@ function createFakeRepository(overrides: Partial<DiscordRepository> = {}): Disco
         outcome: "redeemed",
         teamIndex: 1,
         teamName: "Team Alpha",
-        wasAlt: false,
       }),
     ...overrides,
   };
@@ -27,8 +26,6 @@ describe(createDiscordService, () => {
         findByCode: async () =>
           await Promise.resolve({
             discord: {
-              altAccUserId: null,
-              altRedeemedAt: null,
               code: "good-code",
               id: "discord-row-1",
               mainAccUserId: null,
@@ -50,13 +47,40 @@ describe(createDiscordService, () => {
 
     expect(result).toStrictEqual({
       data: {
-        main_acc_id: null,
         name: "นรินทร์ สมศักดิ์",
         school: "KMUTT Demonstration School",
         team: "Team Alpha",
       },
       status: discordStatus.SUCCESS,
     });
+  });
+
+  it("reports a code whose Discord slot is taken as already redeemed on query", async () => {
+    const service = createDiscordService(
+      createFakeRepository({
+        findByCode: async () =>
+          await Promise.resolve({
+            discord: {
+              code: "used-code",
+              id: "discord-row-1",
+              mainAccUserId: "discord-1",
+              redeemedAt: new Date("2026-09-01T00:00:00.000Z"),
+            },
+            firstNameEn: "Narin",
+            firstNameTh: "นรินทร์",
+            id: "participant-1",
+            lastNameEn: "Somsak",
+            lastNameTh: "สมศักดิ์",
+            school: "KMUTT Demonstration School",
+            teamId: "team-1",
+            teamName: "Team Alpha",
+          }),
+      }),
+    );
+
+    const result = await service.query("used-code");
+
+    expect(result).toStrictEqual({ data: null, status: discordStatus.ALREADY_REDEEMED });
   });
 
   it("formats the nickname as zero-padded index-team name-Thai first name", async () => {
@@ -81,7 +105,6 @@ describe(createDiscordService, () => {
             outcome: "redeemed",
             teamIndex: 2,
             teamName: "A Very Long Team Name That Exceeds The Limit",
-            wasAlt: false,
           }),
       }),
     );
@@ -89,26 +112,6 @@ describe(createDiscordService, () => {
     const result = await service.verify("good-code", "discord-1");
 
     expect(result.nickname).toBe("002-A Very Long Team -นรินทร์");
-  });
-
-  it("appends [A] for an alt-account redemption", async () => {
-    const service = createDiscordService(
-      createFakeRepository({
-        redeem: async () =>
-          await Promise.resolve({
-            channelId: null,
-            firstNameTh: "นรินทร์",
-            outcome: "redeemed",
-            teamIndex: 1,
-            teamName: "Team Alpha",
-            wasAlt: true,
-          }),
-      }),
-    );
-
-    const result = await service.verify("good-code", "discord-1");
-
-    expect(result.nickname).toBe("001-Team Alpha-นรินทร์ [A]");
   });
 
   it("truncates the first name so the nickname fits 32 characters", async () => {
@@ -121,7 +124,6 @@ describe(createDiscordService, () => {
             outcome: "redeemed",
             teamIndex: 7,
             teamName: "aaaaaaaaaaaaaaaaa",
-            wasAlt: false,
           }),
       }),
     );
@@ -129,26 +131,6 @@ describe(createDiscordService, () => {
     const result = await service.verify("good-code", "discord-1");
 
     expect(result.nickname).toBe("007-aaaaaaaaaaaaaaaaa-สมชายนามยา");
-  });
-
-  it("keeps the [A] marker when an alt nickname is truncated", async () => {
-    const service = createDiscordService(
-      createFakeRepository({
-        redeem: async () =>
-          await Promise.resolve({
-            channelId: null,
-            firstNameTh: "สมชายนามยา",
-            outcome: "redeemed",
-            teamIndex: 7,
-            teamName: "aaaaaaaaaaaaaaaaa",
-            wasAlt: true,
-          }),
-      }),
-    );
-
-    const result = await service.verify("good-code", "discord-1");
-
-    expect(result.nickname).toBe("007-aaaaaaaaaaaaaaaaa-สมชายน [A]");
   });
 
   it("reports an unknown code without a nickname", async () => {

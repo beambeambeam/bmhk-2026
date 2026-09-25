@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-export const discordCodeStatusValues = [
-  "NOT_GENERATED",
-  "NOT_REDEEMED",
-  "REDEEMED_ONCE",
-  "REDEEMED_TWICE",
-] as const;
+export const discordCodeStatusValues = ["NOT_GENERATED", "NOT_REDEEMED", "REDEEMED"] as const;
 
 export const discordCodeTeamInputSchema = z.object({ teamId: z.uuid() }).strict();
 

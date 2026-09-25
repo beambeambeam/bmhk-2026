@@ -36,12 +36,7 @@ function toStatus(participant: DiscordCodeTeamFacts["participants"][number]): Di
   if (participant.code === null) {
     return "NOT_GENERATED";
   }
-  if (participant.redeemedAt !== null && participant.altRedeemedAt !== null) {
-    return "REDEEMED_TWICE";
-  }
-  return participant.redeemedAt === null && participant.altRedeemedAt === null
-    ? "NOT_REDEEMED"
-    : "REDEEMED_ONCE";
+  return participant.redeemedAt === null ? "NOT_REDEEMED" : "REDEEMED";
 }
 
 function toEntries(facts: DiscordCodeTeamFacts): DiscordCodeEntry[] {

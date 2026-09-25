@@ -7,7 +7,7 @@ import type {
 } from "./discord-admin.repository";
 
 // Wire keys are snake_case on purpose: they match what the Discord bot expects.
-export type CodeInfoStatus = "NOT_REDEEMED" | "REDEEMED_ONCE" | "REDEEMED_TWICE";
+export type CodeInfoStatus = "NOT_REDEEMED" | "REDEEMED";
 
 interface LinkedAccount {
   id: string;
@@ -17,7 +17,6 @@ interface LinkedAccount {
 export type CodeInfoResult =
   | { status: "NOT_FOUND" }
   | {
-      alt: LinkedAccount | null;
       main: LinkedAccount | null;
       participant: { index: number; name: string };
       status: CodeInfoStatus;
@@ -67,9 +66,7 @@ export type ParticipantLookupResult =
   | {
       code: string;
       contact: { email: string; line_id: string | null; phone: string };
-      matched_account: "alt" | "main";
       name_th: string;
-      other_discord_user_id: string | null;
       school: string;
       status: "FOUND";
       team_name: string;
@@ -113,9 +110,7 @@ function thaiName(participant: ThaiNameFacts): string {
 }
 
 function accountsOf(participant: AdminParticipantFacts): string[] {
-  return [participant.mainAccUserId, participant.altAccUserId].filter(
-    (account): account is string => account !== null,
-  );
+  return participant.mainAccUserId === null ? [] : [participant.mainAccUserId];
 }
 
 function linkedAccount(id: string | null, redeemedAt: Date | null): LinkedAccount | null {
@@ -123,12 +118,7 @@ function linkedAccount(id: string | null, redeemedAt: Date | null): LinkedAccoun
 }
 
 function statusOf(participant: AdminParticipantFacts): CodeInfoStatus {
-  if (participant.redeemedAt !== null && participant.altRedeemedAt !== null) {
-    return "REDEEMED_TWICE";
-  }
-  return participant.redeemedAt === null && participant.altRedeemedAt === null
-    ? "NOT_REDEEMED"
-    : "REDEEMED_ONCE";
+  return participant.redeemedAt === null ? "NOT_REDEEMED" : "REDEEMED";
 }
 
 function matches(team: AdminTeamFacts, query: TeamInfoQuery): boolean {
@@ -162,7 +152,6 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
         const found = team.participants.find((participant) => participant.code === code);
         if (found) {
           return {
-            alt: linkedAccount(found.altAccUserId, found.altRedeemedAt),
             main: linkedAccount(found.mainAccUserId, found.redeemedAt),
             participant: { index: found.index, name: thaiName(found) },
             status: statusOf(found),
@@ -178,13 +167,10 @@ export function createDiscordAdminService(repository: DiscordAdminRepository): D
         return { status: "NOT_FOUND" };
       }
 
-      const matchedMain = facts.mainAccUserId === discordUserId;
       return {
         code: facts.code,
         contact: { email: facts.email, line_id: facts.lineId, phone: facts.phone },
-        matched_account: matchedMain ? "main" : "alt",
         name_th: thaiName(facts),
-        other_discord_user_id: matchedMain ? facts.altAccUserId : facts.mainAccUserId,
         school: facts.school,
         status: "FOUND",
         team_name: facts.teamName,

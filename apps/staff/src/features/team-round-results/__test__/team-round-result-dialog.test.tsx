@@ -4,6 +4,7 @@ import type { TeamRoundResult, TeamRoundResultTeam } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useRef, useState } from "react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { TeamRoundResultDialog } from "../team-round-result-dialog";
@@ -50,12 +51,31 @@ function renderDialog(result: TeamRoundResult | null = null): QueryClient {
     rounds: [],
     team: TEAM,
   });
+  function DialogHarness() {
+    const [open, setOpen] = useState(true);
+    const focusRef = useRef<HTMLButtonElement>(null);
+    return (
+      <>
+        <button ref={focusRef} type="button">
+          Open result dialog
+        </button>
+        <TeamRoundResultDialog
+          finalFocusRef={focusRef}
+          onOpenChange={setOpen}
+          open={open}
+          result={result}
+          round={ROUND}
+          team={TEAM}
+        />
+      </>
+    );
+  }
+
   render(
     <QueryClientProvider client={queryClient}>
-      <TeamRoundResultDialog result={result} round={ROUND} team={TEAM} />
+      <DialogHarness />
     </QueryClientProvider>,
   );
-  fireEvent.click(screen.getByRole("button", { name: /ผล.*ทีม Team One/u }));
   return queryClient;
 }
 

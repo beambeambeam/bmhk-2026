@@ -1,6 +1,31 @@
 # Staff Team Round Results
 
-Status: implemented. All interview recommendations confirmed.
+Status: result pages, progression actions, and final-award actions implemented. All interview recommendations confirmed.
+
+## Follow-up: progression and final-award actions
+
+Status: implemented.
+
+Confirmed:
+
+- Replace the result-row action with a dropdown containing `แก้ไขคะแนน` and `สิทธิ์การแข่งขันรอบถัดไป` for rounds 1 and 2. Round 3 uses `กำหนดรางวัล` instead of next-round eligibility. Score editing remains available for Teams without a saved result.
+- Eligibility and final-award decisions are independent of score entry; no saved score is required.
+- Either academic access or registration access authorizes these new progression and final-award actions; users do not need both permissions.
+
+- The eligibility dialog identifies the Team and round and shows the current status with `มีสิทธิ์` and `ไม่มีสิทธิ์` choices. Granting eligibility after round 1 sets `ADVANCED_TO_ROUND_2`; after round 2 it sets `ADVANCED_TO_ROUND_3`.
+- Choosing `ไม่มีสิทธิ์` makes no change and creates no rejection record. A Team that has not been considered and a Team that was not selected remain indistinguishable.
+- An already advanced Team has an explicit `ยกเลิกสิทธิ์` action with confirmation. Revert `ADVANCED_TO_ROUND_2` to `ROUND_1_PARTICIPATED`, or `ADVANCED_TO_ROUND_3` to `ROUND_2_PARTICIPATED`.
+- Block advancement reversal once any later-round check-ins exist or the Team's Award has progressed beyond that advancement. Earlier-round actions must not overwrite later progression or a final award. Preserve existing scores and Round 2 Confirmation records.
+- The final-award dialog offers `รางวัลชนะเลิศ` (`FIRST_PLACE`), `รางวัลอันดับที่ 2` (`SECOND_PLACE`), `รางวัลอันดับที่ 3` (`THIRD_PLACE`), and `รางวัลชมเชย` (`HONORABLE_MENTION`). Allow replacing an existing final award and `ยกเลิกรางวัล`, restoring `ROUND_3_PARTICIPATED`; confirm replacement and removal.
+- Multiple Teams may receive the same final award. No global or Competition Category award quotas are introduced.
+
+Implementation constraints:
+
+- Use the existing Team Award as the authoritative progression/outcome state. Do not create a second eligibility flag or derive advancement from scores.
+- Provide a narrowly scoped operation for these round actions with academic-or-registration authorization. The existing generic `teams.setAward` is registration-only; do not grant academic users unrelated registration-edit permissions.
+- Enforce allowed transitions and check-in restrictions on the server against current state, atomically with the Award update. Reject stale actions that would overwrite later progress.
+- Reuse the staff dropdown, dialog, confirmation, error, and pending-state patterns. Refresh affected result, Team, and eligibility queries after successful changes; retain useful dialog state on errors. Record Award changes in the audit trail.
+- Verify both permission paths, no score prerequisite, grants and no-op decisions, valid and blocked reversals, final-award replacement/removal, duplicate awards, stale actions, and preservation of scores/check-ins/confirmation records.
 
 ## Confirmed requirements
 
@@ -15,7 +40,7 @@ Status: implemented. All interview recommendations confirmed.
 ## Accepted page and interaction design
 
 - Three separate pages share one table implementation, each with a fixed round. Follow existing routes that pass a round to a feature-owned table component.
-- Each row has an Enter result or Edit result action opening a dialog for score, total submissions, completed assignments, and last submission time. Creation and update timestamps are read-only.
+- Each row has an action dropdown. `แก้ไขคะแนน` opens the result dialog for score, total submissions, completed assignments, and last submission time, including when no result exists yet. Creation and update timestamps are read-only. The second action opens the next-round eligibility dialog or, for round 3, the final-award dialog.
 - Show only Teams checked in for the selected round, including Teams without saved results. There is no Show all teams switch.
 - Provide separate Team code and Team name filters. Both predicates must match when both fields are filled.
 - Use the existing Team code format, such as `BH042/26`.

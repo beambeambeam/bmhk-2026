@@ -1,5 +1,5 @@
 import { formatTeamCode } from "@/lib/team-code";
-import { TeamRoundResultDialog } from "./team-round-result-dialog";
+import { TeamRoundResultActions } from "./team-round-result-actions";
 import { formatBangkokDateTime } from "./round-result-datetime";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Button } from "@/components/button";
@@ -100,15 +100,15 @@ const columns: DataTableColumn<ResultRow, ResultsTableMeta>[] = [
   {
     cell: ({ row, table }) =>
       table.options.meta ? (
-        <TeamRoundResultDialog
+        <TeamRoundResultActions
           team={row.original.team}
           round={table.options.meta.round}
           result={row.original.result}
         />
       ) : null,
-    header: "จัดการผล",
+    header: "จัดการ",
     id: "actions",
-    size: 120,
+    size: 72,
   },
 ];
 

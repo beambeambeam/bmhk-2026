@@ -103,6 +103,7 @@ export interface ApiDependencies {
 export function createAppRouter(dependencies: ApiDependencies) {
   const {
     academicProcedure,
+    academicOrRegistrationProcedure,
     adminProcedure,
     protectedProcedure,
     publicProcedure,
@@ -209,6 +210,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     teamRoundResults: createTeamRoundResultsRouter(
       academicProcedure,
+      academicOrRegistrationProcedure,
       createTeamRoundResultService(
         dependencies.teamRoundResults ?? createTeamRoundResultRepository(),
       ),

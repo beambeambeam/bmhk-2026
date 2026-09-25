@@ -1,6 +1,7 @@
 import { formatTeamCode } from "@/lib/team-code";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { RefObject } from "react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -13,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/field";
 import { Input } from "@/components/input";
@@ -26,6 +26,7 @@ import {
   dateToBangkokInputValue,
 } from "./round-result-datetime";
 import { RoundResultDateTimePicker } from "./round-result-date-time-picker";
+import { getRoundNumber } from "./round-result-round";
 
 const MAX_SUBMISSION_COUNT = 2_147_483_647;
 const SAVE_ERROR_MESSAGE = "ไม่สามารถบันทึกผลคะแนนได้ กรุณาลองใหม่อีกครั้ง";
@@ -34,6 +35,9 @@ interface TeamRoundResultDialogProps {
   readonly team: TeamRoundResultTeam;
   readonly round: CheckInRound;
   readonly result: TeamRoundResult | null;
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly finalFocusRef: RefObject<HTMLElement | null>;
 }
 
 interface TeamRoundResultFormValues {
@@ -41,23 +45,6 @@ interface TeamRoundResultFormValues {
   readonly totalSubmission: string;
   readonly completedAssignment: string;
   readonly lastSubmittedAt: string;
-}
-
-function getRoundNumber(round: CheckInRound): number {
-  switch (round) {
-    case "ROUND_1": {
-      return 1;
-    }
-    case "ROUND_2": {
-      return 2;
-    }
-    case "ROUND_3": {
-      return 3;
-    }
-    default: {
-      throw new Error("Unsupported check-in round");
-    }
-  }
 }
 
 function getDefaultValues(result: TeamRoundResult | null): TeamRoundResultFormValues {
@@ -114,11 +101,17 @@ function getLastSubmittedAt(value: string, originalValue: Date | null): Date | n
   return timestamp === null ? null : new Date(timestamp);
 }
 
-function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogProps) {
+function TeamRoundResultDialog({
+  team,
+  round,
+  result,
+  open,
+  onOpenChange,
+  finalFocusRef,
+}: TeamRoundResultDialogProps) {
   const queryClient = useQueryClient();
   const originalResultRef = useRef<TeamRoundResult | null>(result);
   const isSavingRef = useRef(false);
-  const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveMutation = useMutation(orpc.teamRoundResults.save.mutationOptions());
@@ -156,7 +149,7 @@ function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogPro
           }),
         ]);
         toast.success("บันทึกผลคะแนนเรียบร้อยแล้ว");
-        setIsOpen(false);
+        onOpenChange(false);
       } catch {
         setSaveError(SAVE_ERROR_MESSAGE);
         toast.error(SAVE_ERROR_MESSAGE);
@@ -172,29 +165,12 @@ function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogPro
       return;
     }
 
-    if (nextOpen) {
-      originalResultRef.current = result;
-      form.reset(getDefaultValues(result));
-      setSaveError(null);
-    }
-
-    setIsOpen(nextOpen);
+    onOpenChange(nextOpen);
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button
-            aria-label={`${actionLabel}คะแนนรอบที่ ${roundNumber} ทีม ${team.name}`}
-            type="button"
-            variant={isEditing ? "outline" : "default"}
-          />
-        }
-      >
-        {actionLabel}
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent finalFocus={finalFocusRef}>
         <DialogHeader>
           <DialogTitle>
             {actionLabel}คะแนนรอบที่ {roundNumber}

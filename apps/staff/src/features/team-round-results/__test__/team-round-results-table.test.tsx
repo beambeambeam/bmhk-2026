@@ -48,8 +48,21 @@ describe("staff team round results table", () => {
     expect(within(row).getAllByRole("cell", { name: "—" })).toHaveLength(6);
     expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.getAllByRole("columnheader")).toHaveLength(9);
-    fireEvent.click(within(row).getByRole("button", { name: "กรอกผลคะแนนรอบที่ 1 ทีม Empty Team" }));
-    await expect(screen.findByRole("dialog")).resolves.toBeDefined();
+    const actionButton = within(row).getByRole("button", {
+      name: "จัดการคะแนนรอบที่ 1 ทีม Empty Team",
+    });
+    fireEvent.click(actionButton);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "แก้ไขคะแนน" }));
+    await screen.findByRole("dialog", { name: "กรอกผลคะแนนรอบที่ 1" });
+    expect(screen.getByRole("textbox", { name: "คะแนน" })).toHaveProperty("value", "");
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    await waitFor(() => {
+      expect(document.activeElement).toBe(actionButton);
+    });
+    fireEvent.click(actionButton);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "แก้ไขคะแนน" }));
+    const reopenedScore = await screen.findByRole("textbox", { name: "คะแนน" });
+    expect(reopenedScore).toHaveProperty("value", "");
   });
 
   it("requests both searches together and sorts creation time in both directions", async () => {
@@ -115,6 +128,38 @@ describe("staff team round results table", () => {
     fireEvent.click(screen.getByRole("button", { name: "ลองใหม่" }));
     await expect(screen.findByText("ไม่พบทีม")).resolves.toBeDefined();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["ROUND_2", "สิทธิ์การแข่งขันรอบถัดไป"],
+    ["ROUND_3", "กำหนดรางวัล"],
+  ] as const)("shows the %s outcome action", async (round, expectedAction) => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        json: {
+          rowCount: 1,
+          rows: [
+            {
+              result: null,
+              round,
+              team: { id: "11111111-1111-4111-8111-111111111111", index: 42, name: "Team One" },
+            },
+          ],
+        },
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TeamRoundResultsTable actorId="academic-1" round={round} />
+      </QueryClientProvider>,
+    );
+    const row = await screen.findByRole("row", { name: /Team One/u });
+    fireEvent.click(
+      within(row).getByRole("button", { name: `จัดการคะแนนรอบที่ ${round.slice(-1)} ทีม Team One` }),
+    );
+    await expect(screen.findByRole("menuitem", { name: "แก้ไขคะแนน" })).resolves.toBeDefined();
+    expect(screen.getByRole("menuitem", { name: expectedAction })).toBeDefined();
   });
 
   it("displays zero scores and Bangkok time without using the browser timezone", () => {

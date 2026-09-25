@@ -6,7 +6,11 @@ import type {
   SaveTeamRoundResultInput,
   TeamRoundResult,
   TeamRoundResultListQuery,
+  TeamRoundResultAward,
+  TeamRoundResultOutcome,
   TeamRoundResultRepository,
+  TeamRoundResultRound,
+  SetTeamRoundResultOutcomeInput,
 } from "../../../index";
 import {
   createTestAuthReader,
@@ -28,6 +32,131 @@ const saveInput = {
   teamId: TEAM_ID,
   totalSubmission: 4,
 };
+const outcomeActionCases: {
+  award: TeamRoundResultAward;
+  hasLaterRoundCheckIns: boolean;
+  name: string;
+  round: TeamRoundResultRound;
+  expected: TeamRoundResultOutcome["actions"];
+}[] = [
+  {
+    award: "ROUND_1_PARTICIPATED",
+    expected: {
+      canAdvance: true,
+      canRemoveFinalAward: false,
+      canRevert: false,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: false,
+    },
+    hasLaterRoundCheckIns: false,
+    name: "round one can advance only after participation",
+    round: "ROUND_1",
+  },
+  {
+    award: "ADVANCED_TO_ROUND_2",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: false,
+      canRevert: true,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: false,
+    },
+    hasLaterRoundCheckIns: false,
+    name: "round one can revert an unconsumed advancement",
+    round: "ROUND_1",
+  },
+  {
+    award: "ADVANCED_TO_ROUND_2",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: false,
+      canRevert: false,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: true,
+    },
+    hasLaterRoundCheckIns: true,
+    name: "round one cannot revert after later round check-ins",
+    round: "ROUND_1",
+  },
+  {
+    award: "ROUND_2_PARTICIPATED",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: false,
+      canRevert: false,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: true,
+    },
+    hasLaterRoundCheckIns: true,
+    name: "round one cannot overwrite an outcome that progressed further",
+    round: "ROUND_1",
+  },
+  {
+    award: "ROUND_2_PARTICIPATED",
+    expected: {
+      canAdvance: true,
+      canRemoveFinalAward: false,
+      canRevert: false,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: false,
+    },
+    hasLaterRoundCheckIns: false,
+    name: "round two can advance after participation",
+    round: "ROUND_2",
+  },
+  {
+    award: "ADVANCED_TO_ROUND_3",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: false,
+      canRevert: true,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: false,
+    },
+    hasLaterRoundCheckIns: false,
+    name: "round two can revert an unconsumed advancement",
+    round: "ROUND_2",
+  },
+  {
+    award: "ADVANCED_TO_ROUND_3",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: false,
+      canRevert: false,
+      canSetFinalAward: false,
+      hasLaterRoundCheckIns: true,
+    },
+    hasLaterRoundCheckIns: true,
+    name: "round two cannot revert after round three check-ins",
+    round: "ROUND_2",
+  },
+  {
+    award: "ROUND_3_PARTICIPATED",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: false,
+      canRevert: false,
+      canSetFinalAward: true,
+      hasLaterRoundCheckIns: false,
+    },
+    hasLaterRoundCheckIns: false,
+    name: "round three can receive a final award after participation",
+    round: "ROUND_3",
+  },
+  {
+    award: "FIRST_PLACE",
+    expected: {
+      canAdvance: false,
+      canRemoveFinalAward: true,
+      canRevert: false,
+      canSetFinalAward: true,
+      hasLaterRoundCheckIns: false,
+    },
+    hasLaterRoundCheckIns: false,
+    name: "round three can replace or remove an existing final award",
+    round: "ROUND_3",
+  },
+];
 
 // Runtime schema tests intentionally pass malformed values that TypeScript rejects.
 function uncheckedInput(input: unknown): never {
@@ -63,8 +192,21 @@ function createRepository(
   return {
     findByTeamId:
       overrides.findByTeamId ?? (async () => await Promise.resolve({ results: [], team })),
+    findOutcome:
+      overrides.findOutcome ??
+      (async () =>
+        await Promise.resolve({
+          award: "ROUND_1_PARTICIPATED",
+          hasLaterRoundCheckIns: false,
+          hasRoundCheckIn: true,
+          round: "ROUND_1",
+          team,
+        })),
     list: overrides.list ?? (async () => await Promise.resolve({ rowCount: 0, rows: [] })),
     save: overrides.save ?? (async (input) => await Promise.resolve(createResult(input))),
+    setOutcome:
+      overrides.setOutcome ??
+      (async () => await Promise.resolve({ status: "INVALID_TRANSITION" as const })),
   };
 }
 
@@ -83,14 +225,298 @@ async function callOperation(
 }
 
 describe("team round results", () => {
+  it.each(outcomeActionCases)("exposes correct outcome actions: $name", async (testCase) => {
+    const router = createRouter(
+      createRepository({
+        findOutcome: async () =>
+          await Promise.resolve({
+            award: testCase.award,
+            hasLaterRoundCheckIns: testCase.hasLaterRoundCheckIns,
+            hasRoundCheckIn: true,
+            round: testCase.round,
+            team,
+          }),
+      }),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.getOutcome, { round: testCase.round, teamId: TEAM_ID }, { context }),
+    ).resolves.toMatchObject({ actions: testCase.expected, award: testCase.award });
+  });
+
+  it("grants next-round eligibility through the public round-result API", async () => {
+    let currentAward: TeamRoundResultOutcome["award"] = "ROUND_1_PARTICIPATED";
+    let updatedInput: SetTeamRoundResultOutcomeInput | null = null;
+    function outcomeState(award: TeamRoundResultOutcome["award"]) {
+      return {
+        award,
+        hasLaterRoundCheckIns: false,
+        hasRoundCheckIn: true,
+        round: "ROUND_1" as const,
+        team,
+      };
+    }
+    const router = createRouter(
+      createRepository({
+        findOutcome: async () => await Promise.resolve(outcomeState(currentAward)),
+        setOutcome: async (input) => {
+          updatedInput = input;
+          const previousAward = currentAward;
+          currentAward = "ADVANCED_TO_ROUND_2";
+          return await Promise.resolve({
+            outcome: outcomeState(currentAward),
+            previousAward,
+            status: "UPDATED" as const,
+          });
+        },
+      }),
+    );
+    const { context } = createTestContext();
+
+    await expect(
+      call(router.getOutcome, { round: "ROUND_1", teamId: TEAM_ID }, { context }),
+    ).resolves.toStrictEqual({
+      actions: {
+        canAdvance: true,
+        canRemoveFinalAward: false,
+        canRevert: false,
+        canSetFinalAward: false,
+        hasLaterRoundCheckIns: false,
+      },
+      award: "ROUND_1_PARTICIPATED",
+      round: "ROUND_1",
+      team,
+    });
+
+    await expect(
+      call(
+        router.setOutcome,
+        {
+          action: { type: "ADVANCE" },
+          expectedAward: "ROUND_1_PARTICIPATED",
+          round: "ROUND_1",
+          teamId: TEAM_ID,
+        },
+        { context },
+      ),
+    ).resolves.toMatchObject({ award: "ADVANCED_TO_ROUND_2" });
+    expect(updatedInput).toMatchObject({
+      action: { type: "ADVANCE" },
+      expectedAward: "ROUND_1_PARTICIPATED",
+      round: "ROUND_1",
+      teamId: TEAM_ID,
+    });
+  });
+
+  it.each(["academicStaff", "registrationStaff", "admin", "superAdmin"] as const)(
+    "allows %s to read and change a round outcome",
+    async (role) => {
+      const currentOutcome = {
+        award: "ROUND_1_PARTICIPATED" as const,
+        hasLaterRoundCheckIns: false,
+        hasRoundCheckIn: true,
+        round: "ROUND_1" as const,
+        team,
+      };
+      let readCount = 0;
+      let setCount = 0;
+      const router = createRouter(
+        createRepository({
+          findOutcome: async () => {
+            readCount += 1;
+            return await Promise.resolve(currentOutcome);
+          },
+          setOutcome: async () => {
+            setCount += 1;
+            return await Promise.resolve({
+              outcome: { ...currentOutcome, award: "ADVANCED_TO_ROUND_2" },
+              previousAward: currentOutcome.award,
+              status: "UPDATED" as const,
+            });
+          },
+        }),
+        role,
+      );
+      const { context, log } = createTestContext();
+
+      await call(router.getOutcome, { round: "ROUND_1", teamId: TEAM_ID }, { context });
+      await expect(
+        call(
+          router.setOutcome,
+          {
+            action: { type: "ADVANCE" },
+            expectedAward: "ROUND_1_PARTICIPATED",
+            round: "ROUND_1",
+            teamId: TEAM_ID,
+          },
+          { context },
+        ),
+      ).resolves.toMatchObject({ award: "ADVANCED_TO_ROUND_2" });
+
+      expect(readCount).toBe(1);
+      expect(setCount).toBe(1);
+      expect(log.audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "team.award.changed",
+          changes: {
+            after: { award: "ADVANCED_TO_ROUND_2" },
+            before: { award: "ROUND_1_PARTICIPATED" },
+          },
+          outcome: "success",
+        }),
+      );
+    },
+  );
+
+  it.each(["staff", "user", null] as const)(
+    "denies %s from changing round outcomes without either staff permission",
+    async (role) => {
+      let repositoryCalls = 0;
+      const router = createRouter(
+        createRepository({
+          findOutcome: async () => {
+            repositoryCalls += 1;
+            return await Promise.resolve(null);
+          },
+          setOutcome: async () => {
+            repositoryCalls += 1;
+            return await Promise.resolve({ status: "INVALID_TRANSITION" as const });
+          },
+        }),
+        role,
+      );
+      const { context, log } = createTestContext();
+
+      await expect(
+        call(
+          router.setOutcome,
+          {
+            action: { type: "ADVANCE" },
+            expectedAward: "ROUND_1_PARTICIPATED",
+            round: "ROUND_1",
+            teamId: TEAM_ID,
+          },
+          { context },
+        ),
+      ).rejects.toMatchObject(
+        role === null ? { code: "UNAUTHORIZED", status: 401 } : { code: "FORBIDDEN", status: 403 },
+      );
+
+      expect(repositoryCalls).toBe(0);
+      expect(log.audit).toHaveBeenCalledTimes(role === null ? 0 : 1);
+    },
+  );
+
+  it.each([
+    ["STALE", "TEAM_ROUND_OUTCOME_STALE"],
+    ["ROUND_CHECK_IN_REQUIRED", "TEAM_ROUND_OUTCOME_CHECK_IN_REQUIRED"],
+    ["LATER_ROUND_CHECK_IN", "TEAM_ROUND_OUTCOME_LATER_CHECK_IN"],
+    ["INVALID_TRANSITION", "TEAM_ROUND_OUTCOME_INVALID_TRANSITION"],
+  ] as const)("audits and rejects an unavailable outcome change: %s", async (status, code) => {
+    const router = createRouter(
+      createRepository({
+        setOutcome: async () => await Promise.resolve({ status }),
+      }),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.setOutcome,
+        {
+          action: { type: "ADVANCE" },
+          expectedAward: "ROUND_1_PARTICIPATED",
+          round: "ROUND_1",
+          teamId: TEAM_ID,
+        },
+        { context },
+      ),
+    ).rejects.toMatchObject({ code, status: 409 });
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "team.award.changed", outcome: "denied", reason: code }),
+    );
+  });
+
+  it.each([
+    {
+      action: { type: "ADVANCE" },
+      expectedAward: "ROUND_3_PARTICIPATED",
+      round: "ROUND_3",
+      teamId: TEAM_ID,
+    },
+    {
+      action: { award: "FIRST_PLACE", type: "SET_FINAL_AWARD" },
+      expectedAward: "ROUND_1_PARTICIPATED",
+      round: "ROUND_1",
+      teamId: TEAM_ID,
+    },
+    {
+      action: { award: "REGISTRATION_COMPLETE", type: "SET_FINAL_AWARD" },
+      expectedAward: "ROUND_3_PARTICIPATED",
+      round: "ROUND_3",
+      teamId: TEAM_ID,
+    },
+  ])("rejects an outcome action that does not match its round and award options", async (input) => {
+    let repositoryCalls = 0;
+    const router = createRouter(
+      createRepository({
+        setOutcome: async () => {
+          repositoryCalls += 1;
+          return await Promise.resolve({ status: "INVALID_TRANSITION" as const });
+        },
+      }),
+    );
+    const { context } = createTestContext();
+
+    await expect(call(router.setOutcome, uncheckedInput(input), { context })).rejects.toMatchObject(
+      {
+        code: "BAD_REQUEST",
+      },
+    );
+    expect(repositoryCalls).toBe(0);
+  });
+
+  it("audits repository failure while changing an outcome", async () => {
+    const router = createRouter(
+      createRepository({
+        setOutcome: async () => await Promise.reject(new Error("Database unavailable")),
+      }),
+    );
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        router.setOutcome,
+        {
+          action: { type: "ADVANCE" },
+          expectedAward: "ROUND_1_PARTICIPATED",
+          round: "ROUND_1",
+          teamId: TEAM_ID,
+        },
+        { context },
+      ),
+    ).rejects.toMatchObject({ code: "TEAM_ROUND_RESULT_UNAVAILABLE", status: 503 });
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "team.award.changed",
+        outcome: "failure",
+        reason: "TEAM_ROUND_RESULT_UNAVAILABLE",
+      }),
+    );
+  });
+
   it.each([1e-7, 1.0000000000000002, 1_000_000_000_000.001])(
     "rejects score %s when its decimal representation has excess precision",
     async (score) => {
-      const router = createRouter({
-        findByTeamId: async () => await Promise.resolve({ results: [], team }),
-        list: async () => await Promise.resolve({ rowCount: 0, rows: [] }),
-        save: async (input) => await Promise.resolve({ ...input, createdAt, updatedAt: createdAt }),
-      });
+      const router = createRouter(
+        createRepository({
+          findByTeamId: async () => await Promise.resolve({ results: [], team }),
+          list: async () => await Promise.resolve({ rowCount: 0, rows: [] }),
+          save: async (input) =>
+            await Promise.resolve({ ...input, createdAt, updatedAt: createdAt }),
+        }),
+      );
       const { context } = createTestContext();
 
       await expect(
@@ -118,11 +544,11 @@ describe("team round results", () => {
     const router = createAppRouter({
       auth: createTestAuthReader(createTestSession({ user: { role: "academicStaff" } })),
       staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
-      teamRoundResults: {
+      teamRoundResults: createRepository({
         findByTeamId: async () => await Promise.resolve({ results: [], team }),
         list: async () => await Promise.reject(new Error("Unexpected list")),
         save: async () => await Promise.reject(new Error("Unexpected save")),
-      },
+      }),
     });
     const { context } = createTestContext();
 
@@ -140,14 +566,16 @@ describe("team round results", () => {
 
   it("saves manually entered values for a round without requiring a team check-in", async () => {
     let saved: TeamRoundResult | null = null;
-    const router = createRouter({
-      findByTeamId: async () => await Promise.resolve({ results: saved ? [saved] : [], team }),
-      list: async () => await Promise.reject(new Error("Unexpected list")),
-      save: async (input: SaveTeamRoundResultInput) => {
-        saved = { ...input, createdAt, updatedAt: createdAt };
-        return await Promise.resolve(saved);
-      },
-    });
+    const router = createRouter(
+      createRepository({
+        findByTeamId: async () => await Promise.resolve({ results: saved ? [saved] : [], team }),
+        list: async () => await Promise.reject(new Error("Unexpected list")),
+        save: async (input: SaveTeamRoundResultInput) => {
+          saved = { ...input, createdAt, updatedAt: createdAt };
+          return await Promise.resolve(saved);
+        },
+      }),
+    );
     const { context } = createTestContext();
     await expect(
       call(
@@ -182,15 +610,17 @@ describe("team round results", () => {
   });
 
   it("lists checked-in teams with empty results and the filtered team count", async () => {
-    const router = createRouter({
-      findByTeamId: async () => await Promise.reject(new Error("Unexpected get")),
-      list: async () =>
-        await Promise.resolve({
-          rowCount: 12,
-          rows: [{ result: null, round: "ROUND_2", team }],
-        }),
-      save: async () => await Promise.reject(new Error("Unexpected save")),
-    });
+    const router = createRouter(
+      createRepository({
+        findByTeamId: async () => await Promise.reject(new Error("Unexpected get")),
+        list: async () =>
+          await Promise.resolve({
+            rowCount: 12,
+            rows: [{ result: null, round: "ROUND_2", team }],
+          }),
+        save: async () => await Promise.reject(new Error("Unexpected save")),
+      }),
+    );
     const { context } = createTestContext();
 
     await expect(

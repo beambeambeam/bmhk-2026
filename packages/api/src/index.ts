@@ -2,11 +2,16 @@ export { createAppRouter } from "./router";
 export type { TeamRoundResultRepository } from "./features/team-round-results/team-round-results.repository";
 export type {
   SaveTeamRoundResultInput,
+  SetTeamRoundResultOutcomeInput,
+  FinalTeamRoundAward,
+  TeamRoundResultAward,
   TeamRoundResult,
   TeamRoundResultColumnFilter,
   TeamRoundResultList,
   TeamRoundResultListInput,
   TeamRoundResultListQuery,
+  TeamRoundResultOutcome,
+  TeamRoundResultRound,
   TeamRoundResultTeam,
   TeamRoundResultsDetail,
 } from "./features/team-round-results/team-round-results.schema";

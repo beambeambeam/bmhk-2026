@@ -163,10 +163,12 @@ describe("round result route navigation", () => {
       <QueryClientProvider client={router.options.context.queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>,
+      { container: document },
     );
 
     await screen.findByRole("row", { name: /Round One Team/u });
-    fireEvent.click(screen.getByRole("button", { name: "กรอกผลคะแนนรอบที่ 1 ทีม Round One Team" }));
+    fireEvent.click(screen.getByRole("button", { name: "จัดการคะแนนรอบที่ 1 ทีม Round One Team" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "แก้ไขคะแนน" }));
     await screen.findByRole("dialog", { name: "กรอกผลคะแนนรอบที่ 1" });
 
     await router.navigate({ to: "/round2-results" });

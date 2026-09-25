@@ -1,7 +1,9 @@
 import { checkInRoundValues } from "@bmhk-2026/db/schema/check-in-round";
+import { teamAwardValues } from "@bmhk-2026/db/schema/teams";
 import { z } from "zod";
 
 import { createTableListResultSchema, createTableQuerySchema } from "../../core/table-query";
+import { finalTeamRoundAwardValues } from "./team-round-results.rules";
 
 const MAX_SUBMISSION_COUNT = 2_147_483_647;
 function hasScorePrecision(score: number): boolean {
@@ -18,6 +20,8 @@ const scoreSchema = z
   .nullable();
 const countSchema = z.int().nonnegative().max(MAX_SUBMISSION_COUNT);
 export const teamRoundResultRoundSchema = z.enum(checkInRoundValues);
+export const teamRoundResultAwardSchema = z.enum(teamAwardValues);
+export const finalTeamRoundAwardSchema = z.enum(finalTeamRoundAwardValues);
 export const teamRoundResultTeamSchema = z
   .object({ id: z.uuid(), index: z.int().positive(), name: z.string() })
   .strict();
@@ -78,8 +82,58 @@ export const teamRoundResultsDetailSchema = z
     team: teamRoundResultTeamSchema,
   })
   .strict();
+export const getTeamRoundResultOutcomeSchema = z
+  .object({ round: teamRoundResultRoundSchema, teamId: z.uuid() })
+  .strict();
+const teamRoundResultOutcomeActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("ADVANCE") }).strict(),
+  z.object({ type: z.literal("REVERT") }).strict(),
+  z.object({ award: finalTeamRoundAwardSchema, type: z.literal("SET_FINAL_AWARD") }).strict(),
+  z.object({ type: z.literal("REMOVE_FINAL_AWARD") }).strict(),
+]);
+export const setTeamRoundResultOutcomeSchema = z
+  .object({
+    action: teamRoundResultOutcomeActionSchema,
+    expectedAward: teamRoundResultAwardSchema,
+    round: teamRoundResultRoundSchema,
+    teamId: z.uuid(),
+  })
+  .strict()
+  .superRefine(({ action, round }, context) => {
+    const isFinalAwardAction =
+      action.type === "SET_FINAL_AWARD" || action.type === "REMOVE_FINAL_AWARD";
+    if (isFinalAwardAction && round !== "ROUND_3") {
+      context.addIssue({ code: "custom", message: "Final awards can only be set in round 3" });
+      return;
+    }
+    if (!isFinalAwardAction && round === "ROUND_3") {
+      context.addIssue({ code: "custom", message: "Round 3 has no next-round eligibility" });
+    }
+  });
+export const teamRoundResultOutcomeSchema = z
+  .object({
+    actions: z
+      .object({
+        canAdvance: z.boolean(),
+        canRemoveFinalAward: z.boolean(),
+        canRevert: z.boolean(),
+        canSetFinalAward: z.boolean(),
+        hasLaterRoundCheckIns: z.boolean(),
+      })
+      .strict(),
+    award: teamRoundResultAwardSchema,
+    round: teamRoundResultRoundSchema,
+    team: teamRoundResultTeamSchema,
+  })
+  .strict();
 
 export type TeamRoundResult = z.infer<typeof teamRoundResultSchema>;
+export type TeamRoundResultRound = z.infer<typeof teamRoundResultRoundSchema>;
+export type TeamRoundResultAward = z.infer<typeof teamRoundResultAwardSchema>;
+export type FinalTeamRoundAward = z.infer<typeof finalTeamRoundAwardSchema>;
+export type TeamRoundResultOutcome = z.infer<typeof teamRoundResultOutcomeSchema>;
+export type SetTeamRoundResultOutcomeInput = z.infer<typeof setTeamRoundResultOutcomeSchema>;
+export type TeamRoundResultOutcomeAction = z.infer<typeof teamRoundResultOutcomeActionSchema>;
 export type TeamRoundResultTeam = z.infer<typeof teamRoundResultTeamSchema>;
 export type TeamRoundResultsDetail = z.infer<typeof teamRoundResultsDetailSchema>;
 export type SaveTeamRoundResultInput = z.infer<typeof saveTeamRoundResultSchema>;

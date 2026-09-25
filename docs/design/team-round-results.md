@@ -5,7 +5,7 @@ Status: implemented. All interview recommendations confirmed. The API is compose
 ## Accepted behavior
 
 - Academic Operators manually enter score, total submissions, completed assignments, and last submission time. The API does not derive values from submission records or apply a scoring formula.
-- All reads and writes require the existing `staff.academic_access` permission through `hasAcademicAccess()`. This includes `academicStaff`, `registrationStaff`, `admin`, and `superAdmin`.
+- Result reads and writes require the existing `staff.academic_access` permission through `hasAcademicAccess()`. This includes `academicStaff`, `registrationStaff`, `admin`, and `superAdmin`. The separate outcome operations accept either academic or registration access.
 - One current result exists per `(teamId, round)`, using `ROUND_1`, `ROUND_2`, and `ROUND_3`.
 - First save creates the result; later saves replace its entered values. No result exists before first save.
 - Any existing Team may receive a result in any round. Results do not change awards or advancement.
@@ -35,11 +35,13 @@ All four entered fields are required on save, including explicit `null` for null
 
 The implementation follows the existing oRPC feature structure with router, schema, service, and repository boundaries. A reusable academic procedure enforces the existing permission.
 
-| Procedure               | Method | Input                                                                             | Output                                                  |
-| ----------------------- | ------ | --------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `teamRoundResults.list` | GET    | `round`, optional `pagination`, `sorting`, and `columnFilters`                    | `{ rows, rowCount }`                                    |
-| `teamRoundResults.get`  | GET    | `{ teamId }`                                                                      | `{ team, rounds }`                                      |
-| `teamRoundResults.save` | PUT    | `{ teamId, round, score, totalSubmission, completedAssignment, lastSubmittedAt }` | The saved result, including `createdAt` and `updatedAt` |
+| Procedure                     | Method | Input                                                                             | Output                                                     |
+| ----------------------------- | ------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `teamRoundResults.list`       | GET    | `round`, optional `pagination`, `sorting`, and `columnFilters`                    | `{ rows, rowCount }`                                       |
+| `teamRoundResults.get`        | GET    | `{ teamId }`                                                                      | `{ team, rounds }`                                         |
+| `teamRoundResults.save`       | PUT    | `{ teamId, round, score, totalSubmission, completedAssignment, lastSubmittedAt }` | The saved result, including `createdAt` and `updatedAt`    |
+| `teamRoundResults.getOutcome` | GET    | `{ teamId, round }`                                                               | Team identity, round, current Award, and available actions |
+| `teamRoundResults.setOutcome` | PATCH  | `{ teamId, round, expectedAward, action }`                                        | Updated outcome and available actions                      |
 
 `team` contains `{ id, index, name }`, sufficient to identify a Team without exposing registration documents or participant details. A result contains every field in the Fields table.
 
@@ -89,9 +91,26 @@ Return Team identity and a `rounds` array in `ROUND_1`, `ROUND_2`, `ROUND_3` ord
 
 Atomically create or replace the result keyed by Team ID and round. Preserve `createdAt` on update and set `updatedAt` on every successful save. Repeated requests store the supplied values; they never increment counts.
 
-No check-in, award, or advancement state is required to save. Counts and last submission time may be corrected downward or backward. Saved results may have `score: null`; that is distinct from a completely missing result. No delete, batch-import, score-history, publication, or award-update operation is included in this API.
+No check-in, award, or advancement state is required to save. Counts and last submission time may be corrected downward or backward. Saved results may have `score: null`; that is distinct from a completely missing result. No delete, batch-import, score-history, or publication operation is included. Award changes use the separate outcome operations below.
 
 If two operators save concurrently, the last successful database write wins as a whole. There is no field merge or optimistic conflict check.
+
+### Round outcomes
+
+Outcome reads and writes require either academic access or registration access. Score editing keeps its academic-access policy. No saved score is required for an outcome decision.
+
+`getOutcome` returns `{ team, round, award, actions }`. The actions contain `canAdvance`, `canRevert`, `canSetFinalAward`, `canRemoveFinalAward`, and `hasLaterRoundCheckIns`. These capabilities describe current availability; the server rechecks them during writes.
+
+`setOutcome` accepts an `expectedAward` and one strict action object:
+
+- `{ type: "ADVANCE" }`: round 1 participated to advanced to round 2, or round 2 participated to advanced to round 3.
+- `{ type: "REVERT" }`: reverse exactly that advancement to the current round's participated status, provided no later-round Team or Participant Check-in exists.
+- `{ type: "SET_FINAL_AWARD", award }`: round 3 only; set or replace first place, second place, third place, or honorable mention.
+- `{ type: "REMOVE_FINAL_AWARD" }`: round 3 only; restore round 3 participated status.
+
+Changing an outcome requires a Team Check-in for the selected round. No-op `ไม่มีสิทธิ์` is a client-only dismissal; it never writes a rejection. Multiple Teams may receive the same final award.
+
+Writes lock the Team row, check its current Award against `expectedAward`, validate current check-ins and the requested transition, then change only the Award. This serializes with Team and Participant check-in writes. Stale or invalid actions return a conflict; earlier-round actions cannot overwrite later progression. Scores, check-ins, and Round 2 Confirmation history remain intact. Successful and denied/failed outcome decisions use the Award audit trail.
 
 These edits are routine summary maintenance, so they use normal request logging under the repository's CRUD policy. Final submission, approval, and award decisions remain separate audited operations.
 

@@ -72,6 +72,14 @@ _Avoid_: Registration setting
 An organizer-controlled competition outcome assigned to a Team.
 _Avoid_: Team achievement field
 
+**Next-Round Eligibility**:
+An Academic Operator's or Registration Operator's manual decision allowing a Team to enter the next competition round, independent of its score. Absence of eligibility does not distinguish a Team awaiting consideration from one that was not selected.
+_Avoid_: Calculated qualification, rejection record
+
+**Final Award**:
+A Team's organizer-assigned final competition outcome: first place, second place, third place, or honorable mention. Multiple Teams may receive the same Final Award.
+_Avoid_: Unique rank, calculated placement
+
 **Feature Flag**:
 A named competition capability that becomes available at a scheduled start and may remain available forever or until a scheduled end. It is not a manual toggle or targeted rollout.
 _Avoid_: Feature Availability Window, rollout, toggle

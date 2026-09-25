@@ -3,15 +3,6 @@ import { fetchLookupParticipant } from "../../services/discord-admin-api.js";
 import type { ParticipantLookup } from "../../services/discord-admin-api.js";
 import type { Command } from "../../types.js";
 
-function otherAccountLine(result: Extract<ParticipantLookup, { status: "FOUND" }>): string {
-  const { other_discord_user_id: otherId } = result;
-  if (result.matched_account === "alt") {
-    // The alt slot can only be redeemed after the main slot, so this is always set.
-    return `Main Discord: <@${otherId}>`;
-  }
-  return `Alt Discord: ${otherId === null ? "—" : `<@${otherId}>`}`;
-}
-
 export function formatLookupParticipant(userId: string, result: ParticipantLookup): string {
   if (result.status === "NOT_FOUND") {
     return `<@${userId}> has no verified participant record.`;
@@ -25,8 +16,6 @@ export function formatLookupParticipant(userId: string, result: ParticipantLooku
     `Email: ${result.contact.email}`,
     `Phone: ${result.contact.phone}`,
     `Line: ${result.contact.line_id ?? "—"}`,
-    `Matched via: ${result.matched_account} account`,
-    otherAccountLine(result),
   ].join("\n");
 }
 

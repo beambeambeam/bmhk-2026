@@ -8,7 +8,7 @@ const clientReady: Event<"clientReady"> = {
     client.user.setPresence({
       activities: [
         {
-          name: "Bangmod Hackathon 2026",
+          name: "BangMod Hackathon 2026",
           type: ActivityType.Playing,
         },
       ],

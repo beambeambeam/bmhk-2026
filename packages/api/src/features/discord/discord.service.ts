@@ -20,13 +20,12 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
         return { data: null, status: discordStatus.NOT_FOUND };
       }
 
-      if (lookup.discord.redeemedAt && lookup.discord.altRedeemedAt) {
+      if (lookup.discord.redeemedAt) {
         return { data: null, status: discordStatus.ALREADY_REDEEMED };
       }
 
       return {
         data: {
-          main_acc_id: lookup.discord.mainAccUserId,
           name: toDisplayName(lookup.firstNameTh, lookup.lastNameTh),
           school: lookup.school,
           team: lookup.teamName,
@@ -54,7 +53,6 @@ export function createDiscordService(repository: DiscordRepository): DiscordServ
           firstNameTh: result.firstNameTh,
           teamIndex: result.teamIndex,
           teamName: result.teamName,
-          wasAlt: result.wasAlt,
         }),
         status: discordStatus.SUCCESS,
       };

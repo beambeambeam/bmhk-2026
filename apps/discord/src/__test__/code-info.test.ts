@@ -12,9 +12,8 @@ describe(formatCodeInfo, () => {
     );
   });
 
-  it("shows an unredeemed code with empty account slots", () => {
+  it("shows an unredeemed code with an empty account slot", () => {
     const text = formatCodeInfo("ABCD2345", {
-      alt: null,
       main: null,
       participant: PARTICIPANT,
       status: "NOT_REDEEMED",
@@ -26,22 +25,19 @@ describe(formatCodeInfo, () => {
         "`ABCD2345` — NOT_REDEEMED",
         "Team: #7 Team 7 (โรงเรียนบางมด)",
         "Participant: 2. นาย สมชาย ใจดี",
-        "Main: —",
-        "Alt: —",
+        "Discord: —",
       ].join("\n"),
     );
   });
 
-  it("shows who redeemed each slot with a Discord timestamp", () => {
+  it("shows who redeemed the code with a Discord timestamp", () => {
     const text = formatCodeInfo("ABCD2345", {
-      alt: { id: "222", redeemed_at: "2026-09-02T04:30:00.000Z" },
       main: { id: "111", redeemed_at: "2026-09-01T03:00:00.000Z" },
       participant: PARTICIPANT,
-      status: "REDEEMED_TWICE",
+      status: "REDEEMED",
       team: TEAM,
     });
 
-    expect(text).toContain("Main: <@111> (`111`) <t:1788231600:f>");
-    expect(text).toContain("Alt: <@222> (`222`) <t:1788323400:f>");
+    expect(text).toContain("Discord: <@111> (`111`) <t:1788231600:f>");
   });
 });

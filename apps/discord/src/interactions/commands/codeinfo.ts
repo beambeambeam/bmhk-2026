@@ -22,8 +22,7 @@ export function formatCodeInfo(code: string, info: CodeInfo): string {
     `\`${code}\` — ${info.status}`,
     `Team: #${info.team.index} ${info.team.name} (${info.team.school})`,
     `Participant: ${info.participant.index}. ${info.participant.name}`,
-    accountLine("Main", info.main),
-    accountLine("Alt", info.alt),
+    accountLine("Discord", info.main),
   ].join("\n");
 }
 

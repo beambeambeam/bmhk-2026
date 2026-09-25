@@ -126,7 +126,6 @@ describe("team round result dialog", () => {
         screen.getByLabelText<HTMLInputElement>("ส่งงานล่าสุด").value,
       ],
       teamDescription: screen.getByText("ทีม Team One · BH042/26"),
-      timezone: screen.getByText("เวลา Asia/Bangkok (UTC+7)"),
     }).toMatchObject({ fieldValues: ["", "", "", ""] });
   });
 

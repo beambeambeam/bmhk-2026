@@ -209,7 +209,7 @@ describe("team round results", () => {
     });
   });
 
-  it.each(["academicStaff", "admin", "superAdmin"] as const)(
+  it.each(["academicStaff", "registrationStaff", "admin", "superAdmin"] as const)(
     "allows %s to use get, list, and save",
     async (role) => {
       const calls: ProcedureName[] = [];
@@ -244,9 +244,6 @@ describe("team round results", () => {
     { operation: "get", role: "staff" },
     { operation: "list", role: "staff" },
     { operation: "save", role: "staff" },
-    { operation: "get", role: "registrationStaff" },
-    { operation: "list", role: "registrationStaff" },
-    { operation: "save", role: "registrationStaff" },
     { operation: "get", role: "user" },
     { operation: "list", role: "user" },
     { operation: "save", role: "user" },

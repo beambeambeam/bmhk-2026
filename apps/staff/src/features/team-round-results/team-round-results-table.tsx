@@ -4,7 +4,6 @@ import { formatBangkokDateTime } from "./round-result-datetime";
 import { Field, FieldGroup, FieldLabel } from "@/components/field";
 import { Button } from "@/components/button";
 import { Input } from "@/components/input";
-import { Switch } from "@/components/switch";
 import { DataTable } from "@/components/table/index";
 import type { DataTableColumn } from "@/components/table/index";
 import { DataTableSortHeader } from "@/components/table/sort-header";
@@ -114,7 +113,6 @@ const columns: DataTableColumn<ResultRow, ResultsTableMeta>[] = [
 ];
 
 function RoundResultsTable({ actorId, round }: TeamRoundResultsTableProps) {
-  const [showAllTeams, setShowAllTeams] = useState(false);
   const [searches, setSearches] = useState({ teamCode: "", teamName: "" });
   const [debouncedSearches, setDebouncedSearches] = useState(searches);
   const [pageIndex, setPageIndex] = useState(0);
@@ -142,9 +140,7 @@ function RoundResultsTable({ actorId, round }: TeamRoundResultsTableProps) {
   if (debouncedSearches.teamName) {
     columnFilters.push({ id: "teamName", value: debouncedSearches.teamName });
   }
-  if (!showAllTeams) {
-    columnFilters.push({ id: "teamCheckIn", value: "registered" });
-  }
+  columnFilters.push({ id: "teamCheckIn", value: "registered" });
   const input: TeamRoundResultListQuery = {
     columnFilters,
     pagination: { pageIndex, pageSize },
@@ -197,17 +193,6 @@ function RoundResultsTable({ actorId, round }: TeamRoundResultsTableProps) {
               setSearches((current) => ({ ...current, teamName: event.target.value }));
             }}
           />
-        </Field>
-        <Field orientation="horizontal">
-          <Switch
-            id="round-results-show-all"
-            checked={showAllTeams}
-            onCheckedChange={(checked) => {
-              setShowAllTeams(checked);
-              setPageIndex(0);
-            }}
-          />
-          <FieldLabel htmlFor="round-results-show-all">แสดงทุกทีม</FieldLabel>
         </Field>
       </FieldGroup>
       <DataTable

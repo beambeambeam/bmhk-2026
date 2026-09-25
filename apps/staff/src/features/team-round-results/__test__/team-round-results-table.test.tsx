@@ -46,9 +46,7 @@ describe("staff team round results table", () => {
 
     const row = await screen.findByRole("row", { name: /BH042\/26.*Empty Team/u });
     expect(within(row).getAllByRole("cell", { name: "—" })).toHaveLength(6);
-    expect(screen.getByRole("switch", { name: "แสดงทุกทีม" }).getAttribute("aria-checked")).toBe(
-      "false",
-    );
+    expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.getAllByRole("columnheader")).toHaveLength(9);
     fireEvent.click(within(row).getByRole("button", { name: "กรอกผลคะแนนรอบที่ 1 ทีม Empty Team" }));
     await expect(screen.findByRole("dialog")).resolves.toBeDefined();
@@ -200,7 +198,7 @@ describe("staff team round results table", () => {
     });
   });
 
-  it("resets pagination when showing all teams and changing filters", async () => {
+  it("keeps the same-round check-in filter and resets pagination when searching", async () => {
     const requests: Request[] = [];
     fetchMock.mockImplementation(async (input, init) => {
       requests.push(new Request(input, init));
@@ -217,36 +215,25 @@ describe("staff team round results table", () => {
     await waitFor(() => {
       expect(requests).toHaveLength(2);
     });
-    fireEvent.click(screen.getByRole("switch", { name: "แสดงทุกทีม" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "ชื่อทีม" }), {
+      target: { value: "Alpha" },
+    });
+    expect(requests).toHaveLength(2);
     await waitFor(() => {
       expect(requests).toHaveLength(3);
     });
     await expect(requests[2].clone().json()).resolves.toMatchObject({
-      json: { columnFilters: [], pagination: { pageIndex: 0, pageSize: 10 }, round: "ROUND_3" },
-    });
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "ไปหน้าถัดไป" }).hasAttribute("disabled"),
-      ).toBeFalsy();
-    });
-    fireEvent.click(screen.getByRole("button", { name: "ไปหน้าถัดไป" }));
-    await waitFor(() => {
-      expect(requests).toHaveLength(4);
-    });
-    fireEvent.change(screen.getByRole("searchbox", { name: "ชื่อทีม" }), {
-      target: { value: "Alpha" },
-    });
-    expect(requests).toHaveLength(4);
-    await waitFor(() => {
-      expect(requests).toHaveLength(5);
-    });
-    await expect(requests[4].clone().json()).resolves.toMatchObject({
       json: {
-        columnFilters: [{ id: "teamName", value: "Alpha" }],
+        columnFilters: [
+          { id: "teamName", value: "Alpha" },
+          { id: "teamCheckIn", value: "registered" },
+        ],
         pagination: { pageIndex: 0, pageSize: 10 },
+        round: "ROUND_3",
       },
     });
   });
+
   it("returns to the first page when the page size changes", async () => {
     const requests: Request[] = [];
     fetchMock.mockImplementation(async (input, init) => {

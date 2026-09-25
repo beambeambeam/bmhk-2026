@@ -122,6 +122,15 @@ describe("round result route navigation", () => {
     expect(router.state.location.pathname).toBe(path);
   });
 
+  it.each(roundResultPaths)("lets registration staff open %s directly", async (path) => {
+    setSessionRole("registrationStaff");
+    const router = getRouter();
+
+    await router.navigate({ to: path });
+
+    expect(router.state.location.pathname).toBe(path);
+  });
+
   it.each(roundResultPaths)("redirects staff away from direct access to %s", async (path) => {
     setSessionRole("staff");
     const router = getRouter();

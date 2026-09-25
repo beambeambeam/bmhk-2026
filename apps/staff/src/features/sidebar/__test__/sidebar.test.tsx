@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -44,6 +44,18 @@ function renderSidebar(role: string) {
   );
 }
 
+function getRoundResultLinksByGroup(): (string | null)[] {
+  return [1, 2, 3].map((round) => {
+    const groupLabel = screen.getByText(`การแข่งขัน รอบที่ ${round}`);
+    const group = groupLabel.parentElement;
+    return group
+      ? (within(group)
+          .queryByRole("link", { name: `ผลการแข่งขัน รอบที่ ${round}` })
+          ?.getAttribute("href") ?? null)
+      : null;
+  });
+}
+
 describe("staff sidebar permissions", () => {
   afterEach(() => {
     cleanup();
@@ -53,8 +65,19 @@ describe("staff sidebar permissions", () => {
   it("shows staff check-in links to staff without registration links", () => {
     renderSidebar("staff");
 
-    expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน (รอบที่ 2)" })).toBeTruthy();
+    expect([
+      screen.getByRole("link", { name: "ลงทะเบียนทีมงาน" }).getAttribute("href"),
+      screen.getByRole("link", { name: "ลงทะเบียนทีมงาน (รอบที่ 2)" }).getAttribute("href"),
+      screen.getByText("การแข่งขัน รอบที่ 1").textContent,
+      screen.getByText("การแข่งขัน รอบที่ 2").textContent,
+      screen.queryByText("การแข่งขัน รอบที่ 3")?.textContent ?? null,
+    ]).toStrictEqual([
+      "/round1-staff-check",
+      "/round2-staff-check",
+      "การแข่งขัน รอบที่ 1",
+      "การแข่งขัน รอบที่ 2",
+      null,
+    ]);
     expect(
       screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนผู้เข้าร่วม|ผลงานการแข่งขัน/u }),
     ).toBeNull();
@@ -79,20 +102,21 @@ describe("staff sidebar permissions", () => {
     expect(screen.queryByRole("link", { name: "จัดการผู้ใช้ในระบบ" })).toBeNull();
   });
 
-  it.each(["academicStaff", "admin", "superAdmin"])("shows round result links to %s", (role) => {
-    renderSidebar(role);
+  it.each(["academicStaff", "registrationStaff", "admin", "superAdmin"])(
+    "shows round result links in their round groups to %s",
+    (role) => {
+      renderSidebar(role);
 
-    const resultLinks = screen.getAllByRole("link", { name: /ผลการแข่งขัน รอบที่/u });
+      expect(getRoundResultLinksByGroup()).toStrictEqual([
+        "/round1-results",
+        "/round2-results",
+        "/round3-results",
+      ]);
+    },
+  );
 
-    expect(resultLinks.map((link) => link.getAttribute("href"))).toStrictEqual([
-      "/round1-results",
-      "/round2-results",
-      "/round3-results",
-    ]);
-  });
-
-  it.each(["staff", "registrationStaff"])("hides round result links from %s", (role) => {
-    renderSidebar(role);
+  it("hides round result links from staff without academic access", () => {
+    renderSidebar("staff");
 
     expect(screen.queryByRole("link", { name: /ผลการแข่งขัน รอบที่/u })).toBeNull();
   });

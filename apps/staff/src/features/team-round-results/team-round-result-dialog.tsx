@@ -345,7 +345,6 @@ function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogPro
                       type="datetime-local"
                       value={field.state.value}
                     />
-                    <FieldDescription>เวลา Asia/Bangkok (UTC+7)</FieldDescription>
                     {isInvalid ? <FieldError>{error}</FieldError> : null}
                   </Field>
                 );

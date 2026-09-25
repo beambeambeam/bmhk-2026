@@ -9,20 +9,20 @@ Status: implemented. All interview recommendations confirmed.
 - Support filtering by Team code and Team name.
 - Support sorting every data column across the full filtered result set, using server-side sorting and pagination.
 - Follow the staff app's existing routing, tables, controls, and data-fetching conventions.
-- Retain the existing academic-access policy: `academicStaff`, `admin`, and `superAdmin`.
+- Retain the existing academic-access policy: `academicStaff`, `registrationStaff`, `admin`, and `superAdmin`.
 - Preserve the distinction between a missing result, an unscored saved result, and a real zero score.
 
 ## Accepted page and interaction design
 
 - Three separate pages share one table implementation, each with a fixed round. Follow existing routes that pass a round to a feature-owned table component.
 - Each row has an Enter result or Edit result action opening a dialog for score, total submissions, completed assignments, and last submission time. Creation and update timestamps are read-only.
-- Initially show only Teams checked in for the selected round, including Teams without saved results. A Show all teams switch removes the check-in filter.
+- Show only Teams checked in for the selected round, including Teams without saved results. There is no Show all teams switch.
 - Provide separate Team code and Team name filters. Both predicates must match when both fields are filled.
 - Use the existing Team code format, such as `BH042/26`.
 
 ## Repository alignment
 
-- Add routes `/round1-results`, `/round2-results`, and `/round3-results`, guarded with `hasAcademicAccess`. Add their sidebar entries for Academic Operators, including administrators.
+- Add routes `/round1-results`, `/round2-results`, and `/round3-results`, guarded with `hasAcademicAccess`. Place each sidebar entry in its corresponding “การแข่งขัน รอบที่ N” section, alongside check-in links.
 - Reuse `DataTable`, `DataTableSortHeader`, and `DataTablePagination`; use typed oRPC query/mutation options and TanStack Query. Reuse the existing shadcn dialog and TanStack Form patterns with accessible field labels and validation.
 - Match the staff app's existing Thai interface labels and semantic styles.
 - Match existing table controls: 300 ms search debounce, 10 rows initially, page-size choices 10/25/50/100, one active sort column at a time, and reset to the first page when filtering or sorting changes. Start with Team code ascending; retain null values last in either direction.
@@ -36,13 +36,13 @@ Status: implemented. All interview recommendations confirmed.
 - A new result opens with all inputs blank. Blank score and last submission time become null; both counts must be entered explicitly, including zero when appropriate. Empty table cells display `—` and never manufacture zero values. A real zero remains visible as `0`.
 - An existing result opens with its current values. The dialog identifies both Team and round. Save all four entered fields together using the existing last-save-wins API contract.
 - Accept scores with up to two decimal places, including negative scores. Counts must be integers from 0 through 2,147,483,647. Reject invalid values before submission and display field errors; the API remains authoritative for validation.
-- Display and edit times in `Asia/Bangkok` (UTC+7), with the timezone stated in the form. Convert entered values to an absolute instant for the API, independently of the browser's timezone. Preserve an unchanged timestamp rather than losing precision through display formatting.
+- Display and edit times in `Asia/Bangkok` (UTC+7), without visible timezone text. Convert entered values to an absolute instant for the API, independently of the browser's timezone. Preserve an unchanged timestamp rather than losing precision through display formatting.
 - Show creation and update times as read-only table values. A Team without a saved result has no result timestamps.
 
 ## Implementation validation
 
 - Test rendered table and dialog components with accessible queries and fakes at the API boundary, following the repository's component-test conventions.
-- Verify all eight sortable data columns, code/name filters combined with AND, debounce, pagination resets, the default same-round check-in filter, and the Show all teams switch.
+- Verify all eight sortable data columns, code/name filters combined with AND, debounce, pagination resets, the fixed same-round check-in filter, and the absence of a Show all teams switch.
 - Verify missing versus null versus zero results, explicit count entry, numeric validation, Bangkok timestamp conversion, preserving unchanged timestamps, successful saves, failed saves retaining input, and duplicate-submit prevention.
 - Verify navigation between all three routes does not retain another round's rows or dialog state. Check academic-access navigation and direct-route protection.
 - Test the extended API filters and timestamp sorting through the existing public API seam, with real-query verification for filtering and ordering when a disposable PostgreSQL instance is available.

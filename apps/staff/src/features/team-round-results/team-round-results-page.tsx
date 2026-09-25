@@ -17,9 +17,7 @@ function TeamRoundResultsPage({ actorId, round }: TeamRoundResultsPageProps) {
     <section className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-1">
         <h1 className="text-base leading-snug font-medium">ผลการแข่งขัน {roundLabels[round]}</h1>
-        <p className="text-sm text-muted-foreground">
-          บันทึกคะแนนและผลการส่งงานของแต่ละทีม · เวลา Asia/Bangkok (UTC+7)
-        </p>
+        <p className="text-sm text-muted-foreground">บันทึกคะแนนและผลการส่งงานของแต่ละทีม</p>
       </div>
       <TeamRoundResultsTable actorId={actorId} round={round} />
     </section>

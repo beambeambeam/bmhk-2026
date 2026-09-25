@@ -5,7 +5,7 @@ Status: implemented. All interview recommendations confirmed. The API is compose
 ## Accepted behavior
 
 - Academic Operators manually enter score, total submissions, completed assignments, and last submission time. The API does not derive values from submission records or apply a scoring formula.
-- All reads and writes require the existing `staff.academic_access` permission through `hasAcademicAccess()`. This includes `academicStaff`, `admin`, and `superAdmin`.
+- All reads and writes require the existing `staff.academic_access` permission through `hasAcademicAccess()`. This includes `academicStaff`, `registrationStaff`, `admin`, and `superAdmin`.
 - One current result exists per `(teamId, round)`, using `ROUND_1`, `ROUND_2`, and `ROUND_3`.
 - First save creates the result; later saves replace its entered values. No result exists before first save.
 - Any existing Team may receive a result in any round. Results do not change awards or advancement.
@@ -123,7 +123,7 @@ Use an atomic upsert rather than separate existence checks followed by writes. R
 
 Test through `createAppRouter()` using repository fakes:
 
-- Allow `academicStaff`, `admin`, and `superAdmin`; deny unauthenticated callers and `user`, `staff`, and `registrationStaff` on every operation.
+- Allow `academicStaff`, `registrationStaff`, `admin`, and `superAdmin`; deny unauthenticated callers and `user` and `staff` on every operation.
 - Accept zero, negative, and two-decimal scores; reject extra decimals and nonfinite numbers. Validate counts, nullable fields, dates, and output-only timestamps.
 - Create on first save, preserve `createdAt` on replacement, update `updatedAt`, replace the full result, and keep rounds independent.
 - Distinguish missing results, saved unscored results, and real zero scores. Reading missing results must not create records.

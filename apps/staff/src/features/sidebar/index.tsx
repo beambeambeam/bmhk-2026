@@ -86,11 +86,23 @@ const achievementsNavItems: readonly StaffNavItem[] = [
   { icon: Trophy, label: "ผลงานการแข่งขัน", to: "/achievements" },
 ];
 
-const roundResultsNavItems: readonly StaffNavItem[] = [
-  { icon: Trophy, label: "ผลการแข่งขัน รอบที่ 1", to: "/round1-results" },
-  { icon: Trophy, label: "ผลการแข่งขัน รอบที่ 2", to: "/round2-results" },
-  { icon: Trophy, label: "ผลการแข่งขัน รอบที่ 3", to: "/round3-results" },
-];
+const round1ResultsNavItem: StaffNavItem = {
+  icon: Trophy,
+  label: "ผลการแข่งขัน รอบที่ 1",
+  to: "/round1-results",
+};
+
+const round2ResultsNavItem: StaffNavItem = {
+  icon: Trophy,
+  label: "ผลการแข่งขัน รอบที่ 2",
+  to: "/round2-results",
+};
+
+const round3ResultsNavItem: StaffNavItem = {
+  icon: Trophy,
+  label: "ผลการแข่งขัน รอบที่ 3",
+  to: "/round3-results",
+};
 
 const staffNavItems: readonly StaffNavItem[] = [
   { icon: UserCheck, label: "ลงทะเบียนทีมงาน", to: "/round1-staff-check" },
@@ -177,16 +189,18 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       { items: baseNavItems, label: "เมนูหลัก" },
       { items: registrationNavItems, label: "การสมัครแข่งขัน" },
       { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
-      { items: roundResultsNavItems, label: "ผลการแข่งขันรายรอบ" },
       {
-        items: [...participantCheckInNavItems, ...staffNavItems],
-        label: "ลงทะเบียนเข้างาน รอบที่ 1",
+        items: [...participantCheckInNavItems, ...staffNavItems, round1ResultsNavItem],
+        label: "การแข่งขัน รอบที่ 1",
       },
       {
-        items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems],
-        label: "ลงทะเบียนเข้างาน รอบที่ 2",
+        items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems, round2ResultsNavItem],
+        label: "การแข่งขัน รอบที่ 2",
       },
-      { items: round3ParticipantCheckInNavItems, label: "ลงทะเบียนเข้างาน รอบที่ 3" },
+      {
+        items: [...round3ParticipantCheckInNavItems, round3ResultsNavItem],
+        label: "การแข่งขัน รอบที่ 3",
+      },
       { items: userManagementNavItems, label: "บัญชีและสิทธิ์" },
       { items: adminNavItems, label: "ผู้ดูแลระบบ" },
     ];
@@ -194,10 +208,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     const accessNavGroups: StaffNavGroup[] = [];
 
     if (canAccessAcademic) {
-      accessNavGroups.push(
-        { items: baseNavItems, label: "เมนูหลัก" },
-        { items: roundResultsNavItems, label: "ผลการแข่งขันรายรอบ" },
-      );
+      accessNavGroups.push({ items: baseNavItems, label: "เมนูหลัก" });
     }
 
     if (canAccessParticipations) {
@@ -213,23 +224,28 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
           items: [
             ...(canAccessParticipations ? participantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? staffNavItems : []),
+            ...(canAccessAcademic ? [round1ResultsNavItem] : []),
           ],
-          label: "ลงทะเบียนเข้างาน รอบที่ 1",
+          label: "การแข่งขัน รอบที่ 1",
         },
         {
           items: [
             ...(canAccessParticipations ? round2ParticipantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
+            ...(canAccessAcademic ? [round2ResultsNavItem] : []),
           ],
-          label: "ลงทะเบียนเข้างาน รอบที่ 2",
+          label: "การแข่งขัน รอบที่ 2",
         },
       );
     }
 
-    if (canAccessParticipations) {
+    if (canAccessAcademic || canAccessParticipations) {
       accessNavGroups.push({
-        items: round3ParticipantCheckInNavItems,
-        label: "ลงทะเบียนเข้างาน รอบที่ 3",
+        items: [
+          ...(canAccessParticipations ? round3ParticipantCheckInNavItems : []),
+          ...(canAccessAcademic ? [round3ResultsNavItem] : []),
+        ],
+        label: "การแข่งขัน รอบที่ 3",
       });
     }
 

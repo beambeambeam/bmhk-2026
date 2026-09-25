@@ -78,4 +78,22 @@ describe("staff sidebar permissions", () => {
     expect(screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนผู้เข้าร่วม/u })).toBeNull();
     expect(screen.queryByRole("link", { name: "จัดการผู้ใช้ในระบบ" })).toBeNull();
   });
+
+  it.each(["academicStaff", "admin", "superAdmin"])("shows round result links to %s", (role) => {
+    renderSidebar(role);
+
+    const resultLinks = screen.getAllByRole("link", { name: /ผลการแข่งขัน รอบที่/u });
+
+    expect(resultLinks.map((link) => link.getAttribute("href"))).toStrictEqual([
+      "/round1-results",
+      "/round2-results",
+      "/round3-results",
+    ]);
+  });
+
+  it.each(["staff", "registrationStaff"])("hides round result links from %s", (role) => {
+    renderSidebar(role);
+
+    expect(screen.queryByRole("link", { name: /ผลการแข่งขัน รอบที่/u })).toBeNull();
+  });
 });

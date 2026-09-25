@@ -1,3 +1,4 @@
+import { formatTeamCode } from "@/lib/team-code";
 import { Button } from "@/components/button";
 import { toast } from "sonner";
 import { createParticipationCsv, downloadParticipationCsv } from "./participation-export";
@@ -67,7 +68,7 @@ const columnDefinitions: DataTableColumn<Participation, ParticipationTableMeta>[
   {
     cell: ({ row }) => {
       const team = row.original;
-      return `BH${String(team.index).padStart(3, "0")}/26`;
+      return formatTeamCode(team.index);
     },
     header: "รหัสทีม",
     id: "index",

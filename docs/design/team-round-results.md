@@ -48,8 +48,8 @@ The implementation follows the existing oRPC feature structure with router, sche
 Require a selected round. Use `createTableQuerySchema` and `createTableListResultSchema` for the existing table contract:
 
 - Pagination defaults to `{ pageIndex: 0, pageSize: 10 }`, with page size from 1 through 100.
-- Column filters support `{ id: "team", value: string }` for case-insensitive Team name or displayed Team code search, following existing Team table conventions, and `{ id: "teamCheckIn", value: "registered" }` for the checked-in-only case. An omitted check-in filter includes all Teams.
-- Sortable IDs are `teamCode`, `teamName`, `score`, `totalSubmission`, `completedAssignment`, and `lastSubmittedAt`. Default to `teamCode` ascending. Use Team index as the final stable tie-breaker and place null values last in either direction.
+- Column filters support independent `{ id: "teamCode", value: string }` and `{ id: "teamName", value: string }` case-insensitive contains searches, plus `{ id: "teamCheckIn", value: "registered" }` for the checked-in-only case. Multiple supplied filters combine with AND. Empty search values are ignored. An omitted check-in filter includes all Teams. Up to three unique filters are accepted.
+- Sortable IDs are `teamCode`, `teamName`, `score`, `totalSubmission`, `completedAssignment`, `lastSubmittedAt`, `createdAt`, and `updatedAt`. Default to `teamCode` ascending. Use Team index as the final stable tie-breaker and place null values last in either direction.
 - Each row is `{ team, round, result }`. `result` is nullable.
 - `rowCount` is the filtered Team count before pagination, including Teams without saved results. A page beyond the last page returns an empty `rows` array with the actual filtered count.
 
@@ -58,7 +58,11 @@ Checked-in-only request example:
 ```json
 {
   "round": "ROUND_2",
-  "columnFilters": [{ "id": "teamCheckIn", "value": "registered" }],
+  "columnFilters": [
+    { "id": "teamCode", "value": "BH042" },
+    { "id": "teamName", "value": "Example" },
+    { "id": "teamCheckIn", "value": "registered" }
+  ],
   "pagination": { "pageIndex": 0, "pageSize": 10 }
 }
 ```
@@ -93,7 +97,7 @@ These edits are routine summary maintenance, so they use normal request logging 
 
 ## Check-in listing
 
-- Default listing includes all Teams. An optional `teamCheckIn: registered` table filter restricts it to Teams checked in for the selected round.
+- Listing includes all Teams unless `teamCheckIn: registered` restricts it to Teams checked in for the selected round. The Team code and Team name contains filters are independent and combine with AND when both are provided.
 - A Team Check-in from another round does not qualify. Participant check-ins alone do not qualify.
 - Team identity stays present when a result is missing; return `result: null`. Do not manufacture zero scores, zero counts, timestamps, or result rows.
 - Query from Teams, filter on Team Check-ins when requested, and left join results using both Team ID and round. Apply pagination and total counts to qualifying Teams, including those without results.

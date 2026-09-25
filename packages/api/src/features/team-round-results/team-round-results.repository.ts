@@ -2,7 +2,7 @@ import { db } from "@bmhk-2026/db";
 import { teamRoundResults } from "@bmhk-2026/db/schema/team-round-results";
 import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { and, asc, count, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNotNull, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import { createTableWhere, escapeLikePattern } from "../../core/query-builder";
@@ -40,11 +40,13 @@ const resultSelection = {
 };
 const sortColumns = {
   completedAssignment: teamRoundResults.completedAssignment,
+  createdAt: teamRoundResults.createdAt,
   lastSubmittedAt: teamRoundResults.lastSubmittedAt,
   score: teamRoundResults.score,
   teamCode: teams.index,
   teamName: teams.name,
   totalSubmission: teamRoundResults.totalSubmission,
+  updatedAt: teamRoundResults.updatedAt,
 } as const;
 const teamCodeSearchColumn = sql<string>`'BH' || lpad(
   ${teams.index}::text,
@@ -60,7 +62,9 @@ function createFilterCondition(filter: TeamRoundResultColumnFilter): SQL | undef
     return undefined;
   }
   const pattern = `%${escapeLikePattern(filter.value)}%`;
-  return or(ilike(teams.name, pattern), ilike(teamCodeSearchColumn, pattern));
+  return filter.id === "teamCode"
+    ? ilike(teamCodeSearchColumn, pattern)
+    : ilike(teams.name, pattern);
 }
 
 export function createTeamRoundResultRepository(

@@ -53,10 +53,13 @@ interface StaffNavItem {
     | "/dashboard"
     | "/participations"
     | "/round1-participants-check"
+    | "/round1-results"
     | "/round1-staff-check"
     | "/round2-participants-check"
+    | "/round2-results"
     | "/round2-staff-check"
     | "/round3-participants-check"
+    | "/round3-results"
     | "/users";
   readonly icon: LucideIcon;
 }
@@ -81,6 +84,12 @@ const registrationNavItems: readonly StaffNavItem[] = [
 
 const achievementsNavItems: readonly StaffNavItem[] = [
   { icon: Trophy, label: "ผลงานการแข่งขัน", to: "/achievements" },
+];
+
+const roundResultsNavItems: readonly StaffNavItem[] = [
+  { icon: Trophy, label: "ผลการแข่งขัน รอบที่ 1", to: "/round1-results" },
+  { icon: Trophy, label: "ผลการแข่งขัน รอบที่ 2", to: "/round2-results" },
+  { icon: Trophy, label: "ผลการแข่งขัน รอบที่ 3", to: "/round3-results" },
 ];
 
 const staffNavItems: readonly StaffNavItem[] = [
@@ -168,6 +177,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       { items: baseNavItems, label: "เมนูหลัก" },
       { items: registrationNavItems, label: "การสมัครแข่งขัน" },
       { items: achievementsNavItems, label: "ผลงานการแข่งขัน" },
+      { items: roundResultsNavItems, label: "ผลการแข่งขันรายรอบ" },
       {
         items: [...participantCheckInNavItems, ...staffNavItems],
         label: "ลงทะเบียนเข้างาน รอบที่ 1",
@@ -184,7 +194,10 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     const accessNavGroups: StaffNavGroup[] = [];
 
     if (canAccessAcademic) {
-      accessNavGroups.push({ items: baseNavItems, label: "เมนูหลัก" });
+      accessNavGroups.push(
+        { items: baseNavItems, label: "เมนูหลัก" },
+        { items: roundResultsNavItems, label: "ผลการแข่งขันรายรอบ" },
+      );
     }
 
     if (canAccessParticipations) {

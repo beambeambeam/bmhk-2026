@@ -39,14 +39,15 @@ export const saveTeamRoundResultSchema = teamRoundResultSchema.omit({
   updatedAt: true,
 });
 const teamRoundResultColumnFilterSchema = z.discriminatedUnion("id", [
-  z.object({ id: z.literal("team"), value: z.string().trim().max(255) }).strict(),
+  z.object({ id: z.literal("teamCode"), value: z.string().trim().max(255) }).strict(),
+  z.object({ id: z.literal("teamName"), value: z.string().trim().max(255) }).strict(),
   z.object({ id: z.literal("teamCheckIn"), value: z.literal("registered") }).strict(),
 ]);
 export const listTeamRoundResultsSchema = createTableQuerySchema({
   columnFilterSchema: teamRoundResultColumnFilterSchema,
   defaultPageSize: 10,
   defaultSorting: [{ desc: false, id: "teamCode" }],
-  maxColumnFilters: 2,
+  maxColumnFilters: 3,
   sortableColumnIds: [
     "teamCode",
     "teamName",
@@ -54,6 +55,8 @@ export const listTeamRoundResultsSchema = createTableQuerySchema({
     "totalSubmission",
     "completedAssignment",
     "lastSubmittedAt",
+    "createdAt",
+    "updatedAt",
   ],
 }).extend({ round: teamRoundResultRoundSchema });
 export const teamRoundResultListSchema = createTableListResultSchema(

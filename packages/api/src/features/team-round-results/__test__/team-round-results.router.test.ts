@@ -358,6 +358,22 @@ describe("team round results", () => {
       name: "invalid check-in filter",
     },
     {
+      input: { columnFilters: [{ id: "team", value: "Example" }], round: "ROUND_1" },
+      name: "obsolete combined team filter",
+    },
+    {
+      input: {
+        columnFilters: [
+          { id: "teamCode", value: "42" },
+          { id: "teamName", value: "Example" },
+          { id: "teamCheckIn", value: "registered" },
+          { id: "unused", value: "x" },
+        ],
+        round: "ROUND_1",
+      },
+      name: "more than three filters",
+    },
+    {
       input: { columnFilters: [{ id: "unsupported", value: "x" }], round: "ROUND_1" },
       name: "unknown filter",
     },
@@ -419,6 +435,52 @@ describe("team round results", () => {
         pagination: { pageIndex: 2, pageSize: 20 },
         round: "ROUND_2",
         sorting: [{ desc: true, id: "score" }],
+      },
+    ]);
+  });
+
+  it("accepts independent team filters and every result timestamp sort", async () => {
+    const queries: TeamRoundResultListQuery[] = [];
+    const router = createRouter(
+      createRepository({
+        list: async (query) => {
+          queries.push(query);
+          return await Promise.resolve({ rowCount: 0, rows: [] });
+        },
+      }),
+    );
+    const { context } = createTestContext();
+
+    await call(
+      router.list,
+      {
+        columnFilters: [
+          { id: "teamCode", value: "BH042" },
+          { id: "teamName", value: "Example" },
+          { id: "teamCheckIn", value: "registered" },
+        ],
+        round: "ROUND_1",
+        sorting: [
+          { desc: false, id: "createdAt" },
+          { desc: true, id: "updatedAt" },
+        ],
+      },
+      { context },
+    );
+
+    expect(queries).toStrictEqual([
+      {
+        columnFilters: [
+          { id: "teamCode", value: "BH042" },
+          { id: "teamName", value: "Example" },
+          { id: "teamCheckIn", value: "registered" },
+        ],
+        pagination: { pageIndex: 0, pageSize: 10 },
+        round: "ROUND_1",
+        sorting: [
+          { desc: false, id: "createdAt" },
+          { desc: true, id: "updatedAt" },
+        ],
       },
     ]);
   });

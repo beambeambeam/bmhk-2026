@@ -47,19 +47,19 @@ const columnDefinitions: (DataTableColumn<ResultRow, ResultsTableMeta> & {
   { cell: ({ row }) => row.original.result?.score ?? "—", header: "คะแนน", id: "score", size: 110 },
   {
     cell: ({ row }) => row.original.result?.totalSubmission ?? "—",
-    header: "จำนวนครั้งที่ส่ง",
+    header: "จำนวน submission",
     id: "totalSubmission",
     size: 150,
   },
   {
     cell: ({ row }) => row.original.result?.completedAssignment ?? "—",
-    header: "งานที่เสร็จแล้ว",
+    header: "จำนวน completed assignment",
     id: "completedAssignment",
     size: 150,
   },
   {
     cell: ({ row }) => formatBangkokDateTime(row.original.result?.lastSubmittedAt ?? null),
-    header: "ส่งล่าสุด",
+    header: "last submitted at",
     id: "lastSubmittedAt",
     size: 190,
   },

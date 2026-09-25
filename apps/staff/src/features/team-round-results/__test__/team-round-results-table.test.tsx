@@ -156,7 +156,7 @@ describe("staff team round results table", () => {
     );
     const row = screen.getByRole("row", { name: /Scored Team/u });
     expect(within(row).getAllByRole("cell", { name: "0" })).toHaveLength(3);
-    expect(within(row).getByRole("cell", { name: /10:30/u })).toBeDefined();
+    expect(within(row).getByRole("cell", { name: /2026.*10:30/u })).toBeDefined();
     expect(within(row).getByRole("cell", { name: /07:00/u })).toBeDefined();
     expect(within(row).getByRole("cell", { name: /11:00/u })).toBeDefined();
   });
@@ -164,9 +164,9 @@ describe("staff team round results table", () => {
     ["teamCode", "รหัสทีม", true],
     ["teamName", "ชื่อทีม", false],
     ["score", "คะแนน", false],
-    ["totalSubmission", "จำนวนครั้งที่ส่ง", false],
-    ["completedAssignment", "งานที่เสร็จแล้ว", false],
-    ["lastSubmittedAt", "ส่งล่าสุด", false],
+    ["totalSubmission", "จำนวน submission", false],
+    ["completedAssignment", "จำนวน completed assignment", false],
+    ["lastSubmittedAt", "last submitted at", false],
     ["createdAt", "สร้างเมื่อ", false],
     ["updatedAt", "แก้ไขล่าสุด", false],
   ])("sorts %s across all pages", async (id, label, desc) => {

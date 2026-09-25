@@ -3,7 +3,7 @@ const BANGKOK_UTC_OFFSET_MINUTES = 7 * 60;
 const BANGKOK_DATE_TIME_INPUT_PATTERN =
   /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<minute>\d{2})$/u;
 
-const bangkokDateTimeFormatter = new Intl.DateTimeFormat("th-TH", {
+const bangkokDateTimeFormatter = new Intl.DateTimeFormat("th-TH-u-ca-gregory", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: BANGKOK_TIME_ZONE,

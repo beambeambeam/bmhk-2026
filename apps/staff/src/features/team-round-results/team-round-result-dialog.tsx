@@ -25,6 +25,7 @@ import {
   bangkokDateTimeInputToIso,
   dateToBangkokInputValue,
 } from "./round-result-datetime";
+import { RoundResultDateTimePicker } from "./round-result-date-time-picker";
 
 const MAX_SUBMISSION_COUNT = 2_147_483_647;
 const SAVE_ERROR_MESSAGE = "ไม่สามารถบันทึกผลคะแนนได้ กรุณาลองใหม่อีกครั้ง";
@@ -260,7 +261,7 @@ function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogPro
                 return (
                   <Field data-invalid={isInvalid || undefined}>
                     <FieldLabel htmlFor={`${team.id}-${round}-total-submission`}>
-                      จำนวนครั้งที่ส่ง
+                      จำนวน submission
                     </FieldLabel>
                     <Input
                       id={`${team.id}-${round}-total-submission`}
@@ -295,7 +296,7 @@ function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogPro
                 return (
                   <Field data-invalid={isInvalid || undefined}>
                     <FieldLabel htmlFor={`${team.id}-${round}-completed-assignment`}>
-                      จำนวนงานที่ทำสำเร็จ
+                      จำนวน completed assignment
                     </FieldLabel>
                     <Input
                       id={`${team.id}-${round}-completed-assignment`}
@@ -330,19 +331,17 @@ function TeamRoundResultDialog({ team, round, result }: TeamRoundResultDialogPro
                 return (
                   <Field data-invalid={isInvalid || undefined}>
                     <FieldLabel htmlFor={`${team.id}-${round}-last-submitted-at`}>
-                      ส่งงานล่าสุด
+                      last submitted at
                     </FieldLabel>
-                    <Input
+                    <RoundResultDateTimePicker
                       id={`${team.id}-${round}-last-submitted-at`}
-                      aria-invalid={isInvalid || undefined}
-                      autoComplete="off"
                       disabled={isSaving}
+                      ariaInvalid={isInvalid}
                       onBlur={field.handleBlur}
-                      onChange={(event) => {
+                      onValueChange={(value) => {
                         setSaveError(null);
-                        field.handleChange(event.target.value);
+                        field.handleChange(value);
                       }}
-                      type="datetime-local"
                       value={field.state.value}
                     />
                     {isInvalid ? <FieldError>{error}</FieldError> : null}

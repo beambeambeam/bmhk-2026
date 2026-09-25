@@ -24,7 +24,7 @@ Status: implemented. All interview recommendations confirmed.
 
 - Add routes `/round1-results`, `/round2-results`, and `/round3-results`, guarded with `hasAcademicAccess`. Place each sidebar entry in its corresponding “การแข่งขัน รอบที่ N” section, alongside check-in links.
 - Reuse `DataTable`, `DataTableSortHeader`, and `DataTablePagination`; use typed oRPC query/mutation options and TanStack Query. Reuse the existing shadcn dialog and TanStack Form patterns with accessible field labels and validation.
-- Match the staff app's existing Thai interface labels and semantic styles.
+- Match the staff app's semantic styles. Use the labels `จำนวน submission`, `จำนวน completed assignment`, and `last submitted at` consistently in tables and the editor; retain Thai labels elsewhere.
 - Match existing table controls: 300 ms search debounce, 10 rows initially, page-size choices 10/25/50/100, one active sort column at a time, and reset to the first page when filtering or sorting changes. Start with Team code ascending; retain null values last in either direction.
 - Every data column is sortable. The action column has no sorting control.
 - Sorting applies on the server before pagination. Add `createdAt` and `updatedAt` sort support to the result-list API and separate Team code/name filters combined with AND.
@@ -36,7 +36,8 @@ Status: implemented. All interview recommendations confirmed.
 - A new result opens with all inputs blank. Blank score and last submission time become null; both counts must be entered explicitly, including zero when appropriate. Empty table cells display `—` and never manufacture zero values. A real zero remains visible as `0`.
 - An existing result opens with its current values. The dialog identifies both Team and round. Save all four entered fields together using the existing last-save-wins API contract.
 - Accept scores with up to two decimal places, including negative scores. Counts must be integers from 0 through 2,147,483,647. Reject invalid values before submission and display field errors; the API remains authoritative for validation.
-- Display and edit times in `Asia/Bangkok` (UTC+7), without visible timezone text. Convert entered values to an absolute instant for the API, independently of the browser's timezone. Preserve an unchanged timestamp rather than losing precision through display formatting.
+- Use a shadcn Calendar in a Popover plus shadcn hour/minute Select controls; do not use native date/time inputs. Allow clearing the optional timestamp.
+- Display and edit times in `Asia/Bangkok` (UTC+7), without visible timezone text. Use Gregorian years consistently in the calendar and displayed timestamps. Convert entered values to an absolute instant for the API, independently of the browser's timezone. Preserve an unchanged timestamp rather than losing precision through display formatting.
 - Show creation and update times as read-only table values. A Team without a saved result has no result timestamps.
 
 ## Implementation validation

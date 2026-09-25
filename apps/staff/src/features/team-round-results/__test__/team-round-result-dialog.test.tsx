@@ -85,31 +85,64 @@ function fillNewResult({
   score = "-2.5",
   totalSubmission = "0",
   completedAssignment = "1",
-  lastSubmittedAt = "2026-08-01T12:30",
 }: {
   score?: string;
   totalSubmission?: string;
   completedAssignment?: string;
-  lastSubmittedAt?: string;
 } = {}): void {
   fireEvent.change(screen.getByRole("textbox", { name: "คะแนน" }), {
     target: { value: score },
   });
-  fireEvent.change(screen.getByRole("textbox", { name: "จำนวนครั้งที่ส่ง" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "จำนวน submission" }), {
     target: { value: totalSubmission },
   });
-  fireEvent.change(screen.getByRole("textbox", { name: "จำนวนงานที่ทำสำเร็จ" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "จำนวน completed assignment" }), {
     target: { value: completedAssignment },
   });
-  fireEvent.change(screen.getByLabelText("ส่งงานล่าสุด"), {
-    target: { value: lastSubmittedAt },
-  });
+}
+
+function getTodayBangkokDate(): string {
+  return "2026-09-25";
+}
+
+function useFixedBangkokTestDate(): void {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-25T05:00:00.000Z"));
+}
+
+function getTodayCalendarLabelPattern(dateValue: string): RegExp {
+  const date = new Date(`${dateValue}T05:00:00.000Z`);
+  const day = Number(dateValue.slice(-2));
+  const month = new Intl.DateTimeFormat("th-TH", {
+    month: "long",
+    timeZone: "Asia/Bangkok",
+  }).format(date);
+  return new RegExp(`${day}.*${month}`, "u");
+}
+
+async function chooseTodayAt(hour: string, minute: string): Promise<void> {
+  fireEvent.click(screen.getByRole("button", { name: "last submitted at" }));
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: getTodayCalendarLabelPattern(getTodayBangkokDate()),
+    }),
+  );
+
+  fireEvent.click(screen.getByRole("combobox", { name: "ชั่วโมง" }));
+  const hourOption = await screen.findByRole("option", { name: hour });
+  fireEvent.pointerDown(hourOption, { pointerType: "mouse" });
+  fireEvent.click(hourOption);
+  fireEvent.click(screen.getByRole("combobox", { name: "นาที" }));
+  const minuteOption = await screen.findByRole("option", { name: minute });
+  fireEvent.pointerDown(minuteOption, { pointerType: "mouse" });
+  fireEvent.click(minuteOption);
 }
 
 describe("team round result dialog", () => {
   afterEach(() => {
     cleanup();
     fetchMock.mockReset();
+    vi.useRealTimers();
   });
 
   afterAll(() => vi.unstubAllGlobals());
@@ -121,12 +154,18 @@ describe("team round result dialog", () => {
       dialog: screen.getByRole("dialog", { name: "กรอกผลคะแนนรอบที่ 2" }),
       fieldValues: [
         screen.getByRole<HTMLInputElement>("textbox", { name: "คะแนน" }).value,
-        screen.getByRole<HTMLInputElement>("textbox", { name: "จำนวนครั้งที่ส่ง" }).value,
-        screen.getByRole<HTMLInputElement>("textbox", { name: "จำนวนงานที่ทำสำเร็จ" }).value,
-        screen.getByLabelText<HTMLInputElement>("ส่งงานล่าสุด").value,
+        screen.getByRole<HTMLInputElement>("textbox", { name: "จำนวน submission" }).value,
+        screen.getByRole<HTMLInputElement>("textbox", { name: "จำนวน completed assignment" }).value,
       ],
+      lastSubmittedAtIsBlank:
+        screen
+          .getByRole("button", { name: "last submitted at" })
+          .textContent?.includes("เลือกวันที่และเวลา") ?? false,
       teamDescription: screen.getByText("ทีม Team One · BH042/26"),
-    }).toMatchObject({ fieldValues: ["", "", "", ""] });
+    }).toMatchObject({
+      fieldValues: ["", "", ""],
+      lastSubmittedAtIsBlank: true,
+    });
   });
 
   it("shows saved zero values and preserves an unchanged timestamp to millisecond precision", async () => {
@@ -146,8 +185,12 @@ describe("team round result dialog", () => {
     renderDialog(result);
     expect(screen.getByRole("dialog", { name: "แก้ไขผลคะแนนรอบที่ 2" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "คะแนน" }).getAttribute("value")).toBe("0");
-    expect(screen.getByRole("textbox", { name: "จำนวนครั้งที่ส่ง" }).getAttribute("value")).toBe("0");
-    expect(screen.getByLabelText("ส่งงานล่าสุด").getAttribute("value")).toBe("2026-01-02T11:05");
+    expect(screen.getByRole("textbox", { name: "จำนวน submission" }).getAttribute("value")).toBe(
+      "0",
+    );
+    expect(screen.getByRole("button", { name: "last submitted at" }).textContent).toContain(
+      "11:05",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
     await waitFor(() => {
@@ -178,7 +221,7 @@ describe("team round result dialog", () => {
 
   it("requires both count fields even when score and submission time are blank", async () => {
     renderDialog();
-    fillNewResult({ completedAssignment: "", lastSubmittedAt: "", score: "", totalSubmission: "" });
+    fillNewResult({ completedAssignment: "", score: "", totalSubmission: "" });
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
 
@@ -213,7 +256,7 @@ describe("team round result dialog", () => {
       );
     });
     const queryClient = renderDialog();
-    fillNewResult({ lastSubmittedAt: "", score: "" });
+    fillNewResult({ score: "" });
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
 
@@ -238,7 +281,30 @@ describe("team round result dialog", () => {
     ).toBeTruthy();
   });
 
+  it("lets staff clear a saved date and time and sends null", async () => {
+    const requests: Request[] = [];
+    fetchMock.mockImplementation(async (input, init) => {
+      requests.push(new Request(input, init));
+      return await Promise.resolve(successResponse(makeResult({ lastSubmittedAt: null })));
+    });
+    renderDialog(makeResult({ lastSubmittedAt: new Date("2026-08-01T05:30:00.000Z") }));
+    fireEvent.click(screen.getByRole("button", { name: "last submitted at" }));
+    fireEvent.click(screen.getByRole("button", { name: "ล้างวันที่และเวลา" }));
+    expect(screen.getByRole("button", { name: "last submitted at" }).textContent).toContain(
+      "เลือกวันที่และเวลา",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "แก้ไขผลคะแนนรอบที่ 2" })).toBeNull();
+    });
+    const body = await getSaveRequestBody(requests);
+    expect(body.lastSubmittedAt).toBeNull();
+  });
+
   it("converts edited local time from Bangkok regardless of the browser time zone", async () => {
+    useFixedBangkokTestDate();
     const requests: Request[] = [];
     fetchMock.mockImplementation(async (input, init) => {
       requests.push(new Request(input, init));
@@ -248,6 +314,7 @@ describe("team round result dialog", () => {
     });
     renderDialog();
     fillNewResult();
+    await chooseTodayAt("12", "30");
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
     await waitFor(() => {
@@ -255,20 +322,24 @@ describe("team round result dialog", () => {
     });
 
     const body = await getSaveRequestBody(requests);
-    expect(body.lastSubmittedAt).toBe("2026-08-01T05:30:00.000Z");
+    expect(body.lastSubmittedAt).toBe("2026-09-25T05:30:00.000Z");
   });
 
   it("retains entered values after a failed save and permits retry", async () => {
+    useFixedBangkokTestDate();
     fetchMock
       .mockResolvedValueOnce(new Response(null, { status: 500 }))
       .mockResolvedValueOnce(successResponse());
     renderDialog();
     fillNewResult();
+    await chooseTodayAt("12", "30");
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
     await expect(screen.findByRole("alert")).resolves.toBeTruthy();
     expect(screen.getByRole("textbox", { name: "คะแนน" }).getAttribute("value")).toBe("-2.5");
-    expect(screen.getByLabelText("ส่งงานล่าสุด").getAttribute("value")).toBe("2026-08-01T12:30");
+    expect(screen.getByRole("button", { name: "last submitted at" }).textContent).toContain(
+      "12:30",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึกผล" }));
     await waitFor(() => {

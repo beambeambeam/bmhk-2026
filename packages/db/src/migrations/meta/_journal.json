@@ -288,6 +288,13 @@
       "when": 1790262399813,
       "tag": "0040_team_round2",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790278071408,
+      "tag": "0041_certain_beast",
+      "breakpoints": true
     }
   ]
 }

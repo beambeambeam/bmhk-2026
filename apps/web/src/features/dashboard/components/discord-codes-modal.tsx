@@ -357,7 +357,7 @@ export default function DiscordCodesModal({ open, onClose, teamName }: DiscordCo
 
               <div className="flex flex-col gap-3 max-h-[320px] overflow-y-auto pr-1">
                 {participants.map((p) => {
-                  const isRedeemed = p.status === "REDEEMED_ONCE" || p.status === "REDEEMED_TWICE";
+                  const isRedeemed = p.status === "REDEEMED";
                   const code = p.code ?? "-";
                   const isCopied = copiedIndex === p.participantIndex;
 

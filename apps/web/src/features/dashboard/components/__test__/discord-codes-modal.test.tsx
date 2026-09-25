@@ -16,7 +16,7 @@ const mockParticipantsData = [
     code: "XYZ98765",
     name: "Jane Smith",
     participantIndex: 2,
-    status: "REDEEMED_ONCE",
+    status: "REDEEMED",
   },
 ];
 

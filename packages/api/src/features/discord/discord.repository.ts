@@ -3,7 +3,7 @@ import { discord } from "@bmhk-2026/db/schema/discord";
 import { discordTeamGroupMembers } from "@bmhk-2026/db/schema/discord-team-group-members";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teams } from "@bmhk-2026/db/schema/teams";
-import { eq, or, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { createRepositoryExecutor } from "../../core/repository";
 import { discordRepositoryError } from "./discord.errors";
@@ -18,7 +18,6 @@ export type DiscordRedemptionResult =
       outcome: "redeemed";
       teamIndex: number;
       teamName: string;
-      wasAlt: boolean;
     }
   | { outcome: "not_found" };
 
@@ -37,8 +36,6 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
       await execute(async () => {
         const [row] = await database
           .select({
-            altAccUserId: discord.altAccUserId,
-            altRedeemedAt: discord.altRedeemedAt,
             code: discord.code,
             discordId: discord.id,
             firstNameEn: teamParticipants.firstNameEn,
@@ -64,8 +61,6 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
 
         return {
           discord: {
-            altAccUserId: row.altAccUserId,
-            altRedeemedAt: row.altRedeemedAt,
             code: row.code,
             id: row.discordId,
             mainAccUserId: row.mainAccUserId,
@@ -92,12 +87,7 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
             const [existingLink] = await tx
               .select({ id: discord.id })
               .from(discord)
-              .where(
-                or(
-                  eq(discord.mainAccUserId, discordUserId),
-                  eq(discord.altAccUserId, discordUserId),
-                ),
-              )
+              .where(eq(discord.mainAccUserId, discordUserId))
               .limit(1);
             if (existingLink) {
               return { outcome: "already_linked" as const };
@@ -105,7 +95,6 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
 
             const [row] = await tx
               .select({
-                altRedeemedAt: discord.altRedeemedAt,
                 channelId: discordTeamGroupMembers.channelId,
                 firstNameTh: teamParticipants.firstNameTh,
                 id: discord.id,
@@ -131,18 +120,13 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
               return { outcome: "not_found" as const };
             }
 
-            if (row.redeemedAt && row.altRedeemedAt) {
+            if (row.redeemedAt) {
               return { outcome: "already_redeemed" as const };
             }
 
-            const wasAlt = row.redeemedAt !== null;
             await tx
               .update(discord)
-              .set(
-                wasAlt
-                  ? { altAccUserId: discordUserId, altRedeemedAt: new Date() }
-                  : { mainAccUserId: discordUserId, redeemedAt: new Date() },
-              )
+              .set({ mainAccUserId: discordUserId, redeemedAt: new Date() })
               .where(eq(discord.id, row.id));
 
             return {
@@ -151,7 +135,6 @@ export function createDiscordRepository(database: Database = db): DiscordReposit
               outcome: "redeemed" as const,
               teamIndex: row.teamIndex,
               teamName: row.teamName,
-              wasAlt,
             };
           }),
       ),

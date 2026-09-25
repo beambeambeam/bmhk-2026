@@ -18,7 +18,6 @@ export interface BMHKDiscordQueryResponse {
     name: string;
     team: string;
     school: string;
-    main_acc_id: string | null;
   } | null;
 }
 

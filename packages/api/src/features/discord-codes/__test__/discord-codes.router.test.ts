@@ -23,7 +23,6 @@ type FactsParticipant = Facts["participants"][number];
 
 function participant(index: number, overrides: Partial<FactsParticipant> = {}): FactsParticipant {
   return {
-    altRedeemedAt: null,
     code: null,
     firstNameTh: `ชื่อ${index}`,
     id: `participant-${index}`,
@@ -129,7 +128,7 @@ describe("discord codes router", () => {
     expect(result[1]?.code).toMatch(CODE_PATTERN);
   });
 
-  it("reports how many times each code has been redeemed", async () => {
+  it("reports whether each code has been redeemed", async () => {
     const redeemed = new Date("2026-09-21T00:00:00.000Z");
     const router = createRouter(
       createFakeRepository(
@@ -137,7 +136,6 @@ describe("discord codes router", () => {
           participants: [
             participant(1, { code: "AAAAAAA2" }),
             participant(2, { code: "AAAAAAA3", redeemedAt: redeemed }),
-            participant(3, { altRedeemedAt: redeemed, code: "AAAAAAA4", redeemedAt: redeemed }),
           ],
         }),
       ),
@@ -146,11 +144,7 @@ describe("discord codes router", () => {
 
     const result = await call(router.getOrCreate, {}, { context });
 
-    expect(result.map((entry) => entry.status)).toStrictEqual([
-      "NOT_REDEEMED",
-      "REDEEMED_ONCE",
-      "REDEEMED_TWICE",
-    ]);
+    expect(result.map((entry) => entry.status)).toStrictEqual(["NOT_REDEEMED", "REDEEMED"]);
   });
 
   it("retries when a generated code collides with an existing one", async () => {

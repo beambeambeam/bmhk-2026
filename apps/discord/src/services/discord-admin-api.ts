@@ -11,10 +11,9 @@ export interface LinkedAccount {
 export type CodeInfo =
   | { status: "NOT_FOUND" }
   | {
-      alt: LinkedAccount | null;
       main: LinkedAccount | null;
       participant: { index: number; name: string };
-      status: "NOT_REDEEMED" | "REDEEMED_ONCE" | "REDEEMED_TWICE";
+      status: "NOT_REDEEMED" | "REDEEMED";
       team: { index: number; name: string; school: string };
     };
 
@@ -61,9 +60,7 @@ export type ParticipantLookup =
   | {
       code: string;
       contact: { email: string; line_id: string | null; phone: string };
-      matched_account: "alt" | "main";
       name_th: string;
-      other_discord_user_id: string | null;
       school: string;
       status: "FOUND";
       team_name: string;

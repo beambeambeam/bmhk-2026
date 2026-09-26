@@ -1,3 +1,4 @@
+import { formatTeamCode } from "@/lib/team-code";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -374,8 +375,4 @@ export function ParticipantCheckInTeamRow({
       </CollapsibleContent>
     </Collapsible>
   );
-}
-
-function formatTeamCode(index: number): string {
-  return `BH${String(index).padStart(3, "0")}/26`;
 }

@@ -1,5 +1,6 @@
 import { os } from "@orpc/server";
 import {
+  hasAcademicAccess,
   hasAdminAccess,
   hasRegistrationAccess,
   hasStaffAccess,
@@ -13,6 +14,7 @@ import type { ApiKeyVerification, ApiSession, AuthReader, TeamAccessContext } fr
 import type { ApiContext } from "./context";
 import {
   adminAccessDeniedAudit,
+  roundOutcomeAccessDeniedAudit,
   userManagementAccessDeniedAudit,
 } from "../features/audit/audit.actions";
 
@@ -83,6 +85,42 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   });
 
   const protectedProcedure = base.use(evlog()).use(requireAuth);
+  const academicProcedure = protectedProcedure.use(async ({ context, next }) => {
+    if (!hasAcademicAccess(context.session.user.role)) {
+      throw createError({
+        code: "FORBIDDEN",
+        fix: "Ask an administrator for academic access",
+        message: "Academic access required",
+        status: 403,
+        why: "The authenticated user lacks academic access permission",
+      });
+    }
+    return await next();
+  });
+  const academicOrRegistrationProcedure = protectedProcedure.use(
+    async ({ context, next, path }) => {
+      const { role } = context.session.user;
+      if (!(hasAcademicAccess(role) || hasRegistrationAccess(role))) {
+        context.log.audit(
+          roundOutcomeAccessDeniedAudit({
+            actor: { id: context.session.user.id, type: "user" },
+            outcome: "denied",
+            reason: "ACADEMIC_OR_REGISTRATION_ACCESS_REQUIRED",
+            target: { id: path.join(".") },
+          }),
+        );
+        throw createError({
+          code: "FORBIDDEN",
+          fix: "Ask for academic or registration access",
+          message: "Academic or registration access required",
+          status: 403,
+          why: "The authenticated user lacks academic and registration access permissions",
+        });
+      }
+
+      return await next();
+    },
+  );
   const adminProcedure = protectedProcedure.use(async ({ context, next, path }) => {
     if (!hasAdminAccess(context.session.user.role)) {
       context.log.audit(
@@ -238,6 +276,8 @@ export function createProcedures(dependencies: ProcedureDependencies) {
   const apiKeyProcedure = base.use(evlog()).use(requireApiKeyAuth);
 
   return {
+    academicOrRegistrationProcedure,
+    academicProcedure,
     adminProcedure,
     apiKeyProcedure,
     protectedProcedure,
@@ -252,6 +292,10 @@ export function createProcedures(dependencies: ProcedureDependencies) {
 }
 
 export type PublicProcedure = ReturnType<typeof createProcedures>["publicProcedure"];
+export type AcademicProcedure = ReturnType<typeof createProcedures>["academicProcedure"];
+export type AcademicOrRegistrationProcedure = ReturnType<
+  typeof createProcedures
+>["academicOrRegistrationProcedure"];
 export type ApiKeyProcedure = ReturnType<typeof createProcedures>["apiKeyProcedure"];
 export type ProtectedProcedure = ReturnType<typeof createProcedures>["protectedProcedure"];
 export type AdminProcedure = ReturnType<typeof createProcedures>["adminProcedure"];

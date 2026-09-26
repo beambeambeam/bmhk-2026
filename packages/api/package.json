@@ -7,6 +7,9 @@
     },
     "./teams/rules": {
       "default": "./src/features/teams/teams.rules.ts"
+    },
+    "./team-round-results/rules": {
+      "default": "./src/features/team-round-results/team-round-results.rules.ts"
     }
   },
   "scripts": {

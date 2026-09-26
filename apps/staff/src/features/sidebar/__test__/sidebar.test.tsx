@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -44,6 +44,18 @@ function renderSidebar(role: string) {
   );
 }
 
+function getRoundResultLinksByGroup(): (string | null)[] {
+  return [1, 2, 3].map((round) => {
+    const groupLabel = screen.getByText(`การแข่งขัน รอบที่ ${round}`);
+    const group = groupLabel.parentElement;
+    return group
+      ? (within(group)
+          .queryByRole("link", { name: `ผลการแข่งขัน รอบที่ ${round}` })
+          ?.getAttribute("href") ?? null)
+      : null;
+  });
+}
+
 describe("staff sidebar permissions", () => {
   afterEach(() => {
     cleanup();
@@ -78,5 +90,24 @@ describe("staff sidebar permissions", () => {
     expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 2)" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนทีมงาน/u })).toBeNull();
     expect(screen.queryByRole("link", { name: "จัดการผู้ใช้ในระบบ" })).toBeNull();
+  });
+
+  it.each(["academicStaff", "registrationStaff", "admin", "superAdmin"])(
+    "shows round result links in their round groups to %s",
+    (role) => {
+      renderSidebar(role);
+
+      expect(getRoundResultLinksByGroup()).toStrictEqual([
+        "/round1-results",
+        "/round2-results",
+        "/round3-results",
+      ]);
+    },
+  );
+
+  it("hides round result links from staff without academic access", () => {
+    renderSidebar("staff");
+
+    expect(screen.queryByRole("link", { name: /ผลการแข่งขัน รอบที่/u })).toBeNull();
   });
 });

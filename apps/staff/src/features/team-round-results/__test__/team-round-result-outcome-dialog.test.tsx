@@ -119,7 +119,7 @@ async function getOutcomeMutationRequest(): Promise<Record<string, unknown>> {
     throw new Error("Expected an oRPC JSON request envelope");
   }
 
-  const json: unknown = payload.json;
+  const { json } = payload;
   if (typeof json !== "object" || json === null || Array.isArray(json)) {
     throw new Error("Expected a set outcome input");
   }

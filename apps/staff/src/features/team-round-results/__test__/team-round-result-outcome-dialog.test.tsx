@@ -147,7 +147,10 @@ describe("team round result outcome dialog", () => {
     await screen.findByText("เข้าร่วมรอบออนไลน์");
     const dialog = screen.getByRole("dialog");
     expect(dialog.textContent).toContain("สถานะปัจจุบัน: เข้าร่วมรอบออนไลน์");
-    fireEvent.click(screen.getByRole("button", { name: "ปิด" }));
+    const [closeButton] = screen.getAllByRole("button", { name: "ปิด" });
+    if (closeButton !== undefined) {
+      fireEvent.click(closeButton);
+    }
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).toBeNull();

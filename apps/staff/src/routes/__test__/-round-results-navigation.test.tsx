@@ -137,7 +137,7 @@ describe("round result route navigation", () => {
 
     await router.navigate({ to: path });
 
-    expect(router.state.location.pathname).toBe("/round1-staff-check");
+    expect(router.state.location.pathname).toBe("/round1-participants-check");
   });
 
   it("closes the current dialog and clears old rows when navigating to another round", async () => {

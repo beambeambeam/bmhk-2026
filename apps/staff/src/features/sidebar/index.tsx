@@ -243,7 +243,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
     if (canAccessParticipantCheckIn) {
       accessNavGroups.push({
         items: [
-          ...(canAccessParticipations ? round3ParticipantCheckInNavItems : []),
+          ...(canAccessParticipantCheckIn ? round3ParticipantCheckInNavItems : []),
           ...(canAccessAcademic ? [round3ResultsNavItem] : []),
         ],
         label: "การแข่งขัน รอบที่ 3",

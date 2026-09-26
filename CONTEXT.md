@@ -20,6 +20,14 @@ _Avoid_: Team member, creator
 A staff user permitted to inspect and maintain registration information across Teams.
 _Avoid_: Registration staff role, admin
 
+**Academic Operator**:
+A person with academic access, required to view or maintain Team scores and submission summaries for competition rounds 1, 2, and 3.
+_Avoid_: Any staff user, Team Owner
+
+**Team Round Result**:
+A Team's score and submission summary for one competition round, entered directly by an Academic Operator. Its score, total submissions, completed assignments, and last submission time are supplied by the operator rather than calculated from individual submissions.
+_Avoid_: Submission history, calculated score
+
 **Team Registration Review**:
 A Registration Operator's pre-competition assessment of a Team's Registration Information. Review findings are private to Registration Operators, and a completed review remains authoritative when Registration Information later changes.
 _Avoid_: Round 1 verification, staff verification
@@ -63,6 +71,14 @@ _Avoid_: Registration setting
 **Award**:
 An organizer-controlled competition outcome assigned to a Team.
 _Avoid_: Team achievement field
+
+**Next-Round Eligibility**:
+An Academic Operator's or Registration Operator's manual decision allowing a Team to enter the next competition round, independent of its score. Absence of eligibility does not distinguish a Team awaiting consideration from one that was not selected.
+_Avoid_: Calculated qualification, rejection record
+
+**Final Award**:
+A Team's organizer-assigned final competition outcome: first place, second place, third place, or honorable mention. Multiple Teams may receive the same Final Award.
+_Avoid_: Unique rank, calculated placement
 
 **Feature Flag**:
 A named competition capability that becomes available at a scheduled start and may remain available forever or until a scheduled end. It is not a manual toggle or targeted rollout.

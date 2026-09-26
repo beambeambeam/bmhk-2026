@@ -1,3 +1,4 @@
+import { formatTeamCode } from "@/lib/team-code";
 import type {
   TeamRegistrationReviewListInput,
   TeamRegistrationReviewListResult,
@@ -30,7 +31,7 @@ export async function createParticipationCsv(
   return `\uFEFF${Papa.unparse(
     {
       data: rows.map((team) => [
-        `BH${String(team.index).padStart(3, "0")}/26`,
+        formatTeamCode(team.index),
         team.name,
         team.school,
         team.memberCount,

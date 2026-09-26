@@ -121,7 +121,7 @@ function getHomeRoute(
     return "/dashboard";
   }
 
-  return canAccessParticipations ? "/participations" : "/round1-staff-check";
+  return canAccessParticipations ? "/participations" : "/round1-participants-check";
 }
 
 function StaffNavGroup({ group, pathname }: StaffNavGroupProps) {
@@ -159,7 +159,8 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const isAdmin = hasAdminAccess(role);
   const canAccessAcademic = hasAcademicAccess(role);
   const canAccessParticipations = hasRegistrationAccess(role);
-  const canAccessStaffCheckIn = hasStaffAccess(role);
+  const canAccessParticipantCheckIn = hasStaffAccess(role);
+  const canAccessStaffCheckIn = canAccessParticipations;
   const canManageUsers = hasUserManagementAccess(role);
   const homeRoute = getHomeRoute(isAdmin || canAccessAcademic, canAccessParticipations);
   let navGroups: readonly StaffNavGroup[] = [];
@@ -194,18 +195,18 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       );
     }
 
-    if (canAccessParticipations || canAccessStaffCheckIn) {
+    if (canAccessParticipantCheckIn || canAccessStaffCheckIn) {
       accessNavGroups.push(
         {
           items: [
-            ...(canAccessParticipations ? participantCheckInNavItems : []),
+            ...(canAccessParticipantCheckIn ? participantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? staffNavItems : []),
           ],
           label: "ลงทะเบียนเข้างาน รอบที่ 1",
         },
         {
           items: [
-            ...(canAccessParticipations ? round2ParticipantCheckInNavItems : []),
+            ...(canAccessParticipantCheckIn ? round2ParticipantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
           ],
           label: "ลงทะเบียนเข้างาน รอบที่ 2",
@@ -213,7 +214,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       );
     }
 
-    if (canAccessParticipations) {
+    if (canAccessParticipantCheckIn) {
       accessNavGroups.push({
         items: round3ParticipantCheckInNavItems,
         label: "ลงทะเบียนเข้างาน รอบที่ 3",

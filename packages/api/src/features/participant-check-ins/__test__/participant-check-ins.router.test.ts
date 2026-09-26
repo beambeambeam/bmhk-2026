@@ -97,7 +97,7 @@ describe("participant check-ins router", () => {
     expect(registerTeam).not.toHaveBeenCalled();
   });
 
-  it("denies round two team check-in without registration access", async () => {
+  it("denies round two team check-in without staff access", async () => {
     const registerTeam = vi
       .fn<ParticipantCheckInRepository["registerTeam"]>()
       .mockResolvedValue("CREATED");
@@ -355,7 +355,27 @@ describe("participant check-ins router", () => {
     });
   });
 
-  it("rejects users without registration access", async () => {
+  it.each(["staff", "academicStaff"] as const)(
+    "allows %s to check in participants",
+    async (role) => {
+      const checkIn = vi.fn<ParticipantCheckInRepository["checkIn"]>().mockResolvedValue("CREATED");
+      const router = createRouter(
+        createRepository({ checkIn }),
+        createTestAuthReader(createTestSession({ user: { id: ACTOR_ID, role } })),
+      );
+      const { context } = createTestContext();
+
+      await expect(
+        call(
+          router.checkIn,
+          { participantId: TARGET_PARTICIPANT_ID, round: "ROUND_1" },
+          { context, path: ["participantCheckIns", "checkIn"] },
+        ),
+      ).resolves.toStrictEqual({ participantId: TARGET_PARTICIPANT_ID, round: "ROUND_1" });
+    },
+  );
+
+  it("rejects users without staff access", async () => {
     const checkIn = vi.fn<ParticipantCheckInRepository["checkIn"]>();
     const router = createRouter(
       createRepository({ checkIn }),

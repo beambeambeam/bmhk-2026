@@ -50,17 +50,18 @@ describe("staff sidebar permissions", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows staff check-in links to staff without registration links", () => {
+  it("shows participant check-in links to staff without registration or staff check-in links", () => {
     renderSidebar("staff");
 
-    expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน (รอบที่ 2)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 2)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 3)" })).toBeTruthy();
     expect(
-      screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนผู้เข้าร่วม|ผลงานการแข่งขัน/u }),
+      screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนทีมงาน|ผลงานการแข่งขัน/u }),
     ).toBeNull();
   });
 
-  it("shows registration and staff check-in links to registration staff", () => {
+  it("shows registration, participant and staff check-in links to registration staff", () => {
     renderSidebar("registrationStaff");
 
     expect(screen.getByRole("link", { name: "ตรวจสอบผู้สมัครเข้าแข่งขัน" })).toBeTruthy();
@@ -69,13 +70,13 @@ describe("staff sidebar permissions", () => {
     expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน (รอบที่ 2)" })).toBeTruthy();
   });
 
-  it("shows academic staff the dashboard and staff check-in without registration or user admin links", () => {
+  it("shows academic staff the dashboard and participant check-in without registration, staff check-in or user admin links", () => {
     renderSidebar("academicStaff");
 
     expect(screen.getByRole("link", { name: "แดชบอร์ด" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน (รอบที่ 2)" })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนผู้เข้าร่วม/u })).toBeNull();
+    expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 2)" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนทีมงาน/u })).toBeNull();
     expect(screen.queryByRole("link", { name: "จัดการผู้ใช้ในระบบ" })).toBeNull();
   });
 });

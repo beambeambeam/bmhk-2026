@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_auth/dashboard")({
 
     // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
     throw redirect({
-      to: hasRegistrationAccess(role) ? "/participations" : "/round1-staff-check",
+      to: hasRegistrationAccess(role) ? "/participations" : "/round1-participants-check",
     });
   },
   component: RouteComponent,

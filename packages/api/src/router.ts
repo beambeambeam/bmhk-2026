@@ -147,7 +147,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
     files: createFilesRouter(protectedProcedure, createFileService(fileRepository, fileStorage)),
     health: createHealthRouter(publicProcedure),
     participantCheckIns: createParticipantCheckInsRouter(
-      registrationProcedure,
+      staffProcedure,
       createParticipantCheckInService(participantCheckInRepository),
     ),
     privateData: createPrivateDataRouter(protectedProcedure),
@@ -163,7 +163,7 @@ export function createAppRouter(dependencies: ApiDependencies) {
       ),
     ),
     staffCheckIns: createStaffCheckInsRouter(
-      staffProcedure,
+      registrationProcedure,
       createStaffCheckInService(staffCheckInRepository),
     ),
     staffDiscordLink: createStaffDiscordLinkRouter(

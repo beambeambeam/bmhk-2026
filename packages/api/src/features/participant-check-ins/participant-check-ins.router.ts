@@ -1,4 +1,4 @@
-import type { RegistrationProcedure } from "../../core/procedure";
+import type { StaffProcedure } from "../../core/procedure";
 import { executeAudited } from "../audit/audit.service";
 import {
   participantCheckInCancelledAudit,
@@ -18,11 +18,11 @@ import {
 import type { ParticipantCheckInService } from "./participant-check-ins.service";
 
 export function createParticipantCheckInsRouter(
-  registrationProcedure: RegistrationProcedure,
+  staffProcedure: StaffProcedure,
   service: ParticipantCheckInService,
 ) {
   return {
-    cancel: registrationProcedure
+    cancel: staffProcedure
       .route({ method: "DELETE", tags: ["Participant Check-in"] })
       .input(createParticipantCheckInSchema)
       .output(createParticipantCheckInSchema)
@@ -43,7 +43,7 @@ export function createParticipantCheckInsRouter(
         });
         return input;
       }),
-    cancelTeam: registrationProcedure
+    cancelTeam: staffProcedure
       .route({ method: "DELETE", tags: ["Participant Check-in"] })
       .input(teamCheckInInputSchema)
       .output(teamCheckInInputSchema)
@@ -67,7 +67,7 @@ export function createParticipantCheckInsRouter(
         });
         return input;
       }),
-    checkIn: registrationProcedure
+    checkIn: staffProcedure
       .route({ method: "POST", tags: ["Participant Check-in"] })
       .input(createParticipantCheckInSchema)
       .output(createParticipantCheckInSchema)
@@ -86,12 +86,12 @@ export function createParticipantCheckInsRouter(
         });
         return input;
       }),
-    list: registrationProcedure
+    list: staffProcedure
       .route({ method: "GET", tags: ["Participant Check-in"] })
       .input(listParticipantCheckInsSchema)
       .output(participantCheckInListResultSchema)
       .handler(async ({ input }) => await service.list(input)),
-    registerTeam: registrationProcedure
+    registerTeam: staffProcedure
       .route({ method: "POST", tags: ["Participant Check-in"] })
       .input(teamCheckInInputSchema)
       .output(teamCheckInInputSchema)
@@ -122,7 +122,7 @@ export function createParticipantCheckInsRouter(
         });
         return input;
       }),
-    updateFlag: registrationProcedure
+    updateFlag: staffProcedure
       .route({ method: "PATCH", tags: ["Participant Check-in"] })
       .input(updateParticipantCheckInFlagSchema)
       .output(updateParticipantCheckInFlagSchema)

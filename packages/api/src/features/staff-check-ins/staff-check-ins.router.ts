@@ -1,4 +1,4 @@
-import type { StaffProcedure } from "../../core/procedure";
+import type { RegistrationProcedure } from "../../core/procedure";
 import { staffCheckInCancelledAudit, staffCheckInCreatedAudit } from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import {
@@ -9,11 +9,11 @@ import {
 import type { StaffCheckInService } from "./staff-check-ins.service";
 
 export function createStaffCheckInsRouter(
-  staffProcedure: StaffProcedure,
+  registrationProcedure: RegistrationProcedure,
   service: StaffCheckInService,
 ) {
   return {
-    cancel: staffProcedure
+    cancel: registrationProcedure
       .route({ method: "DELETE", tags: ["Staff Check-in"] })
       .input(createStaffCheckInSchema)
       .output(createStaffCheckInSchema)
@@ -35,7 +35,7 @@ export function createStaffCheckInsRouter(
 
         return input;
       }),
-    checkIn: staffProcedure
+    checkIn: registrationProcedure
       .route({ method: "POST", tags: ["Staff Check-in"] })
       .input(createStaffCheckInSchema)
       .output(createStaffCheckInSchema)
@@ -55,7 +55,7 @@ export function createStaffCheckInsRouter(
 
         return input;
       }),
-    list: staffProcedure
+    list: registrationProcedure
       .route({ method: "GET", tags: ["Staff Check-in"] })
       .input(listStaffCheckInsSchema)
       .output(staffCheckInListResultSchema)

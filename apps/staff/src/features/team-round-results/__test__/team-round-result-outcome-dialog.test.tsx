@@ -140,14 +140,14 @@ describe("team round result outcome dialog", () => {
 
   afterAll(() => vi.unstubAllGlobals());
 
-  it("treats no eligibility as a no-op and keeps the score independent", async () => {
+  it("closes without changing team outcome or score", async () => {
     const outcome = makeOutcome("ROUND_1", "ROUND_1_PARTICIPATED");
     renderOutcomeDialog("ROUND_1", outcome);
 
     await screen.findByText("เข้าร่วมรอบออนไลน์");
     const dialog = screen.getByRole("dialog");
     expect(dialog.textContent).toContain("สถานะปัจจุบัน: เข้าร่วมรอบออนไลน์");
-    fireEvent.click(screen.getByRole("button", { name: "ไม่มีสิทธิ์" }));
+    fireEvent.click(screen.getByRole("button", { name: "ปิด" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).toBeNull();
@@ -361,10 +361,8 @@ describe("team round result outcome dialog", () => {
       expect(requestLog.filter(isSetOutcomeRequest)).toHaveLength(1);
     });
 
-    expect(screen.getByRole("button", { name: "ไม่มีสิทธิ์" }).hasAttribute("disabled")).toBeTruthy();
     const closeButtons = screen.getAllByRole("button", { name: "ปิด" });
     expect(closeButtons[0]?.hasAttribute("disabled")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "ไม่มีสิทธิ์" }));
     const iconCloseButton = closeButtons.at(-1);
     if (iconCloseButton !== undefined) {
       fireEvent.click(iconCloseButton);

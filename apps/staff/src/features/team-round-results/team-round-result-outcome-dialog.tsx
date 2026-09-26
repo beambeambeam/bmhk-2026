@@ -184,7 +184,6 @@ interface EligibilityControlsProps {
   readonly isAdvanced: boolean;
   readonly hasUnsupportedAwardState: boolean;
   readonly onAdvance: () => void;
-  readonly onNoEligibility: () => void;
   readonly onRevert: () => void;
 }
 
@@ -194,12 +193,10 @@ function EligibilityControls({
   isAdvanced,
   hasUnsupportedAwardState,
   onAdvance,
-  onNoEligibility,
   onRevert,
 }: EligibilityControlsProps) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">เลือก “ไม่มีสิทธิ์” เพื่อปิดหน้าต่างโดยไม่เปลี่ยนสถานะทีม</p>
       {outcome.actions.hasLaterRoundCheckIns ? (
         <output className="text-sm text-destructive">
           ทีมมีประวัติการเข้างานในรอบถัดไป จึงยกเลิกสิทธิ์ไม่ได้
@@ -211,27 +208,25 @@ function EligibilityControls({
         </output>
       ) : null}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          disabled={!outcome.actions.canAdvance || isPending}
-          onClick={onAdvance}
-          type="button"
-        >
-          {isPending ? "กำลังบันทึก..." : "มีสิทธิ์"}
-        </Button>
-        <Button disabled={isPending} onClick={onNoEligibility} type="button" variant="outline">
-          ไม่มีสิทธิ์
-        </Button>
+        {isAdvanced ? (
+          <Button
+            disabled={!outcome.actions.canRevert || isPending}
+            onClick={onRevert}
+            type="button"
+            variant="destructive"
+          >
+            ยกเลิกสิทธิ์
+          </Button>
+        ) : (
+          <Button
+            disabled={!outcome.actions.canAdvance || isPending}
+            onClick={onAdvance}
+            type="button"
+          >
+            {isPending ? "กำลังบันทึก..." : "มีสิทธิ์"}
+          </Button>
+        )}
       </div>
-      {isAdvanced ? (
-        <Button
-          disabled={!outcome.actions.canRevert || isPending}
-          onClick={onRevert}
-          type="button"
-          variant="destructive"
-        >
-          ยกเลิกสิทธิ์
-        </Button>
-      ) : null}
     </div>
   );
 }
@@ -296,7 +291,6 @@ interface OutcomeDialogBodyProps {
   readonly onRetry: () => void;
   readonly onAwardChange: (award: FinalTeamRoundAward) => void;
   readonly onAdvance: (award: TeamRoundResultOutcome["award"]) => void;
-  readonly onNoEligibility: () => void;
   readonly onRevert: (award: TeamRoundResultOutcome["award"]) => void;
   readonly onRemoveAward: (award: TeamRoundResultOutcome["award"]) => void;
   readonly onSubmitAward: () => void;
@@ -315,7 +309,6 @@ function OutcomeDialogBody({
   onRetry,
   onAwardChange,
   onAdvance,
-  onNoEligibility,
   onRevert,
   onRemoveAward,
   onSubmitAward,
@@ -373,7 +366,6 @@ function OutcomeDialogBody({
           onAdvance={() => {
             onAdvance(outcome.award);
           }}
-          onNoEligibility={onNoEligibility}
           onRevert={() => {
             onRevert(outcome.award);
           }}
@@ -611,9 +603,6 @@ function TeamRoundResultOutcomeDialog({
             onAwardChange={(award) => {
               setSelectedAwardSelection(award);
               setMutationError(null);
-            }}
-            onNoEligibility={() => {
-              handleDialogOpenChange(false);
             }}
             onRemoveAward={handleRemoveAward}
             onRetry={() => {

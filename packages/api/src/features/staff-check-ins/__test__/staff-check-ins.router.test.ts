@@ -167,7 +167,7 @@ describe("staff check-ins router", () => {
     });
   });
 
-  it.each(["staff", "registrationStaff", "academicStaff"] as const)(
+  it.each(["registrationStaff", "admin"] as const)(
     "allows %s to list staff check-ins",
     async (role) => {
       const list = vi.fn<StaffCheckInRepository["list"]>(
@@ -191,19 +191,22 @@ describe("staff check-ins router", () => {
     },
   );
 
-  it("denies participant accounts access to staff check-ins", async () => {
-    const list = vi.fn<StaffCheckInRepository["list"]>();
-    const router = createRouter(
-      createRepository({ list }),
-      createTestAuthReader(createTestSession({ user: { id: "participant-1", role: "user" } })),
-    );
-    const { context } = createTestContext();
+  it.each(["user", "staff", "academicStaff"] as const)(
+    "denies %s access to staff check-ins",
+    async (role) => {
+      const list = vi.fn<StaffCheckInRepository["list"]>();
+      const router = createRouter(
+        createRepository({ list }),
+        createTestAuthReader(createTestSession({ user: { id: "actor-1", role } })),
+      );
+      const { context } = createTestContext();
 
-    await expect(
-      call(router.list, { round: "ROUND_1" }, { context, path: ["staffCheckIns", "list"] }),
-    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
-    expect(list).not.toHaveBeenCalled();
-  });
+      await expect(
+        call(router.list, { round: "ROUND_1" }, { context, path: ["staffCheckIns", "list"] }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+      expect(list).not.toHaveBeenCalled();
+    },
+  );
 
   it("checks a staff member into round 2 independently of an existing round 1 check-in", async () => {
     const checkInsByRound = new Map([["ROUND_1", TARGET_STAFF_ID]]);

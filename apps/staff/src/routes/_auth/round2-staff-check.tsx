@@ -1,11 +1,11 @@
-import { hasStaffAccess } from "@bmhk-2026/auth/permission";
+import { hasRegistrationAccess } from "@bmhk-2026/auth/permission";
 import { StaffCheckInTable } from "@/features/staff-check-ins/staff-check-in-table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/round2-staff-check")({
   beforeLoad: ({ context }) => {
     const role = context.session.data?.user.role;
-    if (!hasStaffAccess(role)) {
+    if (!hasRegistrationAccess(role)) {
       // oxlint-disable-next-line typescript/only-throw-error -- TanStack Router redirects are thrown intentionally
       throw redirect({ to: "/dashboard" });
     }

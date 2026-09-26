@@ -142,7 +142,7 @@ function getHomeRoute(
     return "/dashboard";
   }
 
-  return canAccessParticipations ? "/participations" : "/round1-staff-check";
+  return canAccessParticipations ? "/participations" : "/round1-participants-check";
 }
 
 function StaffNavGroup({ group, pathname }: StaffNavGroupProps) {
@@ -180,7 +180,8 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
   const isAdmin = hasAdminAccess(role);
   const canAccessAcademic = hasAcademicAccess(role);
   const canAccessParticipations = hasRegistrationAccess(role);
-  const canAccessStaffCheckIn = hasStaffAccess(role);
+  const canAccessParticipantCheckIn = hasStaffAccess(role);
+  const canAccessStaffCheckIn = canAccessParticipations;
   const canManageUsers = hasUserManagementAccess(role);
   const homeRoute = getHomeRoute(isAdmin || canAccessAcademic, canAccessParticipations);
   let navGroups: readonly StaffNavGroup[] = [];
@@ -218,11 +219,11 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       );
     }
 
-    if (canAccessParticipations || canAccessStaffCheckIn) {
+    if (canAccessParticipantCheckIn || canAccessStaffCheckIn) {
       accessNavGroups.push(
         {
           items: [
-            ...(canAccessParticipations ? participantCheckInNavItems : []),
+            ...(canAccessParticipantCheckIn ? participantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? staffNavItems : []),
             ...(canAccessAcademic ? [round1ResultsNavItem] : []),
           ],
@@ -230,7 +231,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
         },
         {
           items: [
-            ...(canAccessParticipations ? round2ParticipantCheckInNavItems : []),
+            ...(canAccessParticipantCheckIn ? round2ParticipantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
             ...(canAccessAcademic ? [round2ResultsNavItem] : []),
           ],
@@ -239,7 +240,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
       );
     }
 
-    if (canAccessAcademic || canAccessParticipations) {
+    if (canAccessParticipantCheckIn) {
       accessNavGroups.push({
         items: [
           ...(canAccessParticipations ? round3ParticipantCheckInNavItems : []),

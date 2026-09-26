@@ -28,6 +28,7 @@
     "next-themes": "catalog:",
     "papaparse": "^5.7.0",
     "react": "catalog:",
+    "react-day-picker": "^10.0.1",
     "react-dom": "catalog:",
     "sonner": "catalog:",
     "srvx": "0.11.22",

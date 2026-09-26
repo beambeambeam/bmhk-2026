@@ -71,6 +71,10 @@ import { createStaffOverseersRouter } from "./features/staff-overseers/staff-ove
 import { createStaffOverseersService } from "./features/staff-overseers/staff-overseers.service";
 import type { StaffDiscordLinkService } from "./features/staff-discord-link/staff-discord-link.service";
 import { createStaffDiscordLinkRouter } from "./features/staff-discord-link/staff-discord-link.router";
+import type { TeamRoundResultRepository } from "./features/team-round-results/team-round-results.repository";
+import { createTeamRoundResultRepository } from "./features/team-round-results/team-round-results.repository";
+import { createTeamRoundResultsRouter } from "./features/team-round-results/team-round-results.router";
+import { createTeamRoundResultService } from "./features/team-round-results/team-round-results.service";
 
 export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
@@ -89,6 +93,7 @@ export interface ApiDependencies {
   teamParticipants?: TeamParticipantRepository;
   teamRegistrationStatus?: TeamRegistrationStatusRepository;
   teamRegistrationReviews?: TeamRegistrationReviewRepository;
+  teamRoundResults?: TeamRoundResultRepository;
   staffCheckIns?: StaffCheckInRepository;
   participantCheckIns?: ParticipantCheckInRepository;
   staffOverseers?: StaffOverseersRepository;
@@ -97,6 +102,8 @@ export interface ApiDependencies {
 
 export function createAppRouter(dependencies: ApiDependencies) {
   const {
+    academicProcedure,
+    academicOrRegistrationProcedure,
     adminProcedure,
     protectedProcedure,
     publicProcedure,
@@ -200,6 +207,13 @@ export function createAppRouter(dependencies: ApiDependencies) {
       registrationProcedure,
       teamOwnerProcedure,
       createTeamRegistrationStatusService(teamRegistrationStatusRepository),
+    ),
+    teamRoundResults: createTeamRoundResultsRouter(
+      academicProcedure,
+      academicOrRegistrationProcedure,
+      createTeamRoundResultService(
+        dependencies.teamRoundResults ?? createTeamRoundResultRepository(),
+      ),
     ),
     teams: createTeamsRouter(
       protectedProcedure,

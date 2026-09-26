@@ -22,7 +22,7 @@ describe("role permissions", () => {
 
   it.each([
     ["staff", true, false, false],
-    ["registrationStaff", true, true, false],
+    ["registrationStaff", true, true, true],
     ["academicStaff", true, false, true],
     ["admin", true, true, true],
     ["superAdmin", true, true, true],

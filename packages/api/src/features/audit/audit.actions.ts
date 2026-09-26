@@ -78,10 +78,16 @@ export const participantCheckInFlagChangedAudit = defineAuditAction(
 );
 
 export const awardChangedAudit = defineAuditAction("team.award.changed", {
-  description: "A Registration Operator changed an Award",
+  description: "An Academic or Registration Operator changed an Award",
   requiresChanges: true,
   severity: "critical",
   target: "team",
+});
+
+export const roundOutcomeAccessDeniedAudit = defineAuditAction("team.round-outcome.access.denied", {
+  description: "A user without academic or registration access attempted a round outcome action",
+  severity: "critical",
+  target: "team-round-outcome-operation",
 });
 
 export const legalConsentCreatedAudit = defineAuditAction("legal-consent.created", {

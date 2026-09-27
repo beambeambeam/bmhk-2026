@@ -159,9 +159,9 @@ describe("feature flags", () => {
     await expect(getAll(longAfterStart)).resolves.toMatchObject({ qualifyingRound: true });
   });
 
-  it("announces qualifying results at the published 14:00 GMT+7 time", async () => {
-    const beforeStart = createRouter("2026-09-28T13:59:59.999+07:00");
-    const atStart = createRouter("2026-09-28T14:00:00+07:00");
+  it("announces qualifying results at the published 16:00 GMT+7 time", async () => {
+    const beforeStart = createRouter("2026-09-30T15:59:59.999+07:00");
+    const atStart = createRouter("2026-09-30T16:00:00+07:00");
 
     await expect(getAll(beforeStart)).resolves.toMatchObject({
       qualifyingResultsAnnouncement: false,

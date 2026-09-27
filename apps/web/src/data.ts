@@ -28,7 +28,7 @@ export const CALENDAR_NOTE =
 /** White follow-up cards in the calendar section. */
 export const TIMELINE_STEPS = [
   { date: "27 ก.ย.", lines: ["การแข่งขันรอบคัดเลือก", "รูปแบบ Online"] },
-  { date: "28 ก.ย.", lines: ["ประกาศรายชื่อทีมที่ผ่านการแข่งขัน รอบคัดเลือก"] },
+  { date: "30 ก.ย.", lines: ["ประกาศรายชื่อทีมที่ผ่านการแข่งขัน รอบคัดเลือก"] },
   { date: "7 พ.ย.", lines: ["การแข่งขันรองชนะเลิศและรอบชิงชนะเลิศ", "รูปแบบ Onsite ณ มจธ."] },
 ];
 

@@ -818,43 +818,28 @@ export default function Round2ConfirmationModal({
     setShowConfirmAlert(false);
   }
 
-  function handleScrimClick(e: React.MouseEvent<HTMLDivElement>): void {
-    if (sheetRef.current && e.target instanceof Node && sheetRef.current.contains(e.target)) {
-      return;
-    }
-    onClose();
-  }
-
-  function handleScrimKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
-    if (e.key === "Enter" || e.key === " ") {
-      if (sheetRef.current && e.target instanceof Node && sheetRef.current.contains(e.target)) {
-        return;
-      }
-      onClose();
-    }
-  }
-
   return (
     <>
       <div
+        ref={sheetRef}
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-        role="button"
-        tabIndex={0}
+        role="dialog"
+        aria-modal="true"
+        aria-label="ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ"
+        tabIndex={-1}
         data-state={state}
         className="auth-modal-scrim fixed inset-0 z-50 overflow-y-auto bg-[rgba(194,194,194,0.3)] backdrop-blur-[5px]"
-        onClick={handleScrimClick}
-        onKeyDown={handleScrimKeyDown}
       >
-        <div className="flex min-h-full flex-col items-center justify-center p-2 sm:p-4 md:py-8">
+        <button
+          type="button"
+          aria-label="ปิดหน้าต่างยืนยันสิทธิ์"
+          onClick={onClose}
+          className="absolute inset-0 z-0 cursor-default"
+        />
+        <div className="pointer-events-none relative z-10 flex min-h-full flex-col items-center justify-center p-2 sm:p-4 md:py-8">
           <div
-            ref={sheetRef}
-            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-            role="dialog"
-            aria-modal="true"
-            aria-label="ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ"
-            tabIndex={-1}
             data-state={state}
-            className="auth-modal-sheet relative flex max-h-[92vh] w-full max-w-[720px] flex-col overflow-hidden rounded-[24px] border border-[#dcdcdc] bg-white shadow-2xl outline-none sm:rounded-[28px]"
+            className="auth-modal-sheet pointer-events-auto relative flex max-h-[92vh] w-full max-w-[720px] flex-col overflow-hidden rounded-[24px] border border-[#dcdcdc] bg-white shadow-2xl outline-none sm:rounded-[28px]"
           >
             {/* Close button */}
             <button

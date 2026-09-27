@@ -365,4 +365,26 @@ describe(Round2ConfirmationModal, () => {
     }
     expect(handleClose).toHaveBeenCalledOnce();
   });
+
+  it("calls onClose when the modal backdrop is clicked", async () => {
+    const handleClose = vi.fn<() => void>();
+
+    renderWithClient(
+      <Round2ConfirmationModal
+        open={true}
+        onClose={() => {
+          handleClose();
+        }}
+        teamId="team-123"
+        participants={participants}
+      />,
+    );
+
+    const backdropButton = await screen.findByRole("button", {
+      name: "ปิดหน้าต่างยืนยันสิทธิ์",
+    });
+    fireEvent.click(backdropButton);
+
+    expect(handleClose).toHaveBeenCalledOnce();
+  });
 });

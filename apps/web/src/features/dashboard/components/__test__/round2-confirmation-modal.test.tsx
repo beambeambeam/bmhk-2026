@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Round2ConfirmationModal from "../round2-confirmation-modal";
@@ -286,19 +286,27 @@ describe(Round2ConfirmationModal, () => {
     fireEvent.click(submitBtn);
 
     // Confirmation alert should pop up
-    await expect(
-      screen.findByText(
+    const alertDialog = await screen.findByRole("alertdialog");
+    expect(
+      within(alertDialog).getByText(
         "เมื่อยืนยันแล้วจะไม่สามารถแก้ไขหรืออัปโหลดเอกสารใหม่ได้อีก คุณแน่ใจหรือไม่ว่าต้องการยืนยันสิทธิ์สำหรับทีมของคุณ?",
       ),
-    ).resolves.toBeDefined();
+    ).toBeDefined();
 
-    // Clicking confirm in alert calls submit
-    const confirmAlertBtns = screen.getAllByRole("button", { name: "ยืนยันสิทธิ์" });
-    const finalConfirmBtn = confirmAlertBtns.at(-1);
-    expect(finalConfirmBtn).toBeDefined();
-    if (finalConfirmBtn !== undefined) {
-      fireEvent.click(finalConfirmBtn);
-    }
+    const cancelAlertButton = within(alertDialog).getByRole("button", { name: "ยกเลิก" });
+    const finalConfirmButton = within(alertDialog).getByRole("button", {
+      name: "ยืนยันสิทธิ์",
+    });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(cancelAlertButton);
+    });
+
+    fireEvent.keyDown(cancelAlertButton, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(finalConfirmButton);
+    fireEvent.keyDown(finalConfirmButton, { key: "Tab" });
+    expect(document.activeElement).toBe(cancelAlertButton);
+
+    fireEvent.click(finalConfirmButton);
 
     await waitFor(() => {
       expect(mockSubmitMutation).toHaveBeenCalledWith({ teamId: "team-123" });

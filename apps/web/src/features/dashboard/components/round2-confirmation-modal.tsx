@@ -331,10 +331,38 @@ interface ConfirmAlertDialogProps {
 }
 
 function ConfirmAlertDialog({ isSubmitting, onCancel, onConfirm }: ConfirmAlertDialogProps) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    cancelButtonRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
+  function handleCancelKeyDown(e: React.KeyboardEvent<HTMLButtonElement>): void {
+    if (e.key === "Tab" && e.shiftKey && confirmButtonRef.current !== null) {
+      e.preventDefault();
+      confirmButtonRef.current.focus();
+    }
+  }
+
+  function handleConfirmKeyDown(e: React.KeyboardEvent<HTMLButtonElement>): void {
+    if (e.key === "Tab" && !e.shiftKey && cancelButtonRef.current !== null) {
+      e.preventDefault();
+      cancelButtonRef.current.focus();
+    }
+  }
+
   return (
     <div
       // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-      role="dialog"
+      role="alertdialog"
       aria-modal="true"
       aria-labelledby="alert-dialog-title"
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
@@ -356,16 +384,20 @@ function ConfirmAlertDialog({ isSubmitting, onCancel, onConfirm }: ConfirmAlertD
 
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
+            onKeyDown={handleCancelKeyDown}
             disabled={isSubmitting}
             className="mm-press rounded-xl border border-[#dcdcdc] bg-white px-4 py-2 text-xs font-medium text-ink transition-colors hover:bg-black/[0.03] sm:text-sm"
           >
             ยกเลิก
           </button>
           <button
+            ref={confirmButtonRef}
             type="button"
             onClick={onConfirm}
+            onKeyDown={handleConfirmKeyDown}
             disabled={isSubmitting}
             className="mm-press flex items-center gap-2 rounded-xl bg-brand-red px-5 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 sm:text-sm"
           >
@@ -819,74 +851,71 @@ export default function Round2ConfirmationModal({
   }
 
   return (
-    <>
-      <div
-        ref={sheetRef}
-        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-        role="dialog"
-        aria-modal="true"
-        aria-label="ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ"
-        tabIndex={-1}
-        data-state={state}
-        className="auth-modal-scrim fixed inset-0 z-50 overflow-y-auto bg-[rgba(194,194,194,0.3)] backdrop-blur-[5px]"
-      >
-        <button
-          type="button"
-          aria-label="ปิดหน้าต่างยืนยันสิทธิ์"
-          onClick={onClose}
-          className="absolute inset-0 z-0 cursor-default"
-        />
-        <div className="pointer-events-none relative z-10 flex min-h-full flex-col items-center justify-center p-2 sm:p-4 md:py-8">
-          <div
-            data-state={state}
-            className="auth-modal-sheet pointer-events-auto relative flex max-h-[92vh] w-full max-w-[720px] flex-col overflow-hidden rounded-[24px] border border-[#dcdcdc] bg-white shadow-2xl outline-none sm:rounded-[28px]"
+    <div
+      ref={sheetRef}
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+      role="dialog"
+      aria-modal="true"
+      aria-label="ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ"
+      tabIndex={-1}
+      data-state={state}
+      className="auth-modal-scrim fixed inset-0 z-50 overflow-y-auto bg-[rgba(194,194,194,0.3)] backdrop-blur-[5px]"
+    >
+      <button
+        type="button"
+        aria-label="ปิดหน้าต่างยืนยันสิทธิ์"
+        onClick={onClose}
+        className="absolute inset-0 z-0 cursor-default"
+      />
+      <div className="pointer-events-none relative z-10 flex min-h-full flex-col items-center justify-center p-2 sm:p-4 md:py-8">
+        <div
+          data-state={state}
+          className="auth-modal-sheet pointer-events-auto relative flex max-h-[92vh] w-full max-w-[720px] flex-col overflow-hidden rounded-[24px] border border-[#dcdcdc] bg-white shadow-2xl outline-none sm:rounded-[28px]"
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="ปิด"
+            className="mm-press-icon absolute top-5 right-5 z-10 size-[32px] overflow-clip transition-opacity hover:opacity-70"
           >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="ปิด"
-              className="mm-press-icon absolute top-5 right-5 z-10 size-[32px] overflow-clip transition-opacity hover:opacity-70"
-            >
-              <img src={CLOSE} alt="" aria-hidden className="block size-full" />
-            </button>
+            <img src={CLOSE} alt="" aria-hidden className="block size-full" />
+          </button>
 
-            <ModalHeader isConfirmed={isConfirmed} />
+          <ModalHeader isConfirmed={isConfirmed} />
 
-            <ModalBody
-              isPending={isPending}
-              error={error}
-              hasStatus={confirmationStatus !== undefined}
-              activeParticipants={activeParticipants}
-              participants={participants}
-              activeTab={activeTab}
-              onSelectTab={setActiveTab}
-              currentParticipant={currentParticipant}
-              currentParticipantName={currentParticipantName}
-              teamId={teamId}
-              isConfirmed={isConfirmed}
-              isOpen={isOpen}
-              onRefresh={() => {
-                void refetch();
-              }}
-            />
+          <ModalBody
+            isPending={isPending}
+            error={error}
+            hasStatus={confirmationStatus !== undefined}
+            activeParticipants={activeParticipants}
+            participants={participants}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+            currentParticipant={currentParticipant}
+            currentParticipantName={currentParticipantName}
+            teamId={teamId}
+            isConfirmed={isConfirmed}
+            isOpen={isOpen}
+            onRefresh={() => {
+              void refetch();
+            }}
+          />
 
-            <ModalFooter
-              isStatusError={shouldShowStatusLoadError(error, confirmationStatus !== undefined)}
-              isConfirmed={isConfirmed}
-              confirmedAt={confirmationStatus?.confirmedAt}
-              isOpen={isOpen}
-              agreed={agreed}
-              canSubmit={canSubmit}
-              isSubmitting={submitMutation.isPending}
-              onAgreeChange={setAgreed}
-              onClose={onClose}
-              onSubmitClick={handleOpenConfirmAlert}
-            />
-          </div>
+          <ModalFooter
+            isStatusError={shouldShowStatusLoadError(error, confirmationStatus !== undefined)}
+            isConfirmed={isConfirmed}
+            confirmedAt={confirmationStatus?.confirmedAt}
+            isOpen={isOpen}
+            agreed={agreed}
+            canSubmit={canSubmit}
+            isSubmitting={submitMutation.isPending}
+            onAgreeChange={setAgreed}
+            onClose={onClose}
+            onSubmitClick={handleOpenConfirmAlert}
+          />
         </div>
       </div>
-
       {showConfirmAlert ? (
         <ConfirmAlertDialog
           isSubmitting={submitMutation.isPending}
@@ -894,6 +923,6 @@ export default function Round2ConfirmationModal({
           onConfirm={handleFinalSubmit}
         />
       ) : null}
-    </>
+    </div>
   );
 }

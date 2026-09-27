@@ -18,7 +18,8 @@ import {
   REJECTED_MODAL,
   SELECTION_FAILED_MODAL,
 } from "./team-data";
-import type { TeamStatus } from "./team-data";
+import type { Round2ConfirmationInfo, TeamStatus } from "./team-data";
+import Round2ConfirmationModal from "./components/round2-confirmation-modal";
 import { getAutoOpenedModal, getDashboardStatus } from "./dashboard-status";
 import type { FeatureFlagsInput } from "./dashboard-status";
 
@@ -173,10 +174,21 @@ function MyTeamModals({
   modal,
   setModal,
   teamName,
+  teamId,
+  participants,
 }: {
   modal: string | null;
   setModal: (val: string | null) => void;
   teamName?: string;
+  teamId?: string;
+  participants?: {
+    id: string;
+    index: number;
+    titleTh?: string | null;
+    firstNameTh?: string | null;
+    middleNameTh?: string | null;
+    lastNameTh?: string | null;
+  }[];
 }) {
   return (
     <>
@@ -224,6 +236,17 @@ function MyTeamModals({
         }}
         teamName={teamName}
       />
+
+      {teamId === undefined ? null : (
+        <Round2ConfirmationModal
+          open={modal === "round2-confirm"}
+          onClose={() => {
+            setModal(null);
+          }}
+          teamId={teamId}
+          participants={participants ?? []}
+        />
+      )}
     </>
   );
 }
@@ -253,16 +276,25 @@ function useMyTeamData() {
     ...orpc.teamAdvisors.get.queryOptions({ input: { teamId: teamId ?? "" } }),
     enabled: Boolean(teamId),
   });
-
   const { data: featureFlags, isPending: isFeatureFlagsPending } = useQuery({
     ...orpc.featureFlags.getAll.queryOptions(),
+  });
+
+  const isEligibleForRound2 = team?.award === "ADVANCED_TO_ROUND_2";
+  const { data: round2Confirmation, isPending: isRound2Pending } = useQuery({
+    ...orpc.round2Confirmation.get.queryOptions({ input: {} }),
+    enabled: Boolean(teamId) && isEligibleForRound2,
   });
 
   const isLoading =
     isStatusPending ||
     isFeatureFlagsPending ||
     (Boolean(teamId) &&
-      (isTeamsPending || isReviewPending || isParticipantsPending || isAdvisorPending));
+      (isTeamsPending ||
+        isReviewPending ||
+        isParticipantsPending ||
+        isAdvisorPending ||
+        (isEligibleForRound2 && isRound2Pending)));
 
   return {
     advisor,
@@ -270,6 +302,7 @@ function useMyTeamData() {
     isLoading,
     participants,
     reviewFeedback,
+    round2Confirmation,
     statusData,
     team,
   };
@@ -390,15 +423,29 @@ function useMappedMembers(
   });
 }
 
-function useAutoOpenModal(status: TeamStatus | null, featureFlags?: FeatureFlagsInput | null) {
+function useAutoOpenModal(
+  status: TeamStatus | null,
+  featureFlags?: FeatureFlagsInput | null,
+  round2Confirmation?: Round2ConfirmationInfo | null,
+  isEligibleForRound2 = false,
+) {
   const [modal, setModal] = useState<string | null>(null);
   const [hasAutoOpenedModal, setHasAutoOpenedModal] = useState(false);
 
   if (!hasAutoOpenedModal && status !== null) {
-    const autoModal = getAutoOpenedModal(status, featureFlags);
-    if (autoModal !== null) {
-      setModal(autoModal);
+    const isRound2Confirmed =
+      round2Confirmation?.state === "CONFIRMED" ||
+      (round2Confirmation?.confirmedAt !== null && round2Confirmation?.confirmedAt !== undefined);
+
+    if (isEligibleForRound2 && round2Confirmation?.isOpen === true && !isRound2Confirmed) {
+      setModal("round2-confirm");
       setHasAutoOpenedModal(true);
+    } else {
+      const autoModal = getAutoOpenedModal(status, featureFlags);
+      if (autoModal !== null) {
+        setModal(autoModal);
+        setHasAutoOpenedModal(true);
+      }
     }
   }
 
@@ -601,8 +648,16 @@ function MemberTabs({
 }
 
 export default function MyTeam() {
-  const { advisor, featureFlags, isLoading, participants, reviewFeedback, statusData, team } =
-    useMyTeamData();
+  const {
+    advisor,
+    featureFlags,
+    isLoading,
+    participants,
+    reviewFeedback,
+    round2Confirmation,
+    statusData,
+    team,
+  } = useMyTeamData();
 
   const MEMBERS = useMappedMembers(participants, advisor, statusData, team);
 
@@ -610,8 +665,13 @@ export default function MyTeam() {
 
   const [pane, setPane] = useState<Pane>("team");
   const [active, setActive] = useState(status === "issue" ? MEMBERS.length - 1 : 0);
-  const { modal, setModal } = useAutoOpenModal(isLoading ? null : status, featureFlags);
-
+  const isEligibleForRound2 = team?.award === "ADVANCED_TO_ROUND_2";
+  const { modal, setModal } = useAutoOpenModal(
+    isLoading ? null : status,
+    featureFlags,
+    round2Confirmation,
+    isEligibleForRound2,
+  );
   if (isLoading) {
     return <Loader />;
   }
@@ -634,7 +694,8 @@ export default function MyTeam() {
           modal === "qualified" ||
           modal === "rejected" ||
           modal === "selection-failed" ||
-          modal === "discord"
+          modal === "discord" ||
+          modal === "round2-confirm"
         }
         className="auth-recede shell-dash relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[calc(24px_+_16*var(--fl))] pt-[calc(24px_+_36*var(--fl))] pb-16"
       >
@@ -677,8 +738,12 @@ export default function MyTeam() {
                   reviewFeedback={reviewFeedback}
                   team={team}
                   submittedAt={statusData?.submittedAt}
+                  round2Confirmation={round2Confirmation}
                   onOpenDiscordModal={() => {
                     setModal("discord");
+                  }}
+                  onOpenRound2Modal={() => {
+                    setModal("round2-confirm");
                   }}
                 />
               )}
@@ -695,15 +760,25 @@ export default function MyTeam() {
               reviewFeedback={reviewFeedback}
               team={team}
               submittedAt={statusData?.submittedAt}
+              round2Confirmation={round2Confirmation}
               onOpenDiscordModal={() => {
                 setModal("discord");
+              }}
+              onOpenRound2Modal={() => {
+                setModal("round2-confirm");
               }}
             />
           </div>
         </div>
       </div>
 
-      <MyTeamModals modal={modal} setModal={setModal} teamName={displayTeam.name} />
+      <MyTeamModals
+        modal={modal}
+        setModal={setModal}
+        teamName={displayTeam.name}
+        teamId={statusData?.teamId}
+        participants={participants}
+      />
     </div>
   );
 }

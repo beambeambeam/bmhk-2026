@@ -46,8 +46,9 @@ function getLatestDate(
   submittedAt?: Date | string | null,
   reviewUpdatedAt?: Date | string | null,
   teamUpdatedAt?: Date | string | null,
+  round2ConfirmedAt?: Date | string | null,
 ): string {
-  const dates = [submittedAt, reviewUpdatedAt, teamUpdatedAt]
+  const dates = [submittedAt, reviewUpdatedAt, teamUpdatedAt, round2ConfirmedAt]
     .filter((d): d is Date | string => d !== null && d !== undefined)
     .map((d) => (d instanceof Date ? d : new Date(d)))
     .filter((d) => !Number.isNaN(d.getTime()));
@@ -67,12 +68,16 @@ function getStepDate(
   reviewUpdatedAt?: Date | string | null,
   teamUpdatedAt?: Date | string | null,
   teamCreatedAt?: Date | string | null,
+  round2ConfirmedAt?: Date | string | null,
 ): string {
   if (stepIndex === 0) {
     return formatStatusDate(submittedAt ?? teamCreatedAt);
   }
   if (stepIndex === 1 && totalSteps > 2) {
     return formatStatusDate(reviewUpdatedAt ?? teamUpdatedAt);
+  }
+  if (totalSteps >= 5 && stepIndex === 3) {
+    return formatStatusDate(round2ConfirmedAt ?? teamUpdatedAt);
   }
   return formatStatusDate(teamUpdatedAt ?? reviewUpdatedAt);
 }
@@ -346,6 +351,8 @@ export default function StatusPanel({
   team,
   submittedAt,
   onOpenDiscordModal,
+  round2Confirmation,
+  onOpenRound2Modal,
 }: {
   status: TeamStatus;
   /** The qualified dashboard also carries the Discord join card. */
@@ -364,18 +371,28 @@ export default function StatusPanel({
   } | null;
   submittedAt?: Date | string | null;
   onOpenDiscordModal?: () => void;
+  round2Confirmation?: {
+    confirmedAt?: Date | string | null;
+    isOpen?: boolean;
+    state?: "DRAFT" | "CONFIRMED";
+  } | null;
+  onOpenRound2Modal?: () => void;
 }) {
-  const steps = getStatusSteps(members, reviewFeedback, team?.award)[status];
+  const steps = getStatusSteps(members, reviewFeedback, team?.award, round2Confirmation)[status];
   const overallLatestDate = getLatestDate(
     submittedAt,
     reviewFeedback?.statusUpdatedAt,
     team?.updatedAt,
+    round2Confirmation?.confirmedAt,
   );
 
+  const showRound2Card =
+    team?.award === "ADVANCED_TO_ROUND_2" &&
+    round2Confirmation !== undefined &&
+    round2Confirmation !== null;
+
   return (
-    /* `708:3506` stacks the sidebar's two cards with a 24 gap. */
     <div className="flex flex-col gap-6">
-      {/* Figma: a 400-wide card, 16 of padding, 16 between the header and each step */}
       <div className={`flex w-full flex-col items-start ${card ? PLATE : ""}`}>
         <div className="flex w-full flex-col items-start gap-4">
           <div className="flex w-full flex-col items-start">
@@ -385,7 +402,6 @@ export default function StatusPanel({
             </p>
           </div>
 
-          {/* the ladder tops out at 7, which is the last delay auth-motion.css defines */}
           {steps.map((step, i) => (
             <Step
               key={step.title}
@@ -399,42 +415,144 @@ export default function StatusPanel({
                 reviewFeedback?.statusUpdatedAt,
                 team?.updatedAt,
                 team?.createdAt,
+                round2Confirmation?.confirmedAt,
               )}
             />
           ))}
         </div>
       </div>
 
-      {showDiscord && (
-        <div className={`mm-card-in flex w-full flex-col items-start ${card ? PLATE : ""}`}>
-          <div className="flex w-full flex-col items-start gap-4">
-            <div className="flex w-full flex-col items-start">
-              <p className="w-full text-[20px] leading-[1.4] font-medium">{DISCORD_CARD.title}</p>
-              <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>
-                {DISCORD_CARD.subtitle}
-              </p>
-            </div>
+      {showRound2Card ? (
+        <Round2ConfirmationCard
+          card={card}
+          round2Confirmation={round2Confirmation}
+          onOpenRound2Modal={onOpenRound2Modal}
+        />
+      ) : null}
 
-            <div className="flex w-full items-center gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]">
-              <span className="flex size-[32px] shrink-0 items-center justify-center">
-                <span className="flex shrink-0 items-center justify-center rounded-full bg-[rgba(88,101,242,0.1)] p-[6px] shadow-[inset_0_0_0_1px_rgba(88,101,242,0.2)]">
-                  <DiscordGlyph size={20} src={ICON.discord} />
-                </span>
-              </span>
-              <p className="min-w-0 flex-1 fl-14 leading-normal font-medium">
-                {DISCORD_CARD.label}
-              </p>
-              <button
-                type="button"
-                onClick={onOpenDiscordModal}
-                className="mm-press shrink-0 rounded-[10px] bg-[#f6f6f6] px-[20px] py-[8px] fl-14 leading-normal transition-colors hover:bg-[#ececec]"
-              >
-                {DISCORD_CARD.action}
-              </button>
-            </div>
-          </div>
+      {showDiscord ? <DiscordCard card={card} onOpenDiscordModal={onOpenDiscordModal} /> : null}
+    </div>
+  );
+}
+
+function getRound2CardDetails(isConfirmed: boolean, isOpen: boolean) {
+  if (isConfirmed) {
+    return {
+      action: "ดูเอกสาร",
+      actionClass: "bg-[#f6f6f6] hover:bg-[#ececec] text-ink",
+      icon: ICON.check,
+      iconSkin: "bg-[rgba(148,180,94,0.1)] shadow-[inset_0_0_0_1px_rgba(148,180,94,0.2)]",
+      label: "ตรวจสอบเอกสารยืนยันสิทธิ์",
+      subtitle: "ยืนยันสิทธิ์เข้าร่วมการแข่งขันเรียบร้อยแล้ว",
+    };
+  }
+
+  if (isOpen) {
+    return {
+      action: "ยืนยันสิทธิ์",
+      actionClass: "bg-brand-red text-white hover:bg-brand-red/90",
+      icon: ICON.alert,
+      iconSkin: "bg-[rgba(192,86,62,0.1)] shadow-[inset_0_0_0_1px_rgba(192,86,62,0.2)]",
+      label: "ยืนยันสิทธิ์รอบ On-site",
+      subtitle: "กรุณายืนยันสิทธิ์และอัปโหลดเอกสารเพื่อเข้าแข่งขันรอบ On-site",
+    };
+  }
+
+  return {
+    action: null,
+    actionClass: "",
+    icon: ICON.close,
+    iconSkin: "bg-gray-100 shadow-[inset_0_0_0_1px_#dcdcdc]",
+    label: "สละสิทธิ์การแข่งขัน",
+    subtitle: "หมดเวลาการยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศแล้ว",
+  };
+}
+
+interface Round2ConfirmationCardProps {
+  card?: boolean;
+  round2Confirmation?: {
+    confirmedAt?: Date | string | null;
+    isOpen?: boolean;
+    state?: "DRAFT" | "CONFIRMED";
+  } | null;
+  onOpenRound2Modal?: () => void;
+}
+
+function Round2ConfirmationCard({
+  card,
+  round2Confirmation,
+  onOpenRound2Modal,
+}: Round2ConfirmationCardProps) {
+  const isConfirmed =
+    round2Confirmation?.state === "CONFIRMED" ||
+    (round2Confirmation?.confirmedAt !== null && round2Confirmation?.confirmedAt !== undefined);
+  const isOpen = round2Confirmation?.isOpen === true;
+
+  const details = getRound2CardDetails(isConfirmed, isOpen);
+
+  return (
+    <div className={`mm-card-in flex w-full flex-col items-start ${card === true ? PLATE : ""}`}>
+      <div className="flex w-full flex-col items-start gap-4">
+        <div className="flex w-full flex-col items-start">
+          <p className="w-full text-[20px] leading-[1.4] font-medium">การเข้าแข่งขันรอบรองชนะเลิศ</p>
+          <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>{details.subtitle}</p>
         </div>
-      )}
+
+        <div className="flex w-full items-center gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]">
+          <span className="flex size-[32px] shrink-0 items-center justify-center">
+            <span
+              className={`flex shrink-0 items-center justify-center rounded-full p-[6px] ${details.iconSkin}`}
+            >
+              <img src={details.icon} alt="" className="size-5" />
+            </span>
+          </span>
+          <p className="min-w-0 flex-1 fl-14 leading-normal font-medium">{details.label}</p>
+          {details.action === null ? null : (
+            <button
+              type="button"
+              onClick={onOpenRound2Modal}
+              className={`mm-press shrink-0 rounded-[10px] px-[20px] py-[8px] fl-14 leading-normal transition-colors ${details.actionClass}`}
+            >
+              {details.action}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DiscordCard({
+  card,
+  onOpenDiscordModal,
+}: {
+  card?: boolean;
+  onOpenDiscordModal?: () => void;
+}) {
+  return (
+    <div className={`mm-card-in flex w-full flex-col items-start ${card === true ? PLATE : ""}`}>
+      <div className="flex w-full flex-col items-start gap-4">
+        <div className="flex w-full flex-col items-start">
+          <p className="w-full text-[20px] leading-[1.4] font-medium">{DISCORD_CARD.title}</p>
+          <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>{DISCORD_CARD.subtitle}</p>
+        </div>
+
+        <div className="flex w-full items-center gap-[12px] rounded-[12px] p-[10px] shadow-[inset_0_0_0_0.5px_#dcdcdc]">
+          <span className="flex size-[32px] shrink-0 items-center justify-center">
+            <span className="flex shrink-0 items-center justify-center rounded-full bg-[rgba(88,101,242,0.1)] p-[6px] shadow-[inset_0_0_0_1px_rgba(88,101,242,0.2)]">
+              <DiscordGlyph size={20} src={ICON.discord} />
+            </span>
+          </span>
+          <p className="min-w-0 flex-1 fl-14 leading-normal font-medium">{DISCORD_CARD.label}</p>
+          <button
+            type="button"
+            onClick={onOpenDiscordModal}
+            className="mm-press shrink-0 rounded-[10px] bg-[#f6f6f6] px-[20px] py-[8px] fl-14 leading-normal transition-colors hover:bg-[#ececec]"
+          >
+            {DISCORD_CARD.action}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

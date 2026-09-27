@@ -94,6 +94,7 @@ const mockStatusConfirmed = {
 };
 
 let currentStatus: MockStatus = mockStatusDraftIncomplete;
+let currentStatusError: Error | null = null;
 
 const mockDocumentResult = {
   contentType: "application/pdf",
@@ -124,7 +125,12 @@ vi.mock("@bmhk-2026/client/orpc", () => ({
       get: {
         key: () => ["round2Confirmation", "get"],
         queryOptions: () => ({
-          queryFn: async () => await Promise.resolve(currentStatus),
+          queryFn: async () => {
+            if (currentStatusError !== null) {
+              throw new Error(currentStatusError.message);
+            }
+            return await Promise.resolve(currentStatus);
+          },
           queryKey: ["round2Confirmation", "get"],
         }),
       },
@@ -185,6 +191,7 @@ describe(Round2ConfirmationModal, () => {
 
   beforeEach(() => {
     currentStatus = mockStatusDraftIncomplete;
+    currentStatusError = null;
     mockSubmitMutation.mockClear();
   });
 
@@ -317,6 +324,23 @@ describe(Round2ConfirmationModal, () => {
     expect(closeButtons.length).toBeGreaterThanOrEqual(1);
     // No checkbox or submit button in read-only mode
     expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+
+  it("does not show forfeiture when confirmation status fails to load", async () => {
+    currentStatusError = new Error("Temporary network failure");
+
+    renderWithClient(
+      <Round2ConfirmationModal
+        open={true}
+        onClose={() => {}}
+        teamId="team-123"
+        participants={participants}
+      />,
+    );
+
+    await expect(screen.findByText("ไม่สามารถโหลดข้อมูลการยืนยันสิทธิ์ได้")).resolves.toBeDefined();
+    expect(screen.getByRole("button", { name: "ลองใหม่อีกครั้ง" })).toBeDefined();
+    expect(screen.queryByText("หมดเวลาการยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศแล้ว")).toBeNull();
   });
 
   it("calls onClose when close button is clicked", async () => {

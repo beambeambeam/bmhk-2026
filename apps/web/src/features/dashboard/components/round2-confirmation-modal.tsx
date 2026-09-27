@@ -413,6 +413,7 @@ function ModalHeader({ isConfirmed }: { isConfirmed: boolean }) {
 }
 
 interface ModalFooterProps {
+  isStatusError: boolean;
   isConfirmed: boolean;
   confirmedAt?: Date | null;
   isOpen: boolean;
@@ -425,6 +426,7 @@ interface ModalFooterProps {
 }
 
 function ModalFooter({
+  isStatusError,
   isConfirmed,
   confirmedAt,
   isOpen,
@@ -435,6 +437,20 @@ function ModalFooter({
   onClose,
   onSubmitClick,
 }: ModalFooterProps) {
+  if (isStatusError) {
+    return (
+      <div className="flex justify-end border-t border-[#ececec] bg-[#fbfbfb] p-4 sm:p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          className="mm-press rounded-xl border border-[#dcdcdc] bg-white px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-black/[0.03]"
+        >
+          ปิด
+        </button>
+      </div>
+    );
+  }
+
   if (isConfirmed) {
     return (
       <div className="flex flex-col gap-3 border-t border-[#ececec] bg-[#fbfbfb] p-4 sm:p-6">
@@ -705,6 +721,10 @@ function useModalMount(open: boolean) {
   return { mounted, state };
 }
 
+function shouldShowStatusLoadError(error: unknown, hasStatus: boolean): boolean {
+  return error !== null && !hasStatus;
+}
+
 export default function Round2ConfirmationModal({
   open,
   onClose,
@@ -876,6 +896,7 @@ export default function Round2ConfirmationModal({
             />
 
             <ModalFooter
+              isStatusError={shouldShowStatusLoadError(error, confirmationStatus !== undefined)}
               isConfirmed={isConfirmed}
               confirmedAt={confirmationStatus?.confirmedAt}
               isOpen={isOpen}

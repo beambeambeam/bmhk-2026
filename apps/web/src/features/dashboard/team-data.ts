@@ -302,10 +302,53 @@ function getFinalRoundSteps(award: string | undefined): StatusStep[] {
   return steps;
 }
 
+export interface Round2ConfirmationInfo {
+  confirmedAt?: Date | string | null;
+  isOpen?: boolean;
+  state?: "DRAFT" | "CONFIRMED";
+}
+
+export function isRound2Confirmed(
+  round2Confirmation?: Pick<Round2ConfirmationInfo, "confirmedAt" | "state"> | null,
+): boolean {
+  return (
+    round2Confirmation?.state === "CONFIRMED" ||
+    (round2Confirmation?.confirmedAt !== null && round2Confirmation?.confirmedAt !== undefined)
+  );
+}
+
+function getRound2ConfirmationSteps(
+  round2Confirmation?: Round2ConfirmationInfo | null,
+): StatusStep[] {
+  if (round2Confirmation === undefined || round2Confirmation === null) {
+    return [{ label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" }];
+  }
+
+  if (isRound2Confirmed(round2Confirmation)) {
+    return [
+      { label: "ยืนยันสิทธิ์สำเร็จ", title: "ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ", tone: "ok" },
+      { label: "รอเข้าร่วมการแข่งขัน", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
+    ];
+  }
+
+  if (round2Confirmation.isOpen === false) {
+    return [
+      { label: "สละสิทธิ์การแข่งขัน", title: "ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ", tone: "failed" },
+      { label: "ไม่มีสิทธิ์เข้าแข่งขัน", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "failed" },
+    ];
+  }
+
+  return [
+    { label: "รอยืนยันสิทธิ์", title: "ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
+    { label: "รอยืนยันสิทธิ์เพื่อเข้าร่วมการแข่งขัน", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
+  ];
+}
+
 export function getStatusSteps(
   members: Person[],
   reviewFeedback?: ReviewFeedbackInput | null,
   award?: string,
+  round2Confirmation?: Round2ConfirmationInfo | null,
 ): Record<TeamStatus, StatusStep[]> {
   const participantCount = members.length - 1;
 
@@ -413,7 +456,7 @@ export function getStatusSteps(
       REGISTERED,
       DOCS_OK,
       { label: "ผ่านเข้าสู่รอบรองชนะเลิศ", title: "การแข่งขันรอบออนไลน์", tone: "ok" },
-      { label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },
+      ...getRound2ConfirmationSteps(round2Confirmation),
     ],
     "semifinal-qualified": [
       REGISTERED,

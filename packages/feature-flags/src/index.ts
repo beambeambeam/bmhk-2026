@@ -6,7 +6,7 @@ export const featureFlags = {
     startsAt: "2026-11-09T00:00:00+07:00",
   },
   qualifyingResultsAnnouncement: {
-    startsAt: "2026-09-28T14:00:00+07:00",
+    startsAt: "2026-09-30T16:00:00+07:00",
   },
   qualifyingRound: {
     startsAt: "2026-09-27T13:00:00+07:00",
@@ -20,7 +20,8 @@ export const featureFlags = {
     startsAt: "2026-08-19T00:00:00+07:00",
   },
   round2Confirmation: {
-    startsAt: "2026-09-28T14:00:00+07:00",
+    endsAt: "2026-11-09T00:00:00+07:00",
+    startsAt: "2026-09-30T16:00:00+07:00",
   },
 } as const;
 

@@ -14,6 +14,7 @@ import TeamDecor from "./components/team-decor";
 import { formatCodernName, formatTeamCode } from "./team-code";
 import {
   getBaseMembers,
+  isRound2Confirmed,
   QUALIFIED_MODAL,
   REJECTED_MODAL,
   SELECTION_FAILED_MODAL,
@@ -433,11 +434,11 @@ function useAutoOpenModal(
   const [hasAutoOpenedModal, setHasAutoOpenedModal] = useState(false);
 
   if (!hasAutoOpenedModal && status !== null) {
-    const isRound2Confirmed =
-      round2Confirmation?.state === "CONFIRMED" ||
-      (round2Confirmation?.confirmedAt !== null && round2Confirmation?.confirmedAt !== undefined);
-
-    if (isEligibleForRound2 && round2Confirmation?.isOpen === true && !isRound2Confirmed) {
+    if (
+      isEligibleForRound2 &&
+      round2Confirmation?.isOpen === true &&
+      !isRound2Confirmed(round2Confirmation)
+    ) {
       setModal("round2-confirm");
       setHasAutoOpenedModal(true);
     } else {

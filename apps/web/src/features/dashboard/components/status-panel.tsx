@@ -2,8 +2,15 @@ import { useId } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { formatTeamCode } from "../team-code";
-import { DISCORD_CARD, getStatusSteps } from "../team-data";
-import type { Person, ReviewFeedbackInput, StatusStep, StepTone, TeamStatus } from "../team-data";
+import { DISCORD_CARD, getStatusSteps, isRound2Confirmed } from "../team-data";
+import type {
+  Person,
+  ReviewFeedbackInput,
+  Round2ConfirmationInfo,
+  StatusStep,
+  StepTone,
+  TeamStatus,
+} from "../team-data";
 import { Mail } from "lucide-react";
 
 /**
@@ -371,11 +378,7 @@ export default function StatusPanel({
   } | null;
   submittedAt?: Date | string | null;
   onOpenDiscordModal?: () => void;
-  round2Confirmation?: {
-    confirmedAt?: Date | string | null;
-    isOpen?: boolean;
-    state?: "DRAFT" | "CONFIRMED";
-  } | null;
+  round2Confirmation?: Round2ConfirmationInfo | null;
   onOpenRound2Modal?: () => void;
 }) {
   const steps = getStatusSteps(members, reviewFeedback, team?.award, round2Confirmation)[status];
@@ -470,11 +473,7 @@ function getRound2CardDetails(isConfirmed: boolean, isOpen: boolean) {
 
 interface Round2ConfirmationCardProps {
   card?: boolean;
-  round2Confirmation?: {
-    confirmedAt?: Date | string | null;
-    isOpen?: boolean;
-    state?: "DRAFT" | "CONFIRMED";
-  } | null;
+  round2Confirmation?: Round2ConfirmationInfo | null;
   onOpenRound2Modal?: () => void;
 }
 
@@ -483,9 +482,7 @@ function Round2ConfirmationCard({
   round2Confirmation,
   onOpenRound2Modal,
 }: Round2ConfirmationCardProps) {
-  const isConfirmed =
-    round2Confirmation?.state === "CONFIRMED" ||
-    (round2Confirmation?.confirmedAt !== null && round2Confirmation?.confirmedAt !== undefined);
+  const isConfirmed = isRound2Confirmed(round2Confirmation);
   const isOpen = round2Confirmation?.isOpen === true;
 
   const details = getRound2CardDetails(isConfirmed, isOpen);

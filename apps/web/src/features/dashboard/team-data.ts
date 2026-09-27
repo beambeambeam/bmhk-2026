@@ -308,6 +308,15 @@ export interface Round2ConfirmationInfo {
   state?: "DRAFT" | "CONFIRMED";
 }
 
+export function isRound2Confirmed(
+  round2Confirmation?: Pick<Round2ConfirmationInfo, "confirmedAt" | "state"> | null,
+): boolean {
+  return (
+    round2Confirmation?.state === "CONFIRMED" ||
+    (round2Confirmation?.confirmedAt !== null && round2Confirmation?.confirmedAt !== undefined)
+  );
+}
+
 function getRound2ConfirmationSteps(
   round2Confirmation?: Round2ConfirmationInfo | null,
 ): StatusStep[] {
@@ -315,11 +324,7 @@ function getRound2ConfirmationSteps(
     return [{ label: "กำลังสรุปผล", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" }];
   }
 
-  const isConfirmed =
-    round2Confirmation.state === "CONFIRMED" ||
-    (round2Confirmation.confirmedAt !== null && round2Confirmation.confirmedAt !== undefined);
-
-  if (isConfirmed) {
+  if (isRound2Confirmed(round2Confirmation)) {
     return [
       { label: "ยืนยันสิทธิ์สำเร็จ", title: "ยืนยันสิทธิ์การเข้าแข่งขันรอบรองชนะเลิศ", tone: "ok" },
       { label: "รอเข้าร่วมการแข่งขัน", title: "การเข้าแข่งขันรอบรองชนะเลิศ", tone: "pending" },

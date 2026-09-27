@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { UploadBox } from "@/components/form/field";
 import useDialogFocus, { useScrollLock } from "./use-dialog-focus";
-import { formatPersonName } from "../team-data";
+import { formatPersonName, isRound2Confirmed } from "../team-data";
 
 const CLOSE = "/assets/figma/36f13a184206ab27dedb4992d9d5b63a3a3f8cb6.svg";
 const EXIT_MS = 220;
@@ -793,9 +793,7 @@ export default function Round2ConfirmationModal({
     return null;
   }
 
-  const isConfirmed =
-    confirmationStatus?.state === "CONFIRMED" ||
-    (confirmationStatus?.confirmedAt !== null && confirmationStatus?.confirmedAt !== undefined);
+  const isConfirmed = isRound2Confirmed(confirmationStatus);
   const isOpen = confirmationStatus?.isOpen === true;
   const isComplete = confirmationStatus?.isComplete === true;
 

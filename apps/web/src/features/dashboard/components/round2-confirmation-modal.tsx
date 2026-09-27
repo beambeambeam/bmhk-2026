@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "@bmhk-2026/client/orpc";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { AlertCircle, Check, ExternalLink, FileText, Info, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { UploadBox } from "@/components/form/field";
+import { getThaiDateTimeParts } from "../thai-date-time";
 import useDialogFocus, { useScrollLock } from "./use-dialog-focus";
 import { formatPersonName, isRound2Confirmed } from "../team-data";
 
@@ -25,17 +24,11 @@ export function formatFileSize(bytes: number | null | undefined): string {
 }
 
 export function formatConfirmedDate(date: Date | string | null | undefined): string {
-  if (date === null || date === undefined) {
+  const dateParts = getThaiDateTimeParts(date);
+  if (dateParts === null) {
     return "-";
   }
-  const dateObj = date instanceof Date ? date : new Date(date);
-  if (Number.isNaN(dateObj.getTime())) {
-    return "-";
-  }
-  const dayMonthYear = format(dateObj, "dd MMM", { locale: th });
-  const yearBe = (dateObj.getFullYear() + 543).toString();
-  const time = format(dateObj, "HH:mm");
-  return `${dayMonthYear} ${yearBe} เวลา ${time} น.`;
+  return `${dateParts.dayMonth} ${dateParts.yearBe} เวลา ${dateParts.time} น.`;
 }
 
 interface ParticipantInfo {

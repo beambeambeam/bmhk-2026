@@ -1,7 +1,6 @@
 import { useId } from "react";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { formatTeamCode } from "../team-code";
+import { getThaiDateTimeParts } from "../thai-date-time";
 import { DISCORD_CARD, getStatusSteps, isRound2Confirmed } from "../team-data";
 import type {
   Person,
@@ -36,17 +35,12 @@ const ICON = {
 };
 
 function formatStatusDate(date: Date | string | null | undefined): string {
-  if (date === null || date === undefined) {
+  const dateParts = getThaiDateTimeParts(date);
+  if (dateParts === null) {
     return "-";
   }
-  const dateObj = date instanceof Date ? date : new Date(date);
-  if (Number.isNaN(dateObj.getTime())) {
-    return "-";
-  }
-  const dayMonthYear = format(dateObj, "dd MMM", { locale: th });
-  const yearBe = (dateObj.getFullYear() + 543).toString().slice(-2);
-  const time = format(dateObj, "HH:mm");
-  return `${dayMonthYear} ${yearBe} ${time} น.`;
+  const shortYearBe = dateParts.yearBe.slice(-2);
+  return `${dateParts.dayMonth} ${shortYearBe} ${dateParts.time} น.`;
 }
 
 function getLatestDate(

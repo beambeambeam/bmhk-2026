@@ -386,7 +386,10 @@ export default function StatusPanel({
   const showRound2Card =
     team?.award === "ADVANCED_TO_ROUND_2" &&
     round2Confirmation !== undefined &&
-    round2Confirmation !== null;
+    round2Confirmation !== null &&
+    (status === "semifinal-pending" ||
+      status === "semifinal-failed" ||
+      status === "semifinal-qualified");
 
   return (
     <div className="flex flex-col gap-6">

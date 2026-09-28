@@ -20,7 +20,12 @@ import {
 } from "../../../__test__/test-support";
 
 const TEAM_ID = "7f4207ac-58a8-48f5-8cd0-5d29c190fd18";
-const team = { id: TEAM_ID, index: 42, name: "Example Team" };
+const team = {
+  award: "ROUND_1_PARTICIPATED" as const,
+  id: TEAM_ID,
+  index: 42,
+  name: "Example Team",
+};
 const createdAt = new Date("2026-09-25T01:00:00.000Z");
 const updatedAt = new Date("2026-09-25T02:00:00.000Z");
 const laterUpdatedAt = new Date("2026-09-25T03:00:00.000Z");

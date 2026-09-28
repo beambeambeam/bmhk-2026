@@ -31,7 +31,12 @@ describe("staff team round results table", () => {
             {
               result: null,
               round: "ROUND_1",
-              team: { id: "11111111-1111-4111-8111-111111111111", index: 42, name: "Empty Team" },
+              team: {
+                award: "NO_ACHIEVEMENT",
+                id: "11111111-1111-4111-8111-111111111111",
+                index: 42,
+                name: "Empty Team",
+              },
             },
           ],
         },
@@ -47,7 +52,7 @@ describe("staff team round results table", () => {
     const row = await screen.findByRole("row", { name: /BH042\/26.*Empty Team/u });
     expect(within(row).getAllByRole("cell", { name: "—" })).toHaveLength(6);
     expect(screen.queryByRole("switch")).toBeNull();
-    expect(screen.getAllByRole("columnheader")).toHaveLength(9);
+    expect(screen.getAllByRole("columnheader")).toHaveLength(10);
     const actionButton = within(row).getByRole("button", {
       name: "จัดการคะแนนรอบที่ 1 ทีม Empty Team",
     });
@@ -63,6 +68,48 @@ describe("staff team round results table", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "แก้ไขคะแนน" }));
     const reopenedScore = await screen.findByRole("textbox", { name: "คะแนน" });
     expect(reopenedScore).toHaveProperty("value", "");
+  });
+
+  it.each([
+    ["ROUND_1", "ROUND_2_PARTICIPATED", "สิทธิ์เข้าแข่งขันรอบที่ 2", "เข้ารอบ"],
+    ["ROUND_1", "ROUND_1_PARTICIPATED", "สิทธิ์เข้าแข่งขันรอบที่ 2", "ไม่เข้ารอบ"],
+    ["ROUND_2", "ADVANCED_TO_ROUND_3", "สิทธิ์เข้าแข่งขันรอบที่ 3", "เข้ารอบ"],
+    ["ROUND_2", "ROUND_2_PARTICIPATED", "สิทธิ์เข้าแข่งขันรอบที่ 3", "ไม่เข้ารอบ"],
+    ["ROUND_3", "FIRST_PLACE", "รางวัล", "รางวัลชนะเลิศ"],
+    ["ROUND_3", "SECOND_PLACE", "รางวัล", "รางวัลอันดับที่ 2"],
+    ["ROUND_3", "THIRD_PLACE", "รางวัล", "รางวัลอันดับที่ 3"],
+    ["ROUND_3", "HONORABLE_MENTION", "รางวัล", "รางวัลชมเชย"],
+    ["ROUND_3", "ROUND_3_PARTICIPATED", "รางวัล", "เข้าร่วมการแข่งขัน"],
+  ] as const)("shows the %s outcome for %s", async (round, award, header, outcome) => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        json: {
+          rowCount: 1,
+          rows: [
+            {
+              result: null,
+              round,
+              team: {
+                award,
+                id: "11111111-1111-4111-8111-111111111111",
+                index: 42,
+                name: "Team One",
+              },
+            },
+          ],
+        },
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TeamRoundResultsTable actorId="academic-1" round={round} />
+      </QueryClientProvider>,
+    );
+
+    const row = await screen.findByRole("row", { name: /Team One/u });
+    expect(screen.getByRole("columnheader", { name: header })).toBeDefined();
+    expect(within(row).getByRole("cell", { name: outcome })).toBeDefined();
   });
 
   it("requests both searches together and sorts creation time in both directions", async () => {
@@ -142,7 +189,12 @@ describe("staff team round results table", () => {
             {
               result: null,
               round,
-              team: { id: "11111111-1111-4111-8111-111111111111", index: 42, name: "Team One" },
+              team: {
+                award: "NO_ACHIEVEMENT",
+                id: "11111111-1111-4111-8111-111111111111",
+                index: 42,
+                name: "Team One",
+              },
             },
           ],
         },
@@ -189,7 +241,12 @@ describe("staff team round results table", () => {
               updatedAt: new Date("2026-09-25T04:00:00.000Z"),
             },
             round: "ROUND_1",
-            team: { id: "11111111-1111-4111-8111-111111111111", index: 42, name: "Scored Team" },
+            team: {
+              award: "NO_ACHIEVEMENT",
+              id: "11111111-1111-4111-8111-111111111111",
+              index: 42,
+              name: "Scored Team",
+            },
           },
         ],
       },

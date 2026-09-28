@@ -8,8 +8,10 @@ import { DataTable } from "@/components/table/index";
 import type { DataTableColumn } from "@/components/table/index";
 import { DataTableSortHeader } from "@/components/table/sort-header";
 import { DataTablePagination } from "@/components/table/pagination";
+import { achievementLabels } from "@/features/achievements/achievements-labels";
 import type {
   CheckInRound,
+  TeamRoundResultAward,
   TeamRoundResultColumnFilter,
   TeamRoundResultList,
   TeamRoundResultListQuery,
@@ -21,6 +23,48 @@ import { useEffect, useState } from "react";
 type ResultRow = TeamRoundResultList["rows"][number];
 type ResultSort = TeamRoundResultListQuery["sorting"][number];
 const SEARCH_DEBOUNCE_MS = 300;
+const roundTwoEligibleAwards: ReadonlySet<TeamRoundResultAward> = new Set([
+  "ADVANCED_TO_ROUND_2",
+  "ROUND_2_PARTICIPATED",
+  "ADVANCED_TO_ROUND_3",
+  "ROUND_3_PARTICIPATED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+]);
+const roundThreeEligibleAwards: ReadonlySet<TeamRoundResultAward> = new Set([
+  "ADVANCED_TO_ROUND_3",
+  "ROUND_3_PARTICIPATED",
+  "HONORABLE_MENTION",
+  "THIRD_PLACE",
+  "SECOND_PLACE",
+  "FIRST_PLACE",
+]);
+const finalAwardLabels: Partial<Record<TeamRoundResultAward, string>> = {
+  FIRST_PLACE: achievementLabels.FIRST_PLACE,
+  HONORABLE_MENTION: achievementLabels.HONORABLE_MENTION,
+  SECOND_PLACE: achievementLabels.SECOND_PLACE,
+  THIRD_PLACE: achievementLabels.THIRD_PLACE,
+};
+
+function getOutcomeColumnHeader(round: CheckInRound): string {
+  if (round === "ROUND_1") {
+    return "สิทธิ์เข้าแข่งขันรอบที่ 2";
+  }
+  if (round === "ROUND_2") {
+    return "สิทธิ์เข้าแข่งขันรอบที่ 3";
+  }
+  return "รางวัล";
+}
+
+function getOutcomeLabel(round: CheckInRound, award: TeamRoundResultAward): string {
+  if (round === "ROUND_3") {
+    return finalAwardLabels[award] ?? "เข้าร่วมการแข่งขัน";
+  }
+  const eligibleAwards = round === "ROUND_1" ? roundTwoEligibleAwards : roundThreeEligibleAwards;
+  return eligibleAwards.has(award) ? "เข้ารอบ" : "ไม่เข้ารอบ";
+}
 
 interface ResultsTableMeta {
   readonly round: CheckInRound;
@@ -76,40 +120,52 @@ const columnDefinitions: (DataTableColumn<ResultRow, ResultsTableMeta> & {
     size: 190,
   },
 ];
-const columns: DataTableColumn<ResultRow, ResultsTableMeta>[] = [
-  ...columnDefinitions.map(
-    (column): DataTableColumn<ResultRow, ResultsTableMeta> => ({
-      ...column,
-      header: ({ table }) => {
-        const { meta } = table.options;
-        let direction: "asc" | "desc" | false = false;
-        if (meta?.sorting.id === column.id) {
-          direction = meta.sorting.desc ? "desc" : "asc";
-        }
-        return (
-          <DataTableSortHeader
-            label={column.header}
-            direction={direction}
-            onClick={() => meta?.onSort(column.id)}
-          />
-        );
-      },
-      meta: { ...column.meta, sortable: true },
-    }),
-  ),
-  {
-    cell: ({ row, table }) =>
-      table.options.meta ? (
-        <TeamRoundResultActions
-          team={row.original.team}
-          round={table.options.meta.round}
-          result={row.original.result}
+const sortableColumns: DataTableColumn<ResultRow, ResultsTableMeta>[] = columnDefinitions.map(
+  (column) => ({
+    ...column,
+    header: ({ table }) => {
+      const { meta } = table.options;
+      let direction: "asc" | "desc" | false = false;
+      if (meta?.sorting.id === column.id) {
+        direction = meta.sorting.desc ? "desc" : "asc";
+      }
+      return (
+        <DataTableSortHeader
+          label={column.header}
+          direction={direction}
+          onClick={() => meta?.onSort(column.id)}
         />
-      ) : null,
-    header: "จัดการ",
-    id: "actions",
-    size: 72,
-  },
+      );
+    },
+    meta: { ...column.meta, sortable: true },
+  }),
+);
+const outcomeColumn: DataTableColumn<ResultRow, ResultsTableMeta> = {
+  cell: ({ row, table }) =>
+    table.options.meta ? getOutcomeLabel(table.options.meta.round, row.original.team.award) : null,
+  header: ({ table }) =>
+    table.options.meta ? getOutcomeColumnHeader(table.options.meta.round) : "ผลการตัดสิน",
+  id: "outcome",
+  size: 200,
+};
+const actionColumn: DataTableColumn<ResultRow, ResultsTableMeta> = {
+  cell: ({ row, table }) =>
+    table.options.meta ? (
+      <TeamRoundResultActions
+        team={row.original.team}
+        round={table.options.meta.round}
+        result={row.original.result}
+      />
+    ) : null,
+  header: "จัดการ",
+  id: "actions",
+  size: 72,
+};
+const columns: DataTableColumn<ResultRow, ResultsTableMeta>[] = [
+  ...sortableColumns.slice(0, 2),
+  outcomeColumn,
+  ...sortableColumns.slice(2),
+  actionColumn,
 ];
 
 function RoundResultsTable({ actorId, round }: TeamRoundResultsTableProps) {

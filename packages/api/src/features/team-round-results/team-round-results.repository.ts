@@ -53,7 +53,7 @@ export interface TeamRoundResultRepository {
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-const teamSelection = { id: teams.id, index: teams.index, name: teams.name };
+const teamSelection = { award: teams.award, id: teams.id, index: teams.index, name: teams.name };
 const resultSelection = {
   completedAssignment: teamRoundResults.completedAssignment,
   createdAt: teamRoundResults.createdAt,
@@ -156,7 +156,7 @@ export function createTeamRoundResultRepository(
     findOutcome: async (teamId, round) =>
       await database.transaction(async (transaction) => {
         const [team] = await transaction
-          .select({ ...teamSelection, award: teams.award })
+          .select(teamSelection)
           .from(teams)
           .where(eq(teams.id, teamId))
           .limit(1);
@@ -176,7 +176,7 @@ export function createTeamRoundResultRepository(
           hasLaterRoundCheckIns: hasLaterCheckIns,
           hasRoundCheckIn: Boolean(roundCheckIn),
           round,
-          team: { id: team.id, index: team.index, name: team.name },
+          team,
         };
       }),
     list: async ({ columnFilters, pagination, round, sorting }) =>
@@ -247,7 +247,7 @@ export function createTeamRoundResultRepository(
     setOutcome: async (input) =>
       await database.transaction(async (transaction) => {
         const [team] = await transaction
-          .select({ ...teamSelection, award: teams.award })
+          .select(teamSelection)
           .from(teams)
           .where(eq(teams.id, input.teamId))
           .for("update")
@@ -294,7 +294,7 @@ export function createTeamRoundResultRepository(
           .update(teams)
           .set({ award: transition.award })
           .where(eq(teams.id, team.id))
-          .returning({ ...teamSelection, award: teams.award });
+          .returning(teamSelection);
         if (!updatedTeam) {
           throw new Error("Updating a Team outcome returned no row");
         }
@@ -304,7 +304,7 @@ export function createTeamRoundResultRepository(
           hasLaterRoundCheckIns: hasLaterCheckIns,
           hasRoundCheckIn: true,
           round: input.round,
-          team: { id: updatedTeam.id, index: updatedTeam.index, name: updatedTeam.name },
+          team: updatedTeam,
         } satisfies TeamRoundOutcomeFacts;
         return { outcome, previousAward, status: "UPDATED" };
       }),

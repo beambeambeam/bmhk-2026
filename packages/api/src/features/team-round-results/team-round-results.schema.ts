@@ -23,7 +23,12 @@ export const teamRoundResultRoundSchema = z.enum(checkInRoundValues);
 export const teamRoundResultAwardSchema = z.enum(teamAwardValues);
 export const finalTeamRoundAwardSchema = z.enum(finalTeamRoundAwardValues);
 export const teamRoundResultTeamSchema = z
-  .object({ id: z.uuid(), index: z.int().positive(), name: z.string() })
+  .object({
+    award: teamRoundResultAwardSchema,
+    id: z.uuid(),
+    index: z.int().positive(),
+    name: z.string(),
+  })
   .strict();
 export const teamRoundResultSchema = z
   .object({

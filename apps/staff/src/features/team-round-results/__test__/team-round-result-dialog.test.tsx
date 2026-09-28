@@ -22,6 +22,7 @@ const fetchMock = vi.hoisted(() => {
 });
 
 const TEAM: TeamRoundResultTeam = {
+  award: "ROUND_2_PARTICIPATED",
   id: "11111111-1111-4111-8111-111111111111",
   index: 42,
   name: "Team One",

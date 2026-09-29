@@ -275,6 +275,16 @@ interface ParticipantTabsProps {
   onSelectTab: (index: number) => void;
 }
 
+function getParticipantBadgeClassName(isSlotComplete: boolean, isActive: boolean): string {
+  if (isSlotComplete) {
+    return "bg-[#94B45E] text-white";
+  }
+  if (isActive) {
+    return "bg-white text-ink font-semibold";
+  }
+  return "bg-black/15 text-ink";
+}
+
 function ParticipantTabs({
   participants,
   participantDetails,
@@ -307,9 +317,10 @@ function ParticipantTabs({
             }`}
           >
             <span
-              className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                isSlotComplete ? "bg-[#94B45E] text-white" : "bg-black/15 text-ink"
-              }`}
+              className={`flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] ${getParticipantBadgeClassName(
+                isSlotComplete,
+                isActive,
+              )}`}
             >
               {isSlotComplete ? <Check className="size-3 stroke-[3]" /> : (index + 1).toString()}
             </span>

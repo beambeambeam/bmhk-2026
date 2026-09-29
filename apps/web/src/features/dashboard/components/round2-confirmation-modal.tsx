@@ -88,7 +88,7 @@ function DocumentAttachmentCard({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-ink">{originalName ?? "เอกสารที่อัปโหลด"}</p>
-          <p className="text-xs text-gray-2">{formatFileSize(sizeBytes)}</p>
+          <p className="text-xs text-gray-2 whitespace-nowrap">{formatFileSize(sizeBytes)}</p>
         </div>
       </div>
 

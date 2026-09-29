@@ -23,7 +23,7 @@ import { Mail } from "lucide-react";
  * 1440 (`708:2650`). `fl-14` held 14 flat, so the phone read two ranks too large next to its
  * own 12 date lines. Ramp lands 12.000 @402 and 14.000 @1440 — desktop unmoved.
  */
-const SUBTITLE_12_14 = "text-[calc(11.948px_+_2.052*var(--fl))]";
+const SUBTITLE_12_14 = "text-[calc(11.948px_+_2.052*var(--fl))] text-balance";
 
 const ICON = {
   alert: "/assets/figma/e2ca3f8c81dc8ab3ede0613c50c57734946678d7.svg",
@@ -230,12 +230,16 @@ function Row({
   tone: StepTone;
 }) {
   return (
-    <div className="flex w-full items-center gap-[8px]">
+    <div className="flex w-full items-center justify-between gap-[8px]">
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        <p className="fl-14 leading-normal">{title}</p>
-        <p className="fl-12 leading-normal text-gray-2">{name}</p>
+        <p className="fl-14 leading-normal text-balance">{title}</p>
+        <p className="fl-12 leading-normal text-gray-2 text-balance">{name}</p>
       </div>
-      <p className={`shrink-0 fl-14 leading-normal ${LABEL_COLOR[tone]}`}>{label}</p>
+      <p
+        className={`self-center min-w-0 max-w-[44%] fl-14 leading-normal text-right text-balance ${LABEL_COLOR[tone]}`}
+      >
+        {label}
+      </p>
     </div>
   );
 }
@@ -286,13 +290,15 @@ function Step({
         <Badge tone={step.tone} compact={step.compact} />
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-[12px]">
-          <div className="flex w-full items-center gap-[8px]">
+          <div className="flex w-full items-center justify-between gap-[8px]">
             <div className="flex min-w-0 flex-1 flex-col justify-center">
-              <p className="fl-14 leading-normal font-medium">{step.title}</p>
+              <p className="fl-14 leading-normal font-medium text-balance">{step.title}</p>
               <p className="fl-12 leading-normal text-gray-2">{updatedAt}</p>
             </div>
             {Boolean(step.label) && (
-              <p className={`shrink-0 fl-14 leading-normal ${LABEL_COLOR[step.tone]}`}>
+              <p
+                className={`self-center min-w-0 max-w-[44%] fl-14 leading-normal text-right text-balance ${LABEL_COLOR[step.tone]}`}
+              >
                 {step.label}
               </p>
             )}
@@ -317,7 +323,7 @@ function Step({
                 <span className="text-sm">ติดต่อทีมงานเพื่อแก้ไข</span>
               </a>
             </div>
-            <p className="w-full text-sm text-gray-2">
+            <p className="w-full text-sm text-gray-2 text-balance">
               หากเปิดอีเมลไม่ได้ กรุณาส่งชื่อทีม รหัสทีม และเอกสารที่ต้องการแก้ไขมาที่{" "}
               <span className="select-text break-all">{CONTACT_EMAIL}</span>
             </p>
@@ -396,7 +402,9 @@ export default function StatusPanel({
       <div className={`flex w-full flex-col items-start ${card ? PLATE : ""}`}>
         <div className="flex w-full flex-col items-start gap-4">
           <div className="flex w-full flex-col items-start">
-            {heading && <p className="w-full text-[20px] leading-[1.4] font-medium">สถานะ</p>}
+            {heading && (
+              <p className="w-full text-[20px] leading-[1.4] font-medium text-balance">สถานะ</p>
+            )}
             <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>
               อัปเดตล่าสุดเมื่อ {overallLatestDate}
             </p>
@@ -488,7 +496,9 @@ function Round2ConfirmationCard({
     <div className={`mm-card-in flex w-full flex-col items-start ${card === true ? PLATE : ""}`}>
       <div className="flex w-full flex-col items-start gap-4">
         <div className="flex w-full flex-col items-start">
-          <p className="w-full text-[20px] leading-[1.4] font-medium">การเข้าแข่งขันรอบรองชนะเลิศ</p>
+          <p className="w-full text-[20px] leading-[1.4] font-medium text-balance">
+            การเข้าแข่งขันรอบรองชนะเลิศ
+          </p>
           <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>{details.subtitle}</p>
         </div>
 
@@ -500,7 +510,9 @@ function Round2ConfirmationCard({
               <img src={details.icon} alt="" className="size-5" />
             </span>
           </span>
-          <p className="min-w-0 flex-1 fl-14 leading-normal font-medium">{details.label}</p>
+          <p className="min-w-0 flex-1 fl-14 leading-normal font-medium text-balance">
+            {details.label}
+          </p>
           {details.action === null ? null : (
             <button
               type="button"
@@ -527,7 +539,9 @@ function DiscordCard({
     <div className={`mm-card-in flex w-full flex-col items-start ${card === true ? PLATE : ""}`}>
       <div className="flex w-full flex-col items-start gap-4">
         <div className="flex w-full flex-col items-start">
-          <p className="w-full text-[20px] leading-[1.4] font-medium">{DISCORD_CARD.title}</p>
+          <p className="w-full text-[20px] leading-[1.4] font-medium text-balance">
+            {DISCORD_CARD.title}
+          </p>
           <p className={`${SUBTITLE_12_14} leading-normal text-gray-2`}>{DISCORD_CARD.subtitle}</p>
         </div>
 
@@ -537,7 +551,9 @@ function DiscordCard({
               <DiscordGlyph size={20} src={ICON.discord} />
             </span>
           </span>
-          <p className="min-w-0 flex-1 fl-14 leading-normal font-medium">{DISCORD_CARD.label}</p>
+          <p className="min-w-0 flex-1 fl-14 leading-normal font-medium text-balance">
+            {DISCORD_CARD.label.trim()}
+          </p>
           <button
             type="button"
             onClick={onOpenDiscordModal}

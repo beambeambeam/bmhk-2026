@@ -17,7 +17,12 @@ import type {
   Round2ConfirmationFacts,
   Round2ConfirmationRepository,
 } from "./round2-confirmation.repository";
-import type { Round2ConfirmationStatus, Round2DocumentInput } from "./round2-confirmation.schema";
+import type {
+  Round2ConfirmationList,
+  Round2ConfirmationListQuery,
+  Round2ConfirmationStatus,
+  Round2DocumentInput,
+} from "./round2-confirmation.schema";
 
 function activeParticipants(
   facts: Round2ConfirmationFacts,
@@ -90,6 +95,8 @@ export function createRound2ConfirmationService(
       return await toPublicFileWithUrl(file, storage);
     },
     get: async (access: TeamAccessContext, teamId?: string) => status(await find(access, teamId)),
+    list: async (query: Round2ConfirmationListQuery): Promise<Round2ConfirmationList> =>
+      await repository.list(query),
     submit: async (access: TeamAccessContext, teamId: string) => {
       function validate(facts: Round2ConfirmationFacts): void {
         assertWritable(facts);

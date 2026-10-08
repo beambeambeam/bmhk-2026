@@ -229,6 +229,11 @@ export type {
   Round2ConfirmationRepository,
 } from "./features/round2-confirmation/round2-confirmation.repository";
 export type {
+  Round2ConfirmationColumnFilter,
+  Round2ConfirmationList,
+  Round2ConfirmationListInput,
+  Round2ConfirmationListQuery,
+  Round2ConfirmationState,
   Round2ConfirmationStatus,
   Round2DocumentType,
   Round2DocumentInput,

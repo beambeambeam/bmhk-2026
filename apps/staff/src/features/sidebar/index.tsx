@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardCheck,
+  FileCheck,
   FolderKanban,
   KeyRound,
   LayoutDashboard,
@@ -55,6 +56,7 @@ interface StaffNavItem {
     | "/round1-participants-check"
     | "/round1-results"
     | "/round1-staff-check"
+    | "/round2-confirmation"
     | "/round2-participants-check"
     | "/round2-results"
     | "/round2-staff-check"
@@ -96,6 +98,12 @@ const round2ResultsNavItem: StaffNavItem = {
   icon: Trophy,
   label: "ผลการแข่งขัน รอบที่ 2",
   to: "/round2-results",
+};
+
+const round2ConfirmationNavItem: StaffNavItem = {
+  icon: FileCheck,
+  label: "ยืนยันสิทธิ์เข้าแข่งขัน (รอบที่ 2)",
+  to: "/round2-confirmation",
 };
 
 const round3ResultsNavItem: StaffNavItem = {
@@ -195,7 +203,12 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
         label: "การแข่งขัน รอบที่ 1",
       },
       {
-        items: [...round2ParticipantCheckInNavItems, ...round2StaffNavItems, round2ResultsNavItem],
+        items: [
+          ...round2ParticipantCheckInNavItems,
+          ...round2StaffNavItems,
+          round2ConfirmationNavItem,
+          round2ResultsNavItem,
+        ],
         label: "การแข่งขัน รอบที่ 2",
       },
       {
@@ -233,6 +246,7 @@ function StaffSidebar({ role, userName }: StaffSidebarProps) {
           items: [
             ...(canAccessParticipantCheckIn ? round2ParticipantCheckInNavItems : []),
             ...(canAccessStaffCheckIn ? round2StaffNavItems : []),
+            ...(canAccessStaffCheckIn ? [round2ConfirmationNavItem] : []),
             ...(canAccessAcademic ? [round2ResultsNavItem] : []),
           ],
           label: "การแข่งขัน รอบที่ 2",

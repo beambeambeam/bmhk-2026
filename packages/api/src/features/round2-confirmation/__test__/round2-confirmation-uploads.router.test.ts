@@ -215,6 +215,7 @@ function createRig(options: RigOptions = {}) {
       const team = findAccessibleTeam(access, teamId);
       return await Promise.resolve(team ? toFacts(team) : null);
     },
+    list: async () => await Promise.resolve({ rowCount: 0, rows: [] }),
     replaceDocument: async (access, input, file, validate) => {
       const team = findAccessibleTeam(access, input.teamId);
       if (!team) {

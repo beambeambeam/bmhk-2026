@@ -1,11 +1,14 @@
 import { db } from "@bmhk-2026/db";
 import { files } from "@bmhk-2026/db/schema/files";
-import { teams } from "@bmhk-2026/db/schema/teams";
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamRound2 } from "@bmhk-2026/db/schema/team-round2";
-import { asc, eq } from "drizzle-orm";
+import { roundTwoEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import type { TeamAccessContext } from "../../core/auth";
 import { hasErrorCode } from "../../core/errors";
+import { createTableWhere, escapeLikePattern } from "../../core/query-builder";
+import { getTableOffset } from "../../core/table-query";
 import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 import { toStoredFileOfKind } from "../files/files.schema";
 import type { TeamAward } from "../teams/teams.schema";
@@ -13,7 +16,13 @@ import { createTeamAccessCondition } from "../teams/teams.repository";
 import { createTeamNotFoundError } from "../teams/teams.service";
 import { createTeamParticipantNotFoundError } from "../team-participants/team-participants.service";
 import { createRound2RepositoryError, round2DeniedCodes } from "./round2-confirmation.errors";
-import type { Round2DocumentInput, Round2ConfirmationStatus } from "./round2-confirmation.schema";
+import type {
+  Round2ConfirmationColumnFilter,
+  Round2ConfirmationList,
+  Round2ConfirmationListQuery,
+  Round2DocumentInput,
+  Round2ConfirmationStatus,
+} from "./round2-confirmation.schema";
 
 export interface Round2ConfirmationFacts {
   teamId: string;
@@ -27,6 +36,7 @@ export interface Round2DocumentReplacement {
   previous: StoredFile | null;
 }
 export interface Round2ConfirmationRepository {
+  list: (query: Round2ConfirmationListQuery) => Promise<Round2ConfirmationList>;
   findFacts: (
     access: TeamAccessContext,
     teamId?: string,
@@ -53,6 +63,32 @@ export interface Round2ConfirmationRepository {
 type Database = typeof db;
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type Reader = Database | Transaction;
+
+const round2ConfirmationSortColumns = {
+  confirmedAt: teamRound2.confirmedAt,
+  teamCode: teams.index,
+  teamName: teams.name,
+} as const;
+const teamCodeSearchColumn = sql<string>`'BH' || lpad(
+  ${teams.index}::text,
+  greatest(3, length(${teams.index}::text)),
+  '0'
+) || '/26'`;
+
+function createListFilterCondition(filter: Round2ConfirmationColumnFilter): SQL | undefined {
+  if (filter.id === "state") {
+    return filter.value === "CONFIRMED"
+      ? isNotNull(teamRound2.confirmedAt)
+      : isNull(teamRound2.confirmedAt);
+  }
+  if (filter.value.length === 0) {
+    return undefined;
+  }
+  const pattern = `%${escapeLikePattern(filter.value)}%`;
+  return filter.id === "teamCode"
+    ? ilike(teamCodeSearchColumn, pattern)
+    : ilike(teams.name, pattern);
+}
 
 async function execute<Result>(operation: () => Promise<Result>): Promise<Result> {
   try {
@@ -172,6 +208,111 @@ export function createRound2ConfirmationRepository(
         return file ? toStoredFileOfKind(file, "pdf") : null;
       }),
     findFacts: async (access, teamId) => await execute(async () => await findFacts(access, teamId)),
+    list: async ({ columnFilters, pagination, sorting }) =>
+      await execute(
+        async () =>
+          await database.transaction(
+            async (transaction) => {
+              const filters = and(
+                inArray(teams.award, roundTwoEligibleAwardValues),
+                createTableWhere(columnFilters, createListFilterCondition),
+              );
+              const [total] = await transaction
+                .select({ value: count() })
+                .from(teams)
+                .leftJoin(teamRound2, eq(teamRound2.teamId, teams.id))
+                .where(filters);
+              const orderBy = sorting.map(({ id, desc: descending }) => {
+                const column = round2ConfirmationSortColumns[id];
+                return sql`${descending ? desc(column) : asc(column)} nulls last`;
+              });
+              const teamRows = await transaction
+                .select({
+                  confirmedAt: teamRound2.confirmedAt,
+                  team: {
+                    award: teams.award,
+                    id: teams.id,
+                    index: teams.index,
+                    memberCount: teams.memberCount,
+                    name: teams.name,
+                  },
+                })
+                .from(teams)
+                .leftJoin(teamRound2, eq(teamRound2.teamId, teams.id))
+                .where(filters)
+                .orderBy(...orderBy, asc(teams.index))
+                .limit(pagination.pageSize)
+                .offset(getTableOffset(pagination));
+
+              const teamIds = teamRows.map(({ team }) => team.id);
+              const participantRows =
+                teamIds.length === 0
+                  ? []
+                  : await transaction
+                      .select({
+                        firstNameTh: teamParticipants.firstNameTh,
+                        id: teamParticipants.id,
+                        index: teamParticipants.index,
+                        lastNameTh: teamParticipants.lastNameTh,
+                        participant1IdentityDocumentFileId:
+                          teamRound2.participant1IdentityDocumentFileId,
+                        participant1StudentIdDocumentFileId:
+                          teamRound2.participant1StudentIdDocumentFileId,
+                        participant2IdentityDocumentFileId:
+                          teamRound2.participant2IdentityDocumentFileId,
+                        participant2StudentIdDocumentFileId:
+                          teamRound2.participant2StudentIdDocumentFileId,
+                        participant3IdentityDocumentFileId:
+                          teamRound2.participant3IdentityDocumentFileId,
+                        participant3StudentIdDocumentFileId:
+                          teamRound2.participant3StudentIdDocumentFileId,
+                        teamId: teamParticipants.teamId,
+                      })
+                      .from(teamParticipants)
+                      .leftJoin(teamRound2, eq(teamRound2.teamId, teamParticipants.teamId))
+                      .where(inArray(teamParticipants.teamId, teamIds))
+                      .orderBy(asc(teamParticipants.teamId), asc(teamParticipants.index));
+
+              const teamsById = new Map(teamRows.map((row) => [row.team.id, row]));
+              const participantsByTeamId = new Map<
+                string,
+                Round2ConfirmationList["rows"][number]["participants"]
+              >();
+              for (const row of teamRows) {
+                participantsByTeamId.set(row.team.id, []);
+              }
+              for (const participant of participantRows) {
+                const teamRow = teamsById.get(participant.teamId);
+                const participants = participantsByTeamId.get(participant.teamId);
+                if (!teamRow || !participants || participant.index > teamRow.team.memberCount) {
+                  continue;
+                }
+                const fields = participantDocumentFields(participant.index);
+                const documentPresence = {
+                  hasIdentityDocument: participant[fields.identityDocument] !== null,
+                  hasStudentIdDocument: participant[fields.studentIdDocument] !== null,
+                };
+                participants.push({
+                  ...documentPresence,
+                  id: participant.id,
+                  index: participant.index,
+                  name: `${participant.firstNameTh} ${participant.lastNameTh}`,
+                });
+              }
+
+              return {
+                rowCount: total?.value ?? 0,
+                rows: teamRows.map((row) => ({
+                  confirmedAt: row.confirmedAt,
+                  participants: participantsByTeamId.get(row.team.id) ?? [],
+                  state: row.confirmedAt === null ? "DRAFT" : "CONFIRMED",
+                  team: row.team,
+                })),
+              };
+            },
+            { accessMode: "read only", isolationLevel: "repeatable read" },
+          ),
+      ),
     replaceDocument: async (access, input, file, validate) =>
       await execute(
         async () =>

@@ -15,6 +15,8 @@ import { assertAllowedOrigin } from "../files/files.service";
 import { round2DeniedCodes } from "./round2-confirmation.errors";
 import {
   round2ConfirmationStatusSchema,
+  listRound2ConfirmationsSchema,
+  round2ConfirmationListSchema,
   round2DocumentInputSchema,
   round2TeamInputSchema,
   round2UploadInputSchema,
@@ -54,6 +56,11 @@ export function createRound2ConfirmationRouter(
       .input(round2TeamInputSchema)
       .output(round2ConfirmationStatusSchema)
       .handler(async ({ context, input }) => await service.get(context.teamAccess, input.teamId)),
+    list: registration
+      .route({ method: "GET", tags: ["Round 2 Confirmation"] })
+      .input(listRound2ConfirmationsSchema)
+      .output(round2ConfirmationListSchema)
+      .handler(async ({ input }) => await service.list(input)),
     submit: owner
       .route({ method: "POST", tags: ["Round 2 Confirmation"] })
       .input(round2TeamInputSchema)

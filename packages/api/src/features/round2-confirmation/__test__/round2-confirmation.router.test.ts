@@ -52,6 +52,7 @@ function repository(
   return {
     findDocument: async () => await Promise.resolve(null),
     findFacts: async () => await Promise.resolve(facts),
+    list: async () => await Promise.resolve({ rowCount: 0, rows: [] }),
     replaceDocument: async () => await Promise.reject(new Error("Unexpected upload")),
     submit: async (_access, _teamId, validate, confirmedAt) => {
       validate(facts);

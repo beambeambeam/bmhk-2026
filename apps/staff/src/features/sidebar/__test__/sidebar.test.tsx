@@ -68,6 +68,7 @@ describe("staff sidebar permissions", () => {
     expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 2)" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม (รอบที่ 3)" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "ยืนยันสิทธิ์เข้าแข่งขัน (รอบที่ 2)" })).toBeNull();
     expect(
       screen.queryByRole("link", { name: /ตรวจสอบผู้สมัคร|ลงทะเบียนทีมงาน|ผลงานการแข่งขัน/u }),
     ).toBeNull();
@@ -80,6 +81,7 @@ describe("staff sidebar permissions", () => {
     expect(screen.getByRole("link", { name: "ลงทะเบียนผู้เข้าร่วม" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "ลงทะเบียนทีมงาน (รอบที่ 2)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "ยืนยันสิทธิ์เข้าแข่งขัน (รอบที่ 2)" })).toBeTruthy();
   });
 
   it("shows academic staff the dashboard and participant check-in without registration, staff check-in or user admin links", () => {
@@ -104,6 +106,12 @@ describe("staff sidebar permissions", () => {
       ]);
     },
   );
+
+  it.each(["admin", "superAdmin"])("shows round 2 confirmation to %s", (role) => {
+    renderSidebar(role);
+
+    expect(screen.getByRole("link", { name: "ยืนยันสิทธิ์เข้าแข่งขัน (รอบที่ 2)" })).toBeTruthy();
+  });
 
   it("hides round result links from staff without academic access", () => {
     renderSidebar("staff");

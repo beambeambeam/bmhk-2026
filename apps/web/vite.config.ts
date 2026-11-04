@@ -23,6 +23,8 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   server: {
+    // tailscale serve proxies MagicDNS requests here, see README "Dev over Tailscale"
+    allowedHosts: [".ts.net"],
     port: 3001,
   },
 });

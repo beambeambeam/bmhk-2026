@@ -150,6 +150,42 @@ Feature routers should remain transport adapters. Database coordination, not-fou
 
    Run one app only with `bun run dev:web`, `bun run dev:staff`, `bun run dev:server`, or `bun run dev:discord`.
 
+   Dev over Tailscale: `tailscale serve` gives each dev port an HTTPS URL on your
+   MagicDNS name. Microsoft only accepts HTTPS redirect URIs outside `localhost`.
+   The HTTPS ports must differ from the app ports, because `tailscaled` listens on
+   them:
+
+   ```bash
+   for port in 3000 3001 3002 9000; do
+     tailscale serve --bg --https=1$port http://127.0.0.1:$port
+   done
+   ```
+
+   Then replace the app URLs with your MagicDNS name, found with
+   `tailscale status --self`. Using `my-box.tailnet.ts.net` as an example:
+
+   ```bash
+   # apps/server/.env
+   BETTER_AUTH_URL=https://my-box.tailnet.ts.net:13000
+   CORS_ORIGIN=https://my-box.tailnet.ts.net:13001,https://my-box.tailnet.ts.net:13002
+   AWS_ENDPOINT_URL_S3=https://my-box.tailnet.ts.net:19000
+
+   # apps/web/.env and apps/staff/.env
+   VITE_SERVER_URL=https://my-box.tailnet.ts.net:13000
+
+   # apps/discord/.env
+   SERVER_BASE_URL=https://my-box.tailnet.ts.net:13000
+   WEBSITE_BASE_URL=https://my-box.tailnet.ts.net:13001
+   STAFF_BASE_URL=https://my-box.tailnet.ts.net:13002
+   ```
+
+   Open the apps through these URLs on the dev machine too. Auth cookies belong to
+   the API host, so `localhost` won't see the session. Keep `DATABASE_URL` and
+   `DISCORD_BOT_BASE_URL` on `localhost`. Register
+   `https://my-box.tailnet.ts.net:13000/api/auth/callback/google` and
+   `.../callback/microsoft` with each provider. Stop serving with
+   `tailscale serve --https=13000 off`, one command per port.
+
 6. Run checks before committing:
 
    ```bash

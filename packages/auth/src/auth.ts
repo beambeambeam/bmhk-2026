@@ -23,10 +23,10 @@ function getCookieAttributes() {
     } as const;
   }
 
+  // Secure follows BETTER_AUTH_URL: https (e.g. tailscale serve) gets __Secure- cookies
   return {
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
   } as const;
 }
 

@@ -15,8 +15,8 @@
       "@orpc/server": "^1.14.6",
       "@orpc/openapi": "^1.14.6",
       "@orpc/zod": "^1.14.6",
-      "auth": "1.6.29",
-      "better-auth": "1.6.29",
+      "auth": "1.7.16",
+      "better-auth": "1.7.16",
       "evlog": "^2.28.1",
       "lucide-react": "^1.23.0",
       "next-themes": "^0.4.6",
@@ -84,8 +84,8 @@
     "vitest": "catalog:"
   },
   "overrides": {
-    "@better-auth/core": "1.6.29",
-    "better-call": "1.4.0",
+    "@better-auth/core": "1.7.16",
+    "better-call": "1.4.5",
     "vite": "catalog:",
     "vitest": "catalog:"
   },

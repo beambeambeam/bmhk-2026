@@ -1,7 +1,8 @@
 import { formatTeamCode } from "@/lib/team-code";
 import { Button } from "@/components/button";
 import { toast } from "sonner";
-import { createParticipationCsv, downloadParticipationCsv } from "./participation-export";
+import { createParticipationCsv } from "./participation-export";
+import { downloadCsv } from "@/lib/download-csv";
 import { Input } from "@/components/input";
 import {
   Select,
@@ -257,7 +258,7 @@ function ParticipationTable({ canReview, canRemove }: ParticipationTableProps) {
             staleTime: 0,
           }),
       );
-      downloadParticipationCsv(csv);
+      downloadCsv(csv, "participations");
     } catch {
       toast.error("ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง");
     } finally {

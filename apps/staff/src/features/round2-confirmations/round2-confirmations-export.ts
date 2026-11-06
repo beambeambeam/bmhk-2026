@@ -56,7 +56,7 @@ export async function createRound2ConfirmationsCsv(
         formatTeamCode(row.team.index),
         row.team.name,
         row.team.memberCount,
-        row.participants.map((participant) => participant.name).join("\n"),
+        row.participants.map((participant) => participant.name).join("; "),
         formatDocumentProgress(row),
         confirmationStateLabels[row.state],
         formatBangkokDateTime(row.confirmedAt),

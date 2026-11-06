@@ -64,7 +64,7 @@ describe("round 2 confirmations CSV export", () => {
     );
     expect(csv.startsWith("﻿รหัสทีม,ชื่อทีม,จำนวนสมาชิก,สมาชิก,เอกสาร,สถานะ,ยืนยันเมื่อ")).toBeTruthy();
     expect(csv).toContain(
-      `BH042/26,"'=HYPERLINK(""bad"")",2,"สมชาย ใจดี\nสมหญิง รักเรียน",3 / 4,ยังไม่ยืนยัน,—`,
+      `BH042/26,"'=HYPERLINK(""bad"")",2,สมชาย ใจดี; สมหญิง รักเรียน,3 / 4,ยังไม่ยืนยัน,—`,
     );
     expect(csv).toContain('BH007/26,"Team, ""Two"""');
     expect(csv).toContain("ยืนยันแล้ว");

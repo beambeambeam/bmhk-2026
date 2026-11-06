@@ -10,6 +10,7 @@ import {
   createStaffDiscordLinkRepository,
   createStaffDiscordLinkService,
 } from "@bmhk-2026/api";
+import type { DiscordBotGateway } from "@bmhk-2026/api";
 import { auth } from "@bmhk-2026/auth";
 import { env } from "@bmhk-2026/env/server";
 import { log } from "evlog";
@@ -29,10 +30,13 @@ import { createAuthReader } from "./modules/auth/auth-reader";
 initializeObservability();
 
 const authReader = createAuthReader(auth);
-const discordBotGateway = createFetchDiscordBotGateway({
-  baseUrl: env.DISCORD_BOT_BASE_URL,
-  secret: env.DISCORD_BOT_INTERNAL_SECRET,
-});
+const { DISCORD_BOT_BASE_URL: discordBotBaseUrl, DISCORD_BOT_INTERNAL_SECRET: discordBotSecret } =
+  env;
+const discordEnabled = discordBotBaseUrl !== undefined && discordBotSecret !== undefined;
+// Without the bot, staff Discord linking reports BOT_APPLY_FAILED instead of calling out.
+const discordBotGateway: DiscordBotGateway = discordEnabled
+  ? createFetchDiscordBotGateway({ baseUrl: discordBotBaseUrl, secret: discordBotSecret })
+  : { applyStaffVerification: async () => await Promise.resolve({ ok: false }) };
 const staffDiscordLinkService = createStaffDiscordLinkService(
   createStaffDiscordLinkRepository(),
   discordBotGateway,
@@ -54,6 +58,7 @@ const app = createApp({
   auth,
   corsOrigins: env.CORS_ORIGIN,
   discordAdminService,
+  discordEnabled,
   discordService,
   observability: {
     ...auditObservability,
@@ -66,6 +71,7 @@ const app = createApp({
 
 app.listen(env.PORT, ({ hostname, port }) => {
   log.info({
+    discordEnabled,
     event: "server.started",
     hostname,
     port,

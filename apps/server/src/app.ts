@@ -22,6 +22,7 @@ export interface CreateAppOptions {
   auth: typeof auth;
   corsOrigins: string[];
   discordAdminService: DiscordAdminService;
+  discordEnabled: boolean;
   discordService: DiscordService;
   observability?: EvlogElysiaOptions;
   staffDiscordLinkService: StaffDiscordLinkService;
@@ -34,13 +35,14 @@ export function createApp({
   auth,
   corsOrigins,
   discordAdminService,
+  discordEnabled,
   discordService,
   observability,
   staffDiscordLinkService,
   teamGroupsService,
   verifyApiKey,
 }: CreateAppOptions): AnyElysia {
-  return new Elysia({
+  const app = new Elysia({
     name: "bmhk-2026-server",
     serve: {
       maxRequestBodySize: 12 * 1024 * 1024,
@@ -49,8 +51,10 @@ export function createApp({
     .use(createObservabilityPlugin(observability))
     .use(createCorsPlugin(corsOrigins))
     .use(createAuthModule(auth))
-    .use(createApiModule(apiRouter))
-    .use(
+    .use(createApiModule(apiRouter));
+
+  if (discordEnabled) {
+    app.use(
       createDiscordModule(
         discordService,
         teamGroupsService,
@@ -58,6 +62,8 @@ export function createApp({
         discordAdminService,
         verifyApiKey,
       ),
-    )
-    .get("/", () => "OK");
+    );
+  }
+
+  return app.get("/", () => "OK");
 }

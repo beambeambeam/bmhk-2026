@@ -169,6 +169,7 @@ function createTestApp(
   staffDiscordLinkService: StaffDiscordLinkService = createTestStaffDiscordLinkService(),
   drain?: DrainFn,
   discordAdminService: DiscordAdminService = createTestDiscordAdminService(),
+  discordEnabled = true,
 ) {
   const testAuth = createTestAuth(getSession);
   const apiRouter = createAppRouter({
@@ -187,6 +188,7 @@ function createTestApp(
       auth: testAuth.auth,
       corsOrigins: ["http://localhost:3001", "http://localhost:3002"],
       discordAdminService,
+      discordEnabled,
       discordService: createTestDiscordService(),
       observability: {
         drain: composeDrains(createMemoryDrain({ store }), drain),
@@ -494,6 +496,25 @@ describe("server app", () => {
       path: "/missing",
       status: 404,
     });
+  });
+
+  it("does not serve discord bot routes when discord is disabled", async () => {
+    const testApp = createTestApp(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+    );
+    const response = await testApp.app.handle(
+      new Request("http://localhost/api/discord/team-groups", {
+        headers: { "x-api-key": TEST_API_KEY },
+      }),
+    );
+
+    expect(response.status).toBe(404);
   });
 
   it("rejects team-groups requests without a valid api key", async () => {

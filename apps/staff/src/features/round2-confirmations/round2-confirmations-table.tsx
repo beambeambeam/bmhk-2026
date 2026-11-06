@@ -20,10 +20,19 @@ import type {
   Round2ConfirmationState,
 } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { formatBangkokDateTime } from "@/features/team-round-results/round-result-datetime";
+import { downloadCsv } from "@/lib/download-csv";
 import { formatTeamCode } from "@/lib/team-code";
+
+import {
+  confirmationStateLabels,
+  createRound2ConfirmationsCsv,
+  formatDocumentProgress,
+} from "./round2-confirmations-export";
 
 type ConfirmationRow = Round2ConfirmationList["rows"][number];
 type ConfirmationSort = Round2ConfirmationListQuery["sorting"][number];
@@ -43,7 +52,6 @@ interface Round2ConfirmationsTableProps {
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
-const REQUIRED_DOCUMENTS_PER_PARTICIPANT = 2;
 const stateFilters: readonly { label: string; value: StateFilter }[] = [
   { label: "ทุกสถานะ", value: "ALL" },
   { label: "ยืนยันแล้ว", value: "CONFIRMED" },
@@ -94,19 +102,6 @@ const sortableColumns: DataTableColumn<ConfirmationRow, ConfirmationsTableMeta>[
     meta: { ...column.meta, sortable: true },
   }));
 
-function getUploadedDocumentCount(row: ConfirmationRow): number {
-  let count = 0;
-  for (const participant of row.participants) {
-    if (participant.hasIdentityDocument) {
-      count += 1;
-    }
-    if (participant.hasStudentIdDocument) {
-      count += 1;
-    }
-  }
-  return count;
-}
-
 function isStateFilter(value: string): value is StateFilter {
   return stateFilters.some((filter) => filter.value === value);
 }
@@ -132,14 +127,13 @@ const columns: DataTableColumn<ConfirmationRow, ConfirmationsTableMeta>[] = [
     size: 200,
   },
   {
-    cell: ({ row }) =>
-      `${getUploadedDocumentCount(row.original)} / ${row.original.team.memberCount * REQUIRED_DOCUMENTS_PER_PARTICIPANT}`,
+    cell: ({ row }) => formatDocumentProgress(row.original),
     header: "เอกสาร",
     id: "documents",
     size: 110,
   },
   {
-    cell: ({ row }) => (row.original.state === "CONFIRMED" ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"),
+    cell: ({ row }) => confirmationStateLabels[row.original.state],
     header: "สถานะ",
     id: "state",
     size: 140,
@@ -148,6 +142,8 @@ const columns: DataTableColumn<ConfirmationRow, ConfirmationsTableMeta>[] = [
 ];
 
 function Round2ConfirmationsTableContent({ actorId }: Round2ConfirmationsTableProps) {
+  const queryClient = useQueryClient();
+  const [isExporting, setIsExporting] = useState(false);
   const [searches, setSearches] = useState<SearchState>({ teamCode: "", teamName: "" });
   const [debouncedSearches, setDebouncedSearches] = useState(searches);
   const [stateFilter, setStateFilter] = useState<StateFilter>("ALL");
@@ -201,6 +197,29 @@ function Round2ConfirmationsTableContent({ actorId }: Round2ConfirmationsTablePr
     statusMessage = "กำลังโหลดสถานะการยืนยัน...";
   }
 
+  async function exportCsv(): Promise<void> {
+    setIsExporting(true);
+    try {
+      const csv = await createRound2ConfirmationsCsv(
+        { columnFilters, sorting: [sorting] },
+        async (pageInput) =>
+          await queryClient.fetchQuery({
+            ...orpc.round2Confirmation.list.queryOptions({ input: pageInput }),
+            queryKey: [
+              ...orpc.round2Confirmation.list.queryKey({ input: pageInput }),
+              { userId: actorId },
+            ],
+            staleTime: 0,
+          }),
+      );
+      downloadCsv(csv, "round2-confirmations");
+    } catch {
+      toast.error("ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   function onSort(id: ConfirmationSort["id"]): void {
     setSorting((current) => ({ desc: current.id === id ? !current.desc : false, id }));
     setPageIndex(0);
@@ -215,53 +234,74 @@ function Round2ConfirmationsTableContent({ actorId }: Round2ConfirmationsTablePr
 
   return (
     <div className="flex flex-col gap-5">
-      <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-        <Field>
-          <FieldLabel htmlFor="round2-confirmations-code">รหัสทีม</FieldLabel>
-          <Input
-            id="round2-confirmations-code"
-            placeholder="ค้นหารหัสทีม"
-            type="search"
-            value={searches.teamCode}
-            onChange={(event) => {
-              setSearches((current) => ({ ...current, teamCode: event.target.value }));
-            }}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="round2-confirmations-name">ชื่อทีม</FieldLabel>
-          <Input
-            id="round2-confirmations-name"
-            placeholder="ค้นหาชื่อทีม"
-            type="search"
-            value={searches.teamName}
-            onChange={(event) => {
-              setSearches((current) => ({ ...current, teamName: event.target.value }));
-            }}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="round2-confirmations-state">สถานะการยืนยัน</FieldLabel>
-          <Select items={stateFilters} onValueChange={onStateFilterChange} value={stateFilter}>
-            <SelectTrigger
-              aria-label="สถานะการยืนยัน"
-              className="w-full"
-              id="round2-confirmations-state"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {stateFilters.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field>
-      </FieldGroup>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <FieldGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+          <Field>
+            <FieldLabel htmlFor="round2-confirmations-code">รหัสทีม</FieldLabel>
+            <Input
+              id="round2-confirmations-code"
+              placeholder="ค้นหารหัสทีม"
+              type="search"
+              value={searches.teamCode}
+              onChange={(event) => {
+                setSearches((current) => ({ ...current, teamCode: event.target.value }));
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="round2-confirmations-name">ชื่อทีม</FieldLabel>
+            <Input
+              id="round2-confirmations-name"
+              placeholder="ค้นหาชื่อทีม"
+              type="search"
+              value={searches.teamName}
+              onChange={(event) => {
+                setSearches((current) => ({ ...current, teamName: event.target.value }));
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="round2-confirmations-state">สถานะการยืนยัน</FieldLabel>
+            <Select items={stateFilters} onValueChange={onStateFilterChange} value={stateFilter}>
+              <SelectTrigger
+                aria-label="สถานะการยืนยัน"
+                className="w-full"
+                id="round2-confirmations-state"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {stateFilters.map((filter) => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+        <Button
+          className="self-start lg:self-end"
+          disabled={
+            isExporting ||
+            confirmationsQuery.isFetching ||
+            confirmationsQuery.isError ||
+            rowCount === 0 ||
+            searches.teamCode.trim() !== debouncedSearches.teamCode ||
+            searches.teamName.trim() !== debouncedSearches.teamName
+          }
+          onClick={() => {
+            void exportCsv();
+          }}
+          type="button"
+          variant="outline"
+        >
+          <Download data-icon="inline-start" />
+          {isExporting ? "กำลังส่งออก..." : "ส่งออก CSV"}
+        </Button>
+      </div>
       <DataTable
         columns={columns}
         data={confirmationsQuery.data?.rows ?? []}

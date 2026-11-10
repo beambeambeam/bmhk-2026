@@ -14,6 +14,7 @@ import type { FileStorage } from "../files/files.storage";
 import type { TeamAwardChange, TeamRepository } from "./teams.repository";
 import { createTeamAlreadyExistsError } from "./teams.errors";
 import type {
+  CertificateRecipient,
   CreateTeamData,
   Team,
   TeamAward,
@@ -34,6 +35,7 @@ export interface TeamService {
   delete: (access: TeamAccessContext, id: string) => Promise<{ id: string }>;
   get: (access: TeamAccessContext, id: string) => Promise<TeamDetails>;
   list: (access: TeamAccessContext, input: TeamListInput) => Promise<TeamListResult>;
+  listCertificateRecipients: () => Promise<CertificateRecipient[]>;
   setAward: (access: TeamAccessContext, id: string, award: TeamAward) => Promise<TeamAwardChange>;
   update: (access: TeamAccessContext, id: string, data: UpdateTeamData) => Promise<Team>;
   uploadImage: (input: {
@@ -118,6 +120,7 @@ export function createTeamService(
         }),
       };
     },
+    listCertificateRecipients: async () => await repository.listCertificateRecipients(),
     setAward: async (access, id, award) => {
       const result = await repository.setAward(access, id, award);
       if (!result) {

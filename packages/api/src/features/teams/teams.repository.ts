@@ -4,7 +4,8 @@ import { teamRegistrationReviews } from "@bmhk-2026/db/schema/team-registration-
 import { teamParticipants } from "@bmhk-2026/db/schema/team-participants";
 import { teamCheckIns } from "@bmhk-2026/db/schema/team-check-ins";
 import { teamRound2 } from "@bmhk-2026/db/schema/team-round2";
-import { teams } from "@bmhk-2026/db/schema/teams";
+import { teamAdvisors } from "@bmhk-2026/db/schema/team-advisors";
+import { certificateEligibleAwardValues, teams } from "@bmhk-2026/db/schema/teams";
 import { isPostgresUniqueViolation } from "@bmhk-2026/db/errors";
 import { files } from "@bmhk-2026/db/schema/files";
 import { and, asc, count, desc, eq, getTableColumns, ilike, inArray, or } from "drizzle-orm";
@@ -22,6 +23,8 @@ import {
   teamRepositoryError,
 } from "./teams.errors";
 import type {
+  CertificateAward,
+  CertificateRecipient,
   CreateTeamData,
   Team,
   TeamAward,
@@ -35,6 +38,7 @@ import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
   delete: (access: TeamAccessContext, id: string) => Promise<boolean>;
+  listCertificateRecipients: () => Promise<CertificateRecipient[]>;
   findById: (access: TeamAccessContext, id: string) => Promise<TeamWithStoredImage | null>;
   findByUserId: (userId: string) => Promise<Team | null>;
   list: (
@@ -65,6 +69,13 @@ export interface TeamAwardChange {
 }
 
 type Database = typeof db;
+
+function isCertificateEligibleAward(award: TeamAward): award is CertificateAward {
+  return certificateEligibleAwardValues.some((eligibleAward) => eligibleAward === award);
+}
+
+// Sorts an advisor after the team's participants, whose member indexes are 1 to 3.
+const ADVISOR_SORT_INDEX = 4;
 
 export type TeamWithStoredImage = Omit<Team, "image"> & {
   image: StoredFile | null;
@@ -225,6 +236,86 @@ export function createTeamRepository(database: Database = db): TeamRepository {
               accessMode: "read only",
               isolationLevel: "repeatable read",
             },
+          ),
+      ),
+    listCertificateRecipients: async () =>
+      await execute(
+        async () =>
+          await database.transaction(
+            async (transaction) => {
+              const eligibleTeam = inArray(teams.award, certificateEligibleAwardValues);
+              const teamColumns = {
+                award: teams.award,
+                school: teams.school,
+                teamId: teams.id,
+                teamIndex: teams.index,
+                teamName: teams.name,
+              };
+              const participants = await transaction
+                .select({
+                  ...teamColumns,
+                  email: teamParticipants.email,
+                  firstNameEn: teamParticipants.firstNameEn,
+                  firstNameTh: teamParticipants.firstNameTh,
+                  lastNameEn: teamParticipants.lastNameEn,
+                  lastNameTh: teamParticipants.lastNameTh,
+                  memberIndex: teamParticipants.index,
+                  middleNameEn: teamParticipants.middleNameEn,
+                  middleNameTh: teamParticipants.middleNameTh,
+                  personId: teamParticipants.id,
+                  titleEn: teamParticipants.titleEn,
+                  titleTh: teamParticipants.titleTh,
+                })
+                .from(teamParticipants)
+                .innerJoin(teams, eq(teams.id, teamParticipants.teamId))
+                .where(eligibleTeam);
+              const advisors = await transaction
+                .select({
+                  ...teamColumns,
+                  email: teamAdvisors.email,
+                  firstNameEn: teamAdvisors.firstNameEn,
+                  firstNameTh: teamAdvisors.firstNameTh,
+                  lastNameEn: teamAdvisors.lastNameEn,
+                  lastNameTh: teamAdvisors.lastNameTh,
+                  middleNameEn: teamAdvisors.middleNameEn,
+                  middleNameTh: teamAdvisors.middleNameTh,
+                  personId: teamAdvisors.id,
+                  titleEn: teamAdvisors.titleEn,
+                  titleTh: teamAdvisors.titleTh,
+                })
+                .from(teamAdvisors)
+                .innerJoin(teams, eq(teams.id, teamAdvisors.teamId))
+                .where(eligibleTeam);
+              const recipients: CertificateRecipient[] = [];
+              for (const participant of participants) {
+                if (isCertificateEligibleAward(participant.award)) {
+                  recipients.push({
+                    ...participant,
+                    award: participant.award,
+                    role: "PARTICIPANT",
+                  });
+                }
+              }
+              for (const advisor of advisors) {
+                if (isCertificateEligibleAward(advisor.award)) {
+                  recipients.push({
+                    ...advisor,
+                    award: advisor.award,
+                    memberIndex: null,
+                    role: "ADVISOR",
+                  });
+                }
+              }
+              // Each team lists its participants by member index, then its advisor.
+              // oxlint-disable-next-line unicorn/no-array-sort -- sorts the local array; consumer tsconfigs lack toSorted
+              return recipients.sort(
+                (left, right) =>
+                  left.teamIndex - right.teamIndex ||
+                  (left.memberIndex ?? ADVISOR_SORT_INDEX) -
+                    (right.memberIndex ?? ADVISOR_SORT_INDEX),
+              );
+            },
+            { accessMode: "read only", isolationLevel: "repeatable read" },
           ),
       ),
     replaceImage: async (access, id, file) =>

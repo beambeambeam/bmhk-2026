@@ -1,5 +1,5 @@
 import { teamRegistrationReviewStatusValues } from "@bmhk-2026/db/schema/team-registration-reviews";
-import { teamAwardValues, teams } from "@bmhk-2026/db/schema/teams";
+import { certificateEligibleAwardValues, teamAwardValues, teams } from "@bmhk-2026/db/schema/teams";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -93,6 +93,31 @@ export const teamListRowSchema = teamSchema
 export const teamListResultSchema = z
   .object({ data: z.array(teamListRowSchema), pagination: teamListPaginationSchema })
   .strict();
+// One row per certificate: every participant plus the advisor of each team whose award
+// earns a certificate. Advisors have no member index.
+export const certificateRecipientRoleSchema = z.enum(["PARTICIPANT", "ADVISOR"]);
+export const certificateRecipientSchema = z
+  .object({
+    award: z.enum(certificateEligibleAwardValues),
+    email: z.string(),
+    firstNameEn: z.string(),
+    firstNameTh: z.string(),
+    lastNameEn: z.string(),
+    lastNameTh: z.string(),
+    memberIndex: z.int().min(1).max(3).nullable(),
+    middleNameEn: z.string().nullable(),
+    middleNameTh: z.string().nullable(),
+    personId: z.uuid(),
+    role: certificateRecipientRoleSchema,
+    school: z.string(),
+    teamId: z.uuid(),
+    teamIndex: z.int().positive(),
+    teamName: z.string(),
+    titleEn: z.string(),
+    titleTh: z.string(),
+  })
+  .strict();
+export const certificateRecipientListSchema = z.array(certificateRecipientSchema);
 
 export type Team = z.output<typeof teamSchema>;
 export type TeamListRow = z.output<typeof teamListRowSchema>;
@@ -106,3 +131,6 @@ export type CreateTeamData = z.output<typeof createTeamSchema>;
 export type UpdateTeamData = z.output<typeof updateTeamDataSchema>;
 export type TeamListPagination = z.output<typeof teamListPaginationSchema>;
 export type TeamListResult = z.output<typeof teamListResultSchema>;
+export type CertificateAward = z.output<typeof certificateRecipientSchema>["award"];
+export type CertificateRecipient = z.output<typeof certificateRecipientSchema>;
+export type CertificateRecipientRole = z.output<typeof certificateRecipientRoleSchema>;

@@ -23,6 +23,7 @@ export type GetPresignedInput =
   | {
       bucket: string;
       contentType?: string;
+      disposition?: ContentDisposition;
       key: string;
       method: "GET";
       originalName?: string;
@@ -33,6 +34,8 @@ export type GetPresignedInput =
       key: string;
       method: "PUT";
     };
+
+export type ContentDisposition = "attachment" | "inline";
 
 export interface PutObjectInput {
   body: Uint8Array;
@@ -73,7 +76,9 @@ export async function getPresigned(input: GetPresignedInput): Promise<string> {
         ...(input.contentType === undefined ? {} : { ResponseContentType: input.contentType }),
         ...(input.originalName === undefined
           ? {}
-          : { ResponseContentDisposition: contentDisposition(input.originalName) }),
+          : {
+              ResponseContentDisposition: contentDisposition(input.originalName, input.disposition),
+            }),
       }),
       { expiresIn: PRESIGNED_URL_EXPIRATION_SECONDS },
     );
@@ -102,9 +107,12 @@ function encodeFilename(value: string): string {
   );
 }
 
-function contentDisposition(originalName: string): string {
+function contentDisposition(
+  originalName: string,
+  disposition: ContentDisposition = "inline",
+): string {
   const fallback = originalName.replaceAll(/[^\u0020-\u007E]/gu, "_").replaceAll(/["\\]/gu, "_");
-  return `inline; filename="${fallback}"; filename*=UTF-8''${encodeFilename(originalName)}`;
+  return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encodeFilename(originalName)}`;
 }
 
 export async function putObject(input: PutObjectInput): Promise<void> {

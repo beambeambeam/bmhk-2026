@@ -14,3 +14,8 @@ export const teamNameSchema = z
   .min(1, TEAM_NAME_REQUIRED_MESSAGE)
   .max(MAX_TEAM_NAME_LENGTH, TEAM_NAME_TOO_LONG_MESSAGE)
   .regex(TEAM_NAME_REGEX, TEAM_NAME_INVALID_MESSAGE);
+
+// Printed team code, for example BH001/26 for team index 1.
+export function formatTeamCode(index: number): string {
+  return `BH${String(index).padStart(3, "0")}/26`;
+}

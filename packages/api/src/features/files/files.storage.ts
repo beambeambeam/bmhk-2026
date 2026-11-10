@@ -1,5 +1,6 @@
 import { env } from "@bmhk-2026/env/server";
 import { deleteObject, getPresigned, putObject } from "@bmhk-2026/s3";
+import type { ContentDisposition } from "@bmhk-2026/s3";
 
 import type { AllowedFileContentType } from "./files.schema";
 
@@ -20,7 +21,9 @@ export interface FileStorageUpload extends FileStorageObject {
 export interface FileStorage {
   bucket: string;
   delete: (location: FileStorageLocation) => Promise<void>;
-  getDownloadUrl: (object: FileStorageObject) => Promise<string>;
+  getDownloadUrl: (
+    object: FileStorageObject & { disposition?: ContentDisposition },
+  ) => Promise<string>;
   upload: (object: FileStorageUpload) => Promise<void>;
 }
 
@@ -30,10 +33,11 @@ export function createS3FileStorage(): FileStorage {
     delete: async ({ bucket, objectKey }) => {
       await deleteObject({ bucket, key: objectKey });
     },
-    getDownloadUrl: async ({ bucket, contentType, objectKey, originalName }) =>
+    getDownloadUrl: async ({ bucket, contentType, disposition, objectKey, originalName }) =>
       await getPresigned({
         bucket,
         contentType,
+        disposition,
         key: objectKey,
         method: "GET",
         originalName,

@@ -60,6 +60,25 @@ export type { ApiRole, ApiSession, ApiUser, AuthReader, TeamAccessContext } from
 export type { ApiContext } from "./core/context";
 export type { FeatureFlags } from "./features/feature-flags/feature-flags.schema";
 export type { TeamRepository } from "./features/teams/teams.repository";
+export type {
+  ActiveCertificateSet,
+  CertificateActivation,
+  CertificateRepository,
+  ReplacedCertificateSet,
+} from "./features/certificates/certificates.repository";
+export type {
+  CertificateMismatchReason,
+  CertificateOverview,
+  CertificateOverviewRow,
+  CertificateSet,
+  CertificateStatus,
+  CertificateStorageObject,
+  CertificateTemplate,
+  NewCertificate,
+  NewCertificateSet,
+  StartCertificateUploadInput,
+  StoredCertificate,
+} from "./features/certificates/certificates.schema";
 export type { FileRepository } from "./features/files/files.repository";
 export type { FileStorage } from "./features/files/files.storage";
 export type { TeamAdvisorRepository } from "./features/team-advisors/team-advisors.repository";

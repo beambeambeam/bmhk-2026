@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "check-types": "tsc -b",
-    "generate": "bun src/generate.ts"
+    "generate": "bun src/generate.ts",
+    "zip": "bun src/zip.ts"
   },
   "dependencies": {
     "papaparse": "^5.7.0",

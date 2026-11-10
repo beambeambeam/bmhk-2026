@@ -1,3 +1,4 @@
+import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import {
   Select,
@@ -13,11 +14,15 @@ import { DataTablePagination } from "@/components/table/pagination";
 import { DataTableSortHeader } from "@/components/table/sort-header";
 import type { TeamListRow, TeamAwardFilter, TeamListSort } from "@bmhk-2026/api";
 import { orpc } from "@bmhk-2026/client/orpc";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/download-csv";
 
 import { AchievementsAward } from "./achievements-award";
 import { awardFilters } from "./achievements-labels";
+import { createCertificateRecipientsCsv } from "./certificate-recipients-export";
 
 const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -109,6 +114,8 @@ function getTableMessage(isError: boolean, isLoading: boolean): string {
 }
 
 function AchievementsTable() {
+  const queryClient = useQueryClient();
+  const [isExporting, setIsExporting] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [award, setAward] = useState<TeamAwardFilter>("ALL");
@@ -136,6 +143,25 @@ function AchievementsTable() {
   });
   const teams = teamsQuery.data?.data ?? [];
   const pagination = teamsQuery.data?.pagination;
+  async function exportCertificateRecipients(): Promise<void> {
+    setIsExporting(true);
+    try {
+      const recipients = await queryClient.fetchQuery({
+        ...orpc.teams.certificateRecipients.queryOptions(),
+        staleTime: 0,
+      });
+      if (recipients.length === 0) {
+        toast.info("ยังไม่มีทีมที่มีผลงานสำหรับออกเกียรติบัตร");
+        return;
+      }
+      downloadCsv(createCertificateRecipientsCsv(recipients), "certificate-recipients");
+    } catch {
+      toast.error("ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   function toggleSorting(id: TeamListSort): void {
     if (id === sortBy) {
       setSortDesc((current) => !current);
@@ -148,44 +174,58 @@ function AchievementsTable() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:w-auto lg:max-w-[33rem]">
-        <div className="flex flex-col gap-2">
-          <label className="sr-only" htmlFor="achievements-search">
-            ค้นหาทีม
-          </label>
-          <Input
-            id="achievements-search"
-            placeholder="ค้นหาชื่อทีมหรือโรงเรียน"
-            type="search"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:w-auto lg:max-w-[33rem]">
+          <div className="flex flex-col gap-2">
+            <label className="sr-only" htmlFor="achievements-search">
+              ค้นหาทีม
+            </label>
+            <Input
+              id="achievements-search"
+              placeholder="ค้นหาชื่อทีมหรือโรงเรียน"
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+              }}
+            />
+          </div>
+          <Select
+            items={awardFilters}
+            value={award}
+            onValueChange={(value) => {
+              if (value !== null && awardFilters.some((filter) => filter.value === value)) {
+                setAward(value);
+                setOffset(0);
+              }
             }}
-          />
+          >
+            <SelectTrigger aria-label="กรองตามผลงาน" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {awardFilters.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
-        <Select
-          items={awardFilters}
-          value={award}
-          onValueChange={(value) => {
-            if (value !== null && awardFilters.some((filter) => filter.value === value)) {
-              setAward(value);
-              setOffset(0);
-            }
+        <Button
+          type="button"
+          variant="outline"
+          className="self-start lg:self-end"
+          disabled={isExporting}
+          onClick={() => {
+            void exportCertificateRecipients();
           }}
         >
-          <SelectTrigger aria-label="กรองตามผลงาน" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {awardFilters.map((filter) => (
-                <SelectItem key={filter.value} value={filter.value}>
-                  {filter.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+          <Download data-icon="inline-start" />
+          {isExporting ? "กำลังส่งออก..." : "ส่งออก CSV เกียรติบัตร"}
+        </Button>
       </div>
 
       <DataTable

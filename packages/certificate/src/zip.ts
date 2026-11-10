@@ -39,7 +39,7 @@ async function main(): Promise<void> {
   const missing = await findMissingPdfs(infoCsv, outDir);
   if (missing.length > 0) {
     throw new Error(
-      `${missing.length} certificates are missing from ${outDir}, run generate first. First: ${missing[0]}`,
+      `${missing.length} certificates are missing from ${outDir}, run render first. First: ${missing[0]}`,
     );
   }
 

@@ -103,7 +103,7 @@ async function main(): Promise<void> {
   });
   const [csvPath] = positionals;
   if (csvPath === undefined) {
-    throw new Error("Usage: bun run generate <recipients.csv> [--out dir] [--limit n]");
+    throw new Error("Usage: bun run render <recipients.csv> [--out dir] [--limit n]");
   }
   const outDir = path.resolve(values.out ?? path.join(packageRoot, "out"));
   const allJobs = parseCertificateJobs(await Bun.file(csvPath).text());

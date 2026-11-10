@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check-types": "tsc -b",
-    "generate": "bun src/generate.ts",
+    "render": "bun src/generate.ts",
     "zip": "bun src/zip.ts"
   },
   "dependencies": {

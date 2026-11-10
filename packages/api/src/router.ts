@@ -11,6 +11,10 @@ import type { ApiKeyRepository } from "./features/api-keys/api-keys.repository";
 import { createApiKeyRepository } from "./features/api-keys/api-keys.repository";
 import { createApiKeysRouter } from "./features/api-keys/api-keys.router";
 import { createApiKeyService } from "./features/api-keys/api-keys.service";
+import type { CertificateRepository } from "./features/certificates/certificates.repository";
+import { createCertificateRepository } from "./features/certificates/certificates.repository";
+import { createCertificatesRouter } from "./features/certificates/certificates.router";
+import { createCertificateService } from "./features/certificates/certificates.service";
 import type { DiscordCodeRepository } from "./features/discord-codes/discord-codes.repository";
 import { createDiscordCodeRepository } from "./features/discord-codes/discord-codes.repository";
 import { createDiscordCodesRouter } from "./features/discord-codes/discord-codes.router";
@@ -80,6 +84,7 @@ export interface ApiDependencies {
   adminUsers?: AdminUserRepository;
   apiKeys?: ApiKeyRepository;
   auth: AuthReader;
+  certificates?: CertificateRepository;
   discordCodes?: DiscordCodeRepository;
   discordTeamGroups?: DiscordTeamGroupsRepository;
   featureFlagClock?: () => Temporal.Instant;
@@ -144,6 +149,14 @@ export function createAppRouter(dependencies: ApiDependencies) {
     apiKeys: createApiKeysRouter(
       adminProcedure,
       createApiKeyService(apiKeyRepository, dependencies.auth),
+    ),
+    certificates: createCertificatesRouter(
+      registrationProcedure,
+      createCertificateService({
+        listRecipients: async () => await teamRepository.listCertificateRecipients(),
+        repository: dependencies.certificates ?? createCertificateRepository(),
+        storage: fileStorage,
+      }),
     ),
     discordCodes: createDiscordCodesRouter(
       registrationProcedure,

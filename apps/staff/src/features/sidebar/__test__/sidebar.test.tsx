@@ -84,6 +84,22 @@ describe("staff sidebar permissions", () => {
     expect(screen.getByRole("link", { name: "ยืนยันสิทธิ์เข้าแข่งขัน (รอบที่ 2)" })).toBeTruthy();
   });
 
+  it("shows the certificate page next to achievements for registration staff", () => {
+    renderSidebar("registrationStaff");
+
+    const group = screen.getAllByText("ผลงานการแข่งขัน")[0]?.parentElement;
+
+    expect(
+      group ? within(group).getByRole("link", { name: "เกียรติบัตร" }).getAttribute("href") : null,
+    ).toBe("/certificates");
+  });
+
+  it("hides the certificate page from academic staff", () => {
+    renderSidebar("academicStaff");
+
+    expect(screen.queryByRole("link", { name: "เกียรติบัตร" })).toBeNull();
+  });
+
   it("shows academic staff the dashboard and participant check-in without registration, staff check-in or user admin links", () => {
     renderSidebar("academicStaff");
 

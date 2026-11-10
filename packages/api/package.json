@@ -5,6 +5,9 @@
     ".": {
       "default": "./src/index.ts"
     },
+    "./certificates/rules": {
+      "default": "./src/features/certificates/certificates.rules.ts"
+    },
     "./teams/rules": {
       "default": "./src/features/teams/teams.rules.ts"
     },
@@ -25,11 +28,13 @@
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "evlog": "catalog:",
+    "papaparse": "^5.7.0",
     "temporal-polyfill": "^1.0.2",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@bmhk-2026/config": "workspace:*",
+    "@types/papaparse": "^5.5.2",
     "typescript": "catalog:"
   }
 }

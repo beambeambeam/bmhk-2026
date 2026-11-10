@@ -22,6 +22,7 @@ import { authClient } from "@bmhk-2026/client/auth-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
+  Award,
   ClipboardCheck,
   FileCheck,
   FolderKanban,
@@ -51,6 +52,7 @@ interface StaffNavItem {
     | "/admin/api-keys"
     | "/admin/staff-overseers"
     | "/admin/team-groups"
+    | "/certificates"
     | "/dashboard"
     | "/participations"
     | "/round1-participants-check"
@@ -86,6 +88,7 @@ const registrationNavItems: readonly StaffNavItem[] = [
 
 const achievementsNavItems: readonly StaffNavItem[] = [
   { icon: Trophy, label: "ผลงานการแข่งขัน", to: "/achievements" },
+  { icon: Award, label: "เกียรติบัตร", to: "/certificates" },
 ];
 
 const round1ResultsNavItem: StaffNavItem = {

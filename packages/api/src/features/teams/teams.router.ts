@@ -5,13 +5,18 @@ import type {
   TeamAccessProcedure,
   TeamRemovalProcedure,
 } from "../../core/procedure";
-import { awardChangedAudit, teamDeletedAudit } from "../audit/audit.actions";
+import {
+  awardChangedAudit,
+  certificateRecipientsExportedAudit,
+  teamDeletedAudit,
+} from "../audit/audit.actions";
 import { executeAudited } from "../audit/audit.service";
 import type { FeatureFlagService } from "../feature-flags/feature-flags.service";
 import { assertAllowedOrigin } from "../files/files.service";
 import { createRegistrationClosedError } from "./teams.errors";
 import type { TeamService } from "./teams.service";
 import {
+  certificateRecipientListSchema,
   createTeamSchema,
   deleteTeamResultSchema,
   listTeamsSchema,
@@ -34,6 +39,20 @@ export function createTeamsRouter(
   featureFlagService: FeatureFlagService,
 ) {
   return {
+    certificateRecipients: registrationProcedure
+      .route({ method: "GET", tags: ["Team"] })
+      .output(certificateRecipientListSchema)
+      .handler(
+        async ({ context }) =>
+          await executeAudited({
+            audit: certificateRecipientsExportedAudit({
+              actor: { id: context.teamAccess.actorId, type: "user" },
+              target: { id: "certificate-recipients" },
+            }),
+            execute: async () => await service.listCertificateRecipients(),
+            log: context.log,
+          }),
+      ),
     create: protectedProcedure
       .route({
         method: "POST",

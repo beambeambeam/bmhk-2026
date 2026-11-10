@@ -81,6 +81,9 @@ export type {
   StoredFile,
 } from "./features/files/files.schema";
 export type {
+  CertificateAward,
+  CertificateRecipient,
+  CertificateRecipientRole,
   CreateTeamData,
   Team,
   TeamAward,

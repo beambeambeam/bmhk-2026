@@ -25,6 +25,15 @@ export const userDirectoryAccessedAudit = defineAuditAction("user-directory.acce
   target: "user-directory",
 });
 
+export const certificateRecipientsExportedAudit = defineAuditAction(
+  "certificate-recipients.exported",
+  {
+    description: "Registration staff exported certificate recipient names and emails",
+    severity: "critical",
+    target: "certificate-recipients",
+  },
+);
+
 export const staffCheckInCreatedAudit = defineAuditAction("staff-check-in.created", {
   description: "A staff member recorded another staff member's on-site arrival",
   requiresChanges: true,

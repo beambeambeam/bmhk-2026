@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type {
   AuthReader,
+  CertificateRecipient,
   FileRepository,
   StoredFile,
   Team,
@@ -109,6 +110,8 @@ function createTeamRepository(overrides: Partial<TeamRepository> = {}): TeamRepo
     findByUserId: overrides.findByUserId ?? (async () => await Promise.resolve(null)),
     list:
       overrides.list ?? (async () => await Promise.resolve({ data: [testTeamListRow], total: 1 })),
+    listCertificateRecipients:
+      overrides.listCertificateRecipients ?? (async () => await Promise.resolve([])),
     replaceImage:
       overrides.replaceImage ??
       (async (_userId, _id, file) =>
@@ -616,6 +619,70 @@ describe("teams router", () => {
         call(router.teams.list, {}, { context, path: ["teams", "list"] }),
       ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
       expect(list).not.toHaveBeenCalled();
+    },
+  );
+
+  it("returns certificate recipients and audits the export for registration staff", async () => {
+    const recipient = {
+      award: "FIRST_PLACE",
+      email: "student@example.com",
+      firstNameEn: "Chon",
+      firstNameTh: "ชร",
+      lastNameEn: "Wanitchayachonlakit",
+      lastNameTh: "วาณิชยชลกิจ",
+      memberIndex: 1,
+      middleNameEn: null,
+      middleNameTh: null,
+      personId: "33333333-3333-4333-8333-333333333333",
+      role: "PARTICIPANT",
+      school: "Test School",
+      teamId: TEAM_ID,
+      teamIndex: 1,
+      teamName: "Team One",
+      titleEn: "Mr.",
+      titleTh: "นาย",
+    } satisfies CertificateRecipient;
+    const router = createRouter(
+      createTeamRepository({
+        listCertificateRecipients: async () => await Promise.resolve([recipient]),
+      }),
+      createRegistrationAuthReader(),
+    );
+    const { context, log } = createContext();
+
+    await expect(
+      call(router.teams.certificateRecipients, undefined, {
+        context,
+        path: ["teams", "certificateRecipients"],
+      }),
+    ).resolves.toStrictEqual([recipient]);
+    expect(log.audit).toHaveBeenCalledWith({
+      action: "certificate-recipients.exported",
+      actor: { id: USER_ID, type: "user" },
+      outcome: "success",
+      target: { id: "certificate-recipients", type: "certificate-recipients" },
+    });
+  });
+
+  it.each(["user", "staff", "academicStaff"] as const)(
+    "rejects %s from exporting certificate recipients",
+    async (role) => {
+      const listCertificateRecipients = vi.fn<TeamRepository["listCertificateRecipients"]>(
+        async () => await Promise.resolve([]),
+      );
+      const router = createRouter(
+        createTeamRepository({ listCertificateRecipients }),
+        createAuthReader(createTestSession({ user: { role } })),
+      );
+      const { context } = createContext();
+
+      await expect(
+        call(router.teams.certificateRecipients, undefined, {
+          context,
+          path: ["teams", "certificateRecipients"],
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+      expect(listCertificateRecipients).not.toHaveBeenCalled();
     },
   );
 

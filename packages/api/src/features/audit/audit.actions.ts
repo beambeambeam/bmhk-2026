@@ -207,3 +207,16 @@ export const round2DocumentAccessedAudit = defineAuditAction("round2-document.ac
   severity: "critical",
   target: "round2-document",
 });
+
+export const certificatesReplacedAudit = defineAuditAction("certificates.replaced", {
+  description: "Registration staff replaced the full set of uploaded certificate PDFs",
+  requiresChanges: true,
+  severity: "critical",
+  target: "certificate-set",
+});
+
+export const certificateAccessedAudit = defineAuditAction("certificate.accessed", {
+  description: "Registration staff opened or downloaded a recipient's certificate PDF",
+  severity: "critical",
+  target: "certificate",
+});

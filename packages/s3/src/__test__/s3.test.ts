@@ -82,6 +82,22 @@ describe("presigned URLs", () => {
     });
   });
 
+  it("asks the browser to save the file when attachment disposition is requested", async () => {
+    const url = new URL(
+      await getPresigned({
+        bucket: "media",
+        disposition: "attachment",
+        key: "documents/report.pdf",
+        method: "GET",
+        originalName: "report.pdf",
+      }),
+    );
+
+    expect(url.searchParams.get("response-content-disposition")).toBe(
+      "attachment; filename=\"report.pdf\"; filename*=UTF-8''report.pdf",
+    );
+  });
+
   it("rejects an empty bucket", async () => {
     await expect(getPresigned({ ...validGetInput, bucket: "   " })).rejects.toThrow(
       "bucket must not be empty",

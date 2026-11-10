@@ -1,0 +1,20 @@
+{
+  "name": "@bmhk-2026/certificate",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc -b",
+    "render": "bun src/generate.ts",
+    "zip": "bun src/zip.ts"
+  },
+  "dependencies": {
+    "papaparse": "^5.7.0",
+    "playwright": "^1.58.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@bmhk-2026/config": "workspace:*",
+    "@types/papaparse": "^5.5.2",
+    "typescript": "catalog:"
+  }
+}

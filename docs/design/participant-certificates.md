@@ -1,6 +1,6 @@
 # Participant Certificates
 
-Status: staff upload and status page implemented. Participant access in `apps/web` is designed here and not built yet. For the storage decision, see [ADR 0002](../adr/0002-pre-uploaded-certificate-sets.md).
+Status: staff upload, status page, and team download in `apps/web` implemented. For the storage decision, see [ADR 0002](../adr/0002-pre-uploaded-certificate-sets.md).
 
 ## Current state
 
@@ -64,47 +64,40 @@ Optional later step: per-person links, if each member must get only their own fi
 
 ## What a team sees
 
-One card per recipient (participants in member order, then the advisor):
+The team dashboard (`/my-team`) shows a "ดาวน์โหลดเกียรติบัตร" card above the "สถานะ" card. On a phone, the card is at the top of the "สถานะ" tab. The card has one row per recipient (participants in member order, then the advisor). A row has a file icon, the full name, the template label, and the file size:
 
 | Recipient state                                      | Shown                                                                                       |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| No eligible award yet                                | Not listed.                                                                                 |
-| Eligible, no active set, or no row in the active set | "เกียรติบัตรยังไม่พร้อมให้ดาวน์โหลด" – no buttons.                                          |
-| Row exists, live data matches                        | Template label, "ดูเกียรติบัตร" and "ดาวน์โหลด".                                            |
+| No eligible award yet                                | Not listed. If no recipient is listed, the card is hidden.                                  |
+| Eligible, no active set, or no row in the active set | "ยังไม่พร้อม" – no button.                                                                  |
+| Row exists, live data matches                        | "ดาวน์โหลด" button.                                                                         |
 | Row exists, live data differs (`MISMATCHED`)         | Same as not ready. Do not serve a PDF with an outdated name or award; staff must re-upload. |
 | Row exists, recipient no longer expected (`EXTRA`)   | Not listed.                                                                                 |
 
-Hide the page section until staff publish. Add `published_at` on `certificate_sets` when this is built, so that staff can check a set on the staff page before teams see it. A set that is active but not published returns the "not ready" state.
+The `certificateDownload` feature flag (`packages/feature-flags`) opens team access at `2026-11-15T16:00:00+07:00`. Before that time, the card is hidden and both team procedures return `CERTIFICATE_DOWNLOAD_CLOSED` (403). Staff can upload and check sets before the opening time. After it, teams see a set as soon as its upload completes and it becomes `ACTIVE`.
 
-## API sketch
+## API
 
-Reuse the status logic of the staff overview service. Move the row comparison into a function that both routers call, so that "matches" means the same thing in both places.
+Both procedures use `teamOwnerProcedure`. The same `mismatchReasons` rule as the staff overview decides whether a row matches, so "matches" means the same thing in both places.
 
 ```ts
 // packages/api/src/features/certificates/certificates.repository.ts
-interface CertificateRepository {
-  // ...existing staff methods
-  findPublishedForTeamOwner(userId: string): Promise<StoredCertificate[]>;
-  findPublishedCertificateForTeamOwner(
-    userId: string,
-    certificateId: string,
-  ): Promise<StoredCertificate | null>;
-}
+findActiveForTeamOwner(userId: string): Promise<StoredCertificate[]>;
 
-// web router, protectedProcedure
 certificates.mine(): {
   recipients: {
     fullName: string;
     role: "PARTICIPANT" | "ADVISOR";
+    personId: string;
     memberIndex: number | null;
     template: CertificateTemplate;
-    certificateId: string | null; // null when not ready or mismatched
+    certificate: { id: string; fileName: string; sizeBytes: number } | null; // null when not ready or mismatched
   }[];
 }
-certificates.downloadUrl({ id, disposition }): { url: string } // audited, owner-scoped
+certificates.mineDownloadUrl({ id, disposition }): { url: string } // audited, owner-scoped
 ```
 
-`mine` gets the expected recipients for the session team from `TeamRepository.listCertificateRecipients`, with a team-owner filter added. It joins them with the team's rows in the published active set, using the same `role:teamId:personId` key as the staff page.
+`mine` gets the expected recipients from `TeamRepository.listCertificateRecipients(ownerUserId)` and pairs them with the team's rows in the active set, using the same `role:teamId:personId` key as the staff page. `mineDownloadUrl` signs a URL only for an id among the team's matching certificates. Any other id returns `CERTIFICATE_NOT_FOUND`. The audit target has `accessedAs: "TEAM_OWNER"`.
 
 ## On-demand rendering compared with pre-uploaded PDFs
 

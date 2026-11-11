@@ -10,6 +10,7 @@ import { AuthTopBar } from "@/components/account-menu";
 import ResultModal from "./components/result-modal";
 import DiscordCodesModal from "./components/discord-codes-modal";
 import StatusPanel, { DiscordGlyph } from "./components/status-panel";
+import CertificateCard from "./components/certificate-card";
 import TeamDecor from "./components/team-decor";
 import { formatCodernName, formatTeamCode } from "./team-code";
 import {
@@ -727,33 +728,37 @@ export default function MyTeam() {
               role="tabpanel"
               id="pane-status"
               aria-labelledby="pane-tab-status"
-              className={`w-full min-w-0 ${pane === "status" ? "block lg:hidden" : "hidden"}`}
+              className={`w-full min-w-0 flex-col gap-8 ${pane === "status" ? "flex lg:hidden" : "hidden"}`}
             >
               {pane === "status" && (
-                <StatusPanel
-                  status={status}
-                  showDiscord={showDiscord}
-                  heading={false}
-                  card={false}
-                  members={MEMBERS}
-                  reviewFeedback={reviewFeedback}
-                  team={team}
-                  submittedAt={statusData?.submittedAt}
-                  round2Confirmation={round2Confirmation}
-                  onOpenDiscordModal={() => {
-                    setModal("discord");
-                  }}
-                  onOpenRound2Modal={() => {
-                    setModal("round2-confirm");
-                  }}
-                />
+                <>
+                  <CertificateCard card={false} />
+                  <StatusPanel
+                    status={status}
+                    showDiscord={showDiscord}
+                    heading={false}
+                    card={false}
+                    members={MEMBERS}
+                    reviewFeedback={reviewFeedback}
+                    team={team}
+                    submittedAt={statusData?.submittedAt}
+                    round2Confirmation={round2Confirmation}
+                    onOpenDiscordModal={() => {
+                      setModal("discord");
+                    }}
+                    onOpenRound2Modal={() => {
+                      setModal("round2-confirm");
+                    }}
+                  />
+                </>
               )}
             </div>
           </div>
           <div
-            className="auth-rise hidden shrink-0 lg:block lg:w-[calc(241.5px_+_158.5*var(--fl))]"
+            className="auth-rise hidden shrink-0 flex-col gap-6 lg:flex lg:w-[calc(241.5px_+_158.5*var(--fl))]"
             data-rise="4"
           >
+            <CertificateCard />
             <StatusPanel
               status={status}
               showDiscord={showDiscord}

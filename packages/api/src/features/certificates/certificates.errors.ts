@@ -43,6 +43,16 @@ export function createCertificateFileInvalidError(path: string, problem: string)
   });
 }
 
+export function createCertificateDownloadClosedError() {
+  return createError({
+    code: "CERTIFICATE_DOWNLOAD_CLOSED",
+    fix: "Wait until certificate downloads open",
+    message: "Certificate downloads are not open yet",
+    status: 403,
+    why: "Teams can download certificates only after the announced opening time",
+  });
+}
+
 export function createCertificateUploadNotFoundError() {
   return createError({
     code: "CERTIFICATE_UPLOAD_NOT_FOUND",

@@ -52,6 +52,7 @@ export function createFeatureFlagService(
   now: () => Temporal.Instant = () => Temporal.Now.instant(),
 ): FeatureFlagService {
   const schedule = {
+    certificateDownload: parseDefinition("certificateDownload", featureFlags.certificateDownload),
     eligibleTeamsAnnouncement: parseDefinition(
       "eligibleTeamsAnnouncement",
       featureFlags.eligibleTeamsAnnouncement,
@@ -75,6 +76,8 @@ export function createFeatureFlagService(
       const currentTime = now();
 
       return {
+        certificateDownload:
+          Temporal.Instant.compare(currentTime, schedule.certificateDownload.startsAt) >= 0,
         eligibleTeamsAnnouncement:
           Temporal.Instant.compare(currentTime, schedule.eligibleTeamsAnnouncement.startsAt) >= 0,
         finalRound: Temporal.Instant.compare(currentTime, schedule.finalRound.startsAt) >= 0,

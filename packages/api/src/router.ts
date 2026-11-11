@@ -152,11 +152,14 @@ export function createAppRouter(dependencies: ApiDependencies) {
     ),
     certificates: createCertificatesRouter(
       registrationProcedure,
+      teamOwnerProcedure,
       createCertificateService({
-        listRecipients: async () => await teamRepository.listCertificateRecipients(),
+        listRecipients: async (ownerUserId) =>
+          await teamRepository.listCertificateRecipients(ownerUserId),
         repository: dependencies.certificates ?? createCertificateRepository(),
         storage: fileStorage,
       }),
+      featureFlagService,
     ),
     discordCodes: createDiscordCodesRouter(
       registrationProcedure,

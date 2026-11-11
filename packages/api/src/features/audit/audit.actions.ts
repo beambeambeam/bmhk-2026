@@ -217,7 +217,8 @@ export const certificatesReplacedAudit = defineAuditAction("certificates.replace
 });
 
 export const certificateAccessedAudit = defineAuditAction("certificate.accessed", {
-  description: "Registration staff opened or downloaded a recipient's certificate PDF",
+  description:
+    "Registration staff or the recipient's team account opened or downloaded a certificate PDF",
   severity: "critical",
   target: "certificate",
 });

@@ -38,7 +38,8 @@ import type { CreateStoredFileData, StoredFile } from "../files/files.schema";
 export interface TeamRepository {
   create: (userId: string, data: CreateTeamData) => Promise<Team>;
   delete: (access: TeamAccessContext, id: string) => Promise<boolean>;
-  listCertificateRecipients: () => Promise<CertificateRecipient[]>;
+  /** Pass the team account's user id to list only that team's recipients. */
+  listCertificateRecipients: (ownerUserId?: string) => Promise<CertificateRecipient[]>;
   findById: (access: TeamAccessContext, id: string) => Promise<TeamWithStoredImage | null>;
   findByUserId: (userId: string) => Promise<Team | null>;
   list: (
@@ -238,12 +239,15 @@ export function createTeamRepository(database: Database = db): TeamRepository {
             },
           ),
       ),
-    listCertificateRecipients: async () =>
+    listCertificateRecipients: async (ownerUserId) =>
       await execute(
         async () =>
           await database.transaction(
             async (transaction) => {
-              const eligibleTeam = inArray(teams.award, certificateEligibleAwardValues);
+              const eligibleTeam = and(
+                inArray(teams.award, certificateEligibleAwardValues),
+                ownerUserId === undefined ? undefined : eq(teams.userId, ownerUserId),
+              );
               const teamColumns = {
                 award: teams.award,
                 school: teams.school,

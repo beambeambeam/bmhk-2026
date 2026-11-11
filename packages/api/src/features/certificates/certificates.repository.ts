@@ -1,6 +1,7 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { certificateSets, certificates } from "@bmhk-2026/db/schema/certificates";
+import { teams } from "@bmhk-2026/db/schema/teams";
 import { and, asc, count, eq, inArray, isNotNull, isNull, notExists, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -45,6 +46,8 @@ export interface CertificateRepository {
   ) => Promise<CertificateStorageObject[]>;
   findActive: () => Promise<ActiveCertificateSet | null>;
   findActiveCertificate: (id: string) => Promise<StoredCertificate | null>;
+  /** Active-set rows of the team that the user account owns. Ownership is part of the query. */
+  findActiveForTeamOwner: (userId: string) => Promise<StoredCertificate[]>;
   /** Returns null when the set is not uploading. */
   findUploading: (setId: string) => Promise<StoredCertificate[] | null>;
   markStored: (setId: string, items: { id: string; sizeBytes: number }[]) => Promise<void>;
@@ -259,6 +262,16 @@ export function createCertificateRepository(database: Database = db): Certificat
           .where(and(eq(certificates.id, id), eq(certificateSets.status, "ACTIVE")));
         return row ?? null;
       }),
+    findActiveForTeamOwner: async (userId) =>
+      await execute(
+        async () =>
+          await database
+            .select(storedCertificateColumns)
+            .from(certificates)
+            .innerJoin(certificateSets, eq(certificateSets.id, certificates.setId))
+            .innerJoin(teams, eq(teams.id, certificates.teamId))
+            .where(and(eq(certificateSets.status, "ACTIVE"), eq(teams.userId, userId))),
+      ),
     findUploading: async (setId) =>
       await execute(async () => {
         const [set] = await database

@@ -149,6 +149,26 @@ export const certificateDownloadInputSchema = z
 
 export const certificateDownloadResultSchema = z.object({ url: z.url() }).strict();
 
+// A team sees each expected recipient. `certificate` is null until a PDF that matches the
+// live data is in the active set, so an outdated name or award is never served.
+const ownCertificateRecipientSchema = z
+  .object({
+    certificate: z
+      .object({ fileName: z.string(), id: z.uuid(), sizeBytes: z.int().positive() })
+      .strict()
+      .nullable(),
+    fullName: z.string(),
+    memberIndex: z.int().min(1).max(3).nullable(),
+    personId: z.uuid(),
+    role: z.enum(certificateRecipientRoleValues),
+    template: certificateTemplateSchema,
+  })
+  .strict();
+
+export const ownCertificatesSchema = z
+  .object({ recipients: z.array(ownCertificateRecipientSchema) })
+  .strict();
+
 export type CertificateSet = z.output<typeof certificateSetSchema>;
 export type CertificateOverview = z.output<typeof certificateOverviewSchema>;
 export type CertificateOverviewRow = z.output<typeof certificateRowSchema>;
@@ -157,6 +177,7 @@ export type CertificateMismatchReason = (typeof certificateMismatchReasonValues)
 export type StartCertificateUploadInput = z.output<typeof startCertificateUploadSchema>;
 export type UploadCertificateFilesInput = z.output<typeof uploadCertificateFilesSchema>;
 export type CertificateDownloadInput = z.output<typeof certificateDownloadInputSchema>;
+export type OwnCertificates = z.output<typeof ownCertificatesSchema>;
 
 export interface CertificateStorageObject {
   bucket: string;

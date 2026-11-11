@@ -5,9 +5,13 @@ import type { CertificateRecipient } from "../teams/teams.schema";
 import { createFileStorageUnavailableError } from "../files/files.service";
 import type { FileStorage } from "../files/files.storage";
 import { certificateObjectKey, readCertificateArchive } from "./certificates.archive";
+import type { ArchiveCertificate } from "./certificates.archive";
 import {
+  createCertificateArchiveInvalidError,
   createCertificateFileInvalidError,
   createCertificateNotFoundError,
+  createCertificateSetChangedError,
+  createCertificateSetNotActiveError,
   createCertificateUploadIncompleteError,
   createCertificateUploadNotFoundError,
 } from "./certificates.errors";
@@ -162,6 +166,27 @@ function toExtraRow(certificate: StoredCertificate): CertificateOverviewRow {
   };
 }
 
+// A merge keeps the active rows it does not list, and zip paths must stay unique in a set.
+// A listed row may reuse its own recipient's path, but not a kept recipient's path.
+function assertNoKeptPathConflict(
+  archive: readonly ArchiveCertificate[],
+  active: readonly StoredCertificate[],
+): void {
+  const listed = new Set(archive.map(recipientKey));
+  const keptPaths = new Set(
+    active
+      .filter((certificate) => !listed.has(recipientKey(certificate)))
+      .map((certificate) => certificate.zipPath),
+  );
+  const index = archive.findIndex((certificate) => keptPaths.has(certificate.zipPath));
+  if (index !== -1) {
+    // Header is row 1.
+    throw createCertificateArchiveInvalidError(
+      `info.csv row ${index + 2} uses a certificate path that another recipient in the active set uses`,
+    );
+  }
+}
+
 function summarize(rows: readonly CertificateOverviewRow[]): CertificateOverview["summary"] {
   const summary = { available: 0, expected: 0, extra: 0, mismatched: 0, missing: 0 };
   for (const row of rows) {
@@ -234,6 +259,9 @@ export function createCertificateService({
       if (activation.status === "INCOMPLETE") {
         throw createCertificateUploadIncompleteError(activation.missing);
       }
+      if (activation.status === "BASE_CHANGED") {
+        throw createCertificateSetChangedError();
+      }
       if (!activation.replaced) {
         return { replaced: null, set: activation.set };
       }
@@ -275,11 +303,22 @@ export function createCertificateService({
     },
     startUpload: async (actorId, input, log) => {
       const archive = readCertificateArchive(input);
+      let baseSetId: string | null = null;
+      if (input.mode === "MERGE") {
+        const active = await repository.findActive();
+        if (!active) {
+          throw createCertificateSetNotActiveError();
+        }
+        assertNoKeptPathConflict(archive, active.certificates);
+        baseSetId = active.set.id;
+      }
       const setId = createId();
       const abandoned = await repository.createUpload(
         {
+          baseSetId,
           certificateCount: archive.length,
           id: setId,
+          mode: input.mode,
           sourceName: input.sourceName,
           sourceSizeBytes: input.sourceSizeBytes,
           uploadedBy: actorId,

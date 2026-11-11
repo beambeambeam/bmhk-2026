@@ -6,6 +6,7 @@ import type {
   CertificateRecipient,
   CertificateRepository,
   CertificateStorageObject,
+  CertificateUploadMode,
   FileStorage,
   NewCertificate,
   NewCertificateSet,
@@ -152,6 +153,7 @@ function startInput(rows: readonly InfoRow[], overrides: Record<string, unknown>
   return {
     entries: entriesFor(rows),
     infoCsv: createInfoCsv(rows),
+    mode: "REPLACE" as CertificateUploadMode,
     sourceName: "certificates.zip",
     sourceSizeBytes: 300_000_000,
     ...overrides,
@@ -165,6 +167,24 @@ function pdf(path: string, body = "%PDF-1.7\ncertificate"): { file: File; path: 
 interface FakeSet extends NewCertificateSet {
   activatedAt: Date | null;
   status: "ACTIVE" | "UPLOADING";
+  uploadedCount: number;
+}
+
+function toCertificateSet(set: FakeSet) {
+  return {
+    certificateCount: set.certificateCount,
+    id: set.id,
+    mode: set.mode,
+    sourceName: set.sourceName,
+    sourceSizeBytes: set.sourceSizeBytes,
+    uploadedAt: set.activatedAt ?? UPLOADED_AT,
+    uploadedBy: { id: STAFF_ID, name: "Staff Example" },
+    uploadedCount: set.uploadedCount,
+  };
+}
+
+function recipientKeyOf(item: { personId: string; role: string; teamId: string }): string {
+  return `${item.role}:${item.teamId}:${item.personId}`;
 }
 
 function toLocation(certificate: CertificateStorageObject): CertificateStorageObject {
@@ -204,6 +224,18 @@ function createRig(recipients: CertificateRecipient[]) {
         return { missing, status: "INCOMPLETE" };
       }
       const previous = [...sets.values()].find((item) => item.status === "ACTIVE");
+      if (set.mode === "MERGE" && previous?.id !== set.baseSetId) {
+        return { status: "BASE_CHANGED" };
+      }
+      if (set.mode === "MERGE" && previous) {
+        const listed = new Set(certificatesOf(setId).map(recipientKeyOf));
+        for (const certificate of certificatesOf(previous.id)) {
+          if (!listed.has(recipientKeyOf(certificate))) {
+            certificate.setId = setId;
+          }
+        }
+      }
+      set.certificateCount = certificatesOf(setId).length;
       const replaced = previous
         ? {
             certificateCount: previous.certificateCount,
@@ -213,18 +245,7 @@ function createRig(recipients: CertificateRecipient[]) {
         : null;
       set.status = "ACTIVE";
       set.activatedAt = UPLOADED_AT;
-      return {
-        replaced,
-        set: {
-          certificateCount: set.certificateCount,
-          id: set.id,
-          sourceName: set.sourceName,
-          sourceSizeBytes: set.sourceSizeBytes,
-          uploadedAt: UPLOADED_AT,
-          uploadedBy: { id: STAFF_ID, name: "Staff Example" },
-        },
-        status: "ACTIVATED",
-      };
+      return { replaced, set: toCertificateSet(set), status: "ACTIVATED" };
     },
     createUpload: async (set, certificates: NewCertificate[]) => {
       const abandoned: CertificateStorageObject[] = [];
@@ -233,7 +254,12 @@ function createRig(recipients: CertificateRecipient[]) {
           abandoned.push(...removeSet(existing.id));
         }
       }
-      sets.set(set.id, { ...set, activatedAt: null, status: "UPLOADING" });
+      sets.set(set.id, {
+        ...set,
+        activatedAt: null,
+        status: "UPLOADING",
+        uploadedCount: set.certificateCount,
+      });
       for (const certificate of certificates) {
         certificateSequence += 1;
         const id = `44444444-4444-4444-8444-${String(certificateSequence).padStart(12, "0")}`;
@@ -246,17 +272,7 @@ function createRig(recipients: CertificateRecipient[]) {
       if (!set) {
         return await Promise.resolve(null);
       }
-      return {
-        certificates: certificatesOf(set.id),
-        set: {
-          certificateCount: set.certificateCount,
-          id: set.id,
-          sourceName: set.sourceName,
-          sourceSizeBytes: set.sourceSizeBytes,
-          uploadedAt: set.activatedAt ?? UPLOADED_AT,
-          uploadedBy: { id: STAFF_ID, name: "Staff Example" },
-        },
-      };
+      return { certificates: certificatesOf(set.id), set: toCertificateSet(set) };
     },
     findActiveCertificate: async (id) => {
       const certificate = stored.get(id);
@@ -371,12 +387,19 @@ describe("certificate overview", () => {
   });
 });
 
-async function uploadAll(rig: Rig, rows: readonly InfoRow[], sourceName = "certificates.zip") {
+async function uploadAll(
+  rig: Rig,
+  rows: readonly InfoRow[],
+  sourceName = "certificates.zip",
+  mode: CertificateUploadMode = "REPLACE",
+) {
   const { context } = createTestContext();
   const router = createRouter(rig);
-  const started = await call(router.certificates.startUpload, startInput(rows, { sourceName }), {
-    context,
-  });
+  const started = await call(
+    router.certificates.startUpload,
+    startInput(rows, { mode, sourceName }),
+    { context },
+  );
   await call(
     router.certificates.uploadFiles,
     { files: rows.map((row) => pdf(row.certificate)), setId: started.setId },
@@ -406,10 +429,12 @@ describe("certificate upload", () => {
     expect(overview.set).toStrictEqual({
       certificateCount: 2,
       id: setId,
+      mode: "REPLACE",
       sourceName: "certificates.zip",
       sourceSizeBytes: 300_000_000,
       uploadedAt: UPLOADED_AT,
       uploadedBy: { id: STAFF_ID, name: "Staff Example" },
+      uploadedCount: 2,
     });
     expect(overview.summary).toStrictEqual({
       available: 2,
@@ -494,7 +519,7 @@ describe("certificate upload", () => {
       expect.objectContaining({
         action: "certificates.replaced",
         changes: {
-          after: { certificateCount: 1, setId },
+          after: { certificateCount: 1, mode: "REPLACE", setId, uploadedCount: 1 },
           before: { certificateCount: 0, setId: null },
         },
         outcome: "success",
@@ -579,6 +604,139 @@ describe("certificate upload", () => {
         context,
       }),
     ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("certificate partial update", () => {
+  const RENAMED_PARTICIPANT_PDF = "cert/semi-final/BH001-26_1_Alpha-Renamed.pdf";
+
+  it("replaces only the recipients in the zip and keeps every other certificate", async () => {
+    const rig = createRig([
+      { ...participant, firstNameEn: "Alpha", lastNameEn: "Renamed" },
+      advisor,
+    ]);
+    const first = await uploadAll(rig, [participantRow, advisorRow], "first.zip");
+    const before = await overviewOf(rig);
+    expect(before.summary).toMatchObject({ available: 1, mismatched: 1 });
+
+    const update = await uploadAll(
+      rig,
+      [{ ...participantRow, certificate: RENAMED_PARTICIPANT_PDF, fullNameEn: "Alpha Renamed" }],
+      "fix-alpha.zip",
+      "MERGE",
+    );
+    const after = await overviewOf(rig);
+
+    expect(after.set).toMatchObject({
+      certificateCount: 2,
+      id: update.setId,
+      mode: "MERGE",
+      sourceName: "fix-alpha.zip",
+      uploadedCount: 1,
+    });
+    expect(after.summary).toStrictEqual({
+      available: 2,
+      expected: 2,
+      extra: 0,
+      mismatched: 0,
+      missing: 0,
+    });
+    expect(rig.deletedKeys).toStrictEqual([
+      `certificates/${first.setId}/semi-final/BH001-26_1_Alpha-One.pdf`,
+    ]);
+  });
+
+  it("keeps serving a kept certificate from its original file", async () => {
+    const rig = createRig([participant, advisor]);
+    const first = await uploadAll(rig, [participantRow, advisorRow], "first.zip");
+    await uploadAll(rig, [participantRow], "fix-alpha.zip", "MERGE");
+    const { rows } = await overviewOf(rig);
+    const advisorCertificate = rows.find((row) => row.role === "ADVISOR");
+    const { context } = createTestContext();
+
+    const { url } = await call(
+      createRouter(rig).certificates.downloadUrl,
+      { disposition: "inline", id: advisorCertificate?.certificate?.id ?? "" },
+      { context },
+    );
+
+    expect(url).toBe(
+      `https://files.example/certificates/${first.setId}/appreciation/BH001-26_advisor_Gamma-Advisor.pdf`,
+    );
+  });
+
+  it("adds a certificate for a recipient who had none", async () => {
+    const rig = createRig([participant, secondParticipant]);
+    await uploadAll(rig, [participantRow], "first.zip");
+
+    await uploadAll(rig, [secondParticipantRow], "add-beta.zip", "MERGE");
+    const overview = await overviewOf(rig);
+
+    expect(overview.summary).toMatchObject({ available: 2, missing: 0 });
+    expect(overview.set).toMatchObject({ certificateCount: 2, uploadedCount: 1 });
+    expect(rig.deletedKeys).toStrictEqual([]);
+  });
+
+  it("records a partial update in the audit log", async () => {
+    const rig = createRig([participant, advisor]);
+    const first = await uploadAll(rig, [participantRow, advisorRow], "first.zip");
+    const { context, log } = createTestContext();
+    const router = createRouter(rig);
+    const { setId } = await call(
+      router.certificates.startUpload,
+      startInput([participantRow], { mode: "MERGE" }),
+      { context },
+    );
+    await call(
+      router.certificates.uploadFiles,
+      { files: [pdf(PARTICIPANT_PDF)], setId },
+      { context },
+    );
+
+    await call(router.certificates.completeUpload, { setId }, { context });
+
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "certificates.replaced",
+        changes: {
+          after: { certificateCount: 2, mode: "MERGE", setId, uploadedCount: 1 },
+          before: { certificateCount: 2, setId: first.setId },
+        },
+        outcome: "success",
+      }),
+    );
+  });
+
+  it("refuses a partial update when no set is active", async () => {
+    const rig = createRig([participant]);
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        createRouter(rig).certificates.startUpload,
+        startInput([participantRow], { mode: "MERGE" }),
+        { context },
+      ),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_SET_NOT_ACTIVE", status: 409 });
+  });
+
+  it("refuses a partial zip that reuses the file path of a kept recipient", async () => {
+    const rig = createRig([participant, secondParticipant]);
+    await uploadAll(rig, [participantRow, secondParticipantRow], "first.zip");
+    const { context } = createTestContext();
+
+    await expect(
+      call(
+        createRouter(rig).certificates.startUpload,
+        startInput([{ ...participantRow, certificate: SECOND_PARTICIPANT_PDF }], { mode: "MERGE" }),
+        { context },
+      ),
+    ).rejects.toMatchObject({
+      code: "CERTIFICATE_ARCHIVE_INVALID",
+      message:
+        "Certificate zip is invalid: info.csv row 2 uses a certificate path that another recipient in the active set uses",
+      status: 400,
+    });
   });
 });
 

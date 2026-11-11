@@ -1,5 +1,6 @@
 import {
   certificateRecipientRoleValues,
+  certificateSetModeValues,
   certificateTemplateValues,
 } from "@bmhk-2026/db/schema/certificates";
 import { certificateEligibleAwardValues } from "@bmhk-2026/db/schema/teams";
@@ -22,6 +23,8 @@ const MAX_ARCHIVE_PATH_LENGTH = 512;
 const MAX_SOURCE_NAME_LENGTH = 255;
 
 export const certificateTemplateSchema = z.enum(certificateTemplateValues);
+export const certificateUploadModeSchema = z.enum(certificateSetModeValues);
+export type CertificateUploadMode = z.output<typeof certificateUploadModeSchema>;
 export type CertificateTemplate = z.output<typeof certificateTemplateSchema>;
 
 const participantTemplates = {
@@ -48,10 +51,13 @@ const certificateSetSchema = z
   .object({
     certificateCount: z.int().positive(),
     id: z.uuid(),
+    mode: certificateUploadModeSchema,
     sourceName: z.string(),
     sourceSizeBytes: z.int().nonnegative(),
     uploadedAt: z.date(),
     uploadedBy: z.object({ id: z.string(), name: z.string() }).strict().nullable(),
+    // PDFs in the last uploaded zip. Less than certificateCount after a MERGE.
+    uploadedCount: z.int().positive(),
   })
   .strict();
 
@@ -109,6 +115,9 @@ export const startCertificateUploadSchema = z
       .min(1)
       .max(MAX_CERTIFICATE_ARCHIVE_ENTRIES),
     infoCsv: z.string().max(MAX_CERTIFICATE_INFO_CSV_LENGTH),
+    // REPLACE: the zip becomes the whole set. MERGE: the zip replaces or adds only the
+    // recipients it lists; every other certificate in the active set stays.
+    mode: certificateUploadModeSchema,
     sourceName: z.string().trim().min(1).max(MAX_SOURCE_NAME_LENGTH),
     sourceSizeBytes: z.int().positive().max(MAX_CERTIFICATE_ARCHIVE_BYTES),
   })
@@ -176,8 +185,11 @@ export interface StoredCertificate extends NewCertificate {
 }
 
 export interface NewCertificateSet {
+  /** The active set a MERGE upload is built against; null for REPLACE. */
+  baseSetId: string | null;
   certificateCount: number;
   id: string;
+  mode: CertificateUploadMode;
   sourceName: string;
   sourceSizeBytes: number;
   uploadedBy: string;

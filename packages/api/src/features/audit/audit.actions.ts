@@ -209,7 +209,8 @@ export const round2DocumentAccessedAudit = defineAuditAction("round2-document.ac
 });
 
 export const certificatesReplacedAudit = defineAuditAction("certificates.replaced", {
-  description: "Registration staff replaced the full set of uploaded certificate PDFs",
+  description:
+    "Registration staff activated an uploaded certificate set: a full replacement, or a partial update that replaces only the recipients in its zip",
   requiresChanges: true,
   severity: "critical",
   target: "certificate-set",

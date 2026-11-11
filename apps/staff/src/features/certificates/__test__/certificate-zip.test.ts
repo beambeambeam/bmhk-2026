@@ -10,6 +10,7 @@ const PARTICIPANT_PATH = "cert/semi-final/BH001-26_1_Alpha-One.pdf";
 interface StartInput {
   entries: { path: string; sizeBytes: number }[];
   infoCsv: string;
+  mode: string;
   sourceName: string;
   sourceSizeBytes: number;
 }
@@ -35,10 +36,12 @@ function createClient() {
       return await Promise.resolve({
         certificateCount: 2,
         id: setId,
+        mode: "MERGE" as const,
         sourceName: "certificates.zip",
         sourceSizeBytes: 1,
         uploadedAt: new Date("2026-11-01T03:00:00.000Z"),
         uploadedBy: null,
+        uploadedCount: 2,
       });
     },
     startUpload: async (input: StartInput) => {
@@ -55,7 +58,7 @@ function createClient() {
 }
 
 describe("certificate zip upload", () => {
-  it("sends info.csv and the entry list, then each PDF, then completes the set", async () => {
+  it("sends info.csv, the entry list, and the mode, then each PDF, then completes the set", async () => {
     const file = await createZip({
       [ADVISOR_PATH]: "%PDF-advisor",
       [PARTICIPANT_PATH]: "%PDF-alpha",
@@ -67,6 +70,7 @@ describe("certificate zip upload", () => {
     const set = await uploadCertificateZip({
       client,
       file,
+      mode: "MERGE",
       onProgress: ({ stored }) => {
         progress.push(stored);
       },
@@ -86,6 +90,7 @@ describe("certificate zip upload", () => {
           "info.csv:18",
         ]),
         infoCsv: "role,certificate\r\n",
+        mode: "MERGE",
         sourceName: "certificates.zip",
         sourceSizeBytes: file.size,
       },

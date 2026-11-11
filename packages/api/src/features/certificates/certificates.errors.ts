@@ -72,3 +72,23 @@ export function createCertificateNotFoundError() {
     why: "No certificate in the active set matches this request",
   });
 }
+
+export function createCertificateSetNotActiveError() {
+  return createError({
+    code: "CERTIFICATE_SET_NOT_ACTIVE",
+    fix: "Upload a full certificates.zip first",
+    message: "There is no active certificate set to update",
+    status: 409,
+    why: "A partial update changes an existing set, and no set is active yet",
+  });
+}
+
+export function createCertificateSetChangedError() {
+  return createError({
+    code: "CERTIFICATE_SET_CHANGED",
+    fix: "Reload the page and upload the partial zip again",
+    message: "The active certificate set changed during this upload",
+    status: 409,
+    why: "Another upload became active after this partial update started",
+  });
+}

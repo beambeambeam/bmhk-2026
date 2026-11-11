@@ -25,6 +25,7 @@ import type {
   CertificateOverviewRow,
   CertificateSet,
   CertificateStorageObject,
+  OwnCertificates,
   StartCertificateUploadInput,
   StoredCertificate,
   UploadCertificateFilesInput,
@@ -54,6 +55,9 @@ export interface CertificateService {
     log: CertificateServiceLog,
   ) => Promise<CertificateActivationResult>;
   downloadUrl: (input: CertificateDownloadInput) => Promise<CertificateDownload>;
+  /** Signs a URL only for a certificate that the user's team can see in `listOwn`. */
+  ownDownloadUrl: (userId: string, input: CertificateDownloadInput) => Promise<CertificateDownload>;
+  listOwn: (userId: string) => Promise<OwnCertificates>;
   overview: () => Promise<CertificateOverview>;
   startUpload: (
     actorId: string,
@@ -67,7 +71,8 @@ export interface CertificateService {
 
 export interface CertificateServiceDependencies {
   createId?: () => string;
-  listRecipients: () => Promise<CertificateRecipient[]>;
+  /** Lists every expected recipient, or only the team that `ownerUserId` owns. */
+  listRecipients: (ownerUserId?: string) => Promise<CertificateRecipient[]>;
   repository: CertificateRepository;
   storage: FileStorage;
 }
@@ -228,6 +233,40 @@ export function createCertificateService({
     }
   }
 
+  async function signedUrlFor(
+    certificate: StoredCertificate,
+    disposition: CertificateDownloadInput["disposition"],
+  ): Promise<CertificateDownload> {
+    try {
+      const url = await storage.getDownloadUrl({
+        bucket: certificate.bucket,
+        contentType: PDF_CONTENT_TYPE,
+        disposition,
+        objectKey: certificate.objectKey,
+        originalName: fileNameOf(certificate.zipPath),
+      });
+      return { certificate, url };
+    } catch (error) {
+      throw createFileStorageUnavailableError(error);
+    }
+  }
+
+  // Pairs the team's expected recipients with their PDFs. A PDF that no longer matches the
+  // live data counts as not ready, the same rule the staff overview calls MISMATCHED.
+  async function ownRecipients(userId: string) {
+    const [recipients, stored] = await Promise.all([
+      listRecipients(userId),
+      repository.findActiveForTeamOwner(userId),
+    ]);
+    const byKey = new Map(stored.map((certificate) => [recipientKey(certificate), certificate]));
+    return recipients.map((recipient) => {
+      const certificate = byKey.get(recipientKey(recipient));
+      const matches =
+        certificate !== undefined && mismatchReasons(recipient, certificate).length === 0;
+      return { certificate: matches ? certificate : null, recipient };
+    });
+  }
+
   async function storeFile(path: string, file: File, certificate: StoredCertificate) {
     if (file.size === 0 || file.size > MAX_CERTIFICATE_PDF_BYTES) {
       throw createCertificateFileInvalidError(path, "size must be between 1 byte and 10 MiB");
@@ -274,18 +313,26 @@ export function createCertificateService({
       if (!certificate) {
         throw createCertificateNotFoundError();
       }
-      try {
-        const url = await storage.getDownloadUrl({
-          bucket: certificate.bucket,
-          contentType: PDF_CONTENT_TYPE,
-          disposition,
-          objectKey: certificate.objectKey,
-          originalName: fileNameOf(certificate.zipPath),
-        });
-        return { certificate, url };
-      } catch (error) {
-        throw createFileStorageUnavailableError(error);
-      }
+      return await signedUrlFor(certificate, disposition);
+    },
+    listOwn: async (userId) => {
+      const rows = await ownRecipients(userId);
+      return {
+        recipients: rows.map(({ certificate, recipient }) => ({
+          certificate: certificate
+            ? {
+                fileName: fileNameOf(certificate.zipPath),
+                id: certificate.id,
+                sizeBytes: certificate.sizeBytes ?? 0,
+              }
+            : null,
+          fullName: joinName(recipient.firstNameTh, recipient.middleNameTh, recipient.lastNameTh),
+          memberIndex: recipient.memberIndex,
+          personId: recipient.personId,
+          role: recipient.role,
+          template: certificateTemplateFor(recipient.role, recipient.award),
+        })),
+      };
     },
     overview: async () => {
       const [recipients, active] = await Promise.all([listRecipients(), repository.findActive()]);
@@ -300,6 +347,14 @@ export function createCertificateService({
       });
       const rows = [...expectedRows, ...[...stored.values()].map(toExtraRow)];
       return { rows, set: active?.set ?? null, summary: summarize(rows) };
+    },
+    ownDownloadUrl: async (userId, { disposition, id }) => {
+      const rows = await ownRecipients(userId);
+      const certificate = rows.find((row) => row.certificate?.id === id)?.certificate;
+      if (!certificate) {
+        throw createCertificateNotFoundError();
+      }
+      return await signedUrlFor(certificate, disposition);
     },
     startUpload: async (actorId, input, log) => {
       const archive = readCertificateArchive(input);

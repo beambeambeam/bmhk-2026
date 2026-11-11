@@ -53,6 +53,7 @@ describe("feature flags", () => {
     const router = createRouter("2026-09-24T00:00:00.000Z");
 
     await expect(getAll(router)).resolves.toStrictEqual({
+      certificateDownload: false,
       eligibleTeamsAnnouncement: true,
       finalRound: false,
       qualifyingResultsAnnouncement: false,
@@ -103,6 +104,14 @@ describe("feature flags", () => {
     expect(() => createRouter("2026-10-01T00:00:00Z")).toThrow(
       'Invalid window for feature flag "round2Confirmation"',
     );
+  });
+
+  it("opens certificate downloads at 16:00 Bangkok time on 15 November", async () => {
+    const beforeStart = createRouter("2026-11-15T08:59:59.999Z");
+    const atStart = createRouter("2026-11-15T09:00:00.000Z");
+
+    await expect(getAll(beforeStart)).resolves.toMatchObject({ certificateDownload: false });
+    await expect(getAll(atStart)).resolves.toMatchObject({ certificateDownload: true });
   });
 
   it("includes the start and excludes the end of registration", async () => {

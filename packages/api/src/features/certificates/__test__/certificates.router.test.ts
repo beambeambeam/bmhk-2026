@@ -1,4 +1,5 @@
 import { call } from "@orpc/server";
+import { Temporal } from "temporal-polyfill";
 import { describe, expect, it } from "vitest";
 
 import type {
@@ -22,6 +23,9 @@ import {
   createUnusedTeamRepository,
 } from "../../../__test__/test-support";
 
+// Team downloads open at this instant, set by the `certificateDownload` feature flag.
+const DOWNLOAD_OPENS_AT = "2026-11-15T16:00:00+07:00";
+const BEFORE_DOWNLOAD_OPENS = "2026-11-15T15:59:59.999+07:00";
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_TEAM_ID = "11111111-1111-4111-8111-111111111112";
 const PARTICIPANT_ID = "22222222-2222-4222-8222-222222222221";
@@ -29,6 +33,12 @@ const SECOND_PARTICIPANT_ID = "22222222-2222-4222-8222-222222222222";
 const ADVISOR_ID = "33333333-3333-4333-8333-333333333331";
 const REMOVED_PERSON_ID = "22222222-2222-4222-8222-222222222229";
 const STAFF_ID = "staff-1";
+const TEAM_OWNER_ID = "team-owner-1";
+const OTHER_TEAM_OWNER_ID = "team-owner-2";
+const teamOwners = new Map([
+  [TEAM_OWNER_ID, TEAM_ID],
+  [OTHER_TEAM_OWNER_ID, OTHER_TEAM_ID],
+]);
 const UPLOADED_AT = new Date("2026-11-01T03:00:00.000Z");
 
 const participant: CertificateRecipient = {
@@ -280,6 +290,12 @@ function createRig(recipients: CertificateRecipient[]) {
         certificate !== undefined && sets.get(certificate.setId)?.status === "ACTIVE";
       return await Promise.resolve(isActive ? certificate : null);
     },
+    findActiveForTeamOwner: async (userId) => {
+      const set = [...sets.values()].find((item) => item.status === "ACTIVE");
+      const teamId = teamOwners.get(userId);
+      const rows = set ? certificatesOf(set.id) : [];
+      return await Promise.resolve(rows.filter((certificate) => certificate.teamId === teamId));
+    },
     findUploading: async (setId) => {
       const set = sets.get(setId);
       return await Promise.resolve(set?.status === "UPLOADING" ? certificatesOf(setId) : null);
@@ -316,7 +332,12 @@ function createRig(recipients: CertificateRecipient[]) {
 
   const teams: TeamRepository = {
     ...createUnusedTeamRepository(),
-    listCertificateRecipients: async () => await Promise.resolve(recipients),
+    listCertificateRecipients: async (ownerUserId) =>
+      await Promise.resolve(
+        ownerUserId === undefined
+          ? recipients
+          : recipients.filter((recipient) => recipient.teamId === teamOwners.get(ownerUserId)),
+      ),
   };
 
   return {
@@ -335,9 +356,9 @@ function createRig(recipients: CertificateRecipient[]) {
 
 type Rig = ReturnType<typeof createRig>;
 
-function createRouter(rig: Rig, role = "registrationStaff") {
+function createRouter(rig: Rig, role = "registrationStaff", userId = STAFF_ID) {
   return createAppRouter({
-    auth: createTestAuthReader(createTestSession({ user: { id: STAFF_ID, role } })),
+    auth: createTestAuthReader(createTestSession({ user: { id: userId, role } })),
     certificates: rig.repository,
     fileStorage: rig.storage,
     staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
@@ -930,5 +951,183 @@ describe("certificate download", () => {
     expect(log.audit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "certificate.accessed", outcome: "failure" }),
     );
+  });
+});
+
+const otherTeamParticipant: CertificateRecipient = {
+  ...participant,
+  firstNameEn: "Delta",
+  firstNameTh: "เดลตา",
+  personId: REMOVED_PERSON_ID,
+  teamId: OTHER_TEAM_ID,
+  teamIndex: 2,
+  teamName: "Team Other",
+};
+const otherTeamRow: InfoRow = {
+  ...participantRow,
+  certificate: "cert/semi-final/BH002-26_1_Delta-One.pdf",
+  fullName: "เดลตา หนึ่ง",
+  fullNameEn: "Delta One",
+  personId: REMOVED_PERSON_ID,
+  teamCode: "BH002/26",
+  teamId: OTHER_TEAM_ID,
+  teamName: "Team Other",
+};
+
+function teamRouter(rig: Rig, userId = TEAM_OWNER_ID, now = DOWNLOAD_OPENS_AT) {
+  return createAppRouter({
+    auth: createTestAuthReader(createTestSession({ user: { id: userId, role: "user" } })),
+    certificates: rig.repository,
+    featureFlagClock: () => Temporal.Instant.from(now),
+    fileStorage: rig.storage,
+    staffDiscordLinkService: createUnusedStaffDiscordLinkService(),
+    teams: rig.teams,
+  });
+}
+
+async function mineOf(rig: Rig, userId = TEAM_OWNER_ID) {
+  const { context } = createTestContext();
+  return await call(teamRouter(rig, userId).certificates.mine, undefined, { context });
+}
+
+describe("team certificates", () => {
+  it("lists only the team's own recipients and marks which ones are ready", async () => {
+    const rig = createRig([participant, secondParticipant, advisor, otherTeamParticipant]);
+    await uploadAll(rig, [participantRow, advisorRow, otherTeamRow]);
+
+    const { recipients } = await mineOf(rig);
+
+    expect(
+      recipients.map((recipient) => ({
+        fileName: recipient.certificate?.fileName ?? null,
+        fullName: recipient.fullName,
+        role: recipient.role,
+        template: recipient.template,
+      })),
+    ).toStrictEqual([
+      {
+        fileName: "BH001-26_1_Alpha-One.pdf",
+        fullName: "อัลฟา หนึ่ง",
+        role: "PARTICIPANT",
+        template: "semi-final",
+      },
+      { fileName: null, fullName: "เบตา สอง", role: "PARTICIPANT", template: "semi-final" },
+      {
+        fileName: "BH001-26_advisor_Gamma-Advisor.pdf",
+        fullName: "แกมมา ที่ปรึกษา",
+        role: "ADVISOR",
+        template: "appreciation",
+      },
+    ]);
+  });
+
+  it("lists recipients as not ready before staff upload any certificates", async () => {
+    const rig = createRig([participant]);
+
+    const { recipients } = await mineOf(rig);
+
+    expect(recipients.map((recipient) => recipient.certificate)).toStrictEqual([null]);
+  });
+
+  it("hides a certificate whose printed name no longer matches the team's data", async () => {
+    const rig = createRig([participant]);
+    await uploadAll(rig, [participantRow]);
+    const {
+      recipients: [uploaded],
+    } = await mineOf(rig);
+    rig.recipients.splice(0, 1, { ...participant, firstNameTh: "อัลฟ่า" });
+    const { context } = createTestContext();
+
+    const { recipients } = await mineOf(rig);
+
+    expect(recipients.map((recipient) => recipient.certificate)).toStrictEqual([null]);
+    await expect(
+      call(
+        teamRouter(rig).certificates.mineDownloadUrl,
+        { disposition: "attachment", id: uploaded?.certificate?.id ?? "" },
+        { context },
+      ),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_NOT_FOUND", status: 404 });
+  });
+
+  it("signs a download URL for the team's own certificate and audits the access", async () => {
+    const rig = createRig([participant]);
+    const { setId } = await uploadAll(rig, [participantRow]);
+    const {
+      recipients: [recipient],
+    } = await mineOf(rig);
+    const { context, log } = createTestContext();
+
+    const { url } = await call(
+      teamRouter(rig).certificates.mineDownloadUrl,
+      { disposition: "attachment", id: recipient?.certificate?.id ?? "" },
+      { context },
+    );
+
+    const objectKey = `certificates/${setId}/semi-final/BH001-26_1_Alpha-One.pdf`;
+    expect(url).toBe(`https://files.example/${objectKey}`);
+    expect(rig.signedUrls).toStrictEqual([{ disposition: "attachment", objectKey }]);
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "certificate.accessed",
+        actor: { id: TEAM_OWNER_ID, type: "user" },
+        outcome: "success",
+      }),
+    );
+  });
+
+  it("does not sign another team's certificate", async () => {
+    const rig = createRig([participant, otherTeamParticipant]);
+    await uploadAll(rig, [participantRow, otherTeamRow]);
+    const {
+      recipients: [otherCertificate],
+    } = await mineOf(rig, OTHER_TEAM_OWNER_ID);
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        teamRouter(rig).certificates.mineDownloadUrl,
+        { disposition: "inline", id: otherCertificate?.certificate?.id ?? "" },
+        { context },
+      ),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_NOT_FOUND", status: 404 });
+    expect(rig.signedUrls).toStrictEqual([]);
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "certificate.accessed", outcome: "denied" }),
+    );
+  });
+
+  it("keeps team certificates closed until downloads open", async () => {
+    const rig = createRig([participant]);
+    await uploadAll(rig, [participantRow]);
+    const {
+      recipients: [ready],
+    } = await mineOf(rig);
+    const closedRouter = teamRouter(rig, TEAM_OWNER_ID, BEFORE_DOWNLOAD_OPENS);
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(closedRouter.certificates.mine, undefined, { context }),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_DOWNLOAD_CLOSED", status: 403 });
+    await expect(
+      call(
+        closedRouter.certificates.mineDownloadUrl,
+        { disposition: "attachment", id: ready?.certificate?.id ?? "" },
+        { context },
+      ),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_DOWNLOAD_CLOSED", status: 403 });
+    expect(rig.signedUrls).toStrictEqual([]);
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "certificate.accessed", outcome: "denied" }),
+    );
+  });
+
+  it("keeps the staff overview closed to team accounts", async () => {
+    const rig = createRig([participant]);
+    const { context } = createTestContext();
+
+    await expect(
+      call(teamRouter(rig).certificates.overview, undefined, { context }),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });

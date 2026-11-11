@@ -15,6 +15,7 @@ const featureFlagsQueryOptions = {
 };
 
 const availableRegistration: FeatureFlags = {
+  certificateDownload: false,
   eligibleTeamsAnnouncement: true,
   finalRound: false,
   qualifyingResultsAnnouncement: false,
@@ -25,6 +26,7 @@ const availableRegistration: FeatureFlags = {
 };
 
 const unavailableFeatureFlags: FeatureFlags = {
+  certificateDownload: false,
   eligibleTeamsAnnouncement: false,
   finalRound: false,
   qualifyingResultsAnnouncement: false,
@@ -103,6 +105,7 @@ describe(useFeatureFlags, () => {
       expect(featureFlagsQueryOptions.queryFn).toHaveBeenCalledOnce();
     });
     expect(result.current).toStrictEqual({
+      certificateDownload: false,
       eligibleTeamsAnnouncement: false,
       finalRound: false,
       qualifyingResultsAnnouncement: false,

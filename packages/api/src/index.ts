@@ -77,6 +77,7 @@ export type {
   CertificateUploadMode,
   NewCertificate,
   NewCertificateSet,
+  OwnCertificates,
   StartCertificateUploadInput,
   StoredCertificate,
 } from "./features/certificates/certificates.schema";

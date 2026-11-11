@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { orpc } from "./orpc";
 
 const unavailableFeatureFlags: FeatureFlags = {
+  certificateDownload: false,
   eligibleTeamsAnnouncement: false,
   finalRound: false,
   qualifyingResultsAnnouncement: false,

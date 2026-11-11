@@ -2,6 +2,7 @@ import type { FeatureFlagKey } from "@bmhk-2026/feature-flags";
 import { z } from "zod";
 
 const featureFlagsShape = {
+  certificateDownload: z.boolean(),
   eligibleTeamsAnnouncement: z.boolean(),
   finalRound: z.boolean(),
   qualifyingResultsAnnouncement: z.boolean(),

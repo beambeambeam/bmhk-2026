@@ -43,16 +43,26 @@ export const certificateSetStatusEnum = pgEnum(
   certificateSetStatusValues,
 );
 
+// REPLACE sets hold every certificate. A MERGE set holds only the recipients in its zip;
+// activation moves the other rows of its base set into it, so it becomes a full set too.
+export const certificateSetModeValues = ["REPLACE", "MERGE"] as const;
+export const certificateSetModeEnum = pgEnum("certificate_set_mode", certificateSetModeValues);
+
 export const certificateSets = pgTable(
   "certificate_sets",
   {
     activatedAt: timestamp("activated_at", { withTimezone: true }),
+    // The active set a MERGE upload was built against. Activation fails if it changed.
+    baseSetId: uuid("base_set_id"),
     certificateCount: integer("certificate_count").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     id: uuid("id").primaryKey(),
+    mode: certificateSetModeEnum("mode").notNull(),
     sourceName: text("source_name").notNull(),
     sourceSizeBytes: bigint("source_size_bytes", { mode: "number" }).notNull(),
     status: certificateSetStatusEnum("status").notNull(),
+    // PDFs in the uploaded zip. Equals certificate_count for REPLACE sets.
+    uploadedCount: integer("uploaded_count").notNull(),
     uploadedBy: text("uploaded_by").references(() => user.id, { onDelete: "set null" }),
   },
   (table) => [
@@ -61,6 +71,11 @@ export const certificateSets = pgTable(
       .where(sql`${table.status} = 'ACTIVE'`),
     check("certificate_sets_source_name_nonempty", sql`length(trim(${table.sourceName})) > 0`),
     check("certificate_sets_certificate_count_positive", sql`${table.certificateCount} > 0`),
+    check("certificate_sets_uploaded_count_positive", sql`${table.uploadedCount} > 0`),
+    check(
+      "certificate_sets_base_set_when_merge",
+      sql`(${table.mode} = 'MERGE') = (${table.baseSetId} IS NOT NULL)`,
+    ),
     check(
       "certificate_sets_activated_when_active",
       sql`(${table.status} = 'ACTIVE') = (${table.activatedAt} IS NOT NULL)`,

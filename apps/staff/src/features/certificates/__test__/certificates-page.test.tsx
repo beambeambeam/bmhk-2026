@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { BlobWriter, TextReader, ZipWriter } from "@zip.js/zip.js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
@@ -76,10 +77,12 @@ const overview = {
     set: {
       certificateCount: 2,
       id: "55555555-5555-4555-8555-555555555555",
+      mode: "REPLACE",
       sourceName: "certificates.zip",
       sourceSizeBytes: 300_000_000,
       uploadedAt: "2026-11-01T03:00:00.000Z",
       uploadedBy: { id: "staff-1", name: "Staff Example" },
+      uploadedCount: 2,
     },
     summary: { available: 1, expected: 3, extra: 0, mismatched: 1, missing: 1 },
   },
@@ -92,6 +95,15 @@ function requestPath(input: Parameters<typeof fetch>[0]): string {
 }
 
 const downloadRequests: unknown[] = [];
+const startRequests: unknown[] = [];
+const PARTICIPANT_PDF = "cert/semi-final/BH001-26_1_Alpha-One.pdf";
+
+async function createZip(): Promise<File> {
+  const writer = new ZipWriter(new BlobWriter("application/zip"), { useWebWorkers: false });
+  await writer.add("info.csv", new TextReader("role,certificate\r\n"));
+  await writer.add(PARTICIPANT_PDF, new TextReader("%PDF-alpha"));
+  return new File([await writer.close()], "fix-alpha.zip", { type: "application/zip" });
+}
 
 async function requestJson(
   input: Parameters<typeof fetch>[0],
@@ -103,16 +115,31 @@ async function requestJson(
   return typeof init?.body === "string" ? JSON.parse(init.body) : null;
 }
 
-function renderPage() {
+function renderPage(set: Record<string, unknown> = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const path = requestPath(input);
+    if (path.endsWith("/certificates/startUpload")) {
+      startRequests.push(await requestJson(input, init));
+      return Response.json({ json: { paths: [PARTICIPANT_PDF], setId: overview.json.set.id } });
+    }
+    if (path.endsWith("/certificates/uploadFiles")) {
+      return Response.json({ json: { remaining: 0, stored: 1 } });
+    }
+    if (path.endsWith("/certificates/completeUpload")) {
+      return Response.json({ json: overview.json.set, meta: [[1, "uploadedAt"]] });
+    }
     if (path.endsWith("/certificates/downloadUrl")) {
       downloadRequests.push(await requestJson(input, init));
       return await Promise.resolve(
         Response.json({ json: { url: "https://files.example/certificate.pdf" } }),
       );
     }
-    return await Promise.resolve(Response.json(overview));
+    return await Promise.resolve(
+      Response.json({
+        ...overview,
+        json: { ...overview.json, set: { ...overview.json.set, ...set } },
+      }),
+    );
   });
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -127,6 +154,7 @@ describe("staff certificates page", () => {
     cleanup();
     fetchMock.mockReset();
     downloadRequests.length = 0;
+    startRequests.length = 0;
   });
 
   afterAll(() => vi.unstubAllGlobals());
@@ -182,6 +210,44 @@ describe("staff certificates page", () => {
     });
     expect(downloadRequests).toStrictEqual([
       { json: { disposition: "attachment", id: CERTIFICATE_ID } },
+    ]);
+  });
+
+  it("shows how many files the last partial update changed", async () => {
+    renderPage({ mode: "MERGE", sourceName: "fix-alpha.zip", uploadedCount: 1 });
+
+    await screen.findByText("ไฟล์ที่อัปเดตล่าสุด");
+    expect(screen.getByText("fix-alpha.zip")).toBeDefined();
+    expect(screen.getByText(/2 ไฟล์ \(อัปเดต 1 ไฟล์\)/u)).toBeDefined();
+  });
+
+  it("updates only some certificates unless staff choose to replace the whole set", async () => {
+    renderPage();
+    const partial = await screen.findByRole("radio", {
+      description: /ชุดเดิมยังอยู่ครบ/u,
+      name: "อัปเดตบางรายการ",
+    });
+    expect(partial.getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.change(screen.getByLabelText("เลือกไฟล์ zip เกียรติบัตร"), {
+      target: { files: [await createZip()] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /อัปเดตบางรายการ/u }));
+    await vi.waitFor(() => {
+      expect(startRequests).toHaveLength(1);
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "แทนที่ทั้งชุด" }));
+    fireEvent.change(screen.getByLabelText("เลือกไฟล์ zip เกียรติบัตร"), {
+      target: { files: [await createZip()] },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: /อัปโหลดชุดใหม่/u }));
+    await vi.waitFor(() => {
+      expect(startRequests).toHaveLength(2);
+    });
+
+    expect(startRequests).toMatchObject([
+      { json: { mode: "MERGE", sourceName: "fix-alpha.zip" } },
+      { json: { mode: "REPLACE", sourceName: "fix-alpha.zip" } },
     ]);
   });
 });

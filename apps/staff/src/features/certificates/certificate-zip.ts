@@ -1,5 +1,5 @@
 import { MAX_CERTIFICATE_FILES_PER_REQUEST } from "@bmhk-2026/api/certificates/rules";
-import type { AppRouterClient, CertificateSet } from "@bmhk-2026/api";
+import type { AppRouterClient, CertificateSet, CertificateUploadMode } from "@bmhk-2026/api";
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from "@zip.js/zip.js";
 import type { FileEntry } from "@zip.js/zip.js";
 
@@ -70,10 +70,12 @@ function fileNameOf(path: string): string {
 export async function uploadCertificateZip({
   client,
   file,
+  mode,
   onProgress,
 }: {
   client: CertificateUploadClient;
   file: File;
+  mode: CertificateUploadMode;
   onProgress?: (progress: CertificateUploadProgress) => void;
 }): Promise<CertificateSet> {
   const reader = new ZipReader(new BlobReader(file), { useWebWorkers: false });
@@ -93,6 +95,7 @@ export async function uploadCertificateZip({
         sizeBytes: entry.directory ? 0 : entry.uncompressedSize,
       })),
       infoCsv,
+      mode,
       sourceName: file.name,
       sourceSizeBytes: file.size,
     });

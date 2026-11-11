@@ -6,6 +6,7 @@ Status: staff upload and status page implemented. Participant access in `apps/we
 
 - `packages/certificate` renders one PDF per recipient from the recipients CSV export (`teams.certificateRecipients`). It writes `certificates.zip`, which holds `info.csv` and `cert/<template>/<file>.pdf`.
 - The staff page `/certificates` (registration access) uploads the zip, validates it, stores the PDFs, and compares the active set with the live recipient list.
+- Upload modes: `REPLACE` makes the zip the whole set. `MERGE` replaces or adds only the recipients in the zip and keeps every other certificate. To make a partial zip, remove the other rows from the recipients CSV, then render and zip it as usual.
 - Statuses per expected recipient:
   - `AVAILABLE`: a PDF exists and matches live data.
   - `MISSING`: no PDF in the active set.
@@ -15,13 +16,17 @@ Status: staff upload and status page implemented. Participant access in `apps/we
 
 ## Data model
 
-Already in place (migration `0043_certificates`):
+Already in place (migrations `0043_certificates`, `0044_certificate_set_merge`):
 
 ```text
 certificate_sets
   id uuid pk
   status UPLOADING | ACTIVE        -- one ACTIVE set at most (partial unique index)
-  source_name, source_size_bytes, certificate_count
+  mode REPLACE | MERGE
+  base_set_id uuid | null          -- the active set a MERGE was built against
+  source_name, source_size_bytes
+  certificate_count                -- rows in the set, after a MERGE includes kept rows
+  uploaded_count                   -- PDFs in the uploaded zip
   uploaded_by -> user.id (set null on delete)
   created_at, activated_at
 
@@ -103,20 +108,20 @@ certificates.downloadUrl({ id, disposition }): { url: string } // audited, owner
 
 ## On-demand rendering compared with pre-uploaded PDFs
 
-|                | Pre-uploaded PDFs (chosen)                              | On-demand Playwright/Chromium in apps/server                                         |
-| -------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Request cost   | One DB query and one presign, a few ms                  | Launch or reuse a browser and render a page, about 0.5–2 s CPU per PDF               |
-| Peak load      | Flat. S3 serves the bytes.                              | All teams download after the results; needs a render queue or a browser pool         |
-| Server image   | Unchanged `oven/bun`                                    | Adds Chromium and its system libraries (fonts, nss, and so on), about 300 MB or more |
-| Private assets | Stay with the operator who runs `packages/certificate`  | The gitignored backgrounds and signatures must be on every server host or in S3      |
-| Freshness      | Snapshot. Mismatches need a re-render and re-upload.    | Always uses live data                                                                |
-| Caching        | The PDF is the cache                                    | Needs a cache key (person, award, names, template version) and storage anyway        |
-| Invalidation   | Explicit: upload a new full set; the old set is deleted | Implicit by key; a template or asset change needs a version bump                     |
-| Staff review   | Staff can see every file before teams can               | Nobody sees a PDF before a team does                                                 |
+|                | Pre-uploaded PDFs (chosen)                                        | On-demand Playwright/Chromium in apps/server                                         |
+| -------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Request cost   | One DB query and one presign, a few ms                            | Launch or reuse a browser and render a page, about 0.5–2 s CPU per PDF               |
+| Peak load      | Flat. S3 serves the bytes.                                        | All teams download after the results; needs a render queue or a browser pool         |
+| Server image   | Unchanged `oven/bun`                                              | Adds Chromium and its system libraries (fonts, nss, and so on), about 300 MB or more |
+| Private assets | Stay with the operator who runs `packages/certificate`            | The gitignored backgrounds and signatures must be on every server host or in S3      |
+| Freshness      | Snapshot. Mismatches need a re-render and re-upload.              | Always uses live data                                                                |
+| Caching        | The PDF is the cache                                              | Needs a cache key (person, award, names, template version) and storage anyway        |
+| Invalidation   | Explicit: upload a full or partial set; replaced PDFs are deleted | Implicit by key; a template or asset change needs a version bump                     |
+| Staff review   | Staff can see every file before teams can                         | Nobody sees a PDF before a team does                                                 |
 
 On-demand rendering removes the re-upload step but moves the heaviest, least-tested part (Chromium, fonts, private images) into the always-on server. The mismatch status already shows staff when a re-render is needed. We choose pre-uploaded PDFs.
 
 ## Out of scope
 
 - Download-all for staff. The original zip is not stored, and building a 300 MB zip on each request is not cheap. Staff already hold the zip they uploaded.
-- Per-file replacement or partial sets. Every change is a full set (see ADR 0002).
+- Removing single certificates without a full `REPLACE` upload.

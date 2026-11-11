@@ -95,6 +95,10 @@ function requestPath(input: Parameters<typeof fetch>[0]): string {
 }
 
 const downloadRequests: unknown[] = [];
+// Reading the zip in jsdom can take more than vi.waitFor's 1 s default on a loaded CI runner.
+const ZIP_UPLOAD_TIMEOUT_MS = 5000;
+// Two uploads, each waiting up to ZIP_UPLOAD_TIMEOUT_MS.
+const TWO_UPLOADS_TEST_TIMEOUT_MS = 15_000;
 const startRequests: unknown[] = [];
 const PARTICIPANT_PDF = "cert/semi-final/BH001-26_1_Alpha-One.pdf";
 
@@ -221,33 +225,43 @@ describe("staff certificates page", () => {
     expect(screen.getByText(/2 ไฟล์ \(อัปเดต 1 ไฟล์\)/u)).toBeDefined();
   });
 
-  it("updates only some certificates unless staff choose to replace the whole set", async () => {
-    renderPage();
-    const partial = await screen.findByRole("radio", {
-      description: /ชุดเดิมยังอยู่ครบ/u,
-      name: "อัปเดตบางรายการ",
-    });
-    expect(partial.getAttribute("aria-checked")).toBe("true");
+  it(
+    "updates only some certificates unless staff choose to replace the whole set",
+    async () => {
+      renderPage();
+      const partial = await screen.findByRole("radio", {
+        description: /ชุดเดิมยังอยู่ครบ/u,
+        name: "อัปเดตบางรายการ",
+      });
+      expect(partial.getAttribute("aria-checked")).toBe("true");
 
-    fireEvent.change(screen.getByLabelText("เลือกไฟล์ zip เกียรติบัตร"), {
-      target: { files: [await createZip()] },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /อัปเดตบางรายการ/u }));
-    await vi.waitFor(() => {
-      expect(startRequests).toHaveLength(1);
-    });
-    fireEvent.click(screen.getByRole("radio", { name: "แทนที่ทั้งชุด" }));
-    fireEvent.change(screen.getByLabelText("เลือกไฟล์ zip เกียรติบัตร"), {
-      target: { files: [await createZip()] },
-    });
-    fireEvent.click(await screen.findByRole("button", { name: /อัปโหลดชุดใหม่/u }));
-    await vi.waitFor(() => {
-      expect(startRequests).toHaveLength(2);
-    });
+      fireEvent.change(screen.getByLabelText("เลือกไฟล์ zip เกียรติบัตร"), {
+        target: { files: [await createZip()] },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /อัปเดตบางรายการ/u }));
+      await vi.waitFor(
+        () => {
+          expect(startRequests).toHaveLength(1);
+        },
+        { timeout: ZIP_UPLOAD_TIMEOUT_MS },
+      );
+      fireEvent.click(screen.getByRole("radio", { name: "แทนที่ทั้งชุด" }));
+      fireEvent.change(screen.getByLabelText("เลือกไฟล์ zip เกียรติบัตร"), {
+        target: { files: [await createZip()] },
+      });
+      fireEvent.click(await screen.findByRole("button", { name: /อัปโหลดชุดใหม่/u }));
+      await vi.waitFor(
+        () => {
+          expect(startRequests).toHaveLength(2);
+        },
+        { timeout: ZIP_UPLOAD_TIMEOUT_MS },
+      );
 
-    expect(startRequests).toMatchObject([
-      { json: { mode: "MERGE", sourceName: "fix-alpha.zip" } },
-      { json: { mode: "REPLACE", sourceName: "fix-alpha.zip" } },
-    ]);
-  });
+      expect(startRequests).toMatchObject([
+        { json: { mode: "MERGE", sourceName: "fix-alpha.zip" } },
+        { json: { mode: "REPLACE", sourceName: "fix-alpha.zip" } },
+      ]);
+    },
+    TWO_UPLOADS_TEST_TIMEOUT_MS,
+  );
 });

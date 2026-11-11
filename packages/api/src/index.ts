@@ -74,6 +74,7 @@ export type {
   CertificateStatus,
   CertificateStorageObject,
   CertificateTemplate,
+  CertificateUploadMode,
   NewCertificate,
   NewCertificateSet,
   StartCertificateUploadInput,

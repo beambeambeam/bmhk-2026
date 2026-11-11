@@ -6,7 +6,8 @@ We do not render on demand in the server. That would put Chromium (about 300 MB 
 
 Consequences:
 
-- A certificate is a snapshot. A name, team name, or award change after export does not update it. The staff page flags these rows as `MISMATCHED` (names, team name, or a change of template) or `EXTRA`. Staff fix them by rendering and uploading a new full set. Partial uploads and per-file replacement are deliberately not supported.
+- A certificate is a snapshot. A name, team name, or award change after export does not update it. The staff page flags these rows as `MISMATCHED` (names, team name, or a change of template) or `EXTRA`. Staff fix them with a full set (`REPLACE`) or with a partial update (`MERGE`).
+- A `MERGE` upload is a zip with only the recipients to fix or add. It is built as a new `UPLOADING` set like any other upload. On activation, one transaction moves the active set's rows for every recipient the zip does not list into the new set. Their objects keep their keys, so no file is copied. Then the transaction deletes the old set as usual. Only the PDFs that the zip replaced are deleted from S3. Readers still see the whole old set or the whole new set. A `MERGE` set records the active set it was built against (`base_set_id`). If a different set is active at activation, the activation fails with `CERTIFICATE_SET_CHANGED`. A `MERGE` zip cannot remove a certificate; use `REPLACE` for that.
 - The set's object prefix is unique, so an old signed URL keeps working for its remaining lifetime only if the object still exists. Replacing the set deletes old objects, so old URLs fail with 403/404 instead of serving outdated PDFs.
 - The original zip is not stored, so "download all" is not offered.
 - The template choice in `certificateTemplateFor` must stay in step with `packages/certificate/src/recipients.ts`.

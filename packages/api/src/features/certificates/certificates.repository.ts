@@ -1,7 +1,8 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
 import { certificateSets, certificates } from "@bmhk-2026/db/schema/certificates";
-import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, notExists, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { createRepositoryExecutor } from "../../core/repository";
 import { certificateRepositoryError } from "./certificates.errors";
@@ -20,6 +21,7 @@ export interface ActiveCertificateSet {
 
 export interface ReplacedCertificateSet {
   certificateCount: number;
+  /** Objects no longer referenced by the active set: all of them after a REPLACE, only the replaced recipients' after a MERGE. */
   objects: CertificateStorageObject[];
   setId: string;
 }
@@ -27,10 +29,14 @@ export interface ReplacedCertificateSet {
 export type CertificateActivation =
   | { replaced: ReplacedCertificateSet | null; set: CertificateSet; status: "ACTIVATED" }
   | { missing: number; status: "INCOMPLETE" }
+  | { status: "BASE_CHANGED" }
   | { status: "NOT_FOUND" };
 
 export interface CertificateRepository {
-  /** Makes an uploading set the only active set and deletes the previous active set's rows. */
+  /**
+   * Makes an uploading set the only active set and deletes the previous active set. A MERGE
+   * set first takes over the previous set's rows for recipients it does not list.
+   */
   activate: (setId: string) => Promise<CertificateActivation>;
   /** Deletes abandoned uploading sets and returns their stored objects for cleanup. */
   createUpload: (
@@ -74,8 +80,10 @@ async function findSet(executor: Database | Transaction, setId: string): Promise
       activatedAt: certificateSets.activatedAt,
       certificateCount: certificateSets.certificateCount,
       id: certificateSets.id,
+      mode: certificateSets.mode,
       sourceName: certificateSets.sourceName,
       sourceSizeBytes: certificateSets.sourceSizeBytes,
+      uploadedCount: certificateSets.uploadedCount,
       uploaderId: user.id,
       uploaderName: user.name,
     })
@@ -88,6 +96,7 @@ async function findSet(executor: Database | Transaction, setId: string): Promise
   return {
     certificateCount: row.certificateCount,
     id: row.id,
+    mode: row.mode,
     sourceName: row.sourceName,
     sourceSizeBytes: row.sourceSizeBytes,
     uploadedAt: row.activatedAt,
@@ -95,7 +104,42 @@ async function findSet(executor: Database | Transaction, setId: string): Promise
       row.uploaderId === null || row.uploaderName === null
         ? null
         : { id: row.uploaderId, name: row.uploaderName },
+    uploadedCount: row.uploadedCount,
   };
+}
+
+const incoming = alias(certificates, "incoming");
+
+// Moves rows of recipients the merge zip does not list from the base set into the merge
+// set. Their objects keep their keys, so the files need no copy. Returns the moved count.
+async function keepUnlistedCertificates(
+  tx: Transaction,
+  baseSetId: string,
+  setId: string,
+): Promise<number> {
+  const kept = await tx
+    .update(certificates)
+    .set({ setId })
+    .where(
+      and(
+        eq(certificates.setId, baseSetId),
+        notExists(
+          tx
+            .select({ id: incoming.id })
+            .from(incoming)
+            .where(
+              and(
+                eq(incoming.setId, setId),
+                eq(incoming.role, certificates.role),
+                eq(incoming.teamId, certificates.teamId),
+                eq(incoming.personId, certificates.personId),
+              ),
+            ),
+        ),
+      ),
+    )
+    .returning({ id: certificates.id });
+  return kept.length;
 }
 
 async function activateInTransaction(
@@ -103,7 +147,12 @@ async function activateInTransaction(
   setId: string,
 ): Promise<CertificateActivation> {
   const [target] = await tx
-    .select({ id: certificateSets.id })
+    .select({
+      baseSetId: certificateSets.baseSetId,
+      id: certificateSets.id,
+      mode: certificateSets.mode,
+      uploadedCount: certificateSets.uploadedCount,
+    })
     .from(certificateSets)
     .where(and(eq(certificateSets.id, setId), eq(certificateSets.status, "UPLOADING")))
     .for("update");
@@ -123,6 +172,14 @@ async function activateInTransaction(
     .from(certificateSets)
     .where(eq(certificateSets.status, "ACTIVE"))
     .for("update");
+  const isMerge = target.mode === "MERGE";
+  if (isMerge && previous?.id !== target.baseSetId) {
+    return { status: "BASE_CHANGED" };
+  }
+  let keptCount = 0;
+  if (isMerge && previous) {
+    keptCount = await keepUnlistedCertificates(tx, previous.id, setId);
+  }
   let replaced: ReplacedCertificateSet | null = null;
   if (previous) {
     const objects = await tx
@@ -134,7 +191,11 @@ async function activateInTransaction(
   }
   await tx
     .update(certificateSets)
-    .set({ activatedAt: new Date(), status: "ACTIVE" })
+    .set({
+      activatedAt: new Date(),
+      certificateCount: target.uploadedCount + keptCount,
+      status: "ACTIVE",
+    })
     .where(eq(certificateSets.id, setId));
   return { replaced, set: await findSet(tx, setId), status: "ACTIVATED" };
 }
@@ -163,7 +224,9 @@ export function createCertificateRepository(database: Database = db): Certificat
                 and(inArray(certificates.setId, abandonedSets), isNotNull(certificates.storedAt)),
               );
             await tx.delete(certificateSets).where(eq(certificateSets.status, "UPLOADING"));
-            await tx.insert(certificateSets).values({ ...set, status: "UPLOADING" });
+            await tx
+              .insert(certificateSets)
+              .values({ ...set, status: "UPLOADING", uploadedCount: set.certificateCount });
             await tx.insert(certificates).values(rows.map((row) => ({ ...row, setId: set.id })));
             return abandoned;
           }),

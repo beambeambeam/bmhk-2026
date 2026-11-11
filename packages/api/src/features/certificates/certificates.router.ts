@@ -36,7 +36,12 @@ export function createCertificatesRouter(
           log: context.log,
           onSuccess: ({ replaced, set: activeSet }) => ({
             changes: {
-              after: { certificateCount: activeSet.certificateCount, setId: activeSet.id },
+              after: {
+                certificateCount: activeSet.certificateCount,
+                mode: activeSet.mode,
+                setId: activeSet.id,
+                uploadedCount: activeSet.uploadedCount,
+              },
               before: replaced
                 ? { certificateCount: replaced.certificateCount, setId: replaced.setId }
                 : { certificateCount: 0, setId: null },

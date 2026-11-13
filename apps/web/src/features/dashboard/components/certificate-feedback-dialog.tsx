@@ -270,7 +270,7 @@ export default function CertificateFeedbackDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-[rgba(194,194,194,0.3)] backdrop-blur-[5px]" />
         <Dialog.Viewport className="fixed inset-0 z-50 flex justify-center overflow-y-auto px-4 py-8">
-          <Dialog.Popup className="relative h-fit w-full max-w-[620px] rounded-[28px] border border-[#dcdcdc] bg-white p-6 outline-none sm:p-8">
+          <Dialog.Popup className="relative h-fit w-full max-w-[760px] rounded-[28px] border border-[#dcdcdc] bg-white p-6 outline-none sm:p-8">
             <div className="mb-6 flex items-start gap-4">
               <div className="flex flex-1 flex-col gap-1">
                 <Dialog.Title className="fl-20 font-display font-semibold text-ink">

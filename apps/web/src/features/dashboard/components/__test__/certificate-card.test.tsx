@@ -75,6 +75,7 @@ vi.mock("@bmhk-2026/client/orpc", () => ({
 const TCAS_URL = "https://my-tcas.s3.ap-southeast-1.amazonaws.com/mytcas/universities.json";
 const tcasFetch = vi.fn<typeof fetch>();
 
+const START = "ทำแบบสอบถามเพื่อดาวน์โหลดเกียรติบัตร";
 const DOWNLOAD_ALPHA = "ดาวน์โหลดเกียรติบัตรของ อัลฟา หนึ่ง";
 const SUBMIT = "ส่งแบบสอบถามและปลดล็อกการดาวน์โหลด";
 
@@ -213,7 +214,7 @@ describe(CertificateCard, () => {
       );
       renderCard();
 
-      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      fireEvent.click(await screen.findByRole("button", { name: START }));
       const dialog = await screen.findByRole("dialog");
       await waitFor(() => {
         expect(tcasFetch).toHaveBeenCalledWith(TCAS_URL, expect.anything());
@@ -228,7 +229,7 @@ describe(CertificateCard, () => {
       tcasFetch.mockResolvedValue(Response.json({ message: "maintenance" }, { status: 503 }));
       renderCard();
 
-      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      fireEvent.click(await screen.findByRole("button", { name: START }));
       const dialog = await screen.findByRole("dialog");
       fireEvent.click(within(dialog).getByRole("button", { name: "แสดงรายชื่อมหาวิทยาลัย" }));
 
@@ -238,19 +239,18 @@ describe(CertificateCard, () => {
       expect(screen.getByRole("option", { name: "วิทยาลัยดุสิตธานี" })).toBeDefined();
     });
 
-    it("locks downloads until the team answers the questionnaire", async () => {
+    it("shows only the questionnaire button until the team answers", async () => {
       renderCard();
 
-      const download = await screen.findByRole("button", { name: DOWNLOAD_ALPHA });
-      expect(download).toHaveProperty("disabled", true);
-      expect(screen.getByText("ตอบแบบสอบถามของทีมก่อน แล้วปุ่มดาวน์โหลดจะปลดล็อก")).toBeDefined();
-      expect(screen.getByRole("button", { name: "ทำแบบสอบถาม" })).toBeDefined();
+      await expect(screen.findByRole("button", { name: START })).resolves.toBeDefined();
+      expect(screen.queryByRole("button", { name: DOWNLOAD_ALPHA })).toBeNull();
+      expect(screen.queryByText("อัลฟา หนึ่ง")).toBeNull();
     });
 
     it("keeps the questionnaire open and points at missing answers", async () => {
       renderCard();
 
-      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      fireEvent.click(await screen.findByRole("button", { name: START }));
       const dialog = await screen.findByRole("dialog");
       fireEvent.click(within(dialog).getByRole("button", { name: SUBMIT }));
 
@@ -266,13 +266,11 @@ describe(CertificateCard, () => {
     it("unlocks downloads after the questionnaire is sent", async () => {
       renderCard();
 
-      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      fireEvent.click(await screen.findByRole("button", { name: START }));
       const dialog = await answerQuestionnaire();
       fireEvent.click(within(dialog).getByRole("button", { name: SUBMIT }));
 
-      await expect(
-        screen.findByText("ขอบคุณที่ตอบแบบสอบถาม ดาวน์โหลดเกียรติบัตรได้แล้ว"),
-      ).resolves.toBeDefined();
+      await expect(screen.findByText("ขอบคุณที่ตอบแบบสอบถาม")).resolves.toBeDefined();
       expect(submitFeedback).toHaveBeenCalledWith({
         channelOther: null,
         channels: ["WEBSITE"],
@@ -306,14 +304,14 @@ describe(CertificateCard, () => {
       expect(screen.queryByRole("dialog")).toBeNull();
       const download = screen.getByRole("button", { name: DOWNLOAD_ALPHA });
       expect(download).toHaveProperty("disabled", false);
-      expect(screen.queryByRole("button", { name: "ทำแบบสอบถาม" })).toBeNull();
+      expect(screen.queryByRole("button", { name: START })).toBeNull();
     });
 
     it("keeps the answers when sending fails", async () => {
       failFeedback = true;
       renderCard();
 
-      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      fireEvent.click(await screen.findByRole("button", { name: START }));
       const dialog = await answerQuestionnaire();
       fireEvent.click(within(dialog).getByRole("button", { name: SUBMIT }));
 
@@ -324,10 +322,7 @@ describe(CertificateCard, () => {
         "checked",
         true,
       );
-      expect(screen.getByRole("button", { hidden: true, name: DOWNLOAD_ALPHA })).toHaveProperty(
-        "disabled",
-        true,
-      );
+      expect(screen.queryByRole("button", { hidden: true, name: DOWNLOAD_ALPHA })).toBeNull();
     });
   });
 });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ClipboardList, Download, FileText, Loader2, Lock } from "lucide-react";
+import { ClipboardList, Download, FileText, Loader2 } from "lucide-react";
 
 import { orpc } from "@bmhk-2026/client/orpc";
 import type { client } from "@bmhk-2026/client/orpc";
@@ -11,8 +11,8 @@ type Recipient = Awaited<ReturnType<typeof client.certificates.mine>>["recipient
 
 const TITLE = "ดาวน์โหลดเกียรติบัตร";
 const NOT_READY = "ยังไม่พร้อม";
-const FEEDBACK_NOTICE = "ตอบแบบสอบถามของทีมก่อน แล้วปุ่มดาวน์โหลดจะปลดล็อก";
-const FEEDBACK_THANKS = "ขอบคุณที่ตอบแบบสอบถาม ดาวน์โหลดเกียรติบัตรได้แล้ว";
+const FEEDBACK_START = "ทำแบบสอบถามเพื่อดาวน์โหลดเกียรติบัตร";
+const FEEDBACK_THANKS = "ขอบคุณที่ตอบแบบสอบถาม";
 const DOWNLOAD_ERROR = "ดาวน์โหลดเกียรติบัตรไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
 const SUBTITLE_12_14 = "text-[calc(11.948px_+_2.052*var(--fl))] text-balance";
 const PLATE = "rounded-[20px] bg-white p-4 shadow-soft";
@@ -32,24 +32,12 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function RowIcon({ locked, isDownloading }: { locked: boolean; isDownloading: boolean }) {
-  if (locked) {
-    return <Lock aria-hidden className="size-4" />;
-  }
-  if (isDownloading) {
-    return <Loader2 aria-hidden className="size-4 animate-spin" />;
-  }
-  return <Download aria-hidden className="size-4" />;
-}
-
 function CertificateRow({
   recipient,
-  locked,
   isDownloading,
   onDownload,
 }: {
   recipient: Recipient;
-  locked: boolean;
   isDownloading: boolean;
   onDownload: (id: string) => void;
 }) {
@@ -79,15 +67,18 @@ function CertificateRow({
       {ready ? (
         <button
           type="button"
-          disabled={locked || isDownloading}
-          aria-describedby={locked ? "certificate-feedback-notice" : undefined}
+          disabled={isDownloading}
           aria-label={`ดาวน์โหลดเกียรติบัตรของ ${recipient.fullName}`}
           onClick={() => {
             onDownload(certificate.id);
           }}
           className="mm-press flex shrink-0 items-center gap-[6px] rounded-[10px] bg-[#f6f6f6] px-[14px] py-[8px] fl-14 leading-normal transition-colors hover:bg-[#ececec] disabled:opacity-60"
         >
-          <RowIcon locked={locked} isDownloading={isDownloading} />
+          {isDownloading ? (
+            <Loader2 aria-hidden className="size-4 animate-spin" />
+          ) : (
+            <Download aria-hidden className="size-4" />
+          )}
           ดาวน์โหลด
         </button>
       ) : (
@@ -141,44 +132,37 @@ export default function CertificateCard({ card = true }: { card?: boolean }) {
         </div>
 
         {locked ? (
-          <div className="flex w-full flex-col items-start gap-3 rounded-[12px] bg-[rgba(192,86,62,0.06)] p-[12px] shadow-[inset_0_0_0_1px_rgba(192,86,62,0.2)] sm:flex-row sm:items-center">
-            <p
-              id="certificate-feedback-notice"
-              className="flex-1 fl-14 leading-normal text-balance"
-            >
-              {FEEDBACK_NOTICE}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setFeedbackOpen(true);
-              }}
-              className="mm-press flex shrink-0 items-center gap-[6px] rounded-[10px] bg-brand-red px-[14px] py-[8px] fl-14 leading-normal font-medium text-white"
-            >
-              <ClipboardList aria-hidden className="size-4" />
-              ทำแบบสอบถาม
-            </button>
-          </div>
-        ) : null}
-        {justSubmitted && !locked ? (
-          <output className="fl-14 leading-normal text-brand-green">{FEEDBACK_THANKS}</output>
-        ) : null}
-
-        <ul className="flex w-full flex-col gap-[8px]">
-          {recipients.map((recipient) => (
-            <CertificateRow
-              key={`${recipient.role}:${recipient.personId}`}
-              recipient={recipient}
-              locked={locked}
-              isDownloading={
-                download.isPending && download.variables.id === recipient.certificate?.id
-              }
-              onDownload={(id) => {
-                download.mutate({ disposition: "attachment", id });
-              }}
-            />
-          ))}
-        </ul>
+          <button
+            type="button"
+            onClick={() => {
+              setFeedbackOpen(true);
+            }}
+            className="mm-press flex w-full items-center justify-center gap-[6px] rounded-[10px] bg-brand-red px-[14px] py-[10px] fl-14 leading-normal font-medium text-white"
+          >
+            <ClipboardList aria-hidden className="size-4" />
+            {FEEDBACK_START}
+          </button>
+        ) : (
+          <>
+            {justSubmitted ? (
+              <output className="fl-14 leading-normal text-brand-green">{FEEDBACK_THANKS}</output>
+            ) : null}
+            <ul className="flex w-full flex-col gap-[8px]">
+              {recipients.map((recipient) => (
+                <CertificateRow
+                  key={`${recipient.role}:${recipient.personId}`}
+                  recipient={recipient}
+                  isDownloading={
+                    download.isPending && download.variables.id === recipient.certificate?.id
+                  }
+                  onDownload={(id) => {
+                    download.mutate({ disposition: "attachment", id });
+                  }}
+                />
+              ))}
+            </ul>
+          </>
+        )}
 
         {download.isError ? (
           <p role="alert" className="fl-12 leading-normal text-brand-red">

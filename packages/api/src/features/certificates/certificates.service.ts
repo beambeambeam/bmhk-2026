@@ -8,6 +8,7 @@ import { certificateObjectKey, readCertificateArchive } from "./certificates.arc
 import type { ArchiveCertificate } from "./certificates.archive";
 import {
   createCertificateArchiveInvalidError,
+  createCertificateFeedbackRequiredError,
   createCertificateFileInvalidError,
   createCertificateNotFoundError,
   createCertificateSetChangedError,
@@ -20,6 +21,7 @@ import { MAX_CERTIFICATE_PDF_BYTES } from "./certificates.rules";
 import { certificateTemplateFor } from "./certificates.schema";
 import type {
   CertificateDownloadInput,
+  CertificateFeedback,
   CertificateMismatchReason,
   CertificateOverview,
   CertificateOverviewRow,
@@ -55,10 +57,15 @@ export interface CertificateService {
     log: CertificateServiceLog,
   ) => Promise<CertificateActivationResult>;
   downloadUrl: (input: CertificateDownloadInput) => Promise<CertificateDownload>;
-  /** Signs a URL only for a certificate that the user's team can see in `listOwn`. */
+  /**
+   * Signs a URL only for a certificate that the user's team can see in `listOwn`, and only
+   * after the team answered the questionnaire.
+   */
   ownDownloadUrl: (userId: string, input: CertificateDownloadInput) => Promise<CertificateDownload>;
   listOwn: (userId: string) => Promise<OwnCertificates>;
   overview: () => Promise<CertificateOverview>;
+  /** Stores the team's questionnaire. Only a team with certificates can answer it. */
+  submitOwnFeedback: (userId: string, feedback: CertificateFeedback) => Promise<void>;
   startUpload: (
     actorId: string,
     input: StartCertificateUploadInput,
@@ -316,8 +323,12 @@ export function createCertificateService({
       return await signedUrlFor(certificate, disposition);
     },
     listOwn: async (userId) => {
-      const rows = await ownRecipients(userId);
+      const [rows, feedbackSubmitted] = await Promise.all([
+        ownRecipients(userId),
+        repository.hasFeedbackForTeamOwner(userId),
+      ]);
       return {
+        feedbackSubmitted,
         recipients: rows.map(({ certificate, recipient }) => ({
           certificate: certificate
             ? {
@@ -349,6 +360,9 @@ export function createCertificateService({
       return { rows, set: active?.set ?? null, summary: summarize(rows) };
     },
     ownDownloadUrl: async (userId, { disposition, id }) => {
+      if (!(await repository.hasFeedbackForTeamOwner(userId))) {
+        throw createCertificateFeedbackRequiredError();
+      }
       const rows = await ownRecipients(userId);
       const certificate = rows.find((row) => row.certificate?.id === id)?.certificate;
       if (!certificate) {
@@ -386,6 +400,15 @@ export function createCertificateService({
       );
       await deleteObjects(abandoned, log);
       return { paths: archive.map((certificate) => certificate.zipPath), setId };
+    },
+    submitOwnFeedback: async (userId, feedback) => {
+      const recipients = await listRecipients(userId);
+      if (recipients.length === 0) {
+        throw createCertificateNotFoundError();
+      }
+      if (!(await repository.saveFeedbackForTeamOwner(userId, feedback))) {
+        throw createCertificateNotFoundError();
+      }
     },
     uploadFiles: async ({ files, setId }) => {
       const certificates = await repository.findUploading(setId);

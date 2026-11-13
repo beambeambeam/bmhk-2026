@@ -67,6 +67,9 @@ export type {
   ReplacedCertificateSet,
 } from "./features/certificates/certificates.repository";
 export type {
+  CertificateFeedback,
+  CertificateFeedbackChannel,
+  CertificateFeedbackInput,
   CertificateMismatchReason,
   CertificateOverview,
   CertificateOverviewRow,

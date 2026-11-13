@@ -7,6 +7,8 @@ import { createCertificateDownloadClosedError } from "./certificates.errors";
 import {
   certificateDownloadInputSchema,
   certificateDownloadResultSchema,
+  certificateFeedbackInputSchema,
+  certificateFeedbackResultSchema,
   certificateOverviewSchema,
   certificateSetIdSchema,
   ownCertificatesSchema,
@@ -103,7 +105,11 @@ export function createCertificatesRouter(
             actor: { id: context.teamAccess.actorId, type: "user" },
             target: { accessedAs: "TEAM_OWNER", id: input.id },
           }),
-          deniedErrorCodes: ["CERTIFICATE_DOWNLOAD_CLOSED", "CERTIFICATE_NOT_FOUND"],
+          deniedErrorCodes: [
+            "CERTIFICATE_DOWNLOAD_CLOSED",
+            "CERTIFICATE_FEEDBACK_REQUIRED",
+            "CERTIFICATE_NOT_FOUND",
+          ],
           execute: async () => {
             assertTeamDownloadOpen();
             return await service.ownDownloadUrl(context.teamAccess.actorId, input);
@@ -120,6 +126,17 @@ export function createCertificatesRouter(
           }),
         });
         return { url };
+      }),
+    // Team account: answers the questionnaire once to unlock its certificate downloads.
+    mineFeedback: teamOwnerProcedure
+      .route({ method: "POST", tags: ["Certificate"] })
+      .input(certificateFeedbackInputSchema)
+      .output(certificateFeedbackResultSchema)
+      .handler(async ({ context, input }) => {
+        assertTeamDownloadOpen();
+        await service.submitOwnFeedback(context.teamAccess.actorId, input);
+        context.log.set({ certificateFeedback: { submitted: true } });
+        return { feedbackSubmitted: true } as const;
       }),
     overview: registrationProcedure
       .route({ method: "GET", tags: ["Certificate"] })

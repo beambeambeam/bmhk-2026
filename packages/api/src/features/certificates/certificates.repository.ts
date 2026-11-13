@@ -1,5 +1,6 @@
 import { db } from "@bmhk-2026/db";
 import { user } from "@bmhk-2026/db/schema/auth";
+import { certificateFeedback } from "@bmhk-2026/db/schema/certificate-feedback";
 import { certificateSets, certificates } from "@bmhk-2026/db/schema/certificates";
 import { teams } from "@bmhk-2026/db/schema/teams";
 import { and, asc, count, eq, inArray, isNotNull, isNull, notExists, sql } from "drizzle-orm";
@@ -8,6 +9,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { createRepositoryExecutor } from "../../core/repository";
 import { certificateRepositoryError } from "./certificates.errors";
 import type {
+  CertificateFeedback,
   CertificateSet,
   CertificateStorageObject,
   NewCertificate,
@@ -48,6 +50,13 @@ export interface CertificateRepository {
   findActiveCertificate: (id: string) => Promise<StoredCertificate | null>;
   /** Active-set rows of the team that the user account owns. Ownership is part of the query. */
   findActiveForTeamOwner: (userId: string) => Promise<StoredCertificate[]>;
+  /** Whether the team that the user account owns has answered the questionnaire. */
+  hasFeedbackForTeamOwner: (userId: string) => Promise<boolean>;
+  /**
+   * Stores the questionnaire for the team that the user account owns. The first answer wins:
+   * a repeat submission keeps it. Returns false when the user owns no team.
+   */
+  saveFeedbackForTeamOwner: (userId: string, feedback: CertificateFeedback) => Promise<boolean>;
   /** Returns null when the set is not uploading. */
   findUploading: (setId: string) => Promise<StoredCertificate[] | null>;
   markStored: (setId: string, items: { id: string; sizeBytes: number }[]) => Promise<void>;
@@ -286,6 +295,16 @@ export function createCertificateRepository(database: Database = db): Certificat
           .from(certificates)
           .where(eq(certificates.setId, setId));
       }),
+    hasFeedbackForTeamOwner: async (userId) =>
+      await execute(async () => {
+        const [row] = await database
+          .select({ id: certificateFeedback.id })
+          .from(certificateFeedback)
+          .innerJoin(teams, eq(teams.id, certificateFeedback.teamId))
+          .where(eq(teams.userId, userId))
+          .limit(1);
+        return row !== undefined;
+      }),
     markStored: async (setId, items) => {
       await execute(async () => {
         if (items.length === 0) {
@@ -309,5 +328,49 @@ export function createCertificateRepository(database: Database = db): Certificat
           );
       });
     },
+    saveFeedbackForTeamOwner: async (userId, feedback) =>
+      await execute(async () => {
+        const [team] = await database
+          .select({ id: teams.id })
+          .from(teams)
+          .where(eq(teams.userId, userId))
+          .limit(1);
+        if (!team) {
+          return false;
+        }
+        const { decisionFactors: factors, event } = feedback;
+        await database
+          .insert(certificateFeedback)
+          .values({
+            admissionQuotaRating: factors.admissionQuota,
+            campRating: factors.camp,
+            campusEnvironmentRating: factors.campusEnvironment,
+            channelOther: feedback.channelOther,
+            channels: feedback.channels,
+            comment: feedback.comment,
+            educationGuidanceRating: factors.educationGuidance,
+            eventScheduleRating: event.schedule,
+            eventUsefulnessRating: event.usefulness,
+            familyAdviceRating: factors.familyAdvice,
+            intendedFaculty: feedback.intendedFaculty,
+            intendedUniversity: feedback.intendedUniversity,
+            internationalOpportunityRating: factors.internationalOpportunity,
+            jobMarketRating: factors.jobMarket,
+            modernEquipmentRating: factors.modernEquipment,
+            openHouseRating: factors.openHouse,
+            overallSatisfactionRating: event.overallSatisfaction,
+            publicityRating: event.publicity,
+            reputationRating: factors.reputation,
+            scholarshipRating: factors.scholarship,
+            seniorAdviceRating: factors.seniorAdvice,
+            submittedBy: userId,
+            teacherAdviceRating: factors.teacherAdvice,
+            teamId: team.id,
+            websiteDesignRating: event.websiteDesign,
+            websiteUsabilityRating: event.websiteUsability,
+          })
+          .onConflictDoNothing({ target: certificateFeedback.teamId });
+        return true;
+      }),
   };
 }

@@ -53,6 +53,16 @@ export function createCertificateDownloadClosedError() {
   });
 }
 
+export function createCertificateFeedbackRequiredError() {
+  return createError({
+    code: "CERTIFICATE_FEEDBACK_REQUIRED",
+    fix: "Answer the questionnaire, then download the certificate",
+    message: "Answer the questionnaire before downloading certificates",
+    status: 403,
+    why: "Teams unlock certificate downloads by answering the event questionnaire once",
+  });
+}
+
 export function createCertificateUploadNotFoundError() {
   return createError({
     code: "CERTIFICATE_UPLOAD_NOT_FOUND",

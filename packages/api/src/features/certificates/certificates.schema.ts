@@ -1,4 +1,9 @@
 import {
+  CERTIFICATE_FEEDBACK_CHOICE_MAX_LENGTH,
+  CERTIFICATE_FEEDBACK_COMMENT_MAX_LENGTH,
+  certificateFeedbackChannelValues,
+} from "@bmhk-2026/db/schema/certificate-feedback";
+import {
   certificateRecipientRoleValues,
   certificateSetModeValues,
   certificateTemplateValues,
@@ -166,7 +171,94 @@ const ownCertificateRecipientSchema = z
   .strict();
 
 export const ownCertificatesSchema = z
-  .object({ recipients: z.array(ownCertificateRecipientSchema) })
+  .object({
+    // Downloads stay locked until the team answers the questionnaire.
+    feedbackSubmitted: z.boolean(),
+    recipients: z.array(ownCertificateRecipientSchema),
+  })
+  .strict();
+
+const ratingSchema = z.int().min(1).max(5);
+
+// Blank text means the question was skipped, so it is stored as null.
+function optionalTextSchema(maxLength: number) {
+  return z
+    .string()
+    .trim()
+    .max(maxLength)
+    .nullable()
+    .transform((value) => (value === null || value === "" ? null : value));
+}
+
+// null means "ยังไม่ตัดสินใจ". A listed name and an "อื่น ๆ" answer are both plain text.
+const intendedChoiceSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(CERTIFICATE_FEEDBACK_CHOICE_MAX_LENGTH)
+  .nullable();
+
+export const certificateFeedbackChannelSchema = z.enum(certificateFeedbackChannelValues);
+
+export const certificateFeedbackInputSchema = z
+  .object({
+    channelOther: optionalTextSchema(CERTIFICATE_FEEDBACK_CHOICE_MAX_LENGTH),
+    channels: z
+      .array(certificateFeedbackChannelSchema)
+      .min(1)
+      .refine((channels) => new Set(channels).size === channels.length, "Channels must be unique"),
+    comment: optionalTextSchema(CERTIFICATE_FEEDBACK_COMMENT_MAX_LENGTH),
+    decisionFactors: z
+      .object({
+        admissionQuota: ratingSchema,
+        camp: ratingSchema,
+        campusEnvironment: ratingSchema,
+        educationGuidance: ratingSchema,
+        familyAdvice: ratingSchema,
+        internationalOpportunity: ratingSchema,
+        jobMarket: ratingSchema,
+        modernEquipment: ratingSchema,
+        openHouse: ratingSchema,
+        reputation: ratingSchema,
+        scholarship: ratingSchema,
+        seniorAdvice: ratingSchema,
+        teacherAdvice: ratingSchema,
+      })
+      .strict(),
+    event: z
+      .object({
+        overallSatisfaction: ratingSchema,
+        publicity: ratingSchema,
+        schedule: ratingSchema,
+        usefulness: ratingSchema,
+        websiteDesign: ratingSchema,
+        websiteUsability: ratingSchema,
+      })
+      .strict(),
+    intendedFaculty: intendedChoiceSchema,
+    intendedUniversity: intendedChoiceSchema,
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const hasOther = input.channels.includes("OTHER");
+    if (hasOther && input.channelOther === null) {
+      context.addIssue({
+        code: "custom",
+        message: "Describe the other channel",
+        path: ["channelOther"],
+      });
+    }
+    if (!hasOther && input.channelOther !== null) {
+      context.addIssue({
+        code: "custom",
+        message: "Only answer the other channel when OTHER is selected",
+        path: ["channelOther"],
+      });
+    }
+  });
+
+export const certificateFeedbackResultSchema = z
+  .object({ feedbackSubmitted: z.literal(true) })
   .strict();
 
 export type CertificateSet = z.output<typeof certificateSetSchema>;
@@ -178,6 +270,9 @@ export type StartCertificateUploadInput = z.output<typeof startCertificateUpload
 export type UploadCertificateFilesInput = z.output<typeof uploadCertificateFilesSchema>;
 export type CertificateDownloadInput = z.output<typeof certificateDownloadInputSchema>;
 export type OwnCertificates = z.output<typeof ownCertificatesSchema>;
+export type CertificateFeedbackInput = z.input<typeof certificateFeedbackInputSchema>;
+export type CertificateFeedback = z.output<typeof certificateFeedbackInputSchema>;
+export type CertificateFeedbackChannel = z.output<typeof certificateFeedbackChannelSchema>;
 
 export interface CertificateStorageObject {
   bucket: string;

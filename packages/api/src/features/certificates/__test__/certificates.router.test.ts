@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import type {
   CertificateActivation,
+  CertificateFeedback,
+  CertificateFeedbackInput,
   CertificateRecipient,
   CertificateRepository,
   CertificateStorageObject,
@@ -207,6 +209,7 @@ function createRig(recipients: CertificateRecipient[]) {
   const uploadedKeys: string[] = [];
   const deletedKeys: string[] = [];
   const signedUrls: { disposition: string | undefined; objectKey: string }[] = [];
+  const feedbackByTeam = new Map<string, CertificateFeedback>();
   let certificateSequence = 0;
   let failStorage = false;
 
@@ -300,6 +303,8 @@ function createRig(recipients: CertificateRecipient[]) {
       const set = sets.get(setId);
       return await Promise.resolve(set?.status === "UPLOADING" ? certificatesOf(setId) : null);
     },
+    hasFeedbackForTeamOwner: async (userId) =>
+      await Promise.resolve(feedbackByTeam.has(teamOwners.get(userId) ?? "")),
     markStored: async (setId, items) => {
       for (const item of items) {
         const certificate = stored.get(item.id);
@@ -308,6 +313,16 @@ function createRig(recipients: CertificateRecipient[]) {
         }
       }
       await Promise.resolve();
+    },
+    saveFeedbackForTeamOwner: async (userId, feedback) => {
+      const teamId = teamOwners.get(userId);
+      if (teamId === undefined) {
+        return false;
+      }
+      if (!feedbackByTeam.has(teamId)) {
+        feedbackByTeam.set(teamId, feedback);
+      }
+      return await Promise.resolve(true);
     },
   };
 
@@ -345,6 +360,7 @@ function createRig(recipients: CertificateRecipient[]) {
     failStorage: () => {
       failStorage = true;
     },
+    feedbackByTeam,
     recipients,
     repository,
     signedUrls,
@@ -990,6 +1006,47 @@ async function mineOf(rig: Rig, userId = TEAM_OWNER_ID) {
   return await call(teamRouter(rig, userId).certificates.mine, undefined, { context });
 }
 
+const feedback: CertificateFeedbackInput = {
+  channelOther: null,
+  channels: ["FACEBOOK", "TEACHER"],
+  comment: "  สนุกมาก  ",
+  decisionFactors: {
+    admissionQuota: 3,
+    camp: 4,
+    campusEnvironment: 5,
+    educationGuidance: 4,
+    familyAdvice: 2,
+    internationalOpportunity: 3,
+    jobMarket: 5,
+    modernEquipment: 4,
+    openHouse: 5,
+    reputation: 5,
+    scholarship: 1,
+    seniorAdvice: 3,
+    teacherAdvice: 4,
+  },
+  event: {
+    overallSatisfaction: 5,
+    publicity: 4,
+    schedule: 3,
+    usefulness: 5,
+    websiteDesign: 4,
+    websiteUsability: 5,
+  },
+  intendedFaculty: "คณะวิศวกรรมศาสตร์",
+  intendedUniversity: null,
+};
+
+async function submitFeedback(
+  rig: Rig,
+  input: CertificateFeedbackInput = feedback,
+  userId = TEAM_OWNER_ID,
+  now = DOWNLOAD_OPENS_AT,
+) {
+  const { context } = createTestContext();
+  return await call(teamRouter(rig, userId, now).certificates.mineFeedback, input, { context });
+}
+
 describe("team certificates", () => {
   it("lists only the team's own recipients and marks which ones are ready", async () => {
     const rig = createRig([participant, secondParticipant, advisor, otherTeamParticipant]);
@@ -1032,6 +1089,7 @@ describe("team certificates", () => {
   it("hides a certificate whose printed name no longer matches the team's data", async () => {
     const rig = createRig([participant]);
     await uploadAll(rig, [participantRow]);
+    await submitFeedback(rig);
     const {
       recipients: [uploaded],
     } = await mineOf(rig);
@@ -1053,6 +1111,7 @@ describe("team certificates", () => {
   it("signs a download URL for the team's own certificate and audits the access", async () => {
     const rig = createRig([participant]);
     const { setId } = await uploadAll(rig, [participantRow]);
+    await submitFeedback(rig);
     const {
       recipients: [recipient],
     } = await mineOf(rig);
@@ -1079,6 +1138,7 @@ describe("team certificates", () => {
   it("does not sign another team's certificate", async () => {
     const rig = createRig([participant, otherTeamParticipant]);
     await uploadAll(rig, [participantRow, otherTeamRow]);
+    await submitFeedback(rig);
     const {
       recipients: [otherCertificate],
     } = await mineOf(rig, OTHER_TEAM_OWNER_ID);
@@ -1129,5 +1189,105 @@ describe("team certificates", () => {
     await expect(
       call(teamRouter(rig).certificates.overview, undefined, { context }),
     ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("team certificate questionnaire", () => {
+  it("unlocks downloads once the team answers the questionnaire", async () => {
+    const rig = createRig([participant]);
+    await uploadAll(rig, [participantRow]);
+    const before = await mineOf(rig);
+
+    const result = await submitFeedback(rig);
+    const after = await mineOf(rig);
+
+    expect(before.feedbackSubmitted).toBeFalsy();
+    expect(result).toStrictEqual({ feedbackSubmitted: true });
+    expect(after.feedbackSubmitted).toBeTruthy();
+  });
+
+  it("refuses to sign a certificate before the team answers the questionnaire", async () => {
+    const rig = createRig([participant]);
+    await uploadAll(rig, [participantRow]);
+    const {
+      recipients: [recipient],
+    } = await mineOf(rig);
+    const { context, log } = createTestContext();
+
+    await expect(
+      call(
+        teamRouter(rig).certificates.mineDownloadUrl,
+        { disposition: "attachment", id: recipient?.certificate?.id ?? "" },
+        { context },
+      ),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_FEEDBACK_REQUIRED", status: 403 });
+    expect(rig.signedUrls).toStrictEqual([]);
+    expect(log.audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "certificate.accessed", outcome: "denied" }),
+    );
+  });
+
+  it("stores trimmed answers and treats a blank comment as no comment", async () => {
+    const rig = createRig([participant, otherTeamParticipant]);
+
+    await submitFeedback(rig);
+    await submitFeedback(rig, { ...feedback, comment: "   " }, OTHER_TEAM_OWNER_ID);
+
+    expect(rig.feedbackByTeam.get(TEAM_ID)?.comment).toBe("สนุกมาก");
+    expect(rig.feedbackByTeam.get(OTHER_TEAM_ID)?.comment).toBeNull();
+  });
+
+  it("keeps the first answer when the team submits again", async () => {
+    const rig = createRig([participant]);
+    await submitFeedback(rig);
+
+    await submitFeedback(rig, { ...feedback, intendedFaculty: "คณะวิทยาศาสตร์" });
+
+    expect(rig.feedbackByTeam.get(TEAM_ID)?.intendedFaculty).toBe("คณะวิศวกรรมศาสตร์");
+  });
+
+  it("asks for the other channel only when OTHER is selected", async () => {
+    const rig = createRig([participant]);
+
+    await expect(
+      submitFeedback(rig, { ...feedback, channelOther: null, channels: ["OTHER"] }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      submitFeedback(rig, { ...feedback, channelOther: "วิทยุ", channels: ["LINE"] }),
+    ).rejects.toMatchObject({ status: 400 });
+    await submitFeedback(rig, { ...feedback, channelOther: " วิทยุ ", channels: ["OTHER"] });
+
+    expect(rig.feedbackByTeam.get(TEAM_ID)?.channelOther).toBe("วิทยุ");
+  });
+
+  it("rejects ratings outside 1 to 5 and an empty channel list", async () => {
+    const rig = createRig([participant]);
+
+    await expect(
+      submitFeedback(rig, { ...feedback, event: { ...feedback.event, schedule: 6 } }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(submitFeedback(rig, { ...feedback, channels: [] })).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(rig.feedbackByTeam.size).toBe(0);
+  });
+
+  it("refuses a team that has no certificates", async () => {
+    const rig = createRig([participant]);
+
+    await expect(submitFeedback(rig, feedback, OTHER_TEAM_OWNER_ID)).rejects.toMatchObject({
+      code: "CERTIFICATE_NOT_FOUND",
+      status: 404,
+    });
+    expect(rig.feedbackByTeam.size).toBe(0);
+  });
+
+  it("keeps the questionnaire closed until downloads open", async () => {
+    const rig = createRig([participant]);
+
+    await expect(
+      submitFeedback(rig, feedback, TEAM_OWNER_ID, BEFORE_DOWNLOAD_OPENS),
+    ).rejects.toMatchObject({ code: "CERTIFICATE_DOWNLOAD_CLOSED", status: 403 });
+    expect(rig.feedbackByTeam.size).toBe(0);
   });
 });

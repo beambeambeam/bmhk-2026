@@ -1,0 +1,42 @@
+CREATE TYPE "public"."certificate_feedback_channel" AS ENUM('WEBSITE', 'FACEBOOK', 'INSTAGRAM', 'TIKTOK', 'LINE', 'CAMPHUB', 'CONTESTER_LIFE', 'TEACHER', 'SENIOR', 'FRIEND', 'FAMILY', 'OTHER');--> statement-breakpoint
+CREATE TABLE "certificate_feedback" (
+	"admission_quota_rating" smallint NOT NULL,
+	"camp_rating" smallint NOT NULL,
+	"campus_environment_rating" smallint NOT NULL,
+	"channel_other" text,
+	"channels" "certificate_feedback_channel"[] NOT NULL,
+	"comment" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"education_guidance_rating" smallint NOT NULL,
+	"event_schedule_rating" smallint NOT NULL,
+	"event_usefulness_rating" smallint NOT NULL,
+	"family_advice_rating" smallint NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"intended_faculty" text,
+	"intended_university" text,
+	"international_opportunity_rating" smallint NOT NULL,
+	"job_market_rating" smallint NOT NULL,
+	"modern_equipment_rating" smallint NOT NULL,
+	"open_house_rating" smallint NOT NULL,
+	"overall_satisfaction_rating" smallint NOT NULL,
+	"publicity_rating" smallint NOT NULL,
+	"reputation_rating" smallint NOT NULL,
+	"scholarship_rating" smallint NOT NULL,
+	"senior_advice_rating" smallint NOT NULL,
+	"submitted_by" text,
+	"teacher_advice_rating" smallint NOT NULL,
+	"team_id" uuid NOT NULL,
+	"website_design_rating" smallint NOT NULL,
+	"website_usability_rating" smallint NOT NULL,
+	CONSTRAINT "certificate_feedback_team_id_unique" UNIQUE("team_id"),
+	CONSTRAINT "certificate_feedback_ratings_valid" CHECK (("certificate_feedback"."admission_quota_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."camp_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."campus_environment_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."education_guidance_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."event_schedule_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."event_usefulness_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."family_advice_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."international_opportunity_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."job_market_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."modern_equipment_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."open_house_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."overall_satisfaction_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."publicity_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."reputation_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."scholarship_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."senior_advice_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."teacher_advice_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."website_design_rating" BETWEEN 1 AND 5) AND ("certificate_feedback"."website_usability_rating" BETWEEN 1 AND 5)),
+	CONSTRAINT "certificate_feedback_channels_nonempty" CHECK (cardinality("certificate_feedback"."channels") > 0),
+	CONSTRAINT "certificate_feedback_channel_other_when_other" CHECK (('OTHER' = ANY("certificate_feedback"."channels")) = ("certificate_feedback"."channel_other" IS NOT NULL)),
+	CONSTRAINT "certificate_feedback_channel_other_valid" CHECK ("certificate_feedback"."channel_other" IS NULL OR (btrim("certificate_feedback"."channel_other") = "certificate_feedback"."channel_other" AND length("certificate_feedback"."channel_other") BETWEEN 1 AND 200)),
+	CONSTRAINT "certificate_feedback_intended_faculty_valid" CHECK ("certificate_feedback"."intended_faculty" IS NULL OR (btrim("certificate_feedback"."intended_faculty") = "certificate_feedback"."intended_faculty" AND length("certificate_feedback"."intended_faculty") BETWEEN 1 AND 200)),
+	CONSTRAINT "certificate_feedback_intended_university_valid" CHECK ("certificate_feedback"."intended_university" IS NULL OR (btrim("certificate_feedback"."intended_university") = "certificate_feedback"."intended_university" AND length("certificate_feedback"."intended_university") BETWEEN 1 AND 200)),
+	CONSTRAINT "certificate_feedback_comment_valid" CHECK ("certificate_feedback"."comment" IS NULL OR (btrim("certificate_feedback"."comment") = "certificate_feedback"."comment" AND length("certificate_feedback"."comment") BETWEEN 1 AND 2000))
+);
+--> statement-breakpoint
+ALTER TABLE "certificate_feedback" ADD CONSTRAINT "certificate_feedback_submitted_by_user_id_fk" FOREIGN KEY ("submitted_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "certificate_feedback" ADD CONSTRAINT "certificate_feedback_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;

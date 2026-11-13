@@ -1,6 +1,7 @@
 // oxlint-disable-next-line oxc/no-barrel-file -- Drizzle schema object is passed to database client
 export * from "./audit-events";
 export * from "./auth";
+export * from "./certificate-feedback";
 export * from "./certificates";
 export * from "./check-in-round";
 export * from "./discord";

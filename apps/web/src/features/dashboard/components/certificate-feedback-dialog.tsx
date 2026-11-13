@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Combobox } from "@base-ui/react/combobox";
 import { Dialog } from "@base-ui/react/dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, X } from "lucide-react";
 
 import { orpc } from "@bmhk-2026/client/orpc";
@@ -32,13 +32,12 @@ import type {
   FeedbackFieldId,
   Rating,
 } from "../certificate-feedback-input";
+import { mergeUniversityNames, tcasUniversitiesQueryOptions } from "../tcas-universities";
 
 const TITLE = "แบบสอบถามก่อนดาวน์โหลดเกียรติบัตร";
 const DESCRIPTION = "ตอบแบบสอบถามครั้งเดียวต่อทีม แล้วดาวน์โหลดเกียรติบัตรของทุกคนในทีมได้ทันที คำถามที่มี * ต้องตอบ";
 const SUBMIT_ERROR = "ส่งแบบสอบถามไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
 const FIX_ERRORS = "ยังตอบไม่ครบ กรุณาตรวจคำถามที่มีข้อความสีแดง";
-
-const UNIVERSITY_ITEMS = [...UNIVERSITIES, OTHER_CHOICE, UNDECIDED_CHOICE];
 
 const CONTROL =
   "w-full rounded-[10px] border border-[#dcdcdc] bg-white px-3 py-2 fl-14 leading-normal outline-none transition-colors focus-visible:border-brand-red aria-invalid:border-brand-red";
@@ -192,6 +191,16 @@ export default function CertificateFeedbackDialog({
   const formRef = useRef<HTMLFormElement>(null);
   const [draft, setDraft] = useState<FeedbackDraft>(EMPTY_FEEDBACK_DRAFT);
   const [errors, setErrors] = useState<FeedbackErrors>({});
+  // The built-in list shows at once; the live myTCAS names join it when they load.
+  const { data: liveUniversities } = useQuery({ ...tcasUniversitiesQueryOptions, enabled: open });
+  const universityItems = useMemo(
+    () => [
+      ...mergeUniversityNames(UNIVERSITIES, liveUniversities ?? []),
+      OTHER_CHOICE,
+      UNDECIDED_CHOICE,
+    ],
+    [liveUniversities],
+  );
 
   const submit = useMutation({
     ...orpc.certificates.mineFeedback.mutationOptions(),
@@ -322,7 +331,7 @@ export default function CertificateFeedbackDialog({
                     มหาวิทยาลัยที่สนใจศึกษาต่อ <span className="text-brand-red">*</span>
                   </label>
                   <Combobox.Root
-                    items={UNIVERSITY_ITEMS}
+                    items={universityItems}
                     filter={filterUniversity}
                     value={draft.university === "" ? null : draft.university}
                     onValueChange={(university) => {

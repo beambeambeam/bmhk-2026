@@ -72,6 +72,9 @@ vi.mock("@bmhk-2026/client/orpc", () => ({
   },
 }));
 
+const TCAS_URL = "https://my-tcas.s3.ap-southeast-1.amazonaws.com/mytcas/universities.json";
+const tcasFetch = vi.fn<typeof fetch>();
+
 const DOWNLOAD_ALPHA = "ดาวน์โหลดเกียรติบัตรของ อัลฟา หนึ่ง";
 const SUBMIT = "ส่งแบบสอบถามและปลดล็อกการดาวน์โหลด";
 
@@ -197,6 +200,42 @@ describe(CertificateCard, () => {
   describe("questionnaire gate", () => {
     beforeEach(() => {
       feedbackSubmitted = false;
+      vi.stubGlobal("fetch", tcasFetch);
+      tcasFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+    });
+
+    it("offers universities from the live TCAS list", async () => {
+      tcasFetch.mockResolvedValue(
+        Response.json([
+          { university_id: "998", university_name: " มหาวิทยาลัยเปิดใหม่ " },
+          { university_id: "001", university_name: "จุฬาลงกรณ์มหาวิทยาลัย" },
+        ]),
+      );
+      renderCard();
+
+      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      const dialog = await screen.findByRole("dialog");
+      await waitFor(() => {
+        expect(tcasFetch).toHaveBeenCalledWith(TCAS_URL, expect.anything());
+      });
+      fireEvent.click(within(dialog).getByRole("button", { name: "แสดงรายชื่อมหาวิทยาลัย" }));
+
+      await expect(screen.findByRole("option", { name: "มหาวิทยาลัยเปิดใหม่" })).resolves.toBeDefined();
+      expect(screen.getAllByRole("option", { name: "จุฬาลงกรณ์มหาวิทยาลัย" })).toHaveLength(1);
+    });
+
+    it("keeps the built-in universities when the TCAS list cannot load", async () => {
+      tcasFetch.mockResolvedValue(Response.json({ message: "maintenance" }, { status: 503 }));
+      renderCard();
+
+      fireEvent.click(await screen.findByRole("button", { name: "ทำแบบสอบถาม" }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: "แสดงรายชื่อมหาวิทยาลัย" }));
+
+      await expect(
+        screen.findByRole("option", { name: "มหาวิทยาลัยราชภัฏสุราษฎร์ธานี" }),
+      ).resolves.toBeDefined();
+      expect(screen.getByRole("option", { name: "วิทยาลัยดุสิตธานี" })).toBeDefined();
     });
 
     it("locks downloads until the team answers the questionnaire", async () => {

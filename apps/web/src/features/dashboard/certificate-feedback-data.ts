@@ -35,6 +35,7 @@ export const FACULTIES = [
 
 // Built-in list of Thai higher-education institutions (main campuses) that admit bachelor's
 // students, from the MHESI open dataset univ_uni_11_01, academic year 2566, with spelling fixes.
+// The dialog adds the live myTCAS list on top; this list is the fallback when that fails.
 // Answers are stored as the chosen name, so a change does not affect earlier answers.
 export const UNIVERSITIES = [
   "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี",

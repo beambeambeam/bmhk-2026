@@ -1,10 +1,7 @@
-import { Link } from "@tanstack/react-router";
 import { useReveal } from "@/hooks/use-reveal";
-import { HERO_FREE_NOTE, HERO_LINES } from "./data/home-data";
+import { HERO_LINES } from "./data/home-data";
 import { HeroMobileDecor } from "./home-background";
 import { StackedLockup, WideLockup } from "./lockup";
-
-const arrowUpRight = "/assets/figma/36e6beb58fc37672896d6a8fe3655bddf9e50622.svg";
 
 export default function Hero() {
   const { ref: contentRef, cls: contentCls } = useReveal({ group: true, threshold: 0 });
@@ -112,62 +109,6 @@ export default function Hero() {
               {line}
             </span>
           ))}
-        </p>
-
-        {/*
-         * A plain link with a hover and a press. It used to be a `LiquidButton`: three
-         * stacked layers, a pointer-tracked drag on a rubber band and six springs, so the
-         * pill could be pulled out of place and would spring home deforming as it went.
-         * That component is gone — the CTA is one element again, `bg-brand-red` paints the
-         * element itself rather than an inner fill layer, and `mm-press` is back because
-         * the press feedback is the app's own again rather than the spring's. The states
-         * live on `.hero-cta` in styles/liquid.css.
-         *
-         * The one link out of the marketing pages that should not be a cut: the sign-in
-         * screen assembles itself on arrival, and it should arrive rather than replace.
-         *
-         * `to="/signin"` — this repo's auth screen lives at `/signin`.
-         */}
-        <Link
-          className="hero-cta mm-press bg-brand-red font-bold text-white"
-          to="/signin"
-          viewTransition
-        >
-          {/* `708:242` / `1190:671` — Figma shortened this from ลงทะเบียนเข้าร่วมการแข่งขัน,
-              and relabelled the nav's pill to match. */}
-          สมัครเข้าแข่งขัน
-          {/* the glyph sits inside a 34px cell at 1440 — Figma insets it rather than
-              scaling it, so the inset stays a percentage of whatever the cell becomes. The
-              lean on hover is gated on a fine pointer, since touch fires :hover on tap.
-              Absent below `md`: `1190:670` is label-only, and its 305 width is exactly
-              32 + 241 + 32 with nothing left for a cell. */}
-          {/* `overflow-clip`, not `hidden`: the cell holds art inset inside it, and `hidden`
-              would make this a scroll container a touch drag could pan. */}
-          <span className="hero-cta-icon mm-arrow-shift relative hidden shrink-0 overflow-clip md:block">
-            {/* Inset on a SPAN with the image filling it. An `<img>` is a replaced element, so
-                `absolute` + four insets positions it at its INTRINSIC size and silently drops
-                the over-constrained `right` (CSS 2.1 10.3.7) — measured 19.3 in a cell asking
-                for 19.9 at 1440, and progressively more wrong as the cell ramps down, where the
-                glyph would be cropped rather than scaled. A span is non-replaced, so the insets
-                become its box and `size-full` hands that box to the image. */}
-            <span className="absolute inset-[20.81%_20.8%_22.32%_22.32%] block">
-              <img alt="" aria-hidden className="block size-full" src={arrowUpRight} />
-            </span>
-          </span>
-        </Link>
-
-        {/*
-         * `1235:77` / `1297:2051` — a line Figma added BELOW the CTA, not above it: desktop
-         * puts the pill's floor at 822 and this at 842, and the phone frame at 600 and 620.
-         * So the 20 gap is flat at both ends rather than a ramp, and it is a margin here
-         * instead of a gap on the column because the column's own gap is the paragraph's.
-         *
-         * 16 at 402 and 20 at 1440, both Figma's, solved through `--fl` the same way the
-         * paragraph above solves its own pair. Gray 02, and Regular rather than the
-         * paragraph's Light — it is a claim, not continued prose.
-         */}
-        <p className="mt-[20px] text-[calc(15.896px_+_4.104*var(--fl))] leading-[1.5] text-gray-2">
-          {HERO_FREE_NOTE}
         </p>
       </div>
     </section>

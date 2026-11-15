@@ -34,7 +34,7 @@ const SCROLLED_AT = 24;
 const MENU_GONE_AT = "(min-width: 64rem)";
 
 /**
- * The four things that arrive when the block unfolds: three links and the register button.
+ * The links that arrive, one by one, when the block unfolds.
  * 70ms apart, which is the cadence `.reveal-group` already uses for every staggered group
  * on the site (index.css — `--reveal-delay` steps 0 / 70 / 140 / 210 / 280…). Same custom
  * property name on purpose: it is the app's word for "your turn in the queue", and reusing
@@ -402,26 +402,6 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2">
             {/*
-             * `708:417` — 100px radius, `fl-nav` type (16 → 20), padding 14/8 at 375 → 40/12 at
-             * 1440. Geometry unchanged; the HOVER is what changed. It was `hover:opacity-90`,
-             * and dimming is the wrong affordance for a flat red on white: the pill reads as
-             * fading out from under the pointer rather than as responding. `#b14f39` is the same
-             * red at 92% luminance — the darkening the hero CTA settled on (liquid.css's
-             * `.hero-cta:hover`, which carries the full reasoning) — so the two red pills on a
-             * page now answer to the pointer the same way. `.mm-press` already lists
-             * `background-color` at `--mm-fast` in its unlayered base rule, so the tint is
-             * timed without a `transition-*` utility (one written here would lose to it anyway),
-             * and `.mm-press:active` is the pressed state: 0.97 from the centre.
-             */}
-            <Link
-              to="/signin"
-              className="mm-press fl-nav hidden rounded-[100px] bg-brand-red px-[calc(14px_+_26*var(--fl))] py-[calc(8px_+_4*var(--fl))] leading-[1.4] font-bold whitespace-nowrap text-white hover:bg-[#b14f39] lg:block"
-            >
-              {/* `708:418` — Figma renamed this from ลงทะเบียน, matching the hero CTA's own
-                  relabel to สมัครเข้าแข่งขัน (`708:242`). */}
-              สมัครเข้าแข่งขัน
-            </Link>
-            {/*
              * `1190:782` / `1341:335` is a bare 24x24 `menu_regular` glyph in ink, sitting
              * directly on the white pill — no red disc. The disc was invented when there was no
              * phone frame. `1341:338` is its 24x24 `close_regular` counterpart, so the open
@@ -561,38 +541,6 @@ export default function Navbar() {
                 </li>
               ))}
             </ul>
-
-            {/* Last in the queue, so the block finishes filling at the button — 3 × 70ms. */}
-            <div
-              style={{
-                "--reveal-delay": open ? `${NAV_LINKS.length * REVEAL_STEP}ms` : "0ms",
-              }}
-              className={`mt-[22px] transition-[opacity,translate] delay-[var(--reveal-delay)] duration-[var(--mm-fast)] ease-[var(--mm-ease-out)] motion-reduce:translate-y-0 motion-reduce:transition-none ${
-                open ? "translate-y-0 opacity-100" : "translate-y-1.5 opacity-0"
-              }`}
-            >
-              {/*
-               * `1341:330` — full width of the padding box, `rounded-[16px]` (NOT the pill's
-               * 100: the frame gives this button a 16 while the desktop CTA `708:417` keeps its
-               * 100, and the difference is the point of the redesign — a square-ish button
-               * inside a square-ish block), px 24 / py 12 on `#c0563e`, label `1341:331` at 20px
-               * bold white on 1.4 leading. 12 + 28 + 12 = the 52 the frame measures.
-               *
-               * Hover is the hero's darkening rather than a dim, for the reason liquid.css sets
-               * out: over white, lightening a flat red reads as the control fading out. Press is
-               * `.mm-press` from the centre, which is right here where it was wrong on the link
-               * rows — the label is centred, so a 3% squeeze moves it nowhere.
-               */}
-              <Link
-                to="/signin"
-                onClick={() => {
-                  setOpen(false);
-                }}
-                className="mm-press block rounded-[16px] bg-brand-red px-6 py-3 text-center text-xl leading-[1.4] font-bold text-white hover:bg-[#b14f39]"
-              >
-                สมัครเข้าแข่งขัน
-              </Link>
-            </div>
           </div>
         </div>
       </nav>

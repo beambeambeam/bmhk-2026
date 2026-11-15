@@ -106,9 +106,9 @@ describe("feature flags", () => {
     );
   });
 
-  it("opens certificate downloads at 16:00 Bangkok time on 15 November", async () => {
-    const beforeStart = createRouter("2026-11-15T08:59:59.999Z");
-    const atStart = createRouter("2026-11-15T09:00:00.000Z");
+  it("opens certificate downloads at midnight Bangkok time on 15 November", async () => {
+    const beforeStart = createRouter("2026-11-14T16:59:59.999Z");
+    const atStart = createRouter("2026-11-14T17:00:00.000Z");
 
     await expect(getAll(beforeStart)).resolves.toMatchObject({ certificateDownload: false });
     await expect(getAll(atStart)).resolves.toMatchObject({ certificateDownload: true });

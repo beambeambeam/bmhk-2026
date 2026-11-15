@@ -26,8 +26,8 @@ import {
 } from "../../../__test__/test-support";
 
 // Team downloads open at this instant, set by the `certificateDownload` feature flag.
-const DOWNLOAD_OPENS_AT = "2026-11-15T16:00:00+07:00";
-const BEFORE_DOWNLOAD_OPENS = "2026-11-15T15:59:59.999+07:00";
+const DOWNLOAD_OPENS_AT = "2026-11-15T00:00:00+07:00";
+const BEFORE_DOWNLOAD_OPENS = "2026-11-14T23:59:59.999+07:00";
 const TEAM_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_TEAM_ID = "11111111-1111-4111-8111-111111111112";
 const PARTICIPANT_ID = "22222222-2222-4222-8222-222222222221";

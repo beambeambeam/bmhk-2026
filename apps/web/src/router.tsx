@@ -1,36 +1,15 @@
-/* oxlint-disable no-unused-vars */
-/* eslint-disable no-unused-vars */
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import { orpc } from "@bmhk-2026/client/orpc";
-import { createQueryClient } from "@bmhk-2026/client/query-client";
 
 import NotFound from "./components/not-found";
 import { routeTree } from "./routeTree.gen";
 
-import { trackAuthNav } from "./components/form/wizard-nav";
-
 export function getRouter() {
-  const queryClient = createQueryClient();
-  const router = createTanStackRouter({
-    context: { orpc, queryClient },
+  return createTanStackRouter({
     defaultNotFoundComponent: () => <NotFound />,
-    // defaultPendingComponent: () => <Loader />,
     defaultPreloadStaleTime: 0,
     routeTree,
     scrollRestoration: true,
   });
-
-  setupRouterSsrQueryIntegration({
-    queryClient,
-    router,
-  });
-
-  if (typeof window !== "undefined") {
-    trackAuthNav(router);
-  }
-
-  return router;
 }
 
 declare module "@tanstack/react-router" {

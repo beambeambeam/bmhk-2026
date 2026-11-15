@@ -1,20 +1,10 @@
-import { Toaster } from "@/components/sonner";
-import type { orpc } from "@bmhk-2026/client/orpc";
-import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import CookieConsent from "@/components/cookie-consent";
-import { UserProvider } from "@/contexts/user-context";
 
 import appCss from "../index.css?url";
 
-export interface RouterAppContext {
-  orpc: typeof orpc;
-  queryClient: QueryClient;
-}
-
-export const Route = createRootRouteWithContext<RouterAppContext>()({
+export const Route = createRootRoute({
   component: RootDocument,
 
   head: () => ({
@@ -51,14 +41,10 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body className="font-thai">
-        <UserProvider>
-          <Outlet />
-          <CookieConsent />
-          <Toaster richColors />
-          <TanStackRouterDevtools position="bottom-left" />
-          <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-          <Scripts />
-        </UserProvider>
+        <Outlet />
+        <CookieConsent />
+        <TanStackRouterDevtools position="bottom-left" />
+        <Scripts />
       </body>
     </html>
   );

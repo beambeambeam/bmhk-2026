@@ -3,12 +3,6 @@ export const HERO_LINES = [
   "ชิงเงินรางวัลรวมกว่า 60,000 บาท พร้อมประสบการณ์การแข่งขันจริงในระดับประเทศ",
 ];
 
-/**
- * `1235:77` / `1297:2051` — a single line Figma now sets 20px BELOW the hero CTA (not
- * between the paragraph and the pill), in Gray 02 rather than the paragraph's ink.
- */
-export const HERO_FREE_NOTE = "สมัครฟรี ไม่มีค่าใช้จ่าย";
-
 /** Gradient highlight cards in the calendar section. */
 export const TIMELINE_HIGHLIGHTS = [
   {

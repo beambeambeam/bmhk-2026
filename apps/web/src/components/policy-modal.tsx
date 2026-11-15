@@ -8,8 +8,7 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
 /* eslint-disable react-compiler/react-compiler */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PolicyBlock, PolicyDocument } from "@/features/register/data/privacy-policy";
-import { REQUIRED_DOCUMENTS } from "@/features/register/data/registration-data";
+import type { PolicyBlock, PolicyDocument } from "@/privacy-policy";
 import useDialogFocus, { useScrollLock } from "./use-dialog-focus";
 
 const ARROW_DOWN = "/assets/figma/b5fa6d1d1c4352d0d01420816b8777fe81ff5920.svg";
@@ -70,6 +69,8 @@ export interface PolicyModalDocItem {
   rounded?: boolean;
   document: PolicyDocument;
 }
+
+const NO_DOCUMENTS: PolicyModalDocItem[] = [];
 
 function getDotClass(isCurrent: boolean, isItemAccepted: boolean): string {
   if (isCurrent) {
@@ -466,7 +467,7 @@ export default function PolicyModal({
   open?: boolean;
   /** `null` closes the modal (backwards compatibility). */
   document?: PolicyDocument | null;
-  /** Full list of carousel documents. Defaults to REQUIRED_DOCUMENTS. */
+  /** Full list of carousel documents. Defaults to `document` alone. */
   documents?: PolicyModalDocItem[];
   /** Starting slide index. Defaults to 0. */
   initialIndex?: number;
@@ -486,8 +487,7 @@ export default function PolicyModal({
   const singleDocList: PolicyModalDocItem[] | null = doc
     ? [{ description: doc.subtitle, document: doc, icon: doc.icon, title: doc.title }]
     : null;
-  const docList =
-    documents && documents.length > 0 ? documents : (singleDocList ?? REQUIRED_DOCUMENTS);
+  const docList = documents && documents.length > 0 ? documents : (singleDocList ?? NO_DOCUMENTS);
   const isVisible = open ?? doc !== null;
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);

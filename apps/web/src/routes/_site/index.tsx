@@ -47,7 +47,7 @@ const EVENT_JSON_LD = {
     availability: "https://schema.org/InStock",
     price: "0",
     priceCurrency: "THB",
-    url: "https://bangmodhackathon.com/signin",
+    url: URL,
     validFrom: "2026-08-17T00:00+07:00",
     validThrough: "2026-09-20T23:59+07:00",
   },

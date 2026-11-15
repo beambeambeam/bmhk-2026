@@ -1,6 +1,6 @@
 export const featureFlags = {
   certificateDownload: {
-    startsAt: "2026-11-15T16:00:00+07:00",
+    startsAt: "2026-11-15T00:00:00+07:00",
   },
   eligibleTeamsAnnouncement: {
     startsAt: "2026-09-22T16:00:00+07:00",
